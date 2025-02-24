@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-StreamlineShedulerApplication<streamline-sheduler>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.github.benedikt_weyer.streamline_sheduler.StreamlineShedulerApplication",
+            "projectName": "streamline-sheduler",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
