@@ -28,7 +28,13 @@ public class AuthenticationController {
         
         service.register(request);
 
-        return ResponseEntity.accepted().build();
+        return ResponseEntity
+            .accepted()
+            .body(
+                RegistrationResponse.builder()
+                    .message("User registered successfully")
+                    .build()
+            );
     }
     
 
