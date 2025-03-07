@@ -43,12 +43,12 @@ const RegisterPage = () => {
 
     return (
         <div className="flex items-center justify-center h-full">
-            <div className="flex flex-col justify-center h-full gap-4">
+            <div className="flex flex-col justify-center h-full gap-6">
 
-                <h1 className="text-3xl font-bold">Register</h1>
+                <h1 className="text-3xl font-bold">Create your Account</h1>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-80">
                         <FormField
                             control={form.control}
                             name="username"
