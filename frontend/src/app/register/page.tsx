@@ -13,6 +13,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { toast, Toaster } from "sonner"
 
 const formSchema = z.object({
     email: z.string().min(2, {
@@ -53,16 +54,32 @@ const RegisterPage = () => {
 
             const resData = await res.json();
 
+            // Throw an error if the response is not ok
+            if (!res.ok) {
+                throw new Error(`${res.status}, ${resData.error}`);
+            }
+
+            // Show a toast notification if the registration is successful
+            toast("Success", {
+                description: "Registered successfully"
+            });
+
             console.log(resData);
+
         } catch (error) {
-            console.error(error);
+
+            // Show a toast notification if the registration fails
+            toast("Registration failed", {
+                description: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+            });
+
+            console.log(error);
         }
     };
 
     return (
         <div className="flex items-center justify-center h-full">
             <div className="flex flex-col justify-center h-full gap-6">
-
                 <h1 className="text-3xl font-bold">Create your Account</h1>
 
                 <Form {...form}>
@@ -97,6 +114,8 @@ const RegisterPage = () => {
                     </form>
                 </Form>
             </div>
+
+            <Toaster />
         </div>
     );
 };
