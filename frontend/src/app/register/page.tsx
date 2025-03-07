@@ -38,7 +38,6 @@ const RegisterPage = () => {
     
     // submit handler definition
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        console.log(values)
 
         try {
             const res = await fetch("/api/auth/register", {
