@@ -37,8 +37,27 @@ const RegisterPage = () => {
     });
     
     // submit handler definition
-    const onSubmit = (values: z.infer<typeof formSchema>) => {
+    const onSubmit = async (values: z.infer<typeof formSchema>) => {
         console.log(values)
+
+        try {
+            const res = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    email: values.email,
+                    password: values.password,
+                })
+            });
+
+            const resData = await res.json();
+
+            console.log(resData);
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     return (
@@ -51,7 +70,7 @@ const RegisterPage = () => {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 w-80">
                         <FormField
                             control={form.control}
-                            name="username"
+                            name="email"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormControl>
