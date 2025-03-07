@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 
 const formSchema = z.object({
-    username: z.string().min(2, {
+    email: z.string().min(2, {
         message: "Username must be at least 2 characters."
     })
     .email({
@@ -31,7 +31,7 @@ const RegisterPage = () => {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            username: "",
+            email: "",
             password: "",
         },
     });
@@ -55,7 +55,7 @@ const RegisterPage = () => {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormControl>
-                                        <Input placeholder="Username" {...field} />
+                                        <Input placeholder="Email" {...field} />
                                     </FormControl>
 
                                     <FormMessage />
