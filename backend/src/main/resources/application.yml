@@ -22,3 +22,8 @@ server:
     port: 8181
     servlet:
         context-path: /api/v1
+
+application:
+    security:
+        cors:
+            frontend-url: ${SPRING_CORS_FRONTEND_URL}
