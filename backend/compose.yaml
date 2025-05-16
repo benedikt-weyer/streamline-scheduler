@@ -1,9 +1,0 @@
-services:
-  postgres:
-    image: 'postgres:latest'
-    environment:
-      - 'POSTGRES_DB=streamline_scheduler'
-      - 'POSTGRES_PASSWORD=${SPRING_DATASOURCE_PASSWORD}'
-      - 'POSTGRES_USER=postgres'
-    ports:
-      - '5432:5432'
