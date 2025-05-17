@@ -76,7 +76,7 @@ export const storeHashedPassword = (hashedPassword: string): void => {
 };
 
 export const getHashedPassword = (): string | null => {
-  const match = document.cookie.match(/encKey=([^;]+)/);
+  const match = RegExp(/encKey=([^;]+)/).exec(document.cookie);
   return match ? match[1] : null;
 };
 
