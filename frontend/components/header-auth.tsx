@@ -50,9 +50,6 @@ export default async function AuthButton() {
     <div className="flex items-center gap-4">
       Hey, {user.email}!
       <SignOutButton />
-      <Button asChild variant="ghost" size="sm">
-        <Link href="/dashboard/can-do-list">Can-Do List</Link>
-      </Button>
     </div>
   ) : (
     <div className="flex gap-2">

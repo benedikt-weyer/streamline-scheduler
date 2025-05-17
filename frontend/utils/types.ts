@@ -19,3 +19,23 @@ export interface EncryptedCanDoItem {
 export interface CanDoList {
   items: CanDoItem[];
 }
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  startTime: Date;
+  endTime: Date;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface EncryptedCalendarEvent {
+  id: string;
+  user_id: string;
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+  created_at: string;
+  updated_at: string;
+}
