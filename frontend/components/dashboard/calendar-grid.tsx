@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 
-import { format, isSameDay, differenceInMinutes, addMinutes } from 'date-fns';
+import { format, isSameDay, differenceInMinutes, addMinutes, differenceInSeconds } from 'date-fns';
 
 import { CalendarEvent } from '@/utils/types';
 import { generateTimeSlots } from '@/utils/calendar';
@@ -41,8 +41,24 @@ export function CalendarGrid({
   // Visual position during drag (for visual feedback)
   const [dragPosition, setDragPosition] = useState<DragPosition | null>(null);
   
+  // Current time tracker for showing time indicator line
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
   // Flag to prevent click handlers during drag operations
   const isDraggingRef = useRef(false);
+
+  // Update current time every minute
+  useEffect(() => {
+    // Set current time on first render
+    setCurrentTime(new Date());
+    
+    // Update current time every minute
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // 60000ms = 1 minute
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Calculate calendar height based on window size
   useEffect(() => {
@@ -275,6 +291,45 @@ export function CalendarGrid({
     return dayEvents.map(event => renderSingleEvent(event, day, dayIndex));
   };
 
+  // Calculate the position for the current time indicator
+  const calculateCurrentTimePosition = (day: Date): number | null => {
+    // Only show for current day
+    if (!isSameDay(currentTime, day)) return null;
+    
+    // Calculate minutes since start of day (midnight)
+    const dayStart = new Date(day);
+    dayStart.setHours(0, 0, 0, 0);
+    
+    const minutesSinceMidnight = differenceInMinutes(currentTime, dayStart);
+    
+    // Convert to position
+    return (minutesSinceMidnight / 60) * slotHeight;
+  };
+
+  // Render current time indicator for a day
+  const renderCurrentTimeLine = (day: Date): React.ReactNode => {
+    const position = calculateCurrentTimePosition(day);
+    
+    // Don't render if not current day
+    if (position === null) return null;
+    
+    return (
+      <div 
+        className="absolute w-full bg-purple-900 z-30 pointer-events-none h-[2px] -translate-y-1/2"
+        style={{ 
+          top: `${position}px`,
+        }}
+      >
+        {/* Time label */}
+        <div 
+          className="absolute bg-purple-900 text-white text-xs px-1 py-[1px] top-[1px] rounded-full w-2 h-2 -translate-y-1/2 -translate-x-full"
+        >
+        </div>
+
+      </div>
+    );
+  };
+
   // calculates if two date intervals are overlapping
   const areDatesOverlapping = (start1: Date, end1: Date, start2: Date, end2: Date): boolean => {
     return start1 < end2 && start2 < end1;
@@ -388,6 +443,9 @@ export function CalendarGrid({
                   }}
                 />
               ))}
+              
+              {/* Current time indicator line */}
+              {renderCurrentTimeLine(day)}
               
               {/* Events for this day */}
               {renderEvents(day, dayIndex)}
