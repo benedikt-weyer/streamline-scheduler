@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 
-import { format, isSameDay, differenceInMinutes, addMinutes, differenceInSeconds } from 'date-fns';
+import { format, isSameDay, differenceInMinutes } from 'date-fns';
 
 import { CalendarEvent } from '@/utils/types';
 import { generateTimeSlots } from '@/utils/calendar';
@@ -8,7 +8,8 @@ import { calculateCalendarDimensions, calculateEventRendering } from '@/utils/ca
 import { 
   DraggedEvent, 
   DragPosition, 
-  calculateDraggingEventDateTime 
+  calculateDraggingEventDateTime,
+  DragMode // Import the DragMode enum
 } from '@/utils/calendar-drag';
 
 
@@ -219,7 +220,8 @@ export function CalendarGrid({
   const handleEventMouseDown = (
     e: React.MouseEvent, 
     event: CalendarEvent, 
-    dayIndex: number
+    dayIndex: number,
+    mode: DragMode = DragMode.Move // Default to move if not specified
   ) => {
     // Only enable drag if we can update
     if (!onEventUpdate) return;
@@ -235,7 +237,8 @@ export function CalendarGrid({
     setActiveEvent({
       event,
       initialPosition: { x: e.clientX, y: e.clientY },
-      offsetY
+      offsetY,
+      mode // Use the specified drag mode
     });
   };
 
@@ -291,16 +294,32 @@ export function CalendarGrid({
       <div
         key={event.id}
         className={`absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white 
-           bg-indigo-500 border border-indigo-600 shadow-sm 
+           bg-indigo-500 border border-indigo-600 shadow-sm group
            ${onEventUpdate ? 'cursor-move' : 'cursor-pointer'}`}
         style={eventStyles}
         onClick={(e) => handleEventClick(e, event)}
-        onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex)}
+        onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.Move)}
       >
+        {/* Top resize handle - only visible on hover */}
+        {onEventUpdate && (
+          <div 
+            className="absolute top-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-indigo-300/50"
+            onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeTop)}
+          />
+        )}
+        
         <div className="font-medium truncate">{event.title}</div>
         <div className="text-xs truncate">
           {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
         </div>
+        
+        {/* Bottom resize handle - only visible on hover */}
+        {onEventUpdate && (
+          <div 
+            className="absolute bottom-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-indigo-300/50"
+            onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeBottom)}
+          />
+        )}
       </div>
     );
   };

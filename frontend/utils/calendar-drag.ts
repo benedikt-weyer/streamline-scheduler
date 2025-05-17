@@ -1,10 +1,18 @@
-import { addMinutes, differenceInMinutes } from 'date-fns';
+import { differenceInMinutes } from 'date-fns';
 import { CalendarEvent } from './types';
+
+// Enum for different drag modes
+export enum DragMode {
+  Move = 'move',      // Moving the entire event
+  ResizeTop = 'top',  // Resizing the top of the event (changing start time)
+  ResizeBottom = 'bottom' // Resizing the bottom of the event (changing end time)
+}
 
 export interface DraggedEvent {
   event: CalendarEvent;
   initialPosition: { x: number, y: number };
   offsetY: number;
+  mode: DragMode; // Track which operation we're performing
 }
 
 export interface DragPosition {
@@ -25,42 +33,83 @@ export const calculateDraggingEventDateTime = (
 ): DragPosition => {
 
   // Calculate the relative Y position of the mouse within the column
-  const relativeY = mouseY - columnMouseOverRect.top - activeEvent.offsetY;
+  const relativeY = mouseY - columnMouseOverRect.top - (activeEvent.mode === DragMode.Move ? activeEvent.offsetY : 0);
 
   let relativeYSnapped = relativeY;
 
   if (mouseY < columnMouseOverRect.top) {
     // If the mouse is above the column, snap to the top
-    relativeYSnapped = -activeEvent.offsetY;
-  }else if (mouseY > columnMouseOverRect.bottom) {
+    relativeYSnapped = -(activeEvent.mode === DragMode.Move ? activeEvent.offsetY : 0);
+  } else if (mouseY > columnMouseOverRect.bottom) {
     // If the mouse is below the column, snap to the bottom
-    relativeYSnapped = columnMouseOverRect.height - activeEvent.offsetY;
+    relativeYSnapped = columnMouseOverRect.height - (activeEvent.mode === DragMode.Move ? activeEvent.offsetY : 0);
   }
   
-   // Calculate minutes from top position
-   const totalMinutes = (relativeYSnapped / slotHeight) * 60;
+  // Calculate minutes from top position
+  const totalMinutes = (relativeYSnapped / slotHeight) * 60;
   
-   // Round minutes to nearest 30-minute interval for consistency with drag snapping
-   const snappedMinutes = totalMinutes >= 0 ? Math.floor(totalMinutes / 30) * 30 : Math.ceil(totalMinutes / 30) * 30;
-   
-   // Calculate hours and minutes components
-   const hours = snappedMinutes >= 0 ? Math.floor(snappedMinutes / 60) : Math.ceil(snappedMinutes / 60);
-   const minutes = snappedMinutes % 60;
-   
-   // Create new date with calculated time
-   const newStartTime = new Date(currentlyHoveringDay);
-   newStartTime.setHours(hours, minutes, 0, 0);
-
-
-   // Calculate duration for maintaining event length
-  const duration = differenceInMinutes(
-    activeEvent.event.endTime, 
-    activeEvent.event.startTime
-  );
+  // Round minutes to nearest 15-minute interval for better usability
+  const snappedMinutes = Math.round(totalMinutes / 15) * 15;
   
+  // Calculate hours and minutes components
+  const hours = snappedMinutes >= 0 ? Math.floor(snappedMinutes / 60) : Math.ceil(snappedMinutes / 60);
+  const minutes = Math.abs(snappedMinutes % 60);
+  
+  // Calculate times based on drag mode
+  let newStartTime: Date;
+  let newEndTime: Date;
+  
+  switch (activeEvent.mode) {
+    case DragMode.ResizeTop: {
+      // When resizing from the top, only the start time changes
+      newStartTime = new Date(currentlyHoveringDay);
+      newStartTime.setHours(hours, minutes, 0, 0);
+      
+      // Ensure start time doesn't go beyond end time
+      if (newStartTime >= activeEvent.event.endTime) {
+        newStartTime = new Date(activeEvent.event.endTime);
+        newStartTime.setMinutes(newStartTime.getMinutes() - 15);
+      }
+      
+      newEndTime = new Date(activeEvent.event.endTime);
+      break;
+    }
+      
+    case DragMode.ResizeBottom: {
+      // When resizing from the bottom, only the end time changes
+      newEndTime = new Date(currentlyHoveringDay);
+      newEndTime.setHours(hours, minutes, 0, 0);
+      
+      // Ensure end time doesn't go before start time
+      if (newEndTime <= activeEvent.event.startTime) {
+        newEndTime = new Date(activeEvent.event.startTime);
+        newEndTime.setMinutes(newEndTime.getMinutes() + 15);
+      }
+      
+      newStartTime = new Date(activeEvent.event.startTime);
+      break;
+    }
+      
+    case DragMode.Move:
+    default: {
+      // Moving the entire event - maintain the same duration
+      newStartTime = new Date(currentlyHoveringDay);
+      newStartTime.setHours(hours, minutes, 0, 0);
+      
+      // Calculate duration for maintaining event length
+      const duration = differenceInMinutes(
+        activeEvent.event.endTime, 
+        activeEvent.event.startTime
+      );
+      
+      newEndTime = new Date(newStartTime);
+      newEndTime.setMinutes(newEndTime.getMinutes() + duration);
+      break;
+    }
+  }
 
   return {
     startTime: newStartTime,
-    endTime: addMinutes(newStartTime, duration)
+    endTime: newEndTime
   };
 };
