@@ -288,48 +288,17 @@ export async function deleteCalendar(id: string, moveToCalendarId?: string): Pro
       throw new Error('User not authenticated');
     }
     
-    // Start a transaction to ensure all operations succeed or fail together
-    const { error: transactionError } = await supabase.rpc('begin_transaction');
-    if (transactionError) throw new Error(transactionError.message);
+    // Delete the calendar directly without using transactions
+    // The event moving is actually handled client-side in the UI component
+    const { error: deleteError } = await supabase
+      .from('calendars')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id); // Ensure the calendar belongs to the authenticated user
     
-    try {
-      // If moveToCalendarId is provided, update all events from this calendar to the new one
-      if (moveToCalendarId) {
-        // Update all calendar events in the database with this calendar ID to the new one
-        // This requires updating the encrypted_data of each event, which needs to be done client-side
-        // Here we're just getting all the events that need to be updated
-        const { data: eventsToMove, error: fetchError } = await supabase
-          .from('calendar_events')
-          .select('*')
-          .eq('user_id', user.id)
-          .contains('encrypted_data', `"calendarId":"${id}"`);
-        
-        if (fetchError) throw new Error(fetchError.message);
-        
-        // The actual event updates will need to be done client-side where we can decrypt/encrypt
-        // We'll return the events that need to be moved and let the client handle it
-        if (eventsToMove && eventsToMove.length > 0) {
-          // This is just a placeholder - actual updates happen client-side
-          console.log(`${eventsToMove.length} events need to be moved from calendar ${id} to ${moveToCalendarId}`);
-        }
-      }
-      
-      // Delete the calendar
-      const { error: deleteError } = await supabase
-        .from('calendars')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id); // Ensure the calendar belongs to the authenticated user
-      
-      if (deleteError) throw new Error(deleteError.message);
-      
-      // Commit the transaction
-      const { error: commitError } = await supabase.rpc('commit_transaction');
-      if (commitError) throw new Error(commitError.message);
-    } catch (error) {
-      // Rollback the transaction on error
-      await supabase.rpc('rollback_transaction');
-      throw error;
+    if (deleteError) {
+      console.error('Error deleting calendar:', deleteError);
+      throw new Error(deleteError.message);
     }
   } catch (error) {
     console.error('Failed to delete calendar:', error);
