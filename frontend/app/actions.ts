@@ -55,7 +55,7 @@ export const signInAction = async (formData: FormData) => {
 
   // Store the hashed password in cookies for client-side encryption
   // The actual hashing will be done on the client side in the sign-in form
-  return redirect("/protected");
+  return redirect("/dashboard");
 };
 
 export const forgotPasswordAction = async (formData: FormData) => {
