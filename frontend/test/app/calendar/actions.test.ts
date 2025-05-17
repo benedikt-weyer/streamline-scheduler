@@ -1,39 +1,48 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fetchCalendarEvents, addCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '@/app/dashboard/calendar/actions';
 
 // Mock the Supabase client
-vi.mock('@/utils/supabase/server', () => {
+jest.mock('@/utils/supabase/server', () => {
   return {
-    createClient: vi.fn(() => ({
-      from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          order: vi.fn(() => ({
-            data: [
-              {
-                id: '1',
-                user_id: 'user-123',
-                encrypted_data: 'encrypted-event-data-1',
-                iv: 'iv-1',
-                salt: 'salt-1',
-                created_at: '2025-05-17T10:00:00Z',
-                updated_at: '2025-05-17T11:00:00Z'
-              },
-              {
-                id: '2',
-                user_id: 'user-123',
-                encrypted_data: 'encrypted-event-data-2',
-                iv: 'iv-2',
-                salt: 'salt-2',
-                created_at: '2025-05-18T10:00:00Z',
-                updated_at: '2025-05-18T11:00:00Z'
-              }
-            ],
-            error: null
-          })
+    createClient: jest.fn(() => ({
+      auth: {
+        getUser: jest.fn().mockResolvedValue({
+          data: {
+            user: { id: 'user-123' }
+          },
+          error: null
+        })
+      },
+      from: jest.fn(() => ({
+        select: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            order: jest.fn(() => ({
+              data: [
+                {
+                  id: '1',
+                  user_id: 'user-123',
+                  encrypted_data: 'encrypted-event-data-1',
+                  iv: 'iv-1',
+                  salt: 'salt-1',
+                  created_at: '2025-05-17T10:00:00Z',
+                  updated_at: '2025-05-17T11:00:00Z'
+                },
+                {
+                  id: '2',
+                  user_id: 'user-123',
+                  encrypted_data: 'encrypted-event-data-2',
+                  iv: 'iv-2',
+                  salt: 'salt-2',
+                  created_at: '2025-05-18T10:00:00Z',
+                  updated_at: '2025-05-18T11:00:00Z'
+                }
+              ],
+              error: null
+            }))
+          }))
         })),
-        insert: vi.fn(() => ({
-          select: vi.fn(() => ({
-            single: vi.fn(() => ({
+        insert: jest.fn(() => ({
+          select: jest.fn(() => ({
+            single: jest.fn(() => ({
               data: {
                 id: '3',
                 user_id: 'user-123',
@@ -47,28 +56,32 @@ vi.mock('@/utils/supabase/server', () => {
             }))
           }))
         })),
-        update: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            select: vi.fn(() => ({
-              single: vi.fn(() => ({
-                data: {
-                  id: '1',
-                  user_id: 'user-123',
-                  encrypted_data: 'updated-encrypted-data',
-                  iv: 'updated-iv',
-                  salt: 'updated-salt',
-                  created_at: '2025-05-17T10:00:00Z',
-                  updated_at: '2025-05-17T12:00:00Z'
-                },
-                error: null
+        update: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              select: jest.fn(() => ({
+                single: jest.fn(() => ({
+                  data: {
+                    id: '1',
+                    user_id: 'user-123',
+                    encrypted_data: 'updated-encrypted-data',
+                    iv: 'updated-iv',
+                    salt: 'updated-salt',
+                    created_at: '2025-05-17T10:00:00Z',
+                    updated_at: '2025-05-17T12:00:00Z'
+                  },
+                  error: null
+                }))
               }))
             }))
           }))
         })),
-        delete: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            data: null,
-            error: null
+        delete: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => ({
+              data: null,
+              error: null
+            }))
           }))
         }))
       }))
@@ -78,7 +91,7 @@ vi.mock('@/utils/supabase/server', () => {
 
 describe('Calendar Actions', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('fetchCalendarEvents', () => {
