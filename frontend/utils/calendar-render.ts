@@ -77,8 +77,18 @@ export const groupOverlappingEvents = (
 ): CalendarEvent[][] => {
   if (!events.length) return [];
   
+  // Filter out events with invalid startTime or endTime
+  const validEvents = events.filter(event => 
+    event.startTime instanceof Date && 
+    event.endTime instanceof Date && 
+    !isNaN(event.startTime.getTime()) && 
+    !isNaN(event.endTime.getTime())
+  );
+  
+  if (validEvents.length === 0) return [];
+  
   // Sort events by start time
-  const sortedEvents = [...events].sort((a, b) => 
+  const sortedEvents = [...validEvents].sort((a, b) => 
     a.startTime.getTime() - b.startTime.getTime()
   );
   

@@ -30,6 +30,27 @@ export enum RecurrenceFrequency {
   Yearly = 'yearly'
 }
 
+export interface Calendar {
+  id: string;
+  name: string;
+  color: string;
+  isVisible: boolean;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface EncryptedCalendar {
+  id: string;
+  user_id: string;
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface RecurrencePattern {
   frequency: RecurrenceFrequency;
   endDate?: Date;  // Optional end date for the recurrence
@@ -43,6 +64,8 @@ export interface CalendarEvent {
   description?: string;
   startTime: Date;
   endTime: Date;
+  calendarId: string; // Reference to the calendar
+  calendar?: Calendar; // Optional calendar object
   createdAt: Date;
   updatedAt?: Date;
   recurrencePattern?: RecurrencePattern; // Optional recurrence pattern

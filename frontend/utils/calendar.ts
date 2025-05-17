@@ -179,3 +179,36 @@ export const validateTimeRange = (startTime: string, endTime: string): boolean =
   const end = parse(endTime, "yyyy-MM-dd'T'HH:mm", new Date());
   return isValid(start) && isValid(end) && end > start;
 };
+
+// Ensure all events have calendar properties properly set
+export const ensureCalendarPropertiesOnEvents = (
+  events: CalendarEvent[], 
+  calendars: { id: string; color: string; name: string; isVisible: boolean }[]
+): CalendarEvent[] => {
+  if (!events.length || !calendars.length) return events;
+  
+  return events.map(event => {
+    // Skip if event already has a calendar with color
+    if (event.calendar?.color) return event;
+    
+    // Find the matching calendar
+    const calendar = calendars.find(cal => cal.id === event.calendarId);
+    
+    if (calendar) {
+      return {
+        ...event,
+        calendar: {
+          id: calendar.id,
+          name: calendar.name,
+          color: calendar.color,
+          isVisible: calendar.isVisible,
+          isDefault: 'isDefault' in calendar ? (calendar as any).isDefault : false,
+          createdAt: 'createdAt' in calendar ? (calendar as any).createdAt : new Date(),
+          updatedAt: 'updatedAt' in calendar ? (calendar as any).updatedAt : undefined
+        }
+      };
+    }
+    
+    return event;
+  });
+};

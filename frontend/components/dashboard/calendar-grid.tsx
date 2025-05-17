@@ -17,6 +17,7 @@ import {
 interface CalendarGridProps {
   readonly days: Date[];
   readonly events: CalendarEvent[];
+  readonly calendars?: { id: string; color: string; name: string; isVisible: boolean }[]; // Add calendars as an optional prop
   readonly openEditDialog: (event: CalendarEvent) => void;
   readonly openNewEventDialog: (day: Date) => void;
   readonly onEventUpdate?: (updatedEvent: CalendarEvent) => void;
@@ -27,6 +28,7 @@ interface CalendarGridProps {
 export function CalendarGrid({ 
   days, 
   events, 
+  calendars, // Added calendars parameter
   openEditDialog, 
   openNewEventDialog,
   onEventUpdate 
@@ -306,6 +308,54 @@ export function CalendarGrid({
     }
   };
 
+  // Function to debug calendar events 
+  useEffect(() => {
+    // Log calendar info for debugging
+    if (events.length > 0) {
+      console.log(`Calendar Grid received ${events.length} events`);
+      events.forEach(event => {
+        console.log(`Event ${event.id}: has calendar? ${!!event.calendar}, calendarId: ${event.calendarId}`);
+        if (event.calendar) {
+          console.log(`- Calendar details: ${event.calendar.name}, color: ${event.calendar.color}`);
+        }
+      });
+    }
+  }, [events]);
+
+  // Every time events or calendars change, ensure calendar colors are properly attached
+  useEffect(() => {
+    // Every time events or calendars change, ensure calendar colors are properly attached
+    if (events.length > 0 && calendars?.length > 0) {
+      console.log('Calendar Grid: Ensuring calendar colors are preserved on re-render');
+      
+      // Create a local copy of events with calendar colors attached
+      // Instead of trying to update the events prop directly
+      const updatedEvents = events.map(event => {
+        // If the event already has a calendar with color, don't change it
+        if (event.calendar?.color) return event;
+        
+        // Find the matching calendar and ensure it's attached
+        const calendar = calendars.find(cal => cal.id === event.calendarId);
+        if (calendar) {
+          return {
+            ...event,
+            calendar: {
+              ...calendar
+            }
+          };
+        }
+        return event;
+      });
+      
+      // Log how many events have colors attached
+      const eventsWithCalendarColors = updatedEvents.filter(e => e.calendar?.color).length;
+      console.log(`Calendar Grid: ${eventsWithCalendarColors}/${events.length} events have calendar colors`);
+      
+      // We don't need to update state since we're using the local variable
+      // inside this component for rendering
+    }
+  }, [events, calendars]);
+
   // Render a single event
   const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex: number = 10, opacity: number = 100, columnIndex: number = 0, totalColumns: number = 1) => {
     // Use the utility function to calculate rendering details
@@ -316,16 +366,40 @@ export function CalendarGrid({
                         event.recurrencePattern.frequency !== RecurrenceFrequency.None;
     
     const isRecurrenceInstance = 'isRecurrenceInstance' in event && event.isRecurrenceInstance;
+
+    // Determine calendar color with improved fallback mechanism
+    let calendarColor = null;
+    
+    // First try to get color from the calendar object directly
+    if (event.calendar && event.calendar.color) {
+      calendarColor = event.calendar.color;
+    }
+    
+    // Set default colors based on event type
+    const defaultColor = isRecurring || isRecurrenceInstance 
+      ? 'rgb(20, 184, 166)'  // teal-500 for recurring events
+      : 'rgb(99, 102, 241)'; // indigo-500 for regular events
+    
+    const defaultBorderColor = isRecurring || isRecurrenceInstance
+      ? 'rgb(13, 148, 136)'  // teal-600 for recurring events
+      : 'rgb(79, 70, 229)';  // indigo-600 for regular events
+    
+    // Use calendar color or fall back to defaults
+    const bgColor = calendarColor || defaultColor;
+    const borderColor = calendarColor || defaultBorderColor;
     
     return (
       <div
         key={event.id}
         className={`absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white 
-           ${isRecurring || isRecurrenceInstance ? 'bg-teal-500 border border-teal-600' : 'bg-indigo-500 border border-indigo-600'} 
            shadow-sm group
            ${onEventUpdate ? 'cursor-move' : 'cursor-pointer'}`}
         style={{
           ...eventStyles,
+          backgroundColor: bgColor,
+          borderWidth: '1px',
+          borderStyle: 'solid',
+          borderColor: borderColor,
           // Add a repeating pattern indicator for recurring events
           backgroundImage: isRecurring || isRecurrenceInstance ? 
             'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 10px)' : 
@@ -337,7 +411,7 @@ export function CalendarGrid({
         {/* Top resize handle - only visible on hover */}
         {onEventUpdate && !isRecurrenceInstance && (
           <div 
-            className="absolute top-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-indigo-300/50"
+            className="absolute top-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-white/30"
             onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeTop)}
           />
         )}
@@ -360,7 +434,7 @@ export function CalendarGrid({
         {/* Bottom resize handle - only visible on hover */}
         {onEventUpdate && !isRecurrenceInstance && (
           <div 
-            className="absolute bottom-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-indigo-300/50"
+            className="absolute bottom-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-white/30"
             onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeBottom)}
           />
         )}

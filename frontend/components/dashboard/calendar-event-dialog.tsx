@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CalendarEvent, RecurrenceFrequency, RecurrencePattern } from '@/utils/types';
+import { Calendar, CalendarEvent, RecurrenceFrequency, RecurrencePattern } from '@/utils/types';
 import { format, parse, isValid, addHours, addMinutes, subHours, subMinutes } from 'date-fns';
 
 import { z } from 'zod';
@@ -24,6 +24,7 @@ import { useEffect } from 'react';
 export const eventFormSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
+  calendarId: z.string().min(1, { message: "Calendar is required" }),
   startDate: z.string().refine(value => {
     if (!value) return false;
     const parsed = parse(value, 'yyyy-MM-dd', new Date());
@@ -87,6 +88,8 @@ interface CalendarEventDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   selectedEvent: CalendarEvent | null;
+  calendars: Calendar[];
+  defaultCalendarId?: string;
   onSubmit: (values: EventFormValues) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }
@@ -109,15 +112,22 @@ export function CalendarEventDialog({
   isOpen, 
   onOpenChange, 
   selectedEvent, 
+  calendars,
+  defaultCalendarId,
   onSubmit, 
   onDelete 
 }: CalendarEventDialogProps) {
+  // Determine which calendar ID to use
+  const initialCalendarId = selectedEvent?.calendarId || defaultCalendarId || 
+    (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id || calendars[0].id : '');
+
   // Initialize form with react-hook-form and zod validation
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
     defaultValues: {
       title: selectedEvent?.title || '',
       description: selectedEvent?.description || '',
+      calendarId: initialCalendarId,
       startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
       endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
@@ -132,9 +142,13 @@ export function CalendarEventDialog({
 
   // Reset form when selected event changes
   useEffect(() => {
+    const calendarId = selectedEvent?.calendarId || defaultCalendarId || 
+      (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id || calendars[0].id : '');
+      
     form.reset({
       title: selectedEvent?.title || '',
       description: selectedEvent?.description || '',
+      calendarId,
       startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
       endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
@@ -145,7 +159,7 @@ export function CalendarEventDialog({
         : '',
       recurrenceInterval: selectedEvent?.recurrencePattern?.interval || 1
     });
-  }, [selectedEvent, form]);
+  }, [selectedEvent, form, calendars, defaultCalendarId]);
 
   // Handle form submission
   const handleFormSubmit = async (values: EventFormValues) => {
@@ -217,6 +231,9 @@ export function CalendarEventDialog({
   // Get the end time options
   const endTimeOptions = getEndTimeOptions();
 
+  // Get visible calendars for selection
+  const visibleCalendars = calendars.filter(calendar => calendar.isVisible);
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -253,6 +270,41 @@ export function CalendarEventDialog({
                   <FormControl>
                     <Textarea placeholder="Event description" {...field} />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            {/* Calendar Selection */}
+            <FormField
+              control={form.control}
+              name="calendarId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Calendar</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a calendar" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {calendars.map(calendar => (
+                        <SelectItem key={calendar.id} value={calendar.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: calendar.color }}
+                            ></div>
+                            <span>{calendar.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </FormItem>
               )}
             />
