@@ -1,16 +1,18 @@
+import { useEffect, useState, useRef } from 'react';
+
 import { format, isSameDay, differenceInMinutes, addMinutes } from 'date-fns';
+
 import { CalendarEvent } from '@/utils/types';
 import { generateTimeSlots } from '@/utils/calendar';
-import { useEffect, useState, useRef } from 'react';
+import { calculateCalendarDimensions, calculateEventRendering } from '@/utils/calendar-render';
 import { 
   DraggedEvent, 
   DragPosition, 
-  getTimeFromPosition, 
-  calculateSnappedYPosition, 
-  calculateDragPosition 
+  calculateDraggingEventDateTime 
 } from '@/utils/calendar-drag';
-import { calculateCalendarDimensions, calculateEventRendering } from '@/utils/calendar-render';
 
+
+// -------- Prop Interfaces --------
 interface CalendarGridProps {
   readonly days: Date[];
   readonly events: CalendarEvent[];
@@ -19,6 +21,8 @@ interface CalendarGridProps {
   readonly onEventUpdate?: (updatedEvent: CalendarEvent) => void;
 }
 
+
+// -------- CalendarGrid Component --------
 export function CalendarGrid({ 
   days, 
   events, 
@@ -61,10 +65,33 @@ export function CalendarGrid({
     setSlotHeight(newSlotHeight);
   };
 
+  // Function to find which day column the mouse is over
+  const findDayColumnAtPosition = (clientX: number): Element | null => {
+    if (!containerRef.current || !activeEvent) return null;
+    
+    const dayColumns = containerRef.current.querySelectorAll('.day-column');
+    if (!dayColumns.length) return null;
+
+    for (const column of dayColumns) {
+      const rect = column.getBoundingClientRect();
+      if (clientX >= rect.left && clientX <= rect.right) {
+        return column;
+      }
+    }
+    return null;
+  };
+
+  // Function to get the date from the target column
+  const getDateFromColumn = (column: Element): Date | null => {
+    const dateString = column.getAttribute('data-date');
+    if (!dateString) return null;
+    return new Date(dateString);
+  };
+
   // Add global mouse handlers for drag operations
   useEffect(() => {
     // Only attach if we have an event and the update handler
-    if (!activeEvent || !onEventUpdate) return;
+    if (!activeEvent || !onEventUpdate) return;    
 
     const handleMouseMove = (e: MouseEvent) => {
       // We're in a drag operation if the mouse moves significantly
@@ -83,57 +110,31 @@ export function CalendarGrid({
     
     // Extract position calculation logic to reduce complexity
     const updateDragPosition = (e: MouseEvent) => {
-      if (!containerRef.current || !activeEvent) return;
-      
-      const dayColumns = containerRef.current.querySelectorAll('.day-column');
-      if (!dayColumns.length) return;
       
       // Find which day column we're over
-      let targetDayIndex = activeEvent.dayIndex;
-      let targetElement: Element | null = null;
-      
-      for (let i = 0; i < dayColumns.length; i++) {
-        const column = dayColumns[i];
-        const rect = column.getBoundingClientRect();
-        
-        if (e.clientX >= rect.left && e.clientX <= rect.right) {
-          targetDayIndex = i;
-          targetElement = column;
-          break;
-        }
-      }
-      
-      if (targetElement) {
-        updateDragPositionForDay(e, targetElement, targetDayIndex);
-      }
-    };
+      const columnMouseIsCurrentlyOver = findDayColumnAtPosition(e.clientX);
+      if (!columnMouseIsCurrentlyOver) return;
 
-    // Further reduce complexity by extracting day-specific logic
-    const updateDragPositionForDay = (e: MouseEvent, targetElement: Element, targetDayIndex: number) => {
-      if (!activeEvent) return;
-      
+      const targetDay = getDateFromColumn(columnMouseIsCurrentlyOver);
+      if (!targetDay) return;
+
       // Calculate new position
-      const rect = targetElement.getBoundingClientRect();
-      
-      // Account for the offset where the user initially clicked on the event
-      const relativeY = e.clientY - rect.top - activeEvent.offsetY;
-      
-      // Get the day from the columns
-      const targetDay = days[targetDayIndex];
+      const columnMouseOverRect = columnMouseIsCurrentlyOver.getBoundingClientRect();
       
       // Calculate the new drag position using the utility function
-      const result = calculateDragPosition(
-        relativeY, 
-        rect, 
-        targetDay, 
+      const result = calculateDraggingEventDateTime(
+        e.clientY,
+        columnMouseOverRect, 
         activeEvent, 
-        targetDayIndex,
-        slotHeight
+        slotHeight,
+        targetDay
       );
       
       // Update the visual position state
       setDragPosition(result);
+
     };
+
 
     const handleMouseUp = (e: MouseEvent) => {
       // Only process the drag if we actually moved (isDragging)
@@ -151,61 +152,35 @@ export function CalendarGrid({
     
     // Extract the drag end processing logic
     const processDragEnd = (e: MouseEvent) => {
-      // Get the day columns
-      const dayColumns = containerRef.current!.querySelectorAll('.day-column');
-      if (!dayColumns.length) return;
-      
       // Find which day column we're over
-      let targetDayIndex = activeEvent!.dayIndex;
-      let targetElement: Element | null = null;
-      
-      for (let i = 0; i < dayColumns.length; i++) {
-        const column = dayColumns[i];
-        const rect = column.getBoundingClientRect();
-        
-        if (e.clientX >= rect.left && e.clientX <= rect.right) {
-          targetDayIndex = i;
-          targetElement = column;
-          break;
-        }
-      }
-      
-      if (targetElement) {
-        processEventPositionUpdate(e, targetElement, targetDayIndex);
-      }
-    };
-    
-    // Extract the position update logic
-    const processEventPositionUpdate = (e: MouseEvent, targetElement: Element, targetDayIndex: number) => {
+      const columnMouseIsCurrentlyOver = findDayColumnAtPosition(e.clientX);
+      if (!columnMouseIsCurrentlyOver) return;
+
+      const targetDay = getDateFromColumn(columnMouseIsCurrentlyOver);
+      if (!targetDay) return;
+
       // Calculate new position
-      const rect = targetElement.getBoundingClientRect();
-      // Use the same offset that we applied during drag for consistency
-      const relativeY = e.clientY - rect.top - activeEvent!.offsetY;
+      const columnMouseOverRect = columnMouseIsCurrentlyOver.getBoundingClientRect();
       
-      // Get the day from the columns
-      const targetDay = days[targetDayIndex];
-      
-      // Calculate snapped position with constraints using the utility function
-      const snappedY = calculateSnappedYPosition(relativeY, rect, activeEvent!, slotHeight);
-      
-      // Calculate new times using the snapped position
-      const newStartTime = getTimeFromPosition(snappedY, targetDay, slotHeight);
-      const duration = differenceInMinutes(
-        activeEvent!.event.endTime, 
-        activeEvent!.event.startTime
+      // Calculate the new drag position using the utility function
+      const result = calculateDraggingEventDateTime(
+        e.clientY,
+        columnMouseOverRect, 
+        activeEvent, 
+        slotHeight,
+        targetDay
       );
-      const newEndTime = addMinutes(newStartTime, duration);
       
       // Create updated event
       const updatedEvent: CalendarEvent = {
-        ...activeEvent!.event,
-        startTime: newStartTime,
-        endTime: newEndTime,
+        ...activeEvent.event,
+        startTime: result.startTime,
+        endTime: result.endTime,
         updatedAt: new Date()
       };
       
       // Update the event
-      onEventUpdate!(updatedEvent);
+      onEventUpdate(updatedEvent);
     };
 
     // Clean up function
@@ -243,7 +218,6 @@ export function CalendarGrid({
     // Set the active event with the offset position
     setActiveEvent({
       event,
-      dayIndex,
       initialPosition: { x: e.clientX, y: e.clientY },
       offsetY
     });
@@ -267,6 +241,29 @@ export function CalendarGrid({
     openEditDialog(event);
   };
 
+  // Render a single event
+  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number) => {
+    // Use the utility function to calculate rendering details
+    const { eventStyles, startTime, endTime } = calculateEventRendering(event, day, slotHeight);
+    
+    return (
+      <div
+        key={event.id}
+        className={`absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white 
+                   bg-blue-500 border border-blue-600 shadow-sm 
+                   ${onEventUpdate ? 'cursor-move' : 'cursor-pointer'}`}
+        style={eventStyles}
+        onClick={(e) => handleEventClick(e, event)}
+        onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex)}
+      >
+        <div className="font-medium truncate">{event.title}</div>
+        <div className="text-xs truncate">
+          {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+        </div>
+      </div>
+    );
+  };
+
   // Render events in the calendar grid
   const renderEvents = (day: Date, dayIndex: number) => {
     const dayEvents = events.filter(event => 
@@ -275,28 +272,52 @@ export function CalendarGrid({
     
     if (!dayEvents.length) return null;
 
-    return dayEvents.map(event => {
-      // Use the utility function to calculate rendering details
-      const { eventStyles, startTime, endTime } = calculateEventRendering(event, day, slotHeight);
-      
-      return (
-        <div
-          key={event.id}
-          className={`absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white 
-                     bg-blue-500 border border-blue-600 shadow-sm 
-                     ${onEventUpdate ? 'cursor-move' : 'cursor-pointer'}`}
-          style={eventStyles}
-          onClick={(e) => handleEventClick(e, event)}
-          onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex)}
-        >
-          <div className="font-medium truncate">{event.title}</div>
-          <div className="text-xs truncate">
-            {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
-          </div>
-        </div>
-      );
-    });
+    return dayEvents.map(event => renderSingleEvent(event, day, dayIndex));
   };
+
+  // calculates if two date intervals are overlapping
+  const areDatesOverlapping = (start1: Date, end1: Date, start2: Date, end2: Date): boolean => {
+    return start1 < end2 && start2 < end1;
+  };
+
+  // gets the end of the day
+  const getEndOfDay = (day: Date): Date => {
+    const endOfDay = new Date(day);
+    endOfDay.setHours(23, 59, 59, 999); // Set to the end of the day
+    return endOfDay;
+  };
+
+
+  const renderDragHelper = (dayIndex: number, day: Date, dragPosition: DragPosition | null): React.ReactNode => {
+    // Only render the drag helper for the day where dragging is active
+    if (!activeEvent || !dragPosition) {
+      return null;
+    }
+
+    // Only render drag helper if this day overlaps with the drag position date range   
+    if (!areDatesOverlapping(
+      dragPosition.startTime,
+      dragPosition.endTime,
+      day,
+      getEndOfDay(day)
+    )) {
+      return null;
+    }
+    
+    // Create a temporary event with the dragged position data
+    const draggedEvent: CalendarEvent = {
+      ...activeEvent.event,
+      startTime: dragPosition.startTime,
+      endTime: dragPosition.endTime
+    };
+    
+    // Use a wrapper div to apply the opacity and prevent pointer events
+    return (
+      <div className="opacity-80 pointer-events-none" style={{ zIndex: 100 }}>
+        {renderSingleEvent(draggedEvent, day, dayIndex)}
+      </div>
+    );
+  }
 
   return (
     <div className="border rounded-lg shadow-sm bg-card">
@@ -354,6 +375,7 @@ export function CalendarGrid({
               className="relative border-r last:border-r-0 day-column"
               onClick={(e) => handleDayClick(day, e)}
               style={{ height: `${slotHeight * timeSlots.length}px` }}
+              data-date={format(day, "yyyy-MM-dd")}
             >
               {/* Time slot lines */}
               {timeSlots.map((slot, i) => (
@@ -371,23 +393,8 @@ export function CalendarGrid({
               {renderEvents(day, dayIndex)}
               
               {/* Drag helper for this day */}
-              {dragPosition && dragPosition.dayIndex === dayIndex && activeEvent && (
-                <div
-                  className="absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white 
-                             bg-blue-400 border border-blue-500 shadow-md opacity-80 pointer-events-none"
-                  style={{
-                    top: `${dragPosition.top}px`,
-                    height: `${dragPosition.height}px`,
-                    width: 'calc(100% - 8px)',
-                    zIndex: 100
-                  }}
-                >
-                  <div className="font-medium truncate">{activeEvent.event.title}</div>
-                  <div className="text-xs truncate">
-                    {format(dragPosition.startTime!, "HH:mm")} - {format(dragPosition.endTime!, "HH:mm")}
-                  </div>
-                </div>
-              )}
+              {renderDragHelper(dayIndex, day, dragPosition)}
+              
             </div>
           ))}
         </div>

@@ -3,133 +3,63 @@ import { CalendarEvent } from './types';
 
 export interface DraggedEvent {
   event: CalendarEvent;
-  dayIndex: number;
   initialPosition: { x: number, y: number };
   offsetY: number;
 }
 
 export interface DragPosition {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-  dayIndex: number;
-  startTime: Date | null;
-  endTime: Date | null;
+  startTime: Date;
+  endTime: Date;
 }
 
-/**
- * Calculates the time from the Y position on the grid
- */
-export const getTimeFromPosition = (posY: number, dayDate: Date, slotHeight: number): Date => {
-  // Calculate minutes from top position
-  const totalMinutes = (posY / slotHeight) * 60;
-  
-  // Round minutes to nearest 30-minute interval for consistency with drag snapping
-  const snappedMinutes = Math.round(totalMinutes / 30) * 30;
-  
-  // Constrain to valid time range (0:00 - 24:00)
-  const constrainedMinutes = Math.max(0, Math.min(snappedMinutes, 24 * 60 - 1));
-  
-  // Calculate hours and minutes components
-  const hours = Math.floor(constrainedMinutes / 60);
-  const minutes = constrainedMinutes % 60;
-  
-  // Create new date with calculated time
-  const newDate = new Date(dayDate);
-  newDate.setHours(hours, minutes, 0, 0);
-  
-  return newDate;
-};
-
-/**
- * Calculates snapped Y position with constraints
- */
-export const calculateSnappedYPosition = (
-  relativeY: number, 
-  rect: DOMRect, 
-  activeEvent: DraggedEvent,
-  slotHeight: number
-): number => {
-  // Check if cursor is outside the column bounds and snap accordingly
-  let snappedY = relativeY;
-  
-  if (relativeY < 0) {
-    // Snap to top if dragged above the day column
-    snappedY = 0;
-  } else if (relativeY > rect.height) {
-    // Snap to bottom if dragged below the day column
-    snappedY = rect.height;
-  } else {
-    // Get time at cursor position and snap to 30-minute intervals
-    const minutesFromTop = (relativeY / slotHeight) * 60;
-    const snappedMinutes = Math.round(minutesFromTop / 30) * 30;
-    
-    // Get event duration in minutes
-    const duration = differenceInMinutes(
-      activeEvent.event.endTime, 
-      activeEvent.event.startTime
-    );
-    
-    // Convert duration to pixels
-    const durationInPixels = (duration / 60) * slotHeight;
-    
-    // Calculate maximum Y position that allows the full event to fit within the day
-    const maxSnappedY = rect.height - durationInPixels;
-    
-    // Ensure we don't go below 0 (for very long events)
-    snappedY = Math.max(0, Math.min(snappedMinutes / 60 * slotHeight, maxSnappedY));
-  }
-  
-  return snappedY;
-};
 
 /**
  * Calculates the drag position for visual feedback during dragging
  */
-export const calculateDragPosition = (
-  relativeY: number, 
-  rect: DOMRect, 
-  targetDay: Date, 
+export const calculateDraggingEventDateTime = (
+  mouseY: number,
+  columnMouseOverRect: DOMRect, 
   activeEvent: DraggedEvent,
-  targetDayIndex: number,
-  slotHeight: number
+  slotHeight: number,
+  currentlyHoveringDay: Date
 ): DragPosition => {
-  // Constrain Y position to stay within the grid
-  const constrainedY = Math.max(0, Math.min(relativeY, rect.height));
+
+  // Calculate the relative Y position of the mouse within the column
+  const relativeY = mouseY - columnMouseOverRect.top - activeEvent.offsetY;
+
+  let relativeYSnapped = relativeY;
+
+  if (mouseY < columnMouseOverRect.top) {
+    // If the mouse is above the column, snap to the top
+    relativeYSnapped = -activeEvent.offsetY;
+  }else if (mouseY > columnMouseOverRect.bottom) {
+    // If the mouse is below the column, snap to the bottom
+    relativeYSnapped = columnMouseOverRect.height - activeEvent.offsetY;
+  }
   
-  // Calculate duration for maintaining event length
+   // Calculate minutes from top position
+   const totalMinutes = (relativeYSnapped / slotHeight) * 60;
+  
+   // Round minutes to nearest 30-minute interval for consistency with drag snapping
+   const snappedMinutes = totalMinutes >= 0 ? Math.floor(totalMinutes / 30) * 30 : Math.ceil(totalMinutes / 30) * 30;
+   
+   // Calculate hours and minutes components
+   const hours = snappedMinutes >= 0 ? Math.floor(snappedMinutes / 60) : Math.ceil(snappedMinutes / 60);
+   const minutes = snappedMinutes % 60;
+   
+   // Create new date with calculated time
+   const newStartTime = new Date(currentlyHoveringDay);
+   newStartTime.setHours(hours, minutes, 0, 0);
+
+
+   // Calculate duration for maintaining event length
   const duration = differenceInMinutes(
     activeEvent.event.endTime, 
     activeEvent.event.startTime
   );
   
-  // Get time at cursor position and snap to 30-minute intervals
-  const minutesFromTop = (constrainedY / slotHeight) * 60;
-  const snappedMinutes = Math.round(minutesFromTop / 30) * 30;
-  
-  // Constrain to valid time range (0:00 - 24:00)
-  const maxMinutes = 24 * 60 - duration;
-  const constrainedMinutes = Math.max(0, Math.min(snappedMinutes, maxMinutes));
-  
-  // Create date object for the target day with snapped time
-  const newStartTime = new Date(targetDay);
-  const hours = Math.floor(constrainedMinutes / 60);
-  const minutes = constrainedMinutes % 60;
-  newStartTime.setHours(hours, minutes, 0, 0);
-  
-  // Calculate height based on duration
-  const height = (duration / 60) * slotHeight;
-  
-  // Calculate top position based on snapped time
-  const snappedTopPosition = (constrainedMinutes / 60) * slotHeight;
-  
+
   return {
-    top: snappedTopPosition,
-    left: 0, // Will be positioned within the column
-    width: rect.width - 8, // Account for padding
-    height: height,
-    dayIndex: targetDayIndex,
     startTime: newStartTime,
     endTime: addMinutes(newStartTime, duration)
   };
