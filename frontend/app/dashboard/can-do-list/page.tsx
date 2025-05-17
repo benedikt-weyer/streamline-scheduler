@@ -13,6 +13,7 @@ import {
   getHashedPassword, 
   deriveKeyFromPassword 
 } from '@/utils/encryption';
+import { createClient } from '@/utils/supabase/client';
 import { CanDoItem } from '@/utils/types';
 
 import { useEffect, useState } from 'react';
@@ -59,6 +60,98 @@ export default function CanDoListPage() {
     setEncryptionKey(hashedPassword);
     loadItems(hashedPassword);
   }, []);
+
+  // Set up real-time subscription to can_do_list changes
+  useEffect(() => {
+    if (!encryptionKey) return;
+    
+    // Initialize Supabase client
+    const supabase = createClient();
+    
+    // Subscribe to changes on the can_do_list table
+    const subscription = supabase
+      .channel('can_do_list_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'can_do_list' 
+        }, 
+        async (payload) => {
+          // Handle different events
+          switch(payload.eventType) {
+            case 'INSERT':
+              // Skip if we already have this item (e.g. from our own insert)
+              if (items.some(item => item.id === payload.new.id)) {
+                return;
+              }
+              
+              try {
+                // Decrypt the new item
+                const salt = payload.new.salt;
+                const iv = payload.new.iv;
+                const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+                const decryptedData = decryptData(payload.new.encrypted_data, derivedKey, iv);
+                
+                if (!decryptedData) return;
+                
+                const newItem: CanDoItem = {
+                  id: payload.new.id,
+                  content: decryptedData.content,
+                  completed: decryptedData.completed,
+                  createdAt: new Date(payload.new.created_at),
+                  updatedAt: payload.new.updated_at ? new Date(payload.new.updated_at) : undefined
+                };
+                
+                setItems(prevItems => [newItem, ...prevItems]);
+              } catch (error) {
+                console.error('Error processing real-time INSERT:', error);
+              }
+              break;
+              
+            case 'UPDATE':
+              try {
+                // Decrypt the updated item
+                const salt = payload.new.salt;
+                const iv = payload.new.iv;
+                const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+                const decryptedData = decryptData(payload.new.encrypted_data, derivedKey, iv);
+                
+                if (!decryptedData) return;
+                
+                setItems(prevItems =>
+                  prevItems.map(item =>
+                    item.id === payload.new.id
+                      ? {
+                          ...item,
+                          content: decryptedData.content,
+                          completed: decryptedData.completed,
+                          updatedAt: payload.new.updated_at ? new Date(payload.new.updated_at) : undefined
+                        }
+                      : item
+                  )
+                );
+              } catch (error) {
+                console.error('Error processing real-time UPDATE:', error);
+              }
+              break;
+              
+            case 'DELETE':
+              // Remove the deleted item from state
+              setItems(prevItems => 
+                prevItems.filter(item => item.id !== payload.old.id)
+              );
+              break;
+          }
+        }
+      )
+      .subscribe();
+    
+    // Clean up the subscription when component unmounts
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [encryptionKey, items]);
 
   // Load and decrypt items
   const loadItems = async (key: string) => {
