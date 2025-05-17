@@ -13,6 +13,7 @@ interface CalendarSidebarProps {
   onCalendarCreate: (name: string, color: string) => void;
   onCalendarEdit: (calendarId: string, name: string, color: string) => void;
   onCalendarDelete: (calendarId: string) => void;
+  onSetDefaultCalendar: (calendarId: string) => void; // New prop for setting default calendar
 }
 
 export function CalendarSidebar({
@@ -20,7 +21,8 @@ export function CalendarSidebar({
   onCalendarToggle,
   onCalendarCreate,
   onCalendarEdit,
-  onCalendarDelete
+  onCalendarDelete,
+  onSetDefaultCalendar
 }: CalendarSidebarProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -71,6 +73,13 @@ export function CalendarSidebar({
     if (selectedCalendar) {
       onCalendarDelete(selectedCalendar.id);
       setSelectedCalendar(null);
+      setIsEditDialogOpen(false);
+    }
+  };
+
+  const handleSetDefaultCalendar = () => {
+    if (selectedCalendar && !selectedCalendar.isDefault) {
+      onSetDefaultCalendar(selectedCalendar.id);
       setIsEditDialogOpen(false);
     }
   };
@@ -215,15 +224,27 @@ export function CalendarSidebar({
               </div>
             </div>
           )}
-          <DialogFooter className="flex justify-between">
-            <Button 
-              variant="destructive" 
-              onClick={handleDeleteCalendar}
-              disabled={selectedCalendar?.isDefault || calendars.length <= 1}
-            >
-              <Trash className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
+          <DialogFooter className="flex justify-between flex-wrap gap-2">
+            <div className="flex gap-2">
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteCalendar}
+                disabled={selectedCalendar?.isDefault || calendars.length <= 1}
+              >
+                <Trash className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+              {!selectedCalendar?.isDefault && (
+                <Button
+                  variant="outline"
+                  onClick={handleSetDefaultCalendar}
+                  className="flex items-center"
+                >
+                  <Star className="h-4 w-4 mr-2 text-amber-500" fill="currentColor" />
+                  Set as Default
+                </Button>
+              )}
+            </div>
             <div className="flex space-x-2">
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleEditCalendar}>Save</Button>

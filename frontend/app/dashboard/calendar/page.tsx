@@ -1170,7 +1170,13 @@ export default function CalendarPage() {
     if (!encryptionKey) return;
     
     try {
-      // Update local state
+      // Find the calendar we want to make default
+      const targetCalendar = calendars.find(cal => cal.id === calendarId);
+      if (!targetCalendar) {
+        throw new Error('Target calendar not found');
+      }
+      
+      // Update local state immediately for responsive UI
       setCalendars(prevCalendars => 
         prevCalendars.map(cal => ({
           ...cal,
@@ -1178,12 +1184,29 @@ export default function CalendarPage() {
         }))
       );
       
-      // Update all calendars in the database
-      for (const calendar of calendars) {
-        await updateCalendarInDatabase(calendar.id);
-      }
+      // Generate encryption components for the target calendar
+      const salt = generateSalt();
+      const iv = generateIV();
+      const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+      
+      // Update the target calendar with isDefault=true
+      const calendarData = {
+        name: targetCalendar.name,
+        color: targetCalendar.color,
+        isVisible: targetCalendar.isVisible
+      };
+      
+      const encryptedData = encryptData(calendarData, derivedKey, iv);
+      
+      // Important: Pass isDefault=true to ensure the database updates the flag correctly
+      await updateCalendar(calendarId, encryptedData, iv, salt, true);
+      
+      console.log(`Calendar ${calendarId} set as default successfully`);
     } catch (error) {
       console.error('Error setting calendar as default:', error);
+      // Revert UI state on error
+      setCalendars(prevState => [...prevState]);
+      setError('Failed to set calendar as default');
       throw error;
     }
   };
@@ -1211,6 +1234,7 @@ export default function CalendarPage() {
         onCalendarCreate={handleCalendarCreate}
         onCalendarEdit={handleCalendarEdit}
         onCalendarDelete={handleCalendarDelete}
+        onSetDefaultCalendar={setCalendarAsDefault}
       />
       
       {/* Main Calendar Content */}
