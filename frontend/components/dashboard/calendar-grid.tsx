@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 
 import { format, isSameDay, differenceInMinutes } from 'date-fns';
 
-import { CalendarEvent } from '@/utils/types';
+import { CalendarEvent, RecurrenceFrequency } from '@/utils/types';
 import { generateTimeSlots } from '@/utils/calendar';
 import { calculateCalendarDimensions, calculateEventRendering, groupOverlappingEvents } from '@/utils/calendar-render';
 import { 
@@ -282,7 +282,28 @@ export function CalendarGrid({
     // Don't open the edit dialog if we're in a drag operation
     if (isDraggingRef.current) return;
     
-    openEditDialog(event);
+    // Check if this is a recurrence instance
+    const isRecurrenceInstance = 'isRecurrenceInstance' in event && event.isRecurrenceInstance;
+    
+    if (isRecurrenceInstance) {
+      // For recurrence instances, find and open the master recurring event instead
+      const masterEventId = event.id.split('-recurrence-')[0];
+      const masterEvent = events.find(e => e.id === masterEventId);
+      
+      if (masterEvent) {
+        openEditDialog(masterEvent);
+      } else {
+        // If we can't find the master event, show the instance but disable deletion
+        openEditDialog({
+          ...event,
+          // Add a flag to indicate this is an instance (used in dialog to disable delete)
+          isRecurrenceInstance: true
+        });
+      }
+    } else {
+      // For regular events, just open the edit dialog
+      openEditDialog(event);
+    }
   };
 
   // Render a single event
@@ -290,31 +311,54 @@ export function CalendarGrid({
     // Use the utility function to calculate rendering details
     const { eventStyles, startTime, endTime } = calculateEventRendering(event, day, slotHeight, zIndex, opacity, columnIndex, totalColumns);
     
+    // Check if this is a recurring event or a recurring instance
+    const isRecurring = event.recurrencePattern?.frequency !== undefined && 
+                        event.recurrencePattern.frequency !== RecurrenceFrequency.None;
+    
+    const isRecurrenceInstance = 'isRecurrenceInstance' in event && event.isRecurrenceInstance;
+    
     return (
       <div
         key={event.id}
         className={`absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white 
-           bg-indigo-500 border border-indigo-600 shadow-sm group
+           ${isRecurring || isRecurrenceInstance ? 'bg-teal-500 border border-teal-600' : 'bg-indigo-500 border border-indigo-600'} 
+           shadow-sm group
            ${onEventUpdate ? 'cursor-move' : 'cursor-pointer'}`}
-        style={eventStyles}
+        style={{
+          ...eventStyles,
+          // Add a repeating pattern indicator for recurring events
+          backgroundImage: isRecurring || isRecurrenceInstance ? 
+            'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 10px)' : 
+            'none'
+        }}
         onClick={(e) => handleEventClick(e, event)}
         onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.Move)}
       >
         {/* Top resize handle - only visible on hover */}
-        {onEventUpdate && (
+        {onEventUpdate && !isRecurrenceInstance && (
           <div 
             className="absolute top-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-indigo-300/50"
             onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeTop)}
           />
         )}
         
-        <div className="font-medium truncate">{event.title}</div>
+        <div className="font-medium truncate flex items-center gap-1">
+          {(isRecurring || isRecurrenceInstance) && (
+            <span className="inline-flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"></path>
+                <path d="M12 7v5l2.5 2.5"></path>
+              </svg>
+            </span>
+          )}
+          {event.title}
+        </div>
         <div className="text-xs truncate">
           {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
         </div>
         
         {/* Bottom resize handle - only visible on hover */}
-        {onEventUpdate && (
+        {onEventUpdate && !isRecurrenceInstance && (
           <div 
             className="absolute bottom-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-indigo-300/50"
             onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeBottom)}

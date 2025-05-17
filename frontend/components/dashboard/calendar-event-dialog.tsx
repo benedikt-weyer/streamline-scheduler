@@ -3,8 +3,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { TimeInput, type QuickTimeOption } from '@/components/ui/time-input';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { CalendarEvent } from '@/utils/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import { CalendarEvent, RecurrenceFrequency, RecurrencePattern } from '@/utils/types';
 import { format, parse, isValid, addHours, addMinutes, subHours, subMinutes } from 'date-fns';
 
 import { z } from 'zod';
@@ -35,7 +43,11 @@ export const eventFormSchema = z.object({
     if (!value) return false;
     const parsed = parse(value, 'HH:mm', new Date());
     return isValid(parsed);
-  }, { message: "Valid end time is required" })
+  }, { message: "Valid end time is required" }),
+  // Recurrence fields
+  recurrenceFrequency: z.nativeEnum(RecurrenceFrequency).default(RecurrenceFrequency.None),
+  recurrenceEndDate: z.string().optional(),
+  recurrenceInterval: z.coerce.number().min(1).default(1)
 }).refine(data => {
   // Combine date and time to create complete datetime for validation
   const startDate = parse(data.startDate, 'yyyy-MM-dd', new Date());
@@ -109,7 +121,12 @@ export function CalendarEventDialog({
       startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
       endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      endTime: selectedEvent ? format(selectedEvent.endTime, "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm")
+      endTime: selectedEvent ? format(selectedEvent.endTime, "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm"),
+      recurrenceFrequency: selectedEvent?.recurrencePattern?.frequency || RecurrenceFrequency.None,
+      recurrenceEndDate: selectedEvent?.recurrencePattern?.endDate 
+        ? format(selectedEvent.recurrencePattern.endDate, "yyyy-MM-dd") 
+        : '',
+      recurrenceInterval: selectedEvent?.recurrencePattern?.interval || 1
     }
   });
 
@@ -121,26 +138,41 @@ export function CalendarEventDialog({
       startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
       endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      endTime: selectedEvent ? format(selectedEvent.endTime, "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm")
+      endTime: selectedEvent ? format(selectedEvent.endTime, "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm"),
+      recurrenceFrequency: selectedEvent?.recurrencePattern?.frequency || RecurrenceFrequency.None,
+      recurrenceEndDate: selectedEvent?.recurrencePattern?.endDate 
+        ? format(selectedEvent.recurrencePattern.endDate, "yyyy-MM-dd") 
+        : '',
+      recurrenceInterval: selectedEvent?.recurrencePattern?.interval || 1
     });
   }, [selectedEvent, form]);
 
   // Handle form submission
   const handleFormSubmit = async (values: EventFormValues) => {
-    // Convert the separate date and time fields into datetime strings for the API
-    const startDateTime = combineDateAndTime(values.startDate, values.startTime);
-    const endDateTime = combineDateAndTime(values.endDate, values.endTime);
-    
-    // Create the event data for submission
-    const eventData = {
-      title: values.title,
-      description: values.description || '',
-      startTime: startDateTime.toISOString(),
-      endTime: endDateTime.toISOString()
-    };
-    
-    // Call the onSubmit callback with the event data
-    await onSubmit(eventData as any);
+    try {
+      console.log("Form values:", values);
+      
+      // Ensure we have valid strings before proceeding
+      if (!values.startDate || !values.startTime || !values.endDate || !values.endTime) {
+        console.error("Missing date/time values:", {
+          startDate: values.startDate,
+          startTime: values.startTime,
+          endDate: values.endDate,
+          endTime: values.endTime
+        });
+        return;
+      }
+      
+      // Replace empty recurrenceEndDate with undefined to avoid parsing errors
+      if (values.recurrenceFrequency === RecurrenceFrequency.None || !values.recurrenceEndDate) {
+        values.recurrenceEndDate = undefined;
+      }
+      
+      // Call the onSubmit callback with the validated form values
+      await onSubmit(values);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
   };
 
   // Helper function to adjust time
@@ -190,6 +222,11 @@ export function CalendarEventDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{selectedEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
+          {selectedEvent?.isRecurrenceInstance && (
+            <div className="mt-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
+              <p>This is a recurring event instance. Changes will affect the entire series.</p>
+            </div>
+          )}
         </DialogHeader>
         
         <Form {...form}>
@@ -288,6 +325,71 @@ export function CalendarEventDialog({
                 )}
               />
             </div>
+
+            {/* Recurrence Settings */}
+            <div>
+              <FormField
+                control={form.control}
+                name="recurrenceFrequency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Recurrence</FormLabel>
+                    <FormControl>
+                      <Select
+                        {...field}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          // Reset recurrence end date if frequency is changed to none
+                          if (value === RecurrenceFrequency.None) {
+                            form.setValue('recurrenceEndDate', '');
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select recurrence" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={RecurrenceFrequency.None}>None</SelectItem>
+                          <SelectItem value={RecurrenceFrequency.Daily}>Daily</SelectItem>
+                          <SelectItem value={RecurrenceFrequency.Weekly}>Weekly</SelectItem>
+                          <SelectItem value={RecurrenceFrequency.Monthly}>Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              {form.watch('recurrenceFrequency') !== RecurrenceFrequency.None && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="recurrenceInterval"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Interval</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={1} {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="recurrenceEndDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Recurrence End Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+            </div>
             
             <DialogFooter>
               <Button
@@ -297,7 +399,7 @@ export function CalendarEventDialog({
               >
                 Cancel
               </Button>
-              {selectedEvent && (
+              {selectedEvent && !selectedEvent.isRecurrenceInstance && (
                 <Button
                   type="button"
                   variant="destructive"

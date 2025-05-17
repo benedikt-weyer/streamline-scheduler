@@ -20,6 +20,23 @@ export interface CanDoList {
   items: CanDoItem[];
 }
 
+// Define recurring event frequency options
+export enum RecurrenceFrequency {
+  None = 'none',
+  Daily = 'daily',
+  Weekly = 'weekly',
+  BiWeekly = 'biweekly', // Every two weeks
+  Monthly = 'monthly',
+  Yearly = 'yearly'
+}
+
+export interface RecurrencePattern {
+  frequency: RecurrenceFrequency;
+  endDate?: Date;  // Optional end date for the recurrence
+  interval?: number; // How many units between occurrences (default: 1)
+  daysOfWeek?: number[]; // For weekly/monthly recurrence (0 = Sunday, 6 = Saturday)
+}
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -28,6 +45,7 @@ export interface CalendarEvent {
   endTime: Date;
   createdAt: Date;
   updatedAt?: Date;
+  recurrencePattern?: RecurrencePattern; // Optional recurrence pattern
 }
 
 export interface EncryptedCalendarEvent {

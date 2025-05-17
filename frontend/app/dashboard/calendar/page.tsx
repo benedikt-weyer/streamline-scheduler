@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { parse, startOfWeek } from 'date-fns';
+import { parse, startOfWeek, isValid } from 'date-fns';
 
 import { CalendarHeader } from '@/components/dashboard/calendar-header';
 import { CalendarGrid } from '@/components/dashboard/calendar-grid';
@@ -19,7 +19,7 @@ import {
   deriveKeyFromPassword 
 } from '@/utils/encryption';
 import { createClient } from '@/utils/supabase/client';
-import { CalendarEvent } from '@/utils/types';
+import { CalendarEvent, RecurrenceFrequency, RecurrencePattern } from '@/utils/types';
 import { fetchCalendarEvents, addCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from './actions';
 
 export default function CalendarPage() {
@@ -30,6 +30,36 @@ export default function CalendarPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [currentWeek, setCurrentWeek] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 })); // Start on Monday
+
+  // Helper function to combine date and time into a single Date object
+  const combineDateAndTime = (dateStr: string, timeStr: string): Date => {
+    // Make sure we have valid strings before parsing
+    if (!dateStr || !timeStr) {
+      console.error("Invalid date or time string:", { dateStr, timeStr });
+      return new Date(); // Return current date as fallback
+    }
+    
+    try {
+      const datePart = parse(dateStr, 'yyyy-MM-dd', new Date());
+      const timePart = parse(timeStr, 'HH:mm', new Date());
+      
+      if (!isValid(datePart) || !isValid(timePart)) {
+        console.error("Invalid parsed date or time:", { datePart, timePart });
+        return new Date(); // Return current date as fallback
+      }
+      
+      return new Date(
+        datePart.getFullYear(),
+        datePart.getMonth(),
+        datePart.getDate(),
+        timePart.getHours(),
+        timePart.getMinutes()
+      );
+    } catch (error) {
+      console.error("Error parsing date or time:", error);
+      return new Date(); // Return current date as fallback
+    }
+  };
 
   // Get days of the current week
   const daysOfWeek = getDaysOfWeek(currentWeek);
@@ -85,6 +115,18 @@ export default function CalendarPage() {
                 
                 if (!decryptedData) return;
                 
+                // Construct recurrence pattern if it exists
+                let recurrencePattern: RecurrencePattern | undefined;
+                if (decryptedData.recurrenceFrequency && 
+                    decryptedData.recurrenceFrequency !== RecurrenceFrequency.None) {
+                  recurrencePattern = {
+                    frequency: decryptedData.recurrenceFrequency,
+                    endDate: decryptedData.recurrenceEndDate ? new Date(decryptedData.recurrenceEndDate) : undefined,
+                    interval: decryptedData.recurrenceInterval || 1,
+                    daysOfWeek: decryptedData.daysOfWeek
+                  };
+                }
+                
                 const newEvent: CalendarEvent = {
                   id: payload.new.id,
                   title: decryptedData.title,
@@ -92,7 +134,8 @@ export default function CalendarPage() {
                   startTime: new Date(decryptedData.startTime),
                   endTime: new Date(decryptedData.endTime),
                   createdAt: new Date(payload.new.created_at),
-                  updatedAt: payload.new.updated_at ? new Date(payload.new.updated_at) : undefined
+                  updatedAt: payload.new.updated_at ? new Date(payload.new.updated_at) : undefined,
+                  recurrencePattern
                 };
                 
                 setEvents(prevEvents => [...prevEvents, newEvent].sort((a, b) => 
@@ -113,6 +156,18 @@ export default function CalendarPage() {
                 
                 if (!decryptedData) return;
                 
+                // Construct recurrence pattern if it exists
+                let recurrencePattern: RecurrencePattern | undefined;
+                if (decryptedData.recurrenceFrequency && 
+                    decryptedData.recurrenceFrequency !== RecurrenceFrequency.None) {
+                  recurrencePattern = {
+                    frequency: decryptedData.recurrenceFrequency,
+                    endDate: decryptedData.recurrenceEndDate ? new Date(decryptedData.recurrenceEndDate) : undefined,
+                    interval: decryptedData.recurrenceInterval || 1,
+                    daysOfWeek: decryptedData.daysOfWeek
+                  };
+                }
+                
                 setEvents(prevEvents =>
                   prevEvents.map(event =>
                     event.id === payload.new.id
@@ -122,7 +177,8 @@ export default function CalendarPage() {
                           description: decryptedData.description,
                           startTime: new Date(decryptedData.startTime),
                           endTime: new Date(decryptedData.endTime),
-                          updatedAt: payload.new.updated_at ? new Date(payload.new.updated_at) : undefined
+                          updatedAt: payload.new.updated_at ? new Date(payload.new.updated_at) : undefined,
+                          recurrencePattern
                         }
                       : event
                   ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
@@ -163,6 +219,18 @@ export default function CalendarPage() {
             
             if (!decryptedData) return null;
             
+            // Construct recurrence pattern if it exists
+            let recurrencePattern: RecurrencePattern | undefined;
+            if (decryptedData.recurrenceFrequency && 
+                decryptedData.recurrenceFrequency !== RecurrenceFrequency.None) {
+              recurrencePattern = {
+                frequency: decryptedData.recurrenceFrequency,
+                endDate: decryptedData.recurrenceEndDate ? new Date(decryptedData.recurrenceEndDate) : undefined,
+                interval: decryptedData.recurrenceInterval || 1,
+                daysOfWeek: decryptedData.daysOfWeek
+              };
+            }
+            
             return {
               id: event.id,
               title: decryptedData.title,
@@ -170,7 +238,8 @@ export default function CalendarPage() {
               startTime: new Date(decryptedData.startTime),
               endTime: new Date(decryptedData.endTime),
               createdAt: new Date(event.created_at),
-              updatedAt: event.updated_at ? new Date(event.updated_at) : undefined
+              updatedAt: event.updated_at ? new Date(event.updated_at) : undefined,
+              recurrencePattern
             };
           } catch (error) {
             console.error('Failed to decrypt event:', error);
@@ -198,13 +267,29 @@ export default function CalendarPage() {
       const iv = generateIV();
       const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
       
-      // The form values now come with separate date and time fields
-      // that we need to process as they are already in the required format
+      // Convert the separate date and time fields into datetime objects
+      const startDateTime = combineDateAndTime(values.startDate, values.startTime);
+      const endDateTime = combineDateAndTime(values.endDate, values.endTime);
+      
+      // Create recurrence pattern if specified
+      let recurrencePattern: RecurrencePattern | undefined;
+      if (values.recurrenceFrequency && values.recurrenceFrequency !== RecurrenceFrequency.None) {
+        recurrencePattern = {
+          frequency: values.recurrenceFrequency,
+          endDate: values.recurrenceEndDate ? new Date(values.recurrenceEndDate) : undefined,
+          interval: values.recurrenceInterval || 1
+        };
+      }
+      
+      // The data to be encrypted and stored
       const eventData = {
         title: values.title.trim(),
         description: values.description?.trim() ?? '',
-        startTime: values.startTime, // This is already processed in the dialog component
-        endTime: values.endTime // This is already processed in the dialog component
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        recurrenceFrequency: values.recurrenceFrequency,
+        recurrenceEndDate: values.recurrenceEndDate ? new Date(values.recurrenceEndDate).toISOString() : undefined,
+        recurrenceInterval: values.recurrenceInterval
       };
       
       const encryptedData = encryptData(eventData, derivedKey, iv);
@@ -217,10 +302,11 @@ export default function CalendarPage() {
           id: updatedEncryptedEvent.id,
           title: eventData.title,
           description: eventData.description,
-          startTime: new Date(eventData.startTime),
-          endTime: new Date(eventData.endTime),
+          startTime: startDateTime,
+          endTime: endDateTime,
           createdAt: new Date(updatedEncryptedEvent.created_at),
-          updatedAt: updatedEncryptedEvent.updated_at ? new Date(updatedEncryptedEvent.updated_at) : undefined
+          updatedAt: updatedEncryptedEvent.updated_at ? new Date(updatedEncryptedEvent.updated_at) : undefined,
+          recurrencePattern
         };
         
         setEvents(prevEvents =>
@@ -236,10 +322,11 @@ export default function CalendarPage() {
           id: newEncryptedEvent.id,
           title: eventData.title,
           description: eventData.description,
-          startTime: new Date(eventData.startTime),
-          endTime: new Date(eventData.endTime),
+          startTime: startDateTime,
+          endTime: endDateTime,
           createdAt: new Date(newEncryptedEvent.created_at),
-          updatedAt: newEncryptedEvent.updated_at ? new Date(newEncryptedEvent.updated_at) : undefined
+          updatedAt: newEncryptedEvent.updated_at ? new Date(newEncryptedEvent.updated_at) : undefined,
+          recurrencePattern
         };
         
         setEvents(prevEvents => 
@@ -280,11 +367,21 @@ export default function CalendarPage() {
       const iv = generateIV();
       const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
       
+      // Get the original event to preserve recurrence pattern
+      const originalEvent = events.find(e => e.id === updatedEvent.id);
+      
+      // Preserve recurrence pattern from the original event if it exists
+      const recurrencePattern = originalEvent?.recurrencePattern;
+      
       const eventData = {
         title: updatedEvent.title,
         description: updatedEvent.description ?? '',
         startTime: updatedEvent.startTime.toISOString(),
-        endTime: updatedEvent.endTime.toISOString()
+        endTime: updatedEvent.endTime.toISOString(),
+        recurrenceFrequency: recurrencePattern?.frequency,
+        recurrenceEndDate: recurrencePattern?.endDate?.toISOString(),
+        recurrenceInterval: recurrencePattern?.interval,
+        daysOfWeek: recurrencePattern?.daysOfWeek
       };
       
       const encryptedData = encryptData(eventData, derivedKey, iv);
@@ -292,10 +389,13 @@ export default function CalendarPage() {
       // Update the event in the database
       await updateCalendarEvent(updatedEvent.id, encryptedData, iv, salt);
       
-      // Local state update
+      // Local state update with preserved recurrence pattern
       setEvents(prevEvents =>
         prevEvents.map(event =>
-          event.id === updatedEvent.id ? updatedEvent : event
+          event.id === updatedEvent.id ? {
+            ...updatedEvent,
+            recurrencePattern
+          } : event
         ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
       );
     } catch (error) {
