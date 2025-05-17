@@ -266,8 +266,8 @@ export function CalendarGrid({
       <div
         key={event.id}
         className={`absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white 
-                   bg-blue-500 border border-blue-600 shadow-sm 
-                   ${onEventUpdate ? 'cursor-move' : 'cursor-pointer'}`}
+           bg-indigo-500 border border-indigo-600 shadow-sm 
+           ${onEventUpdate ? 'cursor-move' : 'cursor-pointer'}`}
         style={eventStyles}
         onClick={(e) => handleEventClick(e, event)}
         onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex)}
