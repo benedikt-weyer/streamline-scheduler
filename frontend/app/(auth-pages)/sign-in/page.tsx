@@ -7,12 +7,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { hashPassword, storeHashedPassword } from "@/utils/encryption";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function Login(props: { searchParams: Message }) {
-  const searchParams = props.searchParams;
+export default function Login() {
+  const searchParams = useSearchParams();
+  const [message, setMessage] = useState<Message | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (searchParams.has('success')) {
+      setMessage({ success: searchParams.get('success')! });
+    } else if (searchParams.has('error')) {
+      setMessage({ error: searchParams.get('error')! });
+    } else if (searchParams.has('message')) {
+      setMessage({ message: searchParams.get('message')! });
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -67,7 +79,7 @@ export default function Login(props: { searchParams: Message }) {
         <SubmitButton pendingText="Signing In...">
           Sign in
         </SubmitButton>
-        <FormMessage message={searchParams} />
+        {message && <FormMessage message={message} />}
       </div>
     </form>
   );
