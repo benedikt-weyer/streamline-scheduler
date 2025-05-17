@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Check, X, Edit, Trash, Settings } from 'lucide-react';
+import { Plus, Eye, EyeOff, Edit, Trash, Settings, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -76,7 +76,7 @@ export function CalendarSidebar({
   };
 
   return (
-    <div className="w-60 border-r p-4 h-full">
+    <div className="w-60 border-r p-2 h-full">
       <div className="flex justify-between items-center mb-4">
         <h2 className="font-semibold text-lg">My Calendars</h2>
         <Button
@@ -92,32 +92,43 @@ export function CalendarSidebar({
       <div className="space-y-2">
         {calendars.map((calendar) => (
           <div key={calendar.id} className="flex items-center justify-between group">
-            <div className="flex items-center gap-2">
+            <div 
+              className="flex items-center gap-2 cursor-pointer flex-grow"
+              onClick={() => onCalendarToggle(calendar.id, !calendar.isVisible)}
+            >
               <button
-                onClick={() => onCalendarToggle(calendar.id, !calendar.isVisible)}
                 className="rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent triggering the parent onClick
+                  onCalendarToggle(calendar.id, !calendar.isVisible);
+                }}
               >
                 {calendar.isVisible ? (
-                  <Check className="h-4 w-4 text-blue-500" />
+                  <Eye className="h-4 w-4 text-blue-500" />
                 ) : (
-                  <X className="h-4 w-4 text-gray-500" />
+                  <EyeOff className="h-4 w-4 text-gray-500" />
                 )}
               </button>
-              <div className="flex items-center">
+              <div className="flex items-center min-w-0">
                 <div 
-                  className="w-3 h-3 rounded-full mr-2" 
+                  className="flex-shrink-0 w-3 h-3 rounded-full mr-2" 
                   style={{ backgroundColor: calendar.color }}
                 ></div>
-                <span className={`${calendar.isVisible ? 'text-gray-900' : 'text-gray-500'}`}>
-                  {calendar.name}
-                </span>
-                {calendar.isDefault && (
-                  <span className="ml-2 text-xs bg-gray-200 text-gray-700 px-1 rounded">Default</span>
-                )}
+                <div className="flex items-center min-w-0">
+                  <span className={`${calendar.isVisible ? 'text-gray-900' : 'text-gray-500'} truncate max-w-[120px]`}>
+                    {calendar.name}
+                  </span>
+                  {calendar.isDefault && (
+                    <Star className="ml-1 h-3 w-3 text-amber-500 flex-shrink-0" fill="currentColor" />
+                  )}
+                </div>
               </div>
             </div>
             <Button
-              onClick={() => openEditDialog(calendar)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent triggering the container's onClick
+                openEditDialog(calendar);
+              }}
               size="icon"
               variant="ghost"
               className="opacity-0 group-hover:opacity-100 transition-opacity"
