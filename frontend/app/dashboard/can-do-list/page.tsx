@@ -13,7 +13,7 @@ import {
   getHashedPassword, 
   deriveKeyFromPassword 
 } from '@/utils/encryption';
-import { CanDoItem, EncryptedCanDoItem } from '@/utils/types';
+import { CanDoItem } from '@/utils/types';
 import Link from 'next/link';
 
 export default function CanDoListPage() {
@@ -63,7 +63,7 @@ export default function CanDoListPage() {
             return null;
           }
         })
-        .filter((item): item is CanDoItem => item !== null);
+        .filter((item): item is NonNullable<typeof item> => item !== null);
       
       setItems(decryptedItems);
     } catch (error) {
@@ -200,13 +200,18 @@ export default function CanDoListPage() {
         </Button>
       </form>
       
-      {isLoading ? (
+      {/* Display loading, empty state, or items list */}
+      {isLoading && (
         <div className="text-center py-8">Loading your encrypted list...</div>
-      ) : items.length === 0 ? (
+      )}
+      
+      {!isLoading && items.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">
           Your list is empty. Add your first item above!
         </div>
-      ) : (
+      )}
+      
+      {!isLoading && items.length > 0 && (
         <ul className="space-y-2">
           {items.map(item => (
             <li 
