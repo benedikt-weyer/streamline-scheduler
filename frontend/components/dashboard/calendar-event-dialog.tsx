@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { TimeInput, type QuickTimeOption } from '@/components/ui/time-input';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { CalendarEvent } from '@/utils/types';
-import { format, parse, isValid } from 'date-fns';
+import { format, parse, isValid, addHours, addMinutes, subHours, subMinutes } from 'date-fns';
 
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -142,6 +143,48 @@ export function CalendarEventDialog({
     await onSubmit(eventData as any);
   };
 
+  // Helper function to adjust time
+  const adjustTime = (timeStr: string, adjustMinutes: number): string => {
+    if (!timeStr) return "";
+    const date = parse(timeStr, 'HH:mm', new Date());
+    if (!isValid(date)) return timeStr;
+    
+    const adjustedDate = addMinutes(date, adjustMinutes);
+    return format(adjustedDate, 'HH:mm');
+  };
+
+  // Get relative time options for end time
+  const getEndTimeOptions = (): QuickTimeOption[] => {
+    const startTime = form.watch('startTime');
+    
+    if (!startTime) {
+      return [
+        { value: "09:00" },
+        { value: "12:00" },
+        { value: "15:00" },
+        { value: "18:00" }
+      ];
+    }
+    
+    return [
+      { value: adjustTime(startTime, 15), label: "15m" },
+      { value: adjustTime(startTime, 30), label: "30m" },
+      { value: adjustTime(startTime, 60), label: "1h" },
+      { value: adjustTime(startTime, 180), label: "3h" }
+    ];
+  };
+
+  // Create start time quick options
+  const startTimeOptions: QuickTimeOption[] = [
+    { value: "09:00" },
+    { value: "12:00" },
+    { value: "15:00" },
+    { value: "18:00" }
+  ];
+
+  // Get the end time options
+  const endTimeOptions = getEndTimeOptions();
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -199,7 +242,15 @@ export function CalendarEventDialog({
                   <FormItem>
                     <FormLabel>Start Time</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <TimeInput 
+                        {...field} 
+                        quickTimeOptions={startTimeOptions} 
+                        onChange={(value) => {
+                          field.onChange(value);
+                          // Force re-render of end time options when start time changes
+                          form.trigger('endTime');
+                        }}
+                      />
                     </FormControl>
                   </FormItem>
                 )}
@@ -228,7 +279,10 @@ export function CalendarEventDialog({
                   <FormItem>
                     <FormLabel>End Time</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <TimeInput 
+                        {...field} 
+                        quickTimeOptions={endTimeOptions}
+                      />
                     </FormControl>
                   </FormItem>
                 )}
