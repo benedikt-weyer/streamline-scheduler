@@ -1,18 +1,22 @@
 'use client';
 
 import { signInAction } from "@/app/actions";
+
 import { FormMessage, Message } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+
 import { hashPassword, storeHashedPassword } from "@/utils/encryption";
-import Link from "next/link";
+
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+
+
 
 // Define the schema for form validation
 const signInSchema = z.object({
@@ -106,7 +110,7 @@ export default function Login() {
           <SubmitButton pendingText="Signing In...">
             Sign in
           </SubmitButton>
-          {message && <FormMessage message={message} />}
+          { message ? <FormMessage message={message} /> : null }
         </div>
       </form>
     </Form>
