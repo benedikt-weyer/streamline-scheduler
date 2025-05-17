@@ -15,13 +15,31 @@ import {
 } from '@/utils/encryption';
 import { CanDoItem } from '@/utils/types';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
+
+// Define schema for new item validation
+const addItemSchema = z.object({
+  content: z.string().min(1, { message: "Item content is required" })
+});
+
+type AddItemFormValues = z.infer<typeof addItemSchema>;
 
 export default function CanDoListPage() {
   const [items, setItems] = useState<CanDoItem[]>([]);
-  const [newItemContent, setNewItemContent] = useState('');
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Initialize form with react-hook-form and zod validation
+  const form = useForm<AddItemFormValues>({
+    resolver: zodResolver(addItemSchema),
+    defaultValues: {
+      content: ''
+    }
+  });
 
   // Load encryption key from cookie and fetch items on component mount
   useEffect(() => {
@@ -74,11 +92,9 @@ export default function CanDoListPage() {
     }
   };
 
-  // Add a new item
-  const handleAddItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newItemContent.trim() || !encryptionKey) return;
+  // Add a new item using react-hook-form
+  const onSubmit = async (values: AddItemFormValues) => {
+    if (!encryptionKey) return;
     
     try {
       const salt = generateSalt();
@@ -86,7 +102,7 @@ export default function CanDoListPage() {
       const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
       
       const itemData = {
-        content: newItemContent.trim(),
+        content: values.content.trim(),
         completed: false
       };
       
@@ -103,7 +119,7 @@ export default function CanDoListPage() {
       };
       
       setItems(prevItems => [newItem, ...prevItems]);
-      setNewItemContent('');
+      form.reset();
     } catch (error) {
       console.error('Error adding item:', error);
       setError('Failed to add new item');
@@ -187,18 +203,27 @@ export default function CanDoListPage() {
         </div>
       )}
       
-      <form onSubmit={handleAddItem} className="flex gap-2 mb-6">
-        <Input
-          type="text"
-          placeholder="Add a new item..."
-          value={newItemContent}
-          onChange={(e) => setNewItemContent(e.target.value)}
-          className="flex-grow"
-        />
-        <Button type="submit" disabled={!newItemContent.trim() || isLoading}>
-          Add
-        </Button>
-      </form>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex gap-2 mb-6">
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <FormItem className="flex-grow">
+                <FormControl>
+                  <Input
+                    placeholder="Add a new item..."
+                    {...field}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <Button type="submit" disabled={isLoading}>
+            Add
+          </Button>
+        </form>
+      </Form>
       
       {/* Display loading, empty state, or items list */}
       {isLoading && (
