@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { format, parse, startOfWeek } from 'date-fns';
+import { parse, startOfWeek } from 'date-fns';
 
 import { CalendarHeader } from '@/components/dashboard/calendar-header';
 import { CalendarGrid } from '@/components/dashboard/calendar-grid';
@@ -200,7 +200,7 @@ export default function CalendarPage() {
       
       const eventData = {
         title: values.title.trim(),
-        description: values.description?.trim() || '',
+        description: values.description?.trim() ?? '',
         startTime: parse(values.startTime, "yyyy-MM-dd'T'HH:mm", new Date()).toISOString(),
         endTime: parse(values.endTime, "yyyy-MM-dd'T'HH:mm", new Date()).toISOString()
       };
@@ -269,6 +269,39 @@ export default function CalendarPage() {
     }
   };
 
+  // Handle event update when dragged
+  const handleEventUpdate = async (updatedEvent: CalendarEvent) => {
+    if (!encryptionKey) return;
+    
+    try {
+      const salt = generateSalt();
+      const iv = generateIV();
+      const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+      
+      const eventData = {
+        title: updatedEvent.title,
+        description: updatedEvent.description ?? '',
+        startTime: updatedEvent.startTime.toISOString(),
+        endTime: updatedEvent.endTime.toISOString()
+      };
+      
+      const encryptedData = encryptData(eventData, derivedKey, iv);
+      
+      // Update the event in the database
+      await updateCalendarEvent(updatedEvent.id, encryptedData, iv, salt);
+      
+      // Local state update
+      setEvents(prevEvents =>
+        prevEvents.map(event =>
+          event.id === updatedEvent.id ? updatedEvent : event
+        ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+      );
+    } catch (error) {
+      console.error('Error updating dragged event:', error);
+      setError('Failed to update event position');
+    }
+  };
+
   // Open dialog for editing an event
   const openEditDialog = (event: CalendarEvent) => {
     setSelectedEvent(event);
@@ -331,6 +364,7 @@ export default function CalendarPage() {
             events={eventsInCurrentWeek}
             openEditDialog={openEditDialog}
             openNewEventDialog={openNewEventDialog}
+            onEventUpdate={handleEventUpdate}
           />
         </div>
       )}
