@@ -258,9 +258,9 @@ export function CalendarGrid({
   };
 
   // Render a single event
-  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number) => {
+  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex: number = 10, opacity: number = 100) => {
     // Use the utility function to calculate rendering details
-    const { eventStyles, startTime, endTime } = calculateEventRendering(event, day, slotHeight);
+    const { eventStyles, startTime, endTime } = calculateEventRendering(event, day, slotHeight, zIndex, opacity);
     
     return (
       <div
@@ -368,9 +368,9 @@ export function CalendarGrid({
     
     // Use a wrapper div to apply the opacity and prevent pointer events
     return (
-      <div className="opacity-80 pointer-events-none" style={{ zIndex: 100 }}>
-        {renderSingleEvent(draggedEvent, day, dayIndex)}
-      </div>
+      <>
+        {renderSingleEvent(draggedEvent, day, dayIndex, 1000, 80)}
+      </>
     );
   }
 

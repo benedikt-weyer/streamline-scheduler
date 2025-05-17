@@ -7,6 +7,7 @@ export interface CalendarEventRendering {
     height: string;
     width: string;
     zIndex: number;
+    opacity: number;
   };
   startTime: Date;
   endTime: Date;
@@ -18,7 +19,9 @@ export interface CalendarEventRendering {
 export const calculateEventRendering = (
   event: CalendarEvent,
   day: Date,
-  slotHeight: number
+  slotHeight: number,
+  zIndex: number,
+  opacity: number
 ): CalendarEventRendering => {
   // Adjust times for events that cross days
   const eventStart = isSameDay(event.startTime, day) 
@@ -43,7 +46,8 @@ export const calculateEventRendering = (
       top: `${topPosition}px`,
       height: `${height}px`,
       width: 'calc(100% - 8px)',
-      zIndex: 10
+      zIndex: zIndex,
+      opacity: opacity/100
     },
     startTime: eventStart,
     endTime: eventEnd
