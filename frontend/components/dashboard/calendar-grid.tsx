@@ -4,7 +4,7 @@ import { format, isSameDay, differenceInMinutes } from 'date-fns';
 
 import { CalendarEvent } from '@/utils/types';
 import { generateTimeSlots } from '@/utils/calendar';
-import { calculateCalendarDimensions, calculateEventRendering } from '@/utils/calendar-render';
+import { calculateCalendarDimensions, calculateEventRendering, groupOverlappingEvents } from '@/utils/calendar-render';
 import { 
   DraggedEvent, 
   DragPosition, 
@@ -286,9 +286,9 @@ export function CalendarGrid({
   };
 
   // Render a single event
-  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex: number = 10, opacity: number = 100) => {
+  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex: number = 10, opacity: number = 100, columnIndex: number = 0, totalColumns: number = 1) => {
     // Use the utility function to calculate rendering details
-    const { eventStyles, startTime, endTime } = calculateEventRendering(event, day, slotHeight, zIndex, opacity);
+    const { eventStyles, startTime, endTime } = calculateEventRendering(event, day, slotHeight, zIndex, opacity, columnIndex, totalColumns);
     
     return (
       <div
@@ -332,7 +332,20 @@ export function CalendarGrid({
     
     if (!dayEvents.length) return null;
 
-    return dayEvents.map(event => renderSingleEvent(event, day, dayIndex));
+    // Group overlapping events
+    const eventGroups = groupOverlappingEvents(dayEvents);
+    
+    return eventGroups.flatMap(group => {
+      // For non-overlapping events (group of 1), render normally
+      if (group.length === 1) {
+        return renderSingleEvent(group[0], day, dayIndex);
+      }
+      
+      // For overlapping events, render each in its own column
+      return group.map((event, columnIndex) => 
+        renderSingleEvent(event, day, dayIndex, 10, 100, columnIndex, group.length)
+      );
+    });
   };
 
   // Calculate the position for the current time indicator
