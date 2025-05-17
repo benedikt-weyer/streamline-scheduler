@@ -244,7 +244,32 @@ export function CalendarGrid({
     // Don't open dialog if we're in a drag operation
     if (isDraggingRef.current || activeEvent) return;
     
-    openNewEventDialog(day);
+    // Calculate the time based on mouse click position
+    if (containerRef.current) {
+      const dayColumnElement = e.currentTarget as HTMLElement;
+      const rect = dayColumnElement.getBoundingClientRect();
+      const relativeY = e.clientY - rect.top;
+      
+      // Calculate minutes from top position
+      const totalMinutes = (relativeY / slotHeight) * 60;
+      
+      // Round minutes to nearest 15-minute interval for better usability
+      const snappedMinutes = Math.round(totalMinutes / 15) * 15;
+      
+      // Calculate hours and minutes components
+      const hours = Math.floor(snappedMinutes / 60);
+      const minutes = snappedMinutes % 60;
+      
+      // Create new date with calculated time
+      const clickedDateTime = new Date(day);
+      clickedDateTime.setHours(hours, minutes, 0, 0);
+      
+      // Open dialog with the clicked time
+      openNewEventDialog(clickedDateTime);
+    } else {
+      // Fallback to just the day if container ref isn't available
+      openNewEventDialog(day);
+    }
   };
 
   // Handle click on an event - only if we're not dragging

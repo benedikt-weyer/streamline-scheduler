@@ -207,7 +207,7 @@ export default function CalendarPage() {
       
       const encryptedData = encryptData(eventData, derivedKey, iv);
       
-      if (selectedEvent) {
+      if (selectedEvent && selectedEvent.id !== 'new') {
         // Update existing event
         const updatedEncryptedEvent = await updateCalendarEvent(selectedEvent.id, encryptedData, iv, salt);
         
@@ -227,7 +227,7 @@ export default function CalendarPage() {
           ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
         );
       } else {
-        // Create new event
+        // Create new event (either no selected event or id is 'new')
         const newEncryptedEvent = await addCalendarEvent(encryptedData, iv, salt);
         
         const newEvent: CalendarEvent = {
@@ -312,15 +312,26 @@ export default function CalendarPage() {
   const openNewEventDialog = (day?: Date) => {
     setSelectedEvent(null);
     
-    // If a day is provided, set the default start time to the current time on that day
+    // If a day is provided, set the start time to the clicked time
     if (day) {
-      const now = new Date();
       const startTime = new Date(day);
-      startTime.setHours(now.getHours());
-      startTime.setMinutes(now.getMinutes());
       
+      // Set end time to be 1 hour after start time
       const endTime = new Date(startTime);
       endTime.setHours(endTime.getHours() + 1);
+      
+      // Create a temporary "dummy" event to pass to the form
+      const dummyEvent: CalendarEvent = {
+        id: 'new', // This ID will never be used, it's just for the temporary object
+        title: '',
+        description: '',
+        startTime: startTime,
+        endTime: endTime,
+        createdAt: new Date()
+      };
+      
+      // Set as selected event to prefill the form with these times
+      setSelectedEvent(dummyEvent);
     }
     
     setIsDialogOpen(true);
