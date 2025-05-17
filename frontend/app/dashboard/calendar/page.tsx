@@ -341,7 +341,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="w-full mx-auto p-4">
+    <div className="w-full px-4">
       <CalendarHeader 
         currentWeek={currentWeek}
         setCurrentWeek={setCurrentWeek}
