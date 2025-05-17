@@ -14,7 +14,9 @@ export default async function ProtectedPage() {
 
   return (
     <div className="flex">
-      <p className="text-2xl">Welcome {user.email}!</p>
+      <p className="text-2xl">Can-Do List</p>
+
+      
 
     </div>
   );
