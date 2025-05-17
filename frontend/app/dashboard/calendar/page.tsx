@@ -17,12 +17,27 @@ import {
 import { createClient } from '@/utils/supabase/client';
 import { CalendarEvent } from '@/utils/types';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { format, parse, isValid } from 'date-fns';
+import { 
+  format, 
+  parse, 
+  isValid, 
+  startOfWeek, 
+  endOfWeek, 
+  eachDayOfInterval, 
+  addWeeks, 
+  subWeeks,
+  addMinutes,
+  isSameDay,
+  differenceInMinutes,
+  setHours,
+  setMinutes,
+  isWithinInterval
+} from 'date-fns';
 
 import { fetchCalendarEvents, addCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from './actions';
 
@@ -51,6 +66,22 @@ const eventFormSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
 
+// Generate time slots for the calendar (30-minute intervals)
+const generateTimeSlots = () => {
+  const slots = [];
+  const startHour = 7; // 7 AM
+  const endHour = 22; // 10 PM
+
+  for (let hour = startHour; hour <= endHour; hour++) {
+    slots.push(`${hour}:00`);
+    slots.push(`${hour}:30`);
+  }
+  
+  return slots;
+};
+
+const timeSlots = generateTimeSlots();
+
 export default function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
@@ -58,6 +89,44 @@ export default function CalendarPage() {
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [currentWeek, setCurrentWeek] = useState<Date>(startOfWeek(new Date(), { weekStartsOn: 1 })); // Start on Monday
+
+  // Generate days of the week
+  const daysOfWeek = useMemo(() => {
+    return eachDayOfInterval({
+      start: currentWeek,
+      end: endOfWeek(currentWeek, { weekStartsOn: 1 })
+    });
+  }, [currentWeek]);
+
+  // Navigate to previous week
+  const goToPreviousWeek = () => {
+    setCurrentWeek(prevWeek => subWeeks(prevWeek, 1));
+  };
+
+  // Navigate to next week
+  const goToNextWeek = () => {
+    setCurrentWeek(prevWeek => addWeeks(prevWeek, 1));
+  };
+
+  // Go to current week
+  const goToCurrentWeek = () => {
+    setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  };
+
+  // Filter events for the current week
+  const eventsInCurrentWeek = useMemo(() => {
+    if (!events.length) return [];
+    
+    const weekStart = currentWeek;
+    const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
+    
+    return events.filter(event => 
+      isWithinInterval(event.startTime, { start: weekStart, end: weekEnd }) ||
+      isWithinInterval(event.endTime, { start: weekStart, end: weekEnd }) ||
+      (event.startTime < weekStart && event.endTime > weekEnd)
+    );
+  }, [events, currentWeek]);
 
   // Initialize form with react-hook-form and zod validation
   const form = useForm<EventFormValues>({
@@ -331,6 +400,50 @@ export default function CalendarPage() {
     setIsDialogOpen(true);
   };
 
+  // Position and size events on the grid
+  const renderEvents = (day: Date) => {
+    const dayEvents = eventsInCurrentWeek.filter(event => isSameDay(event.startTime, day) || isSameDay(event.endTime, day));
+    
+    if (!dayEvents.length) return null;
+
+    return dayEvents.map(event => {
+      // Adjust times for events that cross days
+      const eventStart = isSameDay(event.startTime, day) ? event.startTime : setHours(setMinutes(day, 0), 7);
+      const eventEnd = isSameDay(event.endTime, day) ? event.endTime : setHours(setMinutes(day, 0), 22);
+      
+      // Calculate position from top (based on start time)
+      const dayStartTime = setHours(setMinutes(new Date(day), 0), 7); // 7 AM
+      const minutesFromDayStart = differenceInMinutes(eventStart, dayStartTime);
+      const topPosition = (minutesFromDayStart / 30) * 40; // each 30-min slot is 40px high
+      
+      // Calculate height (based on duration)
+      const durationInMinutes = differenceInMinutes(eventEnd, eventStart);
+      const height = (durationInMinutes / 30) * 40; // each 30-min slot is 40px high
+      
+      return (
+        <div
+          key={event.id}
+          className="absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white bg-blue-500 border border-blue-600 shadow-sm"
+          style={{
+            top: `${topPosition}px`,
+            height: `${height}px`,
+            width: 'calc(100% - 8px)',
+            zIndex: 10
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            openEditDialog(event);
+          }}
+        >
+          <div className="font-medium truncate">{event.title}</div>
+          <div className="text-xs truncate">
+            {format(event.startTime, "h:mm a")} - {format(event.endTime, "h:mm a")}
+          </div>
+        </div>
+      );
+    });
+  };
+
   if (!encryptionKey && !isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] p-4">
@@ -346,10 +459,21 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div className="w-full mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Your Calendar</h1>
-        <Button onClick={openNewEventDialog}>Add Event</Button>
+        <div className="flex items-center space-x-2">
+          <Button onClick={goToPreviousWeek} size="sm" variant="outline">
+            Previous Week
+          </Button>
+          <Button onClick={goToCurrentWeek} size="sm">
+            Current Week
+          </Button>
+          <Button onClick={goToNextWeek} size="sm" variant="outline">
+            Next Week
+          </Button>
+          <Button onClick={openNewEventDialog} className="ml-4">Add Event</Button>
+        </div>
       </div>
       
       <p className="text-sm text-muted-foreground mb-4">
@@ -362,49 +486,86 @@ export default function CalendarPage() {
         </div>
       )}
       
-      {/* Display loading, empty state, or events list */}
-      {isLoading && (
+      {/* Display loading or calendar grid */}
+      {isLoading ? (
         <div className="text-center py-8">Loading your encrypted calendar...</div>
-      )}
-      
-      {!isLoading && events.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          Your calendar is empty. Add your first event using the "Add Event" button.
-        </div>
-      )}
-      
-      {!isLoading && events.length > 0 && (
-        <div className="space-y-4">
-          {events.map(event => (
-            <div 
-              key={event.id} 
-              className="p-4 rounded-md border cursor-pointer hover:bg-accent"
-              onClick={() => openEditDialog(event)}
-            >
-              <div className="flex justify-between items-start">
-                <h3 className="font-medium">{event.title}</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteEvent(event.id);
+      ) : (
+        <div className="border rounded-lg shadow-sm bg-card">
+          {/* Calendar header with days of the week */}
+          <div className="grid grid-cols-7 border-b">
+            {daysOfWeek.map(day => (
+              <div 
+                key={day.toString()} 
+                className="px-2 py-3 text-center border-r last:border-r-0 font-medium"
+              >
+                <div>{format(day, "EEE")}</div>
+                <div className={`text-lg ${isSameDay(day, new Date()) ? 'bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center mx-auto' : ''}`}>
+                  {format(day, "d")}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Calendar grid with time slots */}
+          <div className="grid grid-cols-[60px_1fr] h-[600px] overflow-y-auto">
+            {/* Time labels */}
+            <div className="border-r">
+              {timeSlots.map((slot, index) => (
+                <div 
+                  key={index} 
+                  className="h-10 text-xs text-right pr-2 sticky left-0 bg-background"
+                  style={{ 
+                    marginTop: index % 2 === 0 ? '0' : '', 
+                    transform: 'translateY(-50%)',
+                    zIndex: 20
                   }}
-                  className="text-destructive hover:text-destructive/80"
                 >
-                  Delete
-                </Button>
-              </div>
-              
-              <div className="text-sm text-muted-foreground mt-1">
-                {format(event.startTime, "MMM d, yyyy h:mm a")} - {format(event.endTime, "h:mm a")}
-              </div>
-              
-              {event.description && (
-                <p className="mt-2 text-sm">{event.description}</p>
-              )}
+                  {slot}
+                </div>
+              ))}
             </div>
-          ))}
+            
+            {/* Days grid */}
+            <div className="grid grid-cols-7">
+              {daysOfWeek.map((day, dayIndex) => (
+                <div 
+                  key={day.toString()} 
+                  className="relative border-r last:border-r-0 h-full"
+                  onClick={() => {
+                    // Set default time to the clicked day
+                    const now = new Date();
+                    const startTime = new Date(day);
+                    startTime.setHours(now.getHours());
+                    startTime.setMinutes(now.getMinutes());
+                    
+                    const endTime = new Date(startTime);
+                    endTime.setHours(endTime.getHours() + 1);
+                    
+                    form.reset({
+                      title: '',
+                      description: '',
+                      startTime: format(startTime, "yyyy-MM-dd'T'HH:mm"),
+                      endTime: format(endTime, "yyyy-MM-dd'T'HH:mm")
+                    });
+                    
+                    setSelectedEvent(null);
+                    setIsDialogOpen(true);
+                  }}
+                >
+                  {/* Time slot lines */}
+                  {timeSlots.map((_, index) => (
+                    <div 
+                      key={index} 
+                      className="h-10 border-b last:border-b-0"
+                    />
+                  ))}
+                  
+                  {/* Events for this day */}
+                  {renderEvents(day)}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
       
