@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { CalendarEvent } from '@/utils/types';
-import { format } from 'date-fns';
+import { format, parse, isValid } from 'date-fns';
 
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,22 +15,56 @@ import { useEffect } from 'react';
 export const eventFormSchema = z.object({
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
+  startDate: z.string().refine(value => {
+    if (!value) return false;
+    const parsed = parse(value, 'yyyy-MM-dd', new Date());
+    return isValid(parsed);
+  }, { message: "Valid start date is required" }),
   startTime: z.string().refine(value => {
     if (!value) return false;
-    const parsed = new Date(value);
-    return !isNaN(parsed.getTime());
+    const parsed = parse(value, 'HH:mm', new Date());
+    return isValid(parsed);
   }, { message: "Valid start time is required" }),
+  endDate: z.string().refine(value => {
+    if (!value) return false;
+    const parsed = parse(value, 'yyyy-MM-dd', new Date());
+    return isValid(parsed);
+  }, { message: "Valid end date is required" }),
   endTime: z.string().refine(value => {
     if (!value) return false;
-    const parsed = new Date(value);
-    return !isNaN(parsed.getTime());
+    const parsed = parse(value, 'HH:mm', new Date());
+    return isValid(parsed);
   }, { message: "Valid end time is required" })
 }).refine(data => {
-  const start = new Date(data.startTime);
-  const end = new Date(data.endTime);
+  // Combine date and time to create complete datetime for validation
+  const startDate = parse(data.startDate, 'yyyy-MM-dd', new Date());
+  const startTime = parse(data.startTime, 'HH:mm', new Date());
+  const endDate = parse(data.endDate, 'yyyy-MM-dd', new Date());
+  const endTime = parse(data.endTime, 'HH:mm', new Date());
+  
+  if (!isValid(startDate) || !isValid(startTime) || !isValid(endDate) || !isValid(endTime)) {
+    return false;
+  }
+  
+  const start = new Date(
+    startDate.getFullYear(), 
+    startDate.getMonth(), 
+    startDate.getDate(), 
+    startTime.getHours(), 
+    startTime.getMinutes()
+  );
+  
+  const end = new Date(
+    endDate.getFullYear(), 
+    endDate.getMonth(), 
+    endDate.getDate(), 
+    endTime.getHours(), 
+    endTime.getMinutes()
+  );
+  
   return end > start;
 }, {
-  message: "End time must be after start time",
+  message: "End date/time must be after start date/time",
   path: ["endTime"]
 });
 
@@ -43,6 +77,20 @@ interface CalendarEventDialogProps {
   onSubmit: (values: EventFormValues) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }
+
+// Helper function to combine date and time into a single Date object
+const combineDateAndTime = (dateStr: string, timeStr: string): Date => {
+  const datePart = parse(dateStr, 'yyyy-MM-dd', new Date());
+  const timePart = parse(timeStr, 'HH:mm', new Date());
+  
+  return new Date(
+    datePart.getFullYear(),
+    datePart.getMonth(),
+    datePart.getDate(),
+    timePart.getHours(),
+    timePart.getMinutes()
+  );
+};
 
 export function CalendarEventDialog({ 
   isOpen, 
@@ -57,8 +105,10 @@ export function CalendarEventDialog({
     defaultValues: {
       title: selectedEvent?.title || '',
       description: selectedEvent?.description || '',
-      startTime: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-      endTime: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd'T'HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")
+      startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
+      endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      endTime: selectedEvent ? format(selectedEvent.endTime, "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm")
     }
   });
 
@@ -67,10 +117,30 @@ export function CalendarEventDialog({
     form.reset({
       title: selectedEvent?.title || '',
       description: selectedEvent?.description || '',
-      startTime: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-      endTime: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd'T'HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")
+      startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
+      endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      endTime: selectedEvent ? format(selectedEvent.endTime, "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm")
     });
   }, [selectedEvent, form]);
+
+  // Handle form submission
+  const handleFormSubmit = async (values: EventFormValues) => {
+    // Convert the separate date and time fields into datetime strings for the API
+    const startDateTime = combineDateAndTime(values.startDate, values.startTime);
+    const endDateTime = combineDateAndTime(values.endDate, values.endTime);
+    
+    // Create the event data for submission
+    const eventData = {
+      title: values.title,
+      description: values.description || '',
+      startTime: startDateTime.toISOString(),
+      endTime: endDateTime.toISOString()
+    };
+    
+    // Call the onSubmit callback with the event data
+    await onSubmit(eventData as any);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -80,7 +150,7 @@ export function CalendarEventDialog({
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="title"
@@ -107,7 +177,21 @@ export function CalendarEventDialog({
               )}
             />
             
+            {/* Start Date and Time */}
             <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={form.control}
                 name="startTime"
@@ -115,7 +199,23 @@ export function CalendarEventDialog({
                   <FormItem>
                     <FormLabel>Start Time</FormLabel>
                     <FormControl>
-                      <Input type="datetime-local" {...field} />
+                      <Input type="time" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* End Date and Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -128,7 +228,7 @@ export function CalendarEventDialog({
                   <FormItem>
                     <FormLabel>End Time</FormLabel>
                     <FormControl>
-                      <Input type="datetime-local" {...field} />
+                      <Input type="time" {...field} />
                     </FormControl>
                   </FormItem>
                 )}

@@ -198,11 +198,13 @@ export default function CalendarPage() {
       const iv = generateIV();
       const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
       
+      // The form values now come with separate date and time fields
+      // that we need to process as they are already in the required format
       const eventData = {
         title: values.title.trim(),
         description: values.description?.trim() ?? '',
-        startTime: parse(values.startTime, "yyyy-MM-dd'T'HH:mm", new Date()).toISOString(),
-        endTime: parse(values.endTime, "yyyy-MM-dd'T'HH:mm", new Date()).toISOString()
+        startTime: values.startTime, // This is already processed in the dialog component
+        endTime: values.endTime // This is already processed in the dialog component
       };
       
       const encryptedData = encryptData(eventData, derivedKey, iv);
