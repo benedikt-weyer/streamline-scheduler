@@ -22,6 +22,9 @@ describe('Can-Do List Server Actions', () => {
     eq: jest.Mock;
     order: jest.Mock;
     single: jest.Mock;
+    auth: {
+      getUser: jest.Mock;
+    };
     [key: string]: any;
   } = {
     from: jest.fn(() => mockSupabase),
@@ -32,11 +35,19 @@ describe('Can-Do List Server Actions', () => {
     eq: jest.fn(() => mockSupabase),
     order: jest.fn(() => mockSupabase),
     single: jest.fn(() => mockSupabase),
+    auth: {
+      getUser: jest.fn(),
+    },
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
     (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+    // Setup default auth mock to return a test user
+    mockSupabase.auth.getUser.mockResolvedValue({
+      data: { user: { id: 'user-1' } },
+      error: null,
+    });
   });
 
   describe('fetchCanDoItems', () => {
@@ -112,6 +123,7 @@ describe('Can-Do List Server Actions', () => {
 
       expect(mockSupabase.from).toHaveBeenCalledWith('can_do_list');
       expect(mockSupabase.insert).toHaveBeenCalledWith({
+        user_id: 'user-1',
         encrypted_data: encryptedData,
         iv,
         salt
@@ -128,6 +140,16 @@ describe('Can-Do List Server Actions', () => {
       });
 
       await expect(addCanDoItem('data', 'iv', 'salt', true)).rejects.toThrow('Failed to add can-do item: Insert error');
+    });
+
+    it('should throw an error if user is not authenticated', async () => {
+      // Mock unauthenticated user
+      mockSupabase.auth.getUser.mockResolvedValueOnce({
+        data: { user: null },
+        error: null,
+      });
+
+      await expect(addCanDoItem('data', 'iv', 'salt')).rejects.toThrow('User must be authenticated to add items');
     });
   });
 
