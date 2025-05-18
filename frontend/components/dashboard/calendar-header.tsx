@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { subWeeks, addWeeks, startOfWeek } from 'date-fns';
+import { subWeeks, addWeeks, startOfWeek, format } from 'date-fns';
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 interface CalendarHeaderProps {
   currentWeek: Date;
@@ -25,18 +26,28 @@ export function CalendarHeader({ currentWeek, setCurrentWeek, openNewEventDialog
 
   return (
     <div className="flex justify-between items-center my-1">
-      <h1 className="text-2xl font-bold">Your Calendar</h1>
       <div className="flex items-center space-x-2">
-        <Button onClick={goToPreviousWeek} size="sm" variant="outline">
-          Previous Week
+        <div className="flex items-center border rounded-md overflow-hidden mr-4">
+          <Button onClick={goToCurrentWeek} size="sm" variant="outline" className="flex items-center gap-1 rounded-r-none border-0">
+            <Calendar className="h-4 w-4" />
+            <span>Today</span>
+          </Button>
+          <div className="h-6 w-px bg-border my-auto"></div>
+          <Button onClick={goToPreviousWeek} size="sm" variant="outline" className="rounded-none border-0 px-2">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button onClick={goToNextWeek} size="sm" variant="outline" className="rounded-l-none border-0 px-2">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <h2 className="text-lg font-medium">
+          {format(currentWeek, 'MMMM yyyy')} - Week {format(currentWeek, 'w')}
+        </h2>
+      </div>
+      <div>
+        <Button onClick={openNewEventDialog} size="sm">
+          Add Event
         </Button>
-        <Button onClick={goToCurrentWeek} size="sm">
-          Current Week
-        </Button>
-        <Button onClick={goToNextWeek} size="sm" variant="outline">
-          Next Week
-        </Button>
-        <Button onClick={openNewEventDialog} className="ml-4">Add Event</Button>
       </div>
     </div>
   );
