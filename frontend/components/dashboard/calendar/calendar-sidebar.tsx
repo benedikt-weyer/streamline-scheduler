@@ -103,26 +103,26 @@ export function CalendarSidebar({
         {calendars.map((calendar) => (
           <div key={calendar.id} className="flex items-center justify-between group">
             <div 
-              className="flex items-center gap-2 cursor-pointer flex-grow"
+              className="flex items-center gap-2 cursor-pointer flex-grow overflow-hidden"
               onClick={() => onCalendarToggle(calendar.id, !calendar.isVisible)}
             >
               <button
-                className="rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
+                className="rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500 flex-shrink-0"
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent triggering the parent onClick
                   onCalendarToggle(calendar.id, !calendar.isVisible);
                 }}
               >
                 <div 
-                  className={`flex-shrink-0 w-3 h-3 rounded-full border-2 flex items-center justify-center`}
+                  className={`w-3 h-3 rounded-full border-2 flex items-center justify-center`}
                   style={{ 
                     borderColor: calendar.color,
                     backgroundColor: calendar.isVisible ? calendar.color : 'transparent'
                   }}
                 ></div>
               </button>
-              <div className="flex items-center min-w-0">
-                <span className={`${calendar.isVisible ? 'text-gray-900' : 'text-gray-500'} truncate max-w-[120px]`}>
+              <div className="min-w-0 flex-1">
+                <span className={`${calendar.isVisible ? 'text-gray-900' : 'text-gray-500'} truncate block`}>
                   {calendar.name}
                 </span>
               </div>
@@ -134,7 +134,7 @@ export function CalendarSidebar({
               }}
               size="icon"
               variant="ghost"
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-1"
               title="Edit Calendar"
             >
               <Settings className="h-4 w-4" />
