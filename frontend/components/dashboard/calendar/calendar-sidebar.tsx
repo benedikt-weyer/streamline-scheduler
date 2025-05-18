@@ -5,6 +5,7 @@ import { Plus, Edit, Trash, Settings, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Calendar } from '@/utils/types';
 
 interface CalendarSidebarProps {
@@ -124,9 +125,6 @@ export function CalendarSidebar({
                 <span className={`${calendar.isVisible ? 'text-gray-900' : 'text-gray-500'} truncate max-w-[120px]`}>
                   {calendar.name}
                 </span>
-                {calendar.isDefault && (
-                  <Star className="ml-1 h-3 w-3 text-amber-500 flex-shrink-0" fill="currentColor" />
-                )}
               </div>
             </div>
             <Button
@@ -190,6 +188,11 @@ export function CalendarSidebar({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Calendar</DialogTitle>
+            {selectedCalendar?.isDefault && (
+              <div className="text-sm text-amber-600 mt-1 px-2 py-1 bg-amber-50 rounded-md">
+                This is your default calendar. It will be pre-selected when creating new events.
+              </div>
+            )}
           </DialogHeader>
           {selectedCalendar && (
             <div className="space-y-4 py-4">
@@ -222,14 +225,30 @@ export function CalendarSidebar({
           )}
           <DialogFooter className="flex justify-between flex-wrap gap-2">
             <div className="flex gap-2">
-              <Button 
-                variant="destructive" 
-                onClick={handleDeleteCalendar}
-                disabled={selectedCalendar?.isDefault || calendars.length <= 1}
-              >
-                <Trash className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button 
+                        variant="destructive" 
+                        onClick={handleDeleteCalendar}
+                        disabled={selectedCalendar?.isDefault || calendars.length <= 1}
+                      >
+                        <Trash className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {(selectedCalendar?.isDefault || calendars.length <= 1) && (
+                    <TooltipContent>
+                      {selectedCalendar?.isDefault 
+                        ? "Default calendars cannot be deleted. Set another calendar as default first."
+                        : "You must have at least one calendar."
+                      }
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
               {!selectedCalendar?.isDefault && (
                 <Button
                   variant="outline"
