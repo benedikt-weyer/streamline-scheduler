@@ -11,13 +11,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar, CalendarEvent, RecurrenceFrequency, RecurrencePattern } from '@/utils/types';
-import { format, parse, isValid, addHours, addMinutes, subHours, subMinutes } from 'date-fns';
+import { Calendar, CalendarEvent, RecurrenceFrequency } from '@/utils/types';
+import { format, parse, isValid, addMinutes } from 'date-fns';
 
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import { useEffect } from 'react';
 
 // Define schema for event validation
@@ -85,13 +84,13 @@ export const eventFormSchema = z.object({
 export type EventFormValues = z.infer<typeof eventFormSchema>;
 
 interface CalendarEventDialogProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  selectedEvent: CalendarEvent | null;
-  calendars: Calendar[];
-  defaultCalendarId?: string;
-  onSubmit: (values: EventFormValues) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  readonly isOpen: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly selectedEvent: CalendarEvent | null;
+  readonly calendars: Calendar[];
+  readonly defaultCalendarId?: string;
+  readonly onSubmit: (values: EventFormValues) => Promise<void>;
+  readonly onDelete: (id: string) => Promise<void>;
 }
 
 // Helper function to combine date and time into a single Date object
@@ -118,51 +117,51 @@ export function CalendarEventDialog({
   onDelete 
 }: CalendarEventDialogProps) {
   // Determine which calendar ID to use
-  const initialCalendarId = selectedEvent?.calendarId || defaultCalendarId || 
-    (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id || calendars[0].id : '');
+  const initialCalendarId = selectedEvent?.calendarId ?? defaultCalendarId ?? 
+    (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id ?? calendars[0].id : '');
 
   // Initialize form with react-hook-form and zod validation
-  const form = useForm<EventFormValues>({
+  const form = useForm({
     resolver: zodResolver(eventFormSchema),
     defaultValues: {
-      title: selectedEvent?.title || '',
-      description: selectedEvent?.description || '',
+      title: selectedEvent?.title ?? '',
+      description: selectedEvent?.description ?? '',
       calendarId: initialCalendarId,
       startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
       endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       endTime: selectedEvent ? format(selectedEvent.endTime, "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm"),
-      recurrenceFrequency: selectedEvent?.recurrencePattern?.frequency || RecurrenceFrequency.None,
+      recurrenceFrequency: selectedEvent?.recurrencePattern?.frequency ?? RecurrenceFrequency.None,
       recurrenceEndDate: selectedEvent?.recurrencePattern?.endDate 
         ? format(selectedEvent.recurrencePattern.endDate, "yyyy-MM-dd") 
         : '',
-      recurrenceInterval: selectedEvent?.recurrencePattern?.interval || 1
+      recurrenceInterval: selectedEvent?.recurrencePattern?.interval ?? 1
     }
   });
 
   // Reset form when selected event changes
   useEffect(() => {
-    const calendarId = selectedEvent?.calendarId || defaultCalendarId || 
-      (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id || calendars[0].id : '');
+    const calendarId = selectedEvent?.calendarId ?? defaultCalendarId ?? 
+      (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id ?? calendars[0].id : '');
       
     form.reset({
-      title: selectedEvent?.title || '',
-      description: selectedEvent?.description || '',
+      title: selectedEvent?.title ?? '',
+      description: selectedEvent?.description ?? '',
       calendarId,
       startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
       endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       endTime: selectedEvent ? format(selectedEvent.endTime, "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm"),
-      recurrenceFrequency: selectedEvent?.recurrencePattern?.frequency || RecurrenceFrequency.None,
+      recurrenceFrequency: selectedEvent?.recurrencePattern?.frequency ?? RecurrenceFrequency.None,
       recurrenceEndDate: selectedEvent?.recurrencePattern?.endDate 
         ? format(selectedEvent.recurrencePattern.endDate, "yyyy-MM-dd") 
         : '',
-      recurrenceInterval: selectedEvent?.recurrencePattern?.interval || 1
+      recurrenceInterval: selectedEvent?.recurrencePattern?.interval ?? 1
     });
   }, [selectedEvent, form, calendars, defaultCalendarId]);
 
   // Handle form submission
-  const handleFormSubmit = async (values: EventFormValues) => {
+  const handleFormSubmit: SubmitHandler<EventFormValues> = async (values) => {
     try {
       console.log("Form values:", values);
       
@@ -230,9 +229,6 @@ export function CalendarEventDialog({
 
   // Get the end time options
   const endTimeOptions = getEndTimeOptions();
-
-  // Get visible calendars for selection
-  const visibleCalendars = calendars.filter(calendar => calendar.isVisible);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
