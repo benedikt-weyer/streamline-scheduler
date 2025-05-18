@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Eye, EyeOff, Edit, Trash, Settings, Star } from 'lucide-react';
+import { Plus, Edit, Trash, Settings, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -112,25 +112,21 @@ export function CalendarSidebar({
                   onCalendarToggle(calendar.id, !calendar.isVisible);
                 }}
               >
-                {calendar.isVisible ? (
-                  <Eye className="h-4 w-4 text-blue-500" />
-                ) : (
-                  <EyeOff className="h-4 w-4 text-gray-500" />
-                )}
+                <div 
+                  className={`flex-shrink-0 w-3 h-3 rounded-full border-2 flex items-center justify-center`}
+                  style={{ 
+                    borderColor: calendar.color,
+                    backgroundColor: calendar.isVisible ? calendar.color : 'transparent'
+                  }}
+                ></div>
               </button>
               <div className="flex items-center min-w-0">
-                <div 
-                  className="flex-shrink-0 w-3 h-3 rounded-full mr-2" 
-                  style={{ backgroundColor: calendar.color }}
-                ></div>
-                <div className="flex items-center min-w-0">
-                  <span className={`${calendar.isVisible ? 'text-gray-900' : 'text-gray-500'} truncate max-w-[120px]`}>
-                    {calendar.name}
-                  </span>
-                  {calendar.isDefault && (
-                    <Star className="ml-1 h-3 w-3 text-amber-500 flex-shrink-0" fill="currentColor" />
-                  )}
-                </div>
+                <span className={`${calendar.isVisible ? 'text-gray-900' : 'text-gray-500'} truncate max-w-[120px]`}>
+                  {calendar.name}
+                </span>
+                {calendar.isDefault && (
+                  <Star className="ml-1 h-3 w-3 text-amber-500 flex-shrink-0" fill="currentColor" />
+                )}
               </div>
             </div>
             <Button
