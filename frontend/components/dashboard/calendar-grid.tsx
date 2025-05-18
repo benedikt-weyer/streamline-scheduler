@@ -575,8 +575,8 @@ export function CalendarGrid({
       {/* Calendar grid with time slots - dynamic height based on viewport */}
       <div 
         ref={containerRef}
-        className="grid grid-cols-[60px_1fr] overflow-auto relative"
-        style={{ height: calendarHeight ? `${calendarHeight}px` : 'auto' }}
+        className="grid grid-cols-[60px_1fr] overflow-y-hidden relative"
+        style={{ height: slotHeight && timeSlots ? `${slotHeight * timeSlots.length - 1}px` : 'auto' }}
       >
         {/* Time labels */}
         <div className="border-r relative">

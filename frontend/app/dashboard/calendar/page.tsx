@@ -1255,7 +1255,6 @@ export default function CalendarPage() {
         {isLoading ? (
           <div className="text-center py-8">Loading your encrypted calendar...</div>
         ) : (
-          <div className="h-full">
             <CalendarGrid 
               days={daysOfWeek}
               events={eventsInCurrentWeek}
@@ -1264,7 +1263,6 @@ export default function CalendarPage() {
               openNewEventDialog={(day) => openNewEventDialog(day)}
               onEventUpdate={handleEventUpdate}
             />
-          </div>
         )}
         
         {/* Event dialog */}
