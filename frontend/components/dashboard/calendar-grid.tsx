@@ -325,7 +325,7 @@ export function CalendarGrid({
   // Every time events or calendars change, ensure calendar colors are properly attached
   useEffect(() => {
     // Every time events or calendars change, ensure calendar colors are properly attached
-    if (events.length > 0 && calendars?.length > 0) {
+    if (events.length > 0 && calendars && calendars.length > 0) {
       console.log('Calendar Grid: Ensuring calendar colors are preserved on re-render');
       
       // Create a local copy of events with calendar colors attached
