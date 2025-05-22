@@ -33,6 +33,7 @@ pkgs.mkShell {
     echo "  start:be   - Start only Supabase dev server"
     echo "  test       - Run frontend tests"
     echo "  test:watch - Run frontend tests in watch mode"
+    echo "  migrate    - Create a new Supabase migration (Usage: migrate <migration_name>)"
     echo "-----------------------------------------------------"
 
     # Create a temporary directory for PID files
@@ -77,6 +78,21 @@ pkgs.mkShell {
     alias start:be='start_supabase'
     alias test='cd frontend && pnpm test'
     alias test:watch='cd frontend && pnpm test:watch'
+    
+    # Create migration alias - accepts a migration name as parameter
+    create_migration() {
+      if [ -z "$1" ]; then
+        echo "❌ Error: Migration name is required"
+        echo "Usage: create_migration <migration_name>"
+        return 1
+      fi
+      
+      echo "🔄 Creating migration: $1"
+      cd backend && supabase migration new "$1"
+      cd ..
+      echo "✅ Migration created successfully"
+    }
+    alias migrate='create_migration'
 
     # Ensure pnpm is properly set up in frontend directory
     if [ -d "frontend" ]; then
