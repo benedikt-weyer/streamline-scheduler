@@ -81,3 +81,18 @@ export interface EncryptedCalendarEvent {
   created_at: string;
   updated_at: string;
 }
+
+export interface EventFormValues {
+  id?: string;
+  title: string;
+  description?: string;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  calendarId: string;
+  recurrenceFrequency?: RecurrenceFrequency;
+  recurrenceEndDate?: string;
+  recurrenceInterval?: number;
+  daysOfWeek?: number[];
+}
