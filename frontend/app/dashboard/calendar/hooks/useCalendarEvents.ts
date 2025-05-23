@@ -194,6 +194,11 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
       const encryptedData = encryptData(eventData, derivedKey, iv);
       
       if (values.id && values.id !== 'new') {
+        // Skip next event reload to prevent calendar refresh when saving edit
+        if (skipNextEventReload) {
+          skipNextEventReload();
+        }
+        
         // Update existing event
         await updateCalendarEvent(values.id, encryptedData, iv, salt);
         
@@ -216,6 +221,11 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
           ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
         );
       } else {
+        // Skip next event reload to prevent calendar refresh when creating new event
+        if (skipNextEventReload) {
+          skipNextEventReload();
+        }
+        
         // Create new event
         const newEventRecord = await addCalendarEvent(encryptedData, iv, salt);
         
@@ -249,6 +259,11 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
   // Delete an event
   const handleDeleteEvent = async (id: string) => {
     try {
+      // Skip next event reload to prevent calendar refresh when deleting
+      if (skipNextEventReload) {
+        skipNextEventReload();
+      }
+      
       await deleteCalendarEvent(id);
       setEvents(prevEvents => prevEvents.filter(event => event.id !== id));
       return true;
@@ -437,6 +452,11 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
       };
       
       const encryptedData = encryptData(eventData, derivedKey, iv);
+      
+      // Skip next event reload to prevent calendar refresh when moving event
+      if (skipNextEventReload) {
+        skipNextEventReload();
+      }
       
       // Update the event in the database
       await updateEventCalendar(eventId, encryptedData, iv, salt);
