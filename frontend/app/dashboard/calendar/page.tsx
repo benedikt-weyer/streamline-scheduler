@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -55,6 +55,22 @@ function CalendarContent() {
   const eventsInCurrentWeek = useMemo(() => 
     getEventsInWeek(events, daysOfWeek[0]), [events, daysOfWeek]
   );
+
+  // Memoize filtered visible calendars to avoid recalculating on each render
+  const visibleCalendars = useMemo(() => 
+    calendars.filter(cal => cal.isVisible), [calendars]
+  );
+
+  // Memoize default calendar ID lookup
+  const defaultCalendarId = useMemo(() => 
+    calendars.find(cal => cal.isDefault)?.id, [calendars]
+  );
+
+  // Memoize fallback calendar ID for new events
+  const fallbackCalendarId = useMemo(() => 
+    defaultCalendarId ?? (calendars.length > 0 ? calendars[0].id : ''), 
+    [defaultCalendarId, calendars]
+  );
   
   // Load data when encryption key is available
   useEffect(() => {
@@ -91,7 +107,7 @@ function CalendarContent() {
   );
   
   // Function to handle calendar deletion with event moving
-  const handleCalendarDeleteWithEvents = async (calendarId: string) => {
+  const handleCalendarDeleteWithEvents = useCallback(async (calendarId: string) => {
     try {
       // Delete the calendar and get the target calendar ID for moving events
       const targetCalendarId = await handleCalendarDelete(calendarId, moveEventToCalendar);
@@ -107,16 +123,16 @@ function CalendarContent() {
       console.error('Error in handleCalendarDeleteWithEvents:', error);
       setError('Failed to delete calendar and move events');
     }
-  };
+  }, [handleCalendarDelete, moveEventToCalendar, events, setError]);
 
   // Open dialog for editing an event
-  const openEditDialog = (event: CalendarEvent) => {
+  const openEditDialog = useCallback((event: CalendarEvent) => {
     setSelectedEvent(event);
     setIsDialogOpen(true);
-  };
+  }, []);
 
   // Open dialog for creating a new event
-  const openNewEventDialog = (day?: Date, calendarId?: string) => {
+  const openNewEventDialog = useCallback((day?: Date, calendarId?: string) => {
     setSelectedEvent(null);
     
     // If a day is provided, set the start time to the clicked time
@@ -132,7 +148,7 @@ function CalendarContent() {
         id: 'new', // This ID will never be used, it's just for the temporary object
         title: '',
         description: '',
-        calendarId: calendarId ?? (calendars.find(c => c.isDefault)?.id ?? (calendars.length > 0 ? calendars[0].id : '')),
+        calendarId: calendarId ?? fallbackCalendarId,
         startTime: startTime,
         endTime: endTime,
         createdAt: new Date()
@@ -143,25 +159,25 @@ function CalendarContent() {
     }
     
     setIsDialogOpen(true);
-  };
+  }, [fallbackCalendarId]);
 
   // Handle submit event and close dialog
-  const onSubmitEvent = async (values: EventFormValues) => {
+  const onSubmitEvent = useCallback(async (values: EventFormValues) => {
     const success = await handleSubmitEvent(values);
     if (success) {
       setSelectedEvent(null);
       setIsDialogOpen(false);
     }
-  };
+  }, [handleSubmitEvent]);
 
   // Handle delete event and close dialog
-  const onDeleteEvent = async (id: string) => {
+  const onDeleteEvent = useCallback(async (id: string) => {
     const success = await handleDeleteEvent(id);
     if (success && selectedEvent?.id === id) {
       setSelectedEvent(null);
       setIsDialogOpen(false);
     }
-  };
+  }, [handleDeleteEvent, selectedEvent?.id]);
 
   // Combine errors
   
@@ -229,8 +245,8 @@ function CalendarContent() {
           isOpen={isDialogOpen}
           onOpenChange={setIsDialogOpen}
           selectedEvent={selectedEvent}
-          calendars={calendars.filter(cal => cal.isVisible)}
-          defaultCalendarId={calendars.find(cal => cal.isDefault)?.id}
+          calendars={visibleCalendars}
+          defaultCalendarId={defaultCalendarId}
           onSubmit={onSubmitEvent}
           onDelete={onDeleteEvent}
         />
