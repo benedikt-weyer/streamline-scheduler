@@ -30,7 +30,7 @@ const combineDateAndTime = (date: Date | string, time: string): Date => {
   return result;
 };
 
-export function useCalendarEvents(encryptionKey: string | null, calendars: Calendar[]) {
+export function useCalendarEvents(encryptionKey: string | null, calendars: Calendar[], skipNextEventReload?: () => void) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { setError } = useError();
@@ -291,6 +291,11 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
       };
       
       const encryptedData = encryptData(eventData, derivedKey, iv);
+      
+      // Skip next event reload to prevent calendar refresh during drag
+      if (skipNextEventReload) {
+        skipNextEventReload();
+      }
       
       // Update the event in the database
       await updateCalendarEvent(updatedEvent.id, encryptedData, iv, salt);

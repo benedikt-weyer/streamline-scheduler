@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
 export function useCalendarSubscriptions(
@@ -7,6 +7,7 @@ export function useCalendarSubscriptions(
   eventLoadFn: () => Promise<void>
 ) {
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
+  const skipNextEventReloadRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Only subscribe when we have an encryption key
@@ -47,6 +48,13 @@ export function useCalendarSubscriptions(
       }, async (payload) => {
         console.log('Calendar event change detected:', payload.eventType);
         
+        // Skip reload if we're in the middle of a drag operation
+        if (skipNextEventReloadRef.current) {
+          console.log('Skipping event reload due to local update');
+          skipNextEventReloadRef.current = false;
+          return;
+        }
+        
         // Reload events when a change is detected
         try {
           await eventLoadFn();
@@ -72,5 +80,10 @@ export function useCalendarSubscriptions(
     };
   }, [encryptionKey, calendarLoadFn, eventLoadFn]);
 
-  return { isSubscribed };
+  // Function to skip the next event reload (useful for drag operations)
+  const skipNextEventReload = () => {
+    skipNextEventReloadRef.current = true;
+  };
+
+  return { isSubscribed, skipNextEventReload };
 }

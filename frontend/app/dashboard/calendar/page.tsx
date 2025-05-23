@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -26,6 +26,9 @@ function CalendarContent() {
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   
+  // Use ref to store loadEvents function to avoid circular dependency
+  const loadEventsRef = useRef<((key: string) => Promise<any>) | null>(null);
+  
   // Use our custom hooks
   const { 
     calendars, 
@@ -37,6 +40,21 @@ function CalendarContent() {
     loadCalendarsAndSetState
   } = useCalendars(encryptionKey);
   
+  // Subscribe to real-time updates (need to get skipNextEventReload before useCalendarEvents)
+  const { skipNextEventReload } = useCalendarSubscriptions(
+    encryptionKey,
+    async () => {
+      if (encryptionKey) {
+        await loadCalendarsAndSetState(encryptionKey);
+      }
+    },
+    async () => {
+      if (encryptionKey && loadEventsRef.current) {
+        await loadEventsRef.current(encryptionKey);
+      }
+    }
+  );
+  
   const {
     events,
     isLoading: isLoadingEvents,
@@ -45,7 +63,10 @@ function CalendarContent() {
     handleDeleteEvent,
     handleEventUpdate,
     moveEventToCalendar
-  } = useCalendarEvents(encryptionKey, calendars);
+  } = useCalendarEvents(encryptionKey, calendars, skipNextEventReload);
+  
+  // Store loadEvents in ref for subscription hook
+  loadEventsRef.current = loadEvents;
 
   // Calculate derived data using useMemo to avoid unnecessary recalculations
   const daysOfWeek = useMemo(() => 
@@ -91,21 +112,6 @@ function CalendarContent() {
     loadData();
   }, [encryptionKey]);
 
-  // Subscribe to real-time updates
-  useCalendarSubscriptions(
-    encryptionKey,
-    async () => {
-      if (encryptionKey) {
-        await loadCalendarsAndSetState(encryptionKey);
-      }
-    },
-    async () => {
-      if (encryptionKey) {
-        await loadEvents(encryptionKey);
-      }
-    }
-  );
-  
   // Function to handle calendar deletion with event moving
   const handleCalendarDeleteWithEvents = useCallback(async (calendarId: string) => {
     try {
