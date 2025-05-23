@@ -302,43 +302,88 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
       // Preserve recurrence pattern from the original event if it exists
       const recurrencePattern = originalEvent.recurrencePattern;
       
-      const eventData = {
-        title: updatedEvent.title,
-        description: updatedEvent.description ?? '',
-        calendarId: originalEvent.calendarId,
-        startTime: updatedEvent.startTime.toISOString(),
-        endTime: updatedEvent.endTime.toISOString(),
-        recurrenceFrequency: recurrencePattern?.frequency,
-        recurrenceEndDate: recurrencePattern?.endDate?.toISOString(),
-        recurrenceInterval: recurrencePattern?.interval,
-        daysOfWeek: recurrencePattern?.daysOfWeek
-      };
-      
-      const encryptedData = encryptData(eventData, derivedKey, iv);
-      
-      // Skip next event reload to prevent calendar refresh during drag
-      if (skipNextEventReload) {
-        skipNextEventReload();
-      }
-      
-      // Update the event in the database using the correct event ID
-      await updateCalendarEvent(eventIdToUpdate, encryptedData, iv, salt);
-      
       if (isRecurrenceInstance) {
-        // For recurring event instances, update the master event in local state
-        // but preserve the original times since we're updating the master event's base times
+        // For recurring event instances, calculate the time offset and apply it to the master event
+        // This maintains the relative distance rather than moving the master to the exact dragged position
+        
+        // Extract the date from the recurrence instance ID to find the original instance time
+        const instanceDateStr = updatedEvent.id.split('-recurrence-')[1];
+        const instanceDate = new Date(instanceDateStr);
+        
+        // Calculate what the original instance time would have been
+        const originalInstanceStartTime = new Date(instanceDate);
+        originalInstanceStartTime.setHours(
+          originalEvent.startTime.getHours(),
+          originalEvent.startTime.getMinutes(),
+          originalEvent.startTime.getSeconds(),
+          originalEvent.startTime.getMilliseconds()
+        );
+        
+        // Calculate the time offset from the original instance position to the dragged position
+        const timeOffsetMs = updatedEvent.startTime.getTime() - originalInstanceStartTime.getTime();
+        
+        // Apply this offset to the master event's original times
+        const newMasterStartTime = new Date(originalEvent.startTime.getTime() + timeOffsetMs);
+        const newMasterEndTime = new Date(originalEvent.endTime.getTime() + timeOffsetMs);
+        
+        // Update the event data with the offset times instead of the exact dragged position
+        const offsetEventData = {
+          title: updatedEvent.title,
+          description: updatedEvent.description ?? '',
+          calendarId: originalEvent.calendarId,
+          startTime: newMasterStartTime.toISOString(),
+          endTime: newMasterEndTime.toISOString(),
+          recurrenceFrequency: recurrencePattern?.frequency,
+          recurrenceEndDate: recurrencePattern?.endDate?.toISOString(),
+          recurrenceInterval: recurrencePattern?.interval,
+          daysOfWeek: recurrencePattern?.daysOfWeek
+        };
+        
+        const offsetEncryptedData = encryptData(offsetEventData, derivedKey, iv);
+        
+        // Skip next event reload to prevent calendar refresh during drag
+        if (skipNextEventReload) {
+          skipNextEventReload();
+        }
+        
+        // Update the database with the offset times
+        await updateCalendarEvent(eventIdToUpdate, offsetEncryptedData, iv, salt);
+        
+        // Update local state with the offset times
         setEvents(prevEvents =>
           prevEvents.map(event =>
             event.id === eventIdToUpdate ? {
               ...event,
-              startTime: updatedEvent.startTime,
-              endTime: updatedEvent.endTime,
+              startTime: newMasterStartTime,
+              endTime: newMasterEndTime,
               updatedAt: new Date()
             } : event
           ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
         );
       } else {
         // For regular events, update normally
+        const eventData = {
+          title: updatedEvent.title,
+          description: updatedEvent.description ?? '',
+          calendarId: originalEvent.calendarId,
+          startTime: updatedEvent.startTime.toISOString(),
+          endTime: updatedEvent.endTime.toISOString(),
+          recurrenceFrequency: recurrencePattern?.frequency,
+          recurrenceEndDate: recurrencePattern?.endDate?.toISOString(),
+          recurrenceInterval: recurrencePattern?.interval,
+          daysOfWeek: recurrencePattern?.daysOfWeek
+        };
+        
+        const encryptedData = encryptData(eventData, derivedKey, iv);
+        
+        // Skip next event reload to prevent calendar refresh during drag
+        if (skipNextEventReload) {
+          skipNextEventReload();
+        }
+        
+        // Update the event in the database using the correct event ID
+        await updateCalendarEvent(eventIdToUpdate, encryptedData, iv, salt);
+        
         setEvents(prevEvents =>
           prevEvents.map(event =>
             event.id === updatedEvent.id ? {
