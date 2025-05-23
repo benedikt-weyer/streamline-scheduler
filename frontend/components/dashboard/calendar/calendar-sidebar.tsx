@@ -122,7 +122,7 @@ export function CalendarSidebar({
                 ></div>
               </button>
               <div className="min-w-0 flex-1">
-                <span className={`${calendar.isVisible ? 'text-gray-900' : 'text-gray-500'} truncate block`}>
+                <span className={`${calendar.isVisible ? 'text-foreground' : 'text-gray-500'} truncate block`}>
                   {calendar.name}
                 </span>
               </div>
