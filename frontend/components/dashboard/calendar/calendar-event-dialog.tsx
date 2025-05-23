@@ -21,6 +21,7 @@ import { useEffect } from 'react';
 
 // Define schema for event validation
 export const eventFormSchema = z.object({
+  id: z.string().optional(),
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
   calendarId: z.string().min(1, { message: "Calendar is required" }),
@@ -124,6 +125,7 @@ export function CalendarEventDialog({
   const form = useForm({
     resolver: zodResolver(eventFormSchema),
     defaultValues: {
+      id: selectedEvent?.id,
       title: selectedEvent?.title ?? '',
       description: selectedEvent?.description ?? '',
       calendarId: initialCalendarId,
@@ -145,6 +147,7 @@ export function CalendarEventDialog({
       (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id ?? calendars[0].id : '');
       
     form.reset({
+      id: selectedEvent?.id,
       title: selectedEvent?.title ?? '',
       description: selectedEvent?.description ?? '',
       calendarId,
