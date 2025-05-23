@@ -179,6 +179,15 @@ function CalendarContent() {
     }
   }, [handleDeleteEvent, selectedEvent?.id]);
 
+  // Memoized handlers for JSX props to prevent unnecessary re-renders
+  const openNewEventDialogHandler = useCallback(() => {
+    openNewEventDialog();
+  }, [openNewEventDialog]);
+
+  const openNewEventDialogWithDayHandler = useCallback((day: Date) => {
+    openNewEventDialog(day);
+  }, [openNewEventDialog]);
+
   // Combine errors
   
   // Show loading or auth required message
@@ -217,7 +226,7 @@ function CalendarContent() {
         <CalendarHeader 
           currentWeek={currentWeek}
           setCurrentWeek={setCurrentWeek}
-          openNewEventDialog={() => openNewEventDialog()}
+          openNewEventDialog={openNewEventDialogHandler}
         />
         
         {error && (
@@ -235,7 +244,7 @@ function CalendarContent() {
               events={eventsInCurrentWeek}
               calendars={calendars}
               openEditDialog={openEditDialog}
-              openNewEventDialog={(day) => openNewEventDialog(day)}
+              openNewEventDialog={openNewEventDialogWithDayHandler}
               onEventUpdate={handleEventUpdate}
             />
         )}
