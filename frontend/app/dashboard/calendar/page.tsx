@@ -11,6 +11,7 @@ import { CalendarSidebar } from '@/components/dashboard/calendar/calendar-sideba
 
 import { CalendarEvent } from '@/utils/types';
 import { useEncryptionKey } from '@/utils/hooks';
+import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 
 // Import our custom hooks
 import { useCalendars } from './hooks/useCalendars';
@@ -18,8 +19,9 @@ import { useCalendarEvents } from './hooks/useCalendarEvents';
 import { useCalendarSubscriptions } from './hooks/useCalendarSubscriptions';
 import { getDaysOfWeek, getEventsInWeek } from './utils/calendarHelpers';
 
-export default function CalendarPage() {
+function CalendarContent() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
+  const { error, setError } = useError();
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -27,8 +29,6 @@ export default function CalendarPage() {
   // Use our custom hooks
   const { 
     calendars, 
-    error: calendarError, 
-    setError, 
     handleCalendarToggle, 
     handleCalendarCreate, 
     handleCalendarEdit, 
@@ -40,7 +40,6 @@ export default function CalendarPage() {
   const {
     events,
     isLoading: isLoadingEvents,
-    error: eventError,
     loadEvents,
     handleSubmitEvent,
     handleDeleteEvent,
@@ -165,7 +164,6 @@ export default function CalendarPage() {
   };
 
   // Combine errors
-  const error = calendarError ?? eventError;
   
   // Show loading or auth required message
   if (isLoadingKey) {
@@ -238,5 +236,13 @@ export default function CalendarPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <ErrorProvider>
+      <CalendarContent />
+    </ErrorProvider>
   );
 }

@@ -20,6 +20,7 @@ import {
   encryptData,
   decryptData
 } from '@/utils/encryption';
+import { useError } from '@/utils/context/ErrorContext';
 
 // Helper function to combine date and time
 const combineDateAndTime = (date: Date | string, time: string): Date => {
@@ -31,8 +32,8 @@ const combineDateAndTime = (date: Date | string, time: string): Date => {
 
 export function useCalendarEvents(encryptionKey: string | null, calendars: Calendar[]) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { setError } = useError();
 
   // Load and decrypt events
   const loadEvents = async (key: string) => {
@@ -370,8 +371,6 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
   return {
     events,
     setEvents,
-    error,
-    setError,
     isLoading,
     setIsLoading,
     loadEvents,

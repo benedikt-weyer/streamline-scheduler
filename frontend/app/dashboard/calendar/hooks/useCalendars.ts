@@ -13,10 +13,11 @@ import {
   encryptData,
   decryptData
 } from '@/utils/encryption';
+import { useError } from '@/utils/context/ErrorContext';
 
 export function useCalendars(encryptionKey: string | null) {
   const [calendars, setCalendars] = useState<Calendar[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { setError } = useError();
 
   // Load calendars and set state with the results
   const loadCalendarsAndSetState = async (key: string): Promise<Calendar[]> => {
@@ -391,8 +392,6 @@ export function useCalendars(encryptionKey: string | null) {
   return {
     calendars,
     setCalendars,
-    error,
-    setError,
     loadCalendarsAndSetState,
     handleCalendarToggle,
     handleCalendarCreate,
