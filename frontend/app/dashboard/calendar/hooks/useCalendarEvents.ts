@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   fetchCalendarEvents, 
   addCalendarEvent, 
@@ -34,6 +34,58 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { setError } = useError();
+
+  // Ensure calendar references are up-to-date whenever calendars or events change
+  useEffect(() => {
+    if (events.length && calendars.length) {
+      // Update events with the latest calendar information
+      const updatedEvents = events.map(event => {
+        // Find the corresponding calendar (which might have updated color/visibility)
+        const calendar = calendars.find(cal => cal.id === event.calendarId);
+        if (calendar && (!event.calendar || event.calendar.color !== calendar.color)) {
+          // Return updated event with current calendar reference
+          return {
+            ...event,
+            calendar
+          };
+        }
+        return event;
+      });
+
+      // Only update state if there's a difference to avoid infinite loops
+      if (updatedEvents.some((e, i) => e.calendar?.color !== events[i].calendar?.color)) {
+        console.log('Updating calendar references for events');
+        setEvents(updatedEvents);
+      }
+    }
+  }, [calendars, events]);
+
+  // On events or calendars change, make sure to update event calendar references
+  useEffect(() => {
+    if (events.length && calendars.length) {
+      // Update each event with its latest calendar data to ensure colors are preserved
+      const updatedEvents = events.map(event => {
+        const calendar = calendars.find(cal => cal.id === event.calendarId);
+        if (calendar) {
+          return {
+            ...event,
+            calendar
+          };
+        }
+        return event;
+      });
+      
+      // Only update state if calendars have changed
+      const hasCalendarChanges = updatedEvents.some((event, index) => 
+        event.calendar?.color !== events[index].calendar?.color
+      );
+      
+      if (hasCalendarChanges) {
+        console.log('Calendar references updated for events');
+        setEvents(updatedEvents);
+      }
+    }
+  }, [calendars]);
 
   // Load and decrypt events
   const loadEvents = async (key: string) => {

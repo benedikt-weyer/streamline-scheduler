@@ -73,8 +73,16 @@ function CalendarContent() {
     getDaysOfWeek(currentWeek), [currentWeek]
   );
   
+  // First filter events by visible calendars, then get events for current week
+  const visibleEvents = useMemo(() => 
+    events.filter(event => 
+      // Only include events from visible calendars
+      calendars.find(cal => cal.id === event.calendarId)?.isVisible ?? false
+    ), [events, calendars]
+  );
+  
   const eventsInCurrentWeek = useMemo(() => 
-    getEventsInWeek(events, daysOfWeek[0]), [events, daysOfWeek]
+    getEventsInWeek(visibleEvents, daysOfWeek[0]), [visibleEvents, daysOfWeek]
   );
 
   // Memoize filtered visible calendars to avoid recalculating on each render
