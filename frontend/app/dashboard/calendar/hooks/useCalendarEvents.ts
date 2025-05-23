@@ -268,11 +268,35 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
       const iv = generateIV();
       const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
       
-      // Get the original event to preserve recurrence pattern and calendar
-      const originalEvent = events.find(e => e.id === updatedEvent.id);
+      // Check if this is a recurring event instance
+      const isRecurrenceInstance = updatedEvent.isRecurrenceInstance || updatedEvent.id.includes('-recurrence-');
+      let originalEvent: CalendarEvent | undefined;
+      let eventIdToUpdate: string;
       
-      if (!originalEvent) {
-        throw new Error('Original event not found');
+      if (isRecurrenceInstance) {
+        // Extract the master event ID from the recurrence instance ID
+        const masterEventId = updatedEvent.id.split('-recurrence-')[0];
+        originalEvent = events.find(e => e.id === masterEventId);
+        eventIdToUpdate = masterEventId;
+        
+        if (!originalEvent) {
+          console.error('Master recurring event not found for instance ID:', updatedEvent.id);
+          console.error('Extracted master ID:', masterEventId);
+          console.error('Available events:', events.map(e => ({ id: e.id, title: e.title })));
+          setError('Failed to update recurring event: Master event not found');
+          return false;
+        }
+      } else {
+        // Regular event - find it directly
+        originalEvent = events.find(e => e.id === updatedEvent.id);
+        eventIdToUpdate = updatedEvent.id;
+        
+        if (!originalEvent) {
+          console.error('Original event not found for ID:', updatedEvent.id);
+          console.error('Available events:', events.map(e => ({ id: e.id, title: e.title })));
+          setError('Failed to update event: Event not found in current state');
+          return false;
+        }
       }
       
       // Preserve recurrence pattern from the original event if it exists
@@ -297,20 +321,35 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
         skipNextEventReload();
       }
       
-      // Update the event in the database
-      await updateCalendarEvent(updatedEvent.id, encryptedData, iv, salt);
+      // Update the event in the database using the correct event ID
+      await updateCalendarEvent(eventIdToUpdate, encryptedData, iv, salt);
       
-      // Local state update with preserved recurrence pattern and calendar
-      setEvents(prevEvents =>
-        prevEvents.map(event =>
-          event.id === updatedEvent.id ? {
-            ...updatedEvent,
-            calendarId: originalEvent.calendarId,
-            calendar: originalEvent.calendar,
-            recurrencePattern
-          } : event
-        ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
-      );
+      if (isRecurrenceInstance) {
+        // For recurring event instances, update the master event in local state
+        // but preserve the original times since we're updating the master event's base times
+        setEvents(prevEvents =>
+          prevEvents.map(event =>
+            event.id === eventIdToUpdate ? {
+              ...event,
+              startTime: updatedEvent.startTime,
+              endTime: updatedEvent.endTime,
+              updatedAt: new Date()
+            } : event
+          ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+        );
+      } else {
+        // For regular events, update normally
+        setEvents(prevEvents =>
+          prevEvents.map(event =>
+            event.id === updatedEvent.id ? {
+              ...updatedEvent,
+              calendarId: originalEvent.calendarId,
+              calendar: originalEvent.calendar,
+              recurrencePattern
+            } : event
+          ).sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+        );
+      }
       
       return true;
     } catch (error) {
