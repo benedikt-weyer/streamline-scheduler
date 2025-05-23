@@ -4,9 +4,9 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-import { CalendarHeader } from '@/components/dashboard/calendar-header';
-import { CalendarGrid } from '@/components/dashboard/calendar-grid';
-import { CalendarEventDialog, EventFormValues } from '@/components/dashboard/calendar-event-dialog';
+import { CalendarHeader } from '@/components/dashboard/calendar/calendar-header';
+import { CalendarGrid } from '@/components/dashboard/calendar/calendar-grid';
+import { CalendarEventDialog, EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
 import { CalendarSidebar } from '@/components/dashboard/calendar/calendar-sidebar';
 
 import { CalendarEvent } from '@/utils/types';
