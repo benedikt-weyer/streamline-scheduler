@@ -288,23 +288,29 @@ export function CalendarGrid({
     const isRecurrenceInstance = 'isRecurrenceInstance' in event && event.isRecurrenceInstance;
     
     if (isRecurrenceInstance) {
-      // For recurrence instances, find and open the master recurring event instead
+      // For recurrence instances, find the master event and pass its details
+      // along with the specific instance's start time as clickedOccurrenceDate
       const masterEventId = event.id.split('-recurrence-')[0];
       const masterEvent = events.find(e => e.id === masterEventId);
       
       if (masterEvent) {
-        openEditDialog(masterEvent);
-      } else {
-        // If we can't find the master event, show the instance but disable deletion
         openEditDialog({
-          ...event,
-          // Add a flag to indicate this is an instance (used in dialog to disable delete)
+          ...masterEvent,
+          clickedOccurrenceDate: event.startTime, // startTime of the clicked instance
+          isRecurrenceInstance: true // Keep this to inform the dialog it's an instance context
+        });
+      } else {
+        // Fallback if master not found (should ideally not happen)
+        // Open the instance itself, marking its own start time as the clicked date
+        openEditDialog({
+          ...event, 
+          clickedOccurrenceDate: event.startTime,
           isRecurrenceInstance: true
         });
       }
     } else {
-      // For regular events, just open the edit dialog
-      openEditDialog(event);
+      // For regular events or when clicking the master event directly from some other UI (not an instance on grid)
+      openEditDialog(event); // clickedOccurrenceDate will be undefined, handlers will use master.startTime
     }
   };
 

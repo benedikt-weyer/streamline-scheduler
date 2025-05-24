@@ -62,7 +62,9 @@ function CalendarContent() {
     handleSubmitEvent,
     handleDeleteEvent,
     handleEventUpdate,
-    moveEventToCalendar
+    moveEventToCalendar,
+    handleDeleteThisOccurrence,
+    handleDeleteThisAndFuture
   } = useCalendarEvents(encryptionKey, calendars, skipNextEventReload);
   
   // Store loadEvents in ref for subscription hook
@@ -193,6 +195,36 @@ function CalendarContent() {
     }
   }, [handleDeleteEvent, selectedEvent?.id]);
 
+  // Callback for deleting a single occurrence
+  const onDeleteThisOccurrenceHandler = useCallback(async (event: CalendarEvent) => {
+    if (!handleDeleteThisOccurrence) return; // Guard if function is not available
+    const success = await handleDeleteThisOccurrence(event);
+    if (success) {
+      setSelectedEvent(null);
+      setIsDialogOpen(false);
+    }
+  }, [handleDeleteThisOccurrence, setIsDialogOpen, setSelectedEvent]);
+
+  // Callback for deleting this and future occurrences
+  const onDeleteThisAndFutureHandler = useCallback(async (event: CalendarEvent) => {
+    if (!handleDeleteThisAndFuture) return; // Guard if function is not available
+    const success = await handleDeleteThisAndFuture(event);
+    if (success) {
+      setSelectedEvent(null);
+      setIsDialogOpen(false);
+    }
+  }, [handleDeleteThisAndFuture, setIsDialogOpen, setSelectedEvent]);
+
+  // Callback for deleting all events in a series
+  const onDeleteAllInSeriesHandler = useCallback(async (event: CalendarEvent) => {
+    // handleDeleteEvent from the hook expects an ID.
+    const success = await handleDeleteEvent(event.id);
+    if (success) {
+      setSelectedEvent(null);
+      setIsDialogOpen(false);
+    }
+  }, [handleDeleteEvent, setIsDialogOpen, setSelectedEvent]);
+
   // Memoized handlers for JSX props to prevent unnecessary re-renders
   const openNewEventDialogHandler = useCallback(() => {
     openNewEventDialog();
@@ -272,6 +304,9 @@ function CalendarContent() {
           defaultCalendarId={defaultCalendarId}
           onSubmit={onSubmitEvent}
           onDelete={onDeleteEvent}
+          onDeleteThisOccurrence={onDeleteThisOccurrenceHandler}
+          onDeleteThisAndFuture={onDeleteThisAndFutureHandler}
+          onDeleteAllInSeries={onDeleteAllInSeriesHandler}
         />
       </div>
     </div>

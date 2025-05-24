@@ -27,7 +27,7 @@ export function useCalendarSubscriptions(
         schema: 'public',
         table: 'calendars'
       }, async (payload) => {
-        console.log('Calendar change detected:', payload.eventType);
+        // console.log('Calendar change detected:', payload.eventType);
         
         // Reload calendars when a change is detected
         try {
@@ -46,12 +46,16 @@ export function useCalendarSubscriptions(
         schema: 'public',
         table: 'calendar_events'
       }, async (payload) => {
-        console.log('Calendar event change detected:', payload.eventType);
+        // console.log('Calendar event change detected:', payload.eventType);
         
         // Skip reload if we're in the middle of a drag operation
         if (skipNextEventReloadRef.current) {
-          console.log('Skipping event reload due to local update');
-          skipNextEventReloadRef.current = false;
+          // console.log('Skipping event reload due to local update');
+          // Reset the flag after a short delay to allow multi-step operations to complete
+          setTimeout(() => {
+            skipNextEventReloadRef.current = false;
+            // console.log('skipNextEventReloadRef reset after delay');
+          }, 500); // 500ms delay
           return;
         }
         
@@ -65,11 +69,11 @@ export function useCalendarSubscriptions(
       .subscribe();
 
     setIsSubscribed(true);
-    console.log('Subscribed to calendar and event changes');
+    // console.log('Subscribed to calendar and event changes');
 
     // Cleanup function to unsubscribe when component unmounts
     return () => {
-      console.log('Unsubscribing from calendar and event changes');
+      // console.log('Unsubscribing from calendar and event changes');
       if (calendarSubscription) {
         supabase.removeChannel(calendarSubscription);
       }

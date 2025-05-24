@@ -17,7 +17,8 @@ import { format, parse, isValid, addMinutes } from 'date-fns';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, type SubmitHandler } from 'react-hook-form';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
 
 // Define schema for event validation
 export const eventFormSchema = z.object({
@@ -92,6 +93,9 @@ interface CalendarEventDialogProps {
   readonly defaultCalendarId?: string;
   readonly onSubmit: (values: EventFormValues) => Promise<void>;
   readonly onDelete: (id: string) => Promise<void>;
+  readonly onDeleteAllInSeries?: (event: CalendarEvent) => Promise<void>;
+  readonly onDeleteThisAndFuture?: (event: CalendarEvent) => Promise<void>;
+  readonly onDeleteThisOccurrence?: (event: CalendarEvent) => Promise<void>;
 }
 
 // Helper function to combine date and time into a single Date object
@@ -115,11 +119,16 @@ export function CalendarEventDialog({
   calendars,
   defaultCalendarId,
   onSubmit, 
-  onDelete 
+  onDelete, 
+  onDeleteAllInSeries, 
+  onDeleteThisAndFuture, 
+  onDeleteThisOccurrence 
 }: CalendarEventDialogProps) {
   // Determine which calendar ID to use
   const initialCalendarId = selectedEvent?.calendarId ?? defaultCalendarId ?? 
     (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id ?? calendars[0].id : '');
+
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   // Initialize form with react-hook-form and zod validation
   const form = useForm({
@@ -166,7 +175,7 @@ export function CalendarEventDialog({
   // Handle form submission
   const handleFormSubmit: SubmitHandler<EventFormValues> = async (values) => {
     try {
-      console.log("Form values:", values);
+      // console.log("Form values:", values); // Comment out or remove this log
       
       // Ensure we have valid strings before proceeding
       if (!values.startDate || !values.startTime || !values.endDate || !values.endTime) {
@@ -233,9 +242,19 @@ export function CalendarEventDialog({
   // Get the end time options
   const endTimeOptions = getEndTimeOptions();
 
+  const handleDeleteConfirmedAndCloseMainDialog = () => {
+    onOpenChange(false);
+  };
+
+  const handleMainDialogInteractOutside = (event: Event) => {
+    if (isDeleteConfirmOpen) {
+      event.preventDefault();
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onInteractOutside={handleMainDialogInteractOutside}>
         <DialogHeader>
           <DialogTitle>{selectedEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
           {selectedEvent?.isRecurrenceInstance && (
@@ -450,14 +469,34 @@ export function CalendarEventDialog({
               >
                 Cancel
               </Button>
-              {selectedEvent && !selectedEvent.isRecurrenceInstance && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => onDelete(selectedEvent.id)}
-                >
-                  Delete
-                </Button>
+              {selectedEvent && (
+                <>
+                  {selectedEvent.recurrencePattern && selectedEvent.recurrencePattern.frequency !== RecurrenceFrequency.None ? (
+                    // This event is part of a recurrence series (either master or an instance view of master)
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsDeleteConfirmOpen(true);
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  ) : (
+                    // For non-recurring events (or events where recurrence is explicitly None)
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(selectedEvent.id);
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  )}
+                </>
               )}
               <Button type="submit">
                 {selectedEvent ? 'Update' : 'Add'} Event
@@ -466,6 +505,17 @@ export function CalendarEventDialog({
           </form>
         </Form>
       </DialogContent>
+      {selectedEvent && onDeleteAllInSeries && onDeleteThisAndFuture && onDeleteThisOccurrence && (
+        <DeleteConfirmationDialog
+          isOpen={isDeleteConfirmOpen}
+          onOpenChange={setIsDeleteConfirmOpen}
+          selectedEvent={selectedEvent}
+          onDeleteThisOccurrence={onDeleteThisOccurrence}
+          onDeleteThisAndFuture={onDeleteThisAndFuture}
+          onDeleteAllInSeries={onDeleteAllInSeries}
+          onDeleteConfirmedAndMainDialogClose={handleDeleteConfirmedAndCloseMainDialog}
+        />
+      )}
     </Dialog>
   );
 }

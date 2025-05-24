@@ -112,13 +112,48 @@ export const generateRecurrenceInstancesInRange = (
   // Calculate the event duration in milliseconds to maintain for each instance
   const eventDuration = baseEvent.endTime.getTime() - baseEvent.startTime.getTime();
   
+  if (!baseEvent.startTime || !isValid(baseEvent.startTime) || 
+      !baseEvent.endTime || !isValid(baseEvent.endTime) || 
+      eventDuration <= 0) {
+    console.error(
+      '[generateRecurrenceInstancesInRange] Invalid baseEvent startTime, endTime, or duration:',
+      JSON.stringify({
+        id: baseEvent.id,
+        startTime: baseEvent.startTime,
+        endTime: baseEvent.endTime,
+        duration: eventDuration,
+      })
+    );
+    return instances; // Return empty if dates are invalid or duration is non-positive
+  }
+  
   // Define the maximum date we'll check for recurrences
   const latestDate = endDate ? new Date(Math.min(rangeEnd.getTime(), endDate.getTime())) : rangeEnd;
   
   // Generate instances based on frequency
   let currentDate = new Date(baseEvent.startTime);
   
+  if (!isValid(currentDate)) {
+    console.error(
+      '[generateRecurrenceInstancesInRange] Initial currentDate is invalid, derived from baseEvent.startTime:',
+      baseEvent.startTime
+    );
+    return instances;
+  }
+  
+  let iterationCount = 0;
+  const MAX_ITERATIONS = 1000; // Safety break for while loop
+
   while (currentDate <= latestDate) {
+    iterationCount++;
+
+    if (iterationCount > MAX_ITERATIONS) {
+      console.error("[generateRecurrenceInstancesInRange] Exceeded MAX_ITERATIONS. Breaking loop. BaseEvent:", JSON.stringify(baseEvent, null, 2));
+      break;
+    }
+
+    const previousCurrentDate = new Date(currentDate); // Store before advancing
+
     // Skip the original event occurrence
     if (!isSameDay(currentDate, baseEvent.startTime)) {
       // Only include if it falls in our desired range
@@ -133,6 +168,14 @@ export const generateRecurrenceInstancesInRange = (
           const startTime = new Date(currentDate);
           const endTime = new Date(startTime.getTime() + eventDuration);
           
+          if (!isValid(startTime) || !isValid(endTime)) {
+            console.error(
+              '[generateRecurrenceInstancesInRange] Invalid startTime or endTime for generated instance:',
+              JSON.stringify({ baseEventId: baseEvent.id, currentLoopDate: currentDate, instanceStartTime: startTime, instanceEndTime: endTime })
+            );
+            // Decide: skip this instance or stop? For now, skip.
+            continue; 
+          }
           instances.push({
             ...baseEvent,
             id: `${baseEvent.id}-recurrence-${format(startTime, 'yyyy-MM-dd')}`,
@@ -164,7 +207,13 @@ export const generateRecurrenceInstancesInRange = (
         break;
       default:
         // Stop the loop for any unhandled frequencies
+        console.error("[generateRecurrenceInstancesInRange] Unhandled frequency in switch. BaseEvent:", JSON.stringify(baseEvent, null, 2));
         currentDate = new Date(latestDate.getTime() + 1);
+    }
+
+    if (currentDate <= previousCurrentDate) {
+      console.error("[generateRecurrenceInstancesInRange] currentDate did not advance. Breaking loop to prevent infinite loop. BaseEvent:", JSON.stringify(baseEvent, null, 2), { previousCurrentDate: previousCurrentDate?.toISOString(), currentDate: currentDate?.toISOString(), interval, frequency });
+      break;
     }
   }
   

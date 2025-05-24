@@ -70,6 +70,7 @@ export interface CalendarEvent {
   updatedAt?: Date;
   recurrencePattern?: RecurrencePattern; // Optional recurrence pattern
   isRecurrenceInstance?: boolean; // Flag to indicate if this is an instance of a recurring event
+  clickedOccurrenceDate?: Date; // The start date of a specific occurrence that was interacted with
 }
 
 export interface EncryptedCalendarEvent {
