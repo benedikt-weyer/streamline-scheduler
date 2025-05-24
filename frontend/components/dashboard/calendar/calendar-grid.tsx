@@ -409,7 +409,7 @@ export function CalendarGrid({
         onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.Move)}
       >
         {/* Top resize handle - only visible on hover */}
-        {onEventUpdate && !isRecurrenceInstance && (
+        {onEventUpdate && (
           <div 
             className="absolute top-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-white/30"
             onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeTop)}
@@ -432,7 +432,7 @@ export function CalendarGrid({
         </div>
         
         {/* Bottom resize handle - only visible on hover */}
-        {onEventUpdate && !isRecurrenceInstance && (
+        {onEventUpdate && (
           <div 
             className="absolute bottom-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-white/30"
             onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeBottom)}

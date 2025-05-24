@@ -386,12 +386,21 @@ export function useCalendarEvents(encryptionKey: string | null, calendars: Calen
           originalEvent.startTime.getMilliseconds()
         );
         
-        // Calculate the time offset from the original instance position to the dragged position
-        const timeOffsetMs = updatedEvent.startTime.getTime() - originalInstanceStartTime.getTime();
+        const originalInstanceEndTime = new Date(instanceDate);
+        originalInstanceEndTime.setHours(
+          originalEvent.endTime.getHours(),
+          originalEvent.endTime.getMinutes(),
+          originalEvent.endTime.getSeconds(),
+          originalEvent.endTime.getMilliseconds()
+        );
         
-        // Apply this offset to the master event's original times
-        const newMasterStartTime = new Date(originalEvent.startTime.getTime() + timeOffsetMs);
-        const newMasterEndTime = new Date(originalEvent.endTime.getTime() + timeOffsetMs);
+        // Calculate time offsets for both start and end times
+        const startTimeOffsetMs = updatedEvent.startTime.getTime() - originalInstanceStartTime.getTime();
+        const endTimeOffsetMs = updatedEvent.endTime.getTime() - originalInstanceEndTime.getTime();
+        
+        // Apply offsets to the master event's original times
+        const newMasterStartTime = new Date(originalEvent.startTime.getTime() + startTimeOffsetMs);
+        const newMasterEndTime = new Date(originalEvent.endTime.getTime() + endTimeOffsetMs);
         
         // Update the event data with the offset times instead of the exact dragged position
         const offsetEventData = {
