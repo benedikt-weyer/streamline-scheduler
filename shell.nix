@@ -8,19 +8,13 @@ pkgs.mkShell {
     nodejs_20
     nodePackages.pnpm
     
-    # Docker and Supabase CLI
-    docker
-    docker-compose
+    # Supabase CLI
     supabase-cli
 
     # Useful tools
     curl
     jq
     git
-    
-    # For potential compilation needs
-    gcc
-    gnumake
   ];
 
   shellHook = ''
