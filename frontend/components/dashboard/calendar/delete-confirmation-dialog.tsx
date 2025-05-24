@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/utils/types';
+import { Calendar, CalendarX, Trash2 } from 'lucide-react';
 
 interface DeleteConfirmationDialogProps {
   readonly isOpen: boolean;
@@ -58,34 +59,51 @@ export function DeleteConfirmationDialog({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Recurring Event</AlertDialogTitle>
+          <AlertDialogTitle>Delete Event</AlertDialogTitle>
           <AlertDialogDescription>
-            Choose how you want to delete this recurring event:
+            "{selectedEvent.title}" is a recurring event. How would you like to delete it?
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
+        <div className="flex flex-col space-y-3 pt-4">
           <Button
             variant="outline"
             onClick={handleThisOccurrence}
+            className="w-full justify-start h-auto py-3 px-4"
           >
-            Delete This Occurrence Only
+            <Calendar className="w-5 h-5 mr-3 shrink-0" />
+            <div className="text-left">
+              <div className="font-medium">Just this event</div>
+              <div className="text-sm text-muted-foreground">Only delete this occurrence</div>
+            </div>
           </Button>
           <Button
             variant="outline"
             onClick={handleThisAndFuture}
+            className="w-full justify-start h-auto py-3 px-4"
           >
-            Delete This and Future Events
+            <CalendarX className="w-5 h-5 mr-3 shrink-0" />
+            <div className="text-left">
+              <div className="font-medium">This and future events</div>
+              <div className="text-sm text-muted-foreground">Delete this and all upcoming occurrences</div>
+            </div>
           </Button>
           <Button
             variant="destructive"
             onClick={handleAllInSeries}
+            className="w-full justify-start h-auto py-3 px-4 bg-red-500/80 hover:bg-red-600/80 text-white"
           >
-            Delete All Events in Series
+            <Trash2 className="w-5 h-5 mr-3 shrink-0 text-white" />
+            <div className="text-left">
+              <div className="font-medium text-white">All events in series</div>
+              <div className="text-sm text-red-50">Delete the entire recurring event series</div>
+            </div>
           </Button>
+        </div>
+        <AlertDialogFooter className="pt-4">
           <AlertDialogCancel asChild>
-            <Button variant="ghost">Cancel</Button>
+            <Button variant="ghost" className="w-full">Cancel</Button>
           </AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>
