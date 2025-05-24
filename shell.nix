@@ -52,6 +52,7 @@ pkgs.mkShell {
       echo "⚛️ Starting Next.js development server..."
       nohup bash -c "cd \"$(pwd)/frontend\" && pnpm dev" > /tmp/nextjs.log 2>&1 &
       echo "Next.js server started in background (logs at /tmp/nextjs.log)"
+      echo -e "📱 Access the app at \e]8;;http://localhost:3000\e\\http://localhost:3000\e]8;;\e\\"
     }
 
     # Define function to stop all servers
