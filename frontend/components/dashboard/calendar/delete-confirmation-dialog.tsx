@@ -1,13 +1,11 @@
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/utils/types';
 import { Calendar, CalendarX, Trash2 } from 'lucide-react';
@@ -58,14 +56,14 @@ export function DeleteConfirmationDialog({
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-md">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete Event</AlertDialogTitle>
-          <AlertDialogDescription>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Delete Event</DialogTitle>
+          <DialogDescription>
             "{selectedEvent.title}" is a recurring event. How would you like to delete it?
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+          </DialogDescription>
+        </DialogHeader>
         <div className="flex flex-col space-y-3 pt-4">
           <Button
             variant="outline"
@@ -101,12 +99,12 @@ export function DeleteConfirmationDialog({
             </div>
           </Button>
         </div>
-        <AlertDialogFooter className="pt-4">
-          <AlertDialogCancel asChild>
-            <Button variant="ghost" className="w-full">Cancel</Button>
-          </AlertDialogCancel>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        <DialogFooter className="pt-4">
+          <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 } 
