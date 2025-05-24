@@ -2,7 +2,7 @@
 
 import { signOutAction } from "@/app/actions";
 import { clearHashedPassword } from "@/utils/encryption";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 
 export default function SignOutButton() {
   const handleSignOut = async () => {
