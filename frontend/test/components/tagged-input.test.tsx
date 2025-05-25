@@ -427,5 +427,37 @@ describe('TaggedInput', () => {
       // Note: Since we're using external state management via onTagsChange,
       // the tag won't appear in the DOM unless we also pass the tags back
     });
+
+    it('preserves word before hashtag when no space in between', async () => {
+      render(<TaggedInput placeholder="Enter text" />);
+
+      const input = screen.getByPlaceholderText('Enter text');
+      await user.type(input, 'Task#d15m');
+      
+      // Trigger space key to create tag
+      fireEvent.keyDown(input, { key: ' ' });
+
+      // The input should still contain "Task" and the tag should be created
+      expect(input).toHaveValue('Task ');
+      expect(screen.getByText('⏱ 15m')).toBeInTheDocument();
+    });
+
+    it('handles hashtag in the middle of text', async () => {
+      render(<TaggedInput placeholder="Enter text" />);
+
+      const input = screen.getByPlaceholderText('Enter text');
+      await user.type(input, 'Do task#d30m today');
+      
+      // Move cursor to after the hashtag
+      fireEvent.click(input);
+      input.setSelectionRange(10, 10); // Position after "#d30m"
+      
+      // Trigger space key to create tag
+      fireEvent.keyDown(input, { key: ' ' });
+
+      // The input should preserve "Do task" and " today"
+      expect(input).toHaveValue('Do task today');
+      expect(screen.getByText('⏱ 30m')).toBeInTheDocument();
+    });
   });
 });

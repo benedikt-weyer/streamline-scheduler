@@ -131,39 +131,48 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         const words = textBeforeCursor.split(' ');
         const lastWord = words[words.length - 1];
         
-        // Check if the last word is a duration hashtag
-        const parsedTag = parseDurationTag(lastWord);
-        if (parsedTag) {
-          e.preventDefault();
+        // Check if the last word contains a duration hashtag
+        const durationRegex = /#d(\d+(?:h\d*m?|\d*m?|h))/i;
+        const match = durationRegex.exec(lastWord);
+        
+        if (match) {
+          const hashtagText = match[0]; // The full hashtag match (e.g., "#d15m")
+          const parsedTag = parseDurationTag(hashtagText);
           
-          // Create a new tag
-          const newTag: Tag = {
-            id: Date.now().toString(),
-            text: lastWord,
-            duration: parsedTag.duration,
-            type: 'duration'
-          };
-          
-          // Update tags state - override existing duration tag
-          setTags(prev => {
-            // Remove any existing duration tags and add the new one
-            const filteredTags = prev.filter(tag => tag.type !== 'duration');
-            return [...filteredTags, newTag];
-          });
-          
-          // Remove the hashtag from the input and add a space
-          const newValue = currentValue.slice(0, cursorPosition - lastWord.length) + 
-                          currentValue.slice(cursorPosition) + ' ';
-          setValue(newValue.trim());
-          
-          // Focus the input and set cursor position
-          setTimeout(() => {
-            if (inputRef.current) {
-              const newCursorPos = cursorPosition - lastWord.length + 1;
-              inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
-              inputRef.current.focus();
-            }
-          }, 0);
+          if (parsedTag) {
+            e.preventDefault();
+            
+            // Create a new tag
+            const newTag: Tag = {
+              id: Date.now().toString(),
+              text: hashtagText,
+              duration: parsedTag.duration,
+              type: 'duration'
+            };
+            
+            // Update tags state - override existing duration tag
+            setTags(prev => {
+              // Remove any existing duration tags and add the new one
+              const filteredTags = prev.filter(tag => tag.type !== 'duration');
+              return [...filteredTags, newTag];
+            });
+            
+            // Remove only the hashtag portion from the input and add a space
+            const hashtagStartPos = cursorPosition - lastWord.length + lastWord.indexOf(hashtagText);
+            const beforeHashtag = currentValue.slice(0, hashtagStartPos);
+            const afterCursor = currentValue.slice(cursorPosition);
+            const newValue = beforeHashtag + ' ' + afterCursor;
+            setValue(newValue);
+            
+            // Focus the input and set cursor position
+            setTimeout(() => {
+              if (inputRef.current) {
+                const newCursorPos = hashtagStartPos + 1;
+                inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+                inputRef.current.focus();
+              }
+            }, 0);
+          }
         }
       }
     };
