@@ -1,4 +1,4 @@
-import { CalendarEvent, Calendar } from '@/utils/types';
+import { CalendarEvent } from '@/utils/types';
 import { EventStateActions } from '../types/eventHooks';
 import { useError } from '@/utils/context/ErrorContext';
 import { 
@@ -19,7 +19,6 @@ import {
  */
 export const useRecurrenceEventActions = (
   events: CalendarEvent[],
-  calendars: Calendar[],
   eventActions: EventStateActions,
   encryptionKey: string | null,
   skipNextEventReload?: () => void
