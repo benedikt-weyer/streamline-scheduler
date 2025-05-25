@@ -5,7 +5,7 @@ import {
   generateSalt,
   generateIV,
   hashPassword
-} from '@/utils/encryption';
+} from '@/utils/cryptography/encryption';
 
 describe('Encryption Utilities', () => {
   describe('hashPassword', () => {

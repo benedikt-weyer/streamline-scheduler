@@ -2,12 +2,12 @@
 
 import { signInAction } from "@/app/actions";
 
-import { FormMessage, Message } from "@/components/form-message";
-import { SubmitButton } from "@/components/submit-button";
+import { FormMessage, Message } from "@/components/auth/form-message";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 
-import { hashPassword, storeHashedPassword } from "@/utils/encryption";
+import { hashPassword, storeHashedPassword } from "@/utils/cryptography/encryption";
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";

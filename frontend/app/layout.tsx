@@ -1,11 +1,12 @@
-import { EnvVarWarning } from "@/components/env-var-warning";
-import HeaderAuth from "@/components/header-auth";
-import { ThemeSwitcher } from "@/components/theme-switcher";
+import { EnvVarWarning } from "@/components/auth/env-var-warning";
+import HeaderAuth from "@/components/auth/header-auth";
+import { ThemeSwitcher } from "@/components/dashboard/theme-switcher";
 import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import "./globals.css";
+import { Button } from "@/components/ui/button";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -39,7 +40,16 @@ export default function RootLayout({
           <main className="min-h-screen flex flex-col items-center">
 
               <nav className="w-full flex justify-between items-center border-b border-b-foreground/10 h-20 px-10">
-                  <Link href={"/"} className="font-bold text-2xl">Streamline Sheduler</Link>
+                  <div className="flex items-center gap-4">
+                    <Link href={"/"} className="font-bold text-2xl">Streamline Sheduler</Link>
+                    <Button asChild variant="ghost" size="sm">
+                      <Link href="/dashboard/can-do-list">Can-Do List</Link>
+                    </Button>
+                    <Button asChild variant="ghost" size="sm">
+                      <Link href="/dashboard/calendar">Calendar</Link>
+                    </Button>
+                  </div>
+
                   {/* Right section of the navigation bar */}
                   <div className="flex items-center gap-4">
                     <ThemeSwitcher />
@@ -47,9 +57,9 @@ export default function RootLayout({
                   </div>
               </nav>
 
-              <div className="flex flex-col gap-20 max-w-5xl p-5">
+              <main className="flex flex-col gap-20 w-full px-5 items-center">
                 {children}
-              </div>
+              </main>
           </main>
         </ThemeProvider>
       </body>

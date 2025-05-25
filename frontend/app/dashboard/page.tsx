@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import CanDoListWrapper from "@/components/dashboard/can-do-list-wrapper";
+import CanDoListWrapper from "@/components/dashboard/can-do-list/can-do-list-wrapper";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();

@@ -1,8 +1,8 @@
 'use client';
 
 import { signOutAction } from "@/app/actions";
-import { clearHashedPassword } from "@/utils/encryption";
-import { Button } from "./ui/button";
+import { clearHashedPassword } from "@/utils/cryptography/encryption";
+import { Button } from "../ui/button";
 
 export default function SignOutButton() {
   const handleSignOut = async () => {

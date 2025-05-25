@@ -2,7 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-import { EncryptedCanDoItem } from "@/utils/types";
+import { EncryptedCanDoItem } from "@/utils/can-do-list/can-do-list-types";
 
 // Fetch all encrypted can-do items for the current user
 export async function fetchCanDoItems(silent = false): Promise<EncryptedCanDoItem[]> {
