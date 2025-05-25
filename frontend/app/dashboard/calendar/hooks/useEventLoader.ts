@@ -2,9 +2,9 @@ import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { EventStateActions } from '../types/eventHooks';
 import { useError } from '@/utils/context/ErrorContext';
 import { fetchCalendarEvents } from '../actions';
-import { decryptEventData } from '../utils/eventEncryption';
-import { validateDecryptedEvent } from '../utils/eventValidation';
-import { processDecryptedEvent, sortEventsByStartTime } from '../utils/eventDataProcessing';
+import { decryptEventData } from '../../../../utils/calendar/eventEncryption';
+import { validateDecryptedEvent } from '../../../../utils/calendar/eventValidation';
+import { processDecryptedEvent, sortEventsByStartTime } from '../../../../utils/calendar/eventDataProcessing';
 
 /**
  * Hook for loading and decrypting events

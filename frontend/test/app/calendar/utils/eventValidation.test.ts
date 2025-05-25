@@ -2,7 +2,7 @@ import {
   validateEventData, 
   validateEventDates, 
   validateDecryptedEvent 
-} from '@/app/dashboard/calendar/utils/eventValidation';
+} from '@/utils/calendar/eventValidation';
 
 describe('eventValidation', () => {
   describe('validateEventData', () => {

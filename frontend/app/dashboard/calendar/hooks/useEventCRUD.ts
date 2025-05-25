@@ -6,8 +6,8 @@ import {
   updateCalendarEvent, 
   deleteCalendarEvent
 } from '../actions';
-import { encryptEventData } from '../utils/eventEncryption';
-import { processEventData } from '../utils/eventDataProcessing';
+import { encryptEventData } from '../../../../utils/calendar/eventEncryption';
+import { processEventData } from '../../../../utils/calendar/eventDataProcessing';
 import { isValid } from 'date-fns';
 
 /**

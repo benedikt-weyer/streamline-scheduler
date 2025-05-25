@@ -5,8 +5,8 @@ import {
   updateCalendarEvent, 
   addCalendarEvent
 } from '../actions';
-import { encryptEventData } from '../utils/eventEncryption';
-import { calculateNextOccurrence, calculatePreviousOccurrence } from '../utils/recurrenceHelpers';
+import { encryptEventData } from '../../../../utils/calendar/eventEncryption';
+import { calculateNextOccurrence, calculatePreviousOccurrence } from '../../../../utils/calendar/recurrenceHelpers';
 import { 
   subDays,
   isSameDay,

@@ -17,7 +17,7 @@ import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 import { useCalendars } from './hooks/useCalendars';
 import { useCalendarEvents } from './hooks/useCalendarEvents';
 import { useCalendarSubscriptions } from './hooks/useCalendarSubscriptions';
-import { getDaysOfWeek, getEventsInWeek } from './utils/calendarHelpers';
+import { getDaysOfWeek, getEventsInWeek } from '../../../utils/calendar/calendarHelpers';
 
 function CalendarContent() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
