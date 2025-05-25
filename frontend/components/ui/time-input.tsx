@@ -3,7 +3,7 @@
 import * as React from "react";
 import { ChevronUp, ChevronDown, Clock } from "lucide-react";
 import { Button } from "./button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shadcn-utils";
 
 export type QuickTimeOption = {
   value: string;
