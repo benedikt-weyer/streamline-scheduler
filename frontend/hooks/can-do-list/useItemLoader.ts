@@ -34,7 +34,8 @@ export const useItemLoader = (
               content: decryptedData.content,
               completed: decryptedData.completed,
               createdAt: new Date(item.created_at),
-              updatedAt: item.updated_at ? new Date(item.updated_at) : undefined
+              updatedAt: item.updated_at ? new Date(item.updated_at) : undefined,
+              estimatedDuration: decryptedData.estimatedDuration
             };
           } catch (error) {
             console.error('Failed to decrypt item:', error);

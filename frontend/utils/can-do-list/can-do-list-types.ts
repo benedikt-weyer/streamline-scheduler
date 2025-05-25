@@ -4,6 +4,7 @@ export interface CanDoItem {
   completed: boolean;
   createdAt: Date;
   updatedAt?: Date;
+  estimatedDuration?: number; // in minutes
 }
 
 export interface EncryptedCanDoItem {

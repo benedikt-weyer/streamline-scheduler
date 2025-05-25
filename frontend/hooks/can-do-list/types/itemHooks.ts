@@ -15,8 +15,8 @@ export interface ItemLoaderHook {
 }
 
 export interface ItemCRUDHook {
-  handleAddItem: (content: string) => Promise<boolean>;
-  handleUpdateItem: (id: string, content: string) => Promise<boolean>;
+  handleAddItem: (content: string, estimatedDuration?: number) => Promise<boolean>;
+  handleUpdateItem: (id: string, content: string, estimatedDuration?: number) => Promise<boolean>;
   handleToggleComplete: (id: string, completed: boolean) => Promise<boolean>;
   handleDeleteItem: (id: string) => Promise<boolean>;
 }

@@ -18,10 +18,14 @@ import AuthenticationRequired from './authentication-required';
 
 // Define schema for new item validation
 const addItemSchema = z.object({
-  content: z.string().min(1, { message: "Item content is required" })
+  content: z.string().min(1, { message: "Item content is required" }),
+  estimatedDuration: z.string().optional(),
 });
 
-type AddItemFormValues = z.infer<typeof addItemSchema>;
+type AddItemFormValues = {
+  content: string;
+  estimatedDuration?: string;
+};
 
 export default function CanDoListMain() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
@@ -40,10 +44,11 @@ export default function CanDoListMain() {
   } = useCanDoList(encryptionKey);
 
   // Initialize form with react-hook-form and zod validation
-  const form = useForm<AddItemFormValues>({
+  const form = useForm<{ content: string; estimatedDuration?: string }>({
     resolver: zodResolver(addItemSchema),
     defaultValues: {
-      content: ''
+      content: '',
+      estimatedDuration: ''
     }
   });
 
@@ -56,17 +61,16 @@ export default function CanDoListMain() {
 
   // Add a new item using react-hook-form
   const onSubmit = async (values: AddItemFormValues) => {
-    if (!encryptionKey) return;
-    
-    const success = await handleAddItem(values.content);
+    const duration = values.estimatedDuration ? Number(values.estimatedDuration) : undefined;
+    const success = await handleAddItem(values.content, duration);
     if (success) {
       form.reset();
     }
   };
 
   // Handle update action
-  const onUpdateItem = async (id: string, content: string) => {
-    await handleUpdateItem(id, content);
+  const onUpdateItem = async (id: string, content: string, estimatedDuration?: number) => {
+    await handleUpdateItem(id, content, estimatedDuration);
   };
 
   // Handle toggle complete action

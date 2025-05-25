@@ -5,9 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { UseFormReturn } from 'react-hook-form';
 
+interface AddItemFormValues {
+  content: string;
+  estimatedDuration?: string;
+}
+
 interface AddItemFormProps {
-  readonly form: UseFormReturn<{ content: string }>;
-  readonly onSubmit: (values: { content: string }) => Promise<void>;
+  readonly form: UseFormReturn<{ content: string; estimatedDuration?: string }>; // ensure estimatedDuration is string
+  readonly onSubmit: (values: { content: string; estimatedDuration?: string }) => Promise<void>;
   readonly isLoading: boolean;
 }
 
@@ -23,6 +28,23 @@ export default function AddItemForm({ form, onSubmit, isLoading }: AddItemFormPr
               <FormControl>
                 <Input
                   placeholder="Add a new item..."
+                  {...field}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="estimatedDuration"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="min"
+                  className="w-20"
                   {...field}
                 />
               </FormControl>

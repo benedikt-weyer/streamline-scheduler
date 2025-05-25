@@ -19,7 +19,13 @@ import { CanDoItem } from '@/utils/can-do-list/can-do-list-types';
 
 // Define schema for edit item validation
 const editItemSchema = z.object({
-  content: z.string().min(1, { message: "Item content is required" })
+  content: z.string().min(1, { message: "Item content is required" }),
+  estimatedDuration: z
+    .union([
+      z.string().regex(/^\d*$/, { message: 'Must be a number' }),
+      z.number().int().min(0).optional()
+    ])
+    .optional()
 });
 
 type EditItemFormValues = z.infer<typeof editItemSchema>;
@@ -28,7 +34,7 @@ interface EditItemDialogProps {
   readonly item: CanDoItem | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSave: (id: string, content: string) => Promise<void>;
+  readonly onSave: (id: string, content: string, estimatedDuration?: number) => Promise<void>;
   readonly isLoading?: boolean;
 }
 
@@ -42,26 +48,32 @@ export default function EditItemDialog({
   const form = useForm<EditItemFormValues>({
     resolver: zodResolver(editItemSchema),
     defaultValues: {
-      content: ''
+      content: '',
+      estimatedDuration: ''
     }
   });
 
   // Reset form when item changes or dialog opens
   useEffect(() => {
     if (item && isOpen) {
-      form.reset({ content: item.content });
+      form.reset({
+        content: item.content,
+        estimatedDuration: item.estimatedDuration?.toString() ?? ''
+      });
     }
   }, [item, isOpen, form]);
 
   const onSubmit = async (values: EditItemFormValues) => {
     if (!item) return;
-    
-    if (values.content.trim() === item.content.trim()) {
+    const duration = values.estimatedDuration ? Number(values.estimatedDuration) : undefined;
+    if (
+      values.content.trim() === item.content.trim() &&
+      duration === item.estimatedDuration
+    ) {
       onClose();
       return;
     }
-    
-    await onSave(item.id, values.content);
+    await onSave(item.id, values.content, duration);
     onClose();
   };
 
@@ -100,6 +112,21 @@ export default function EditItemDialog({
             {form.formState.errors.content && (
               <p className="text-sm text-destructive">
                 {form.formState.errors.content.message}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="estimatedDuration">Estimated Duration (min)</Label>
+            <Input
+              id="estimatedDuration"
+              type="number"
+              min="0"
+              disabled={isLoading}
+              {...form.register('estimatedDuration')}
+            />
+            {form.formState.errors.estimatedDuration && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.estimatedDuration.message}
               </p>
             )}
           </div>

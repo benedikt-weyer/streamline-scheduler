@@ -26,35 +26,30 @@ export const useItemCRUD = (
 ) => {
   const { setError } = useError();
 
-  const handleAddItem = useCallback(async (content: string): Promise<boolean> => {
+  const handleAddItem = useCallback(async (content: string, estimatedDuration?: number): Promise<boolean> => {
     if (!encryptionKey) return false;
-    
     try {
       if (skipNextItemReload) {
         skipNextItemReload();
       }
-      
       const salt = generateSalt();
       const iv = generateIV();
       const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
-      
       const itemData = {
         content: content.trim(),
-        completed: false
+        completed: false,
+        estimatedDuration: estimatedDuration
       };
-      
       const encryptedData = encryptData(itemData, derivedKey, iv);
-      
       const newEncryptedItem = await addCanDoItem(encryptedData, iv, salt);
-      
       const newItem: CanDoItem = {
         id: newEncryptedItem.id,
         content: itemData.content,
         completed: itemData.completed,
         createdAt: new Date(newEncryptedItem.created_at),
-        updatedAt: new Date(newEncryptedItem.updated_at)
+        updatedAt: new Date(newEncryptedItem.updated_at),
+        estimatedDuration: estimatedDuration
       };
-      
       itemActions.setItems(prevItems => [newItem, ...prevItems]);
       return true;
     } catch (error) {
@@ -64,7 +59,7 @@ export const useItemCRUD = (
     }
   }, [encryptionKey, itemActions, setError, skipNextItemReload]);
 
-  const handleUpdateItem = useCallback(async (id: string, content: string): Promise<boolean> => {
+  const handleUpdateItem = useCallback(async (id: string, content: string, estimatedDuration?: number): Promise<boolean> => {
     if (!encryptionKey) return false;
     
     try {
@@ -86,7 +81,8 @@ export const useItemCRUD = (
       
       const updatedItemData = {
         content: content.trim(),
-        completed: item.completed
+        completed: item.completed,
+        estimatedDuration: estimatedDuration
       };
       
       const encryptedData = encryptData(updatedItemData, derivedKey, iv);
@@ -96,7 +92,7 @@ export const useItemCRUD = (
       itemActions.setItems(prevItems =>
         prevItems.map(item =>
           item.id === id
-            ? { ...item, content: content.trim() }
+            ? { ...item, content: content.trim(), estimatedDuration: estimatedDuration }
             : item
         )
       );

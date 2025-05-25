@@ -11,7 +11,7 @@ interface ItemListItemProps {
   readonly item: CanDoItem;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteItem: (id: string) => Promise<void>;
-  readonly onUpdateItem: (id: string, content: string) => Promise<void>;
+  readonly onUpdateItem: (id: string, content: string, estimatedDuration?: number) => Promise<void>;
 }
 
 export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onUpdateItem }: ItemListItemProps) {
@@ -22,10 +22,10 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
     setIsEditDialogOpen(true);
   };
 
-  const handleSave = async (id: string, content: string) => {
+  const handleSave = async (id: string, content: string, estimatedDuration?: number) => {
     setIsUpdating(true);
     try {
-      await onUpdateItem(id, content);
+      await onUpdateItem(id, content, estimatedDuration);
     } finally {
       setIsUpdating(false);
     }
@@ -38,11 +38,11 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
   return (
     <>
       <li 
-        className={`flex items-center justify-between p-3 rounded-md border ${
+        className={`flex items-center justify-between rounded-md border ${
           item.completed ? 'bg-muted' : ''
         }`}
       >
-        <div className="flex items-center space-x-3 flex-1 min-w-0">
+        <div className="flex items-center space-x-3 flex-1 min-w-0 p-3">
           <Checkbox
             checked={item.completed}
             onCheckedChange={() => onToggleComplete(item.id, item.completed)}
@@ -59,6 +59,9 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
         </div>
         
         <div className="flex items-center space-x-1">
+          {item.estimatedDuration && (
+            <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm">⏱ {item.estimatedDuration} min</span>
+          )}
           <Button
             variant="ghost"
             size="sm"

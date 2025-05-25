@@ -8,7 +8,7 @@ interface ItemListProps {
   readonly isLoading: boolean;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteItem: (id: string) => Promise<void>;
-  readonly onUpdateItem: (id: string, content: string) => Promise<void>;
+  readonly onUpdateItem: (id: string, content: string, estimatedDuration?: number) => Promise<void>;
 }
 
 export default function ItemList({ items, isLoading, onToggleComplete, onDeleteItem, onUpdateItem }: ItemListProps) {
