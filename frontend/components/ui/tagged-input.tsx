@@ -23,6 +23,10 @@ interface TaggedInputProps {
   tags?: Tag[];
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   availableTagSuggestions?: TagSuggestion[];
+  autoComplete?: string;
+  autoCorrect?: 'on' | 'off';
+  autoCapitalize?: 'off' | 'none' | 'on' | 'sentences' | 'words' | 'characters';
+  spellCheck?: boolean;
 }
 
 export interface TagSuggestion {
@@ -407,6 +411,10 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={disabled}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
         />
         
         {/* Dropdown suggestions */}

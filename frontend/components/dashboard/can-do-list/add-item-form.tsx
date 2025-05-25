@@ -50,6 +50,10 @@ export default function AddItemForm({ form, onSubmit, isLoading }: AddItemFormPr
                     disabled={isLoading}
                     tags={tags}
                     onTagsChange={setTags}
+                    autoComplete='off'
+                    autoCapitalize='off'
+                    autoCorrect='off'
+                    spellCheck={false}
                   />
                 </FormControl>
               </FormItem>
