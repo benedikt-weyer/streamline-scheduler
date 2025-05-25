@@ -413,12 +413,14 @@ export function CalendarGrid({
         }}
         onClick={(e) => handleEventClick(e, event)}
         onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.Move)}
+        role='button'
       >
         {/* Top resize handle - only visible on hover */}
         {onEventUpdate && (
           <div 
             className="absolute top-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-white/30"
             onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeTop)}
+            role='button'
           />
         )}
         
@@ -442,6 +444,7 @@ export function CalendarGrid({
           <div 
             className="absolute bottom-0 left-0 right-0 h-2 bg-transparent cursor-ns-resize opacity-0 group-hover:opacity-100 hover:bg-white/30"
             onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeBottom)}
+            role='button'
           />
         )}
       </div>
