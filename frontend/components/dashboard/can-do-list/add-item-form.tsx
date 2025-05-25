@@ -26,7 +26,7 @@ export default function AddItemForm({ form, onSubmit, isLoading }: AddItemFormPr
             <FormItem className="flex-grow">
               <FormControl>
                 <Input
-                  placeholder="Add a new item..."
+                  placeholder="Add a new item... (use #d15m for duration)"
                   {...field}
                 />
               </FormControl>
