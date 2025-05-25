@@ -14,9 +14,9 @@ import { useEncryptionKey } from '@/utils/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 
 // Import our custom hooks
-import { useCalendars } from './hooks/useCalendars';
-import { useCalendarEvents } from './hooks/useCalendarEvents';
-import { useCalendarSubscriptions } from './hooks/useCalendarSubscriptions';
+import { useCalendars } from '../../../hooks/calendar/useCalendars';
+import { useCalendarEvents } from '../../../hooks/calendar/useCalendarEvents';
+import { useCalendarSubscriptions } from '../../../hooks/calendar/useCalendarSubscriptions';
 import { getDaysOfWeek, getEventsInWeek } from '../../../utils/calendar/calendarHelpers';
 
 function CalendarContent() {

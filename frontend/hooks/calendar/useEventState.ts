@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/prefer-destructuring */
 import { useState } from 'react';
 import { CalendarEvent } from '@/utils/calendar/calendar-types';
-import { EventStateActions } from '../types/eventHooks';
-import { sortEventsByStartTime } from '../../../../utils/calendar/eventDataProcessing';
+import { EventStateActions } from './types/eventHooks';
+import { sortEventsByStartTime } from '../../utils/calendar/eventDataProcessing';
 
 /**
  * Hook for managing event state

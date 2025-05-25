@@ -1,5 +1,5 @@
 import { Calendar } from '@/utils/calendar/calendar-types';
-import { CalendarEventsHook } from '../types/eventHooks';
+import { CalendarEventsHook } from './types/eventHooks';
 import { useEventState } from './useEventState';
 import { useEventLoader } from './useEventLoader';
 import { useEventCRUD } from './useEventCRUD';

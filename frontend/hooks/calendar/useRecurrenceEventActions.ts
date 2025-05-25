@@ -1,12 +1,12 @@
 import { CalendarEvent } from '@/utils/calendar/calendar-types';
-import { EventStateActions } from '../types/eventHooks';
+import { EventStateActions } from './types/eventHooks';
 import { useError } from '@/utils/context/ErrorContext';
 import { 
   updateCalendarEvent, 
   addCalendarEvent
-} from '../actions';
-import { encryptEventData } from '../../../../utils/calendar/eventEncryption';
-import { calculateNextOccurrence, calculatePreviousOccurrence } from '../../../../utils/calendar/recurrenceHelpers';
+} from '../../app/dashboard/calendar/actions';
+import { encryptEventData } from '../../utils/calendar/eventEncryption';
+import { calculateNextOccurrence, calculatePreviousOccurrence } from '../../utils/calendar/recurrenceHelpers';
 import { 
   subDays,
   isSameDay,
@@ -456,7 +456,7 @@ export const useRecurrenceEventActions = (
         skipNextEventReload();
       }
       
-      const { deleteCalendarEvent } = await import('../actions');
+      const { deleteCalendarEvent } = await import('../../app/dashboard/calendar/actions');
       await deleteCalendarEvent(id);
       
       eventActions.setEvents(prevEvents => 

@@ -1,13 +1,13 @@
 import { CalendarEvent, Calendar, EventFormValues } from '@/utils/calendar/calendar-types';
-import { EventStateActions } from '../types/eventHooks';
+import { EventStateActions } from './types/eventHooks';
 import { useError } from '@/utils/context/ErrorContext';
 import { 
   addCalendarEvent, 
   updateCalendarEvent, 
   deleteCalendarEvent
-} from '../actions';
-import { encryptEventData } from '../../../../utils/calendar/eventEncryption';
-import { processEventData } from '../../../../utils/calendar/eventDataProcessing';
+} from '../../app/dashboard/calendar/actions';
+import { encryptEventData } from '../../utils/calendar/eventEncryption';
+import { processEventData } from '../../utils/calendar/eventDataProcessing';
 import { isValid } from 'date-fns';
 
 /**

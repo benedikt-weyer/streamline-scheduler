@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { useEventState } from '@/app/dashboard/calendar/hooks/useEventState';
+import { useEventState } from '@/hooks/calendar/useEventState';
 import { CalendarEvent } from '@/utils/calendar/calendar-types';
 
 describe('useEventState', () => {
