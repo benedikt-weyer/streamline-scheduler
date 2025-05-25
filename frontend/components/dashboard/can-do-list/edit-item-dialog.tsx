@@ -17,6 +17,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { CanDoItem } from '@/utils/can-do-list/can-do-list-types';
 
+// Predefined duration options in minutes
+const PREDEFINED_DURATIONS = [
+  { label: '15 min', value: 15 },
+  { label: '30 min', value: 30 },
+  { label: '1 hour', value: 60 },
+  { label: '3 hours', value: 180 },
+] as const;
+
 // Define schema for edit item validation
 const editItemSchema = z.object({
   content: z.string().min(1, { message: "Item content is required" }),
@@ -117,13 +125,33 @@ export default function EditItemDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="estimatedDuration">Estimated Duration (min)</Label>
-            <Input
-              id="estimatedDuration"
-              type="number"
-              min="0"
-              disabled={isLoading}
-              {...form.register('estimatedDuration')}
-            />
+            <div className="space-y-3">
+              {/* Predefined duration buttons */}
+              <div className="flex flex-wrap gap-2">
+                {PREDEFINED_DURATIONS.map((duration) => (
+                  <Button
+                    key={duration.value}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isLoading}
+                    onClick={() => form.setValue('estimatedDuration', duration.value.toString())}
+                    className="text-xs"
+                  >
+                    {duration.label}
+                  </Button>
+                ))}
+              </div>
+              {/* Custom duration input */}
+              <Input
+                id="estimatedDuration"
+                type="number"
+                min="0"
+                placeholder="Custom duration..."
+                disabled={isLoading}
+                {...form.register('estimatedDuration')}
+              />
+            </div>
             {form.formState.errors.estimatedDuration && (
               <p className="text-sm text-destructive">
                 {form.formState.errors.estimatedDuration.message}
