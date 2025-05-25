@@ -1,4 +1,4 @@
-import { CalendarEvent, EventFormValues, Calendar } from '@/utils/calendar/calendar-types';
+import { CalendarEvent, EventFormValues } from '@/utils/calendar/calendar-types';
 
 export interface EventState {
   events: CalendarEvent[];
