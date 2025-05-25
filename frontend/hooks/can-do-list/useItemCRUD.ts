@@ -64,6 +64,50 @@ export const useItemCRUD = (
     }
   }, [encryptionKey, itemActions, setError, skipNextItemReload]);
 
+  const handleUpdateItem = useCallback(async (id: string, content: string): Promise<boolean> => {
+    if (!encryptionKey) return false;
+    
+    try {
+      if (skipNextItemReload) {
+        skipNextItemReload();
+      }
+      
+      const item = items.find(item => item.id === id);
+      if (!item) return false;
+      
+      // Find the corresponding encrypted item to get salt and IV
+      const encryptedItems = await fetchCanDoItems();
+      const encryptedItem = encryptedItems.find(item => item.id === id);
+      if (!encryptedItem) return false;
+      
+      const salt = encryptedItem.salt;
+      const iv = encryptedItem.iv;
+      const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+      
+      const updatedItemData = {
+        content: content.trim(),
+        completed: item.completed
+      };
+      
+      const encryptedData = encryptData(updatedItemData, derivedKey, iv);
+      
+      await updateCanDoItem(id, encryptedData, iv, salt);
+      
+      itemActions.setItems(prevItems =>
+        prevItems.map(item =>
+          item.id === id
+            ? { ...item, content: content.trim() }
+            : item
+        )
+      );
+      return true;
+    } catch (error) {
+      console.error('Error updating item:', error);
+      setError('Failed to update item');
+      return false;
+    }
+  }, [encryptionKey, items, itemActions, setError, skipNextItemReload]);
+
   const handleToggleComplete = useCallback(async (id: string, completed: boolean): Promise<boolean> => {
     if (!encryptionKey) return false;
     
@@ -126,6 +170,7 @@ export const useItemCRUD = (
 
   return {
     handleAddItem,
+    handleUpdateItem,
     handleToggleComplete,
     handleDeleteItem
   };

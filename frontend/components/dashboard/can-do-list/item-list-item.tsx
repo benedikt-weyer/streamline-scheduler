@@ -3,41 +3,89 @@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CanDoItem } from '@/utils/can-do-list/can-do-list-types';
+import { useState } from 'react';
+import { Edit } from 'lucide-react';
+import EditItemDialog from './edit-item-dialog';
 
 interface ItemListItemProps {
-  item: CanDoItem;
-  onToggleComplete: (id: string, completed: boolean) => Promise<void>;
-  onDeleteItem: (id: string) => Promise<void>;
+  readonly item: CanDoItem;
+  readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
+  readonly onDeleteItem: (id: string) => Promise<void>;
+  readonly onUpdateItem: (id: string, content: string) => Promise<void>;
 }
 
-export default function ItemListItem({ item, onToggleComplete, onDeleteItem }: ItemListItemProps) {
+export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onUpdateItem }: ItemListItemProps) {
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleEdit = () => {
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSave = async (id: string, content: string) => {
+    setIsUpdating(true);
+    try {
+      await onUpdateItem(id, content);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCloseDialog = () => {
+    setIsEditDialogOpen(false);
+  };
+
   return (
-    <li 
-      className={`flex items-center justify-between p-3 rounded-md border ${
-        item.completed ? 'bg-muted' : ''
-      }`}
-    >
-      <div className="flex items-center space-x-3">
-        <Checkbox
-          checked={item.completed}
-          onCheckedChange={() => onToggleComplete(item.id, item.completed)}
-          id={`item-${item.id}`}
-        />
-        <label
-          htmlFor={`item-${item.id}`}
-          className={`${item.completed ? 'line-through text-muted-foreground' : ''}`}
-        >
-          {item.content}
-        </label>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onDeleteItem(item.id)}
-        className="text-destructive hover:text-destructive/80"
+    <>
+      <li 
+        className={`flex items-center justify-between p-3 rounded-md border ${
+          item.completed ? 'bg-muted' : ''
+        }`}
       >
-        Delete
-      </Button>
-    </li>
+        <div className="flex items-center space-x-3 flex-1 min-w-0">
+          <Checkbox
+            checked={item.completed}
+            onCheckedChange={() => onToggleComplete(item.id, item.completed)}
+            id={`item-${item.id}`}
+          />
+          <label
+            htmlFor={`item-${item.id}`}
+            className={`flex-1 min-w-0 cursor-pointer ${
+              item.completed ? 'line-through text-muted-foreground' : ''
+            }`}
+          >
+            <span className="block truncate">{item.content}</span>
+          </label>
+        </div>
+        
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleEdit}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Edit className="h-4 w-4" />
+            <span className="sr-only">Edit</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDeleteItem(item.id)}
+            className="text-destructive hover:text-destructive/80"
+          >
+            Delete
+          </Button>
+        </div>
+      </li>
+
+      <EditItemDialog
+        item={item}
+        isOpen={isEditDialogOpen}
+        onClose={handleCloseDialog}
+        onSave={handleSave}
+        isLoading={isUpdating}
+      />
+    </>
   );
 }

@@ -33,6 +33,7 @@ export default function CanDoListMain() {
     isLoading,
     loadItems,
     handleAddItem,
+    handleUpdateItem,
     handleToggleComplete,
     handleDeleteItem,
     isSubscribed
@@ -61,6 +62,11 @@ export default function CanDoListMain() {
     if (success) {
       form.reset();
     }
+  };
+
+  // Handle update action
+  const onUpdateItem = async (id: string, content: string) => {
+    await handleUpdateItem(id, content);
   };
 
   // Handle toggle complete action
@@ -96,6 +102,7 @@ export default function CanDoListMain() {
             isLoading={isLoading}
             onToggleComplete={onToggleComplete}
             onDeleteItem={onDeleteItem}
+            onUpdateItem={onUpdateItem}
           />
         </div>
       )}

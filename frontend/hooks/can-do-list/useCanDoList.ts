@@ -27,6 +27,7 @@ export function useCanDoList(
   
   const { 
     handleAddItem, 
+    handleUpdateItem,
     handleToggleComplete, 
     handleDeleteItem 
   } = useItemCRUD(items, itemActions, encryptionKey, skipNextItemReload);
@@ -37,6 +38,7 @@ export function useCanDoList(
     isLoading,
     loadItems,
     handleAddItem,
+    handleUpdateItem,
     handleToggleComplete,
     handleDeleteItem,
     isSubscribed,
@@ -46,6 +48,7 @@ export function useCanDoList(
     isLoading,
     loadItems,
     handleAddItem,
+    handleUpdateItem,
     handleToggleComplete,
     handleDeleteItem,
     isSubscribed,
