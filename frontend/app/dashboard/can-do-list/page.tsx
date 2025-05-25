@@ -14,7 +14,7 @@ import {
   deriveKeyFromPassword 
 } from '@/utils/cryptography/encryption';
 import { createClient } from '@/utils/supabase/client';
-import { CanDoItem } from '@/utils/types';
+import { CanDoItem } from '@/utils/can-do-list/can-do-list-types';
 
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';

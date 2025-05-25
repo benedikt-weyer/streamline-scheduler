@@ -5,7 +5,7 @@ import {
   updateCalendar, 
   deleteCalendar,
 } from '../actions';
-import { Calendar } from '@/utils/types';
+import { Calendar } from '@/utils/calendar/calendar-types';
 import { 
   generateSalt, 
   generateIV, 

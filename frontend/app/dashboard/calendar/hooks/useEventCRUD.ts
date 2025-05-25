@@ -1,4 +1,4 @@
-import { CalendarEvent, Calendar, EventFormValues } from '@/utils/types';
+import { CalendarEvent, Calendar, EventFormValues } from '@/utils/calendar/calendar-types';
 import { EventStateActions } from '../types/eventHooks';
 import { useError } from '@/utils/context/ErrorContext';
 import { 

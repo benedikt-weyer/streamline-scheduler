@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { Calendar } from '@/utils/types';
+import { Calendar } from '@/utils/calendar/calendar-types';
 
 // Mock the hooks module to avoid importing React context
 jest.mock('@/app/dashboard/calendar/hooks/useEventCRUD', () => ({

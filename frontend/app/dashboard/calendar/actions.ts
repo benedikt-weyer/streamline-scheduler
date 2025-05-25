@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { EncryptedCalendarEvent, EncryptedCalendar } from '@/utils/types';
+import { EncryptedCalendarEvent, EncryptedCalendar } from '@/utils/calendar/calendar-types';
 
 // Fetch all encrypted calendar events for the current user
 export async function fetchCalendarEvents(): Promise<EncryptedCalendarEvent[]> {

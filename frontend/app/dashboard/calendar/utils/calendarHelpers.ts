@@ -1,4 +1,4 @@
-import { CalendarEvent } from '@/utils/types';
+import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { filterEventsForWeek } from '@/utils/calendar/calendar';
 
 // Helper function to combine date and time

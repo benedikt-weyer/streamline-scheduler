@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Calendar, CalendarEvent, RecurrenceFrequency } from '@/utils/types';
+import { Calendar, CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { format, parse, isValid, addMinutes } from 'date-fns';
 
 import { z } from 'zod';

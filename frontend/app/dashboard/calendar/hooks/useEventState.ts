@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-destructuring */
 import { useState } from 'react';
-import { CalendarEvent } from '@/utils/types';
+import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { EventStateActions } from '../types/eventHooks';
 import { sortEventsByStartTime } from '../utils/eventDataProcessing';
 

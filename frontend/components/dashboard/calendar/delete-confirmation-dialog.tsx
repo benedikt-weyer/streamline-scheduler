@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
-import { CalendarEvent } from '@/utils/types';
+import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { Calendar, CalendarX, Trash2 } from 'lucide-react';
 
 interface DeleteConfirmationDialogProps {

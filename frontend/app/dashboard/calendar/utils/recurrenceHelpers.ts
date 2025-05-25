@@ -6,7 +6,7 @@ import {
   subDays,
   endOfDay
 } from 'date-fns';
-import { RecurrenceFrequency, RecurrencePattern } from '@/utils/types';
+import { RecurrenceFrequency, RecurrencePattern } from '@/utils/calendar/calendar-types';
 
 /**
  * Helper function to combine date and time

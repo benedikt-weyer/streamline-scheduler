@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useEventState } from '@/app/dashboard/calendar/hooks/useEventState';
-import { CalendarEvent } from '@/utils/types';
+import { CalendarEvent } from '@/utils/calendar/calendar-types';
 
 describe('useEventState', () => {
   const mockEvent: CalendarEvent = {

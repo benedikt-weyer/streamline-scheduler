@@ -9,7 +9,7 @@ import { CalendarGrid } from '@/components/dashboard/calendar/calendar-grid';
 import { CalendarEventDialog, EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
 import { CalendarSidebar } from '@/components/dashboard/calendar/calendar-sidebar';
 
-import { CalendarEvent } from '@/utils/types';
+import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { useEncryptionKey } from '@/utils/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { CalendarEvent, Calendar } from '@/utils/types';
+import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { EventStateActions } from '../types/eventHooks';
 import { isValid } from 'date-fns';
 

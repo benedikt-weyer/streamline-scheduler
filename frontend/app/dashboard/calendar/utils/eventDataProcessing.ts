@@ -1,4 +1,4 @@
-import { CalendarEvent, Calendar, RecurrencePattern, RecurrenceFrequency } from '@/utils/types';
+import { CalendarEvent, Calendar, RecurrencePattern, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { isValid } from 'date-fns';
 import { combineDateAndTime, createRecurrencePattern } from './recurrenceHelpers';
 
