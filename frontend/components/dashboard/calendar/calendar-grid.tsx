@@ -3,14 +3,14 @@ import { useEffect, useState, useRef } from 'react';
 import { format, isSameDay, differenceInMinutes } from 'date-fns';
 
 import { CalendarEvent, RecurrenceFrequency } from '@/utils/types';
-import { generateTimeSlots } from '@/utils/calendar';
-import { calculateCalendarDimensions, calculateEventRendering, groupOverlappingEvents } from '@/utils/calendar-render';
+import { generateTimeSlots } from '@/utils/calendar/calendar';
+import { calculateCalendarDimensions, calculateEventRendering, groupOverlappingEvents } from '@/utils/calendar/calendar-render';
 import { 
   DraggedEvent, 
   DragPosition, 
   calculateDraggingEventDateTime,
   DragMode // Import the DragMode enum
-} from '@/utils/calendar-drag';
+} from '@/utils/calendar/calendar-drag';
 
 
 // -------- Prop Interfaces --------

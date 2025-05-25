@@ -18,7 +18,7 @@ import {
   differenceInYears,
   getDay
 } from 'date-fns';
-import { CalendarEvent, RecurrenceFrequency, RecurrencePattern } from './types';
+import { CalendarEvent, RecurrenceFrequency, RecurrencePattern } from '../types';
 
 // Generate time slots for the calendar (hourly intervals)
 export const generateTimeSlots = (startHour = 0, endHour = 24) => {

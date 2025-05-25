@@ -1,5 +1,5 @@
 import { format, isSameDay, differenceInMinutes, setHours, setMinutes } from 'date-fns';
-import { CalendarEvent } from './types';
+import { CalendarEvent } from '../types';
 
 export interface CalendarEventRendering {
   eventStyles: {

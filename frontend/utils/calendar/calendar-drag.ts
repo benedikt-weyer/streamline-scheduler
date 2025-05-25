@@ -1,5 +1,5 @@
 import { differenceInMinutes } from 'date-fns';
-import { CalendarEvent } from './types';
+import { CalendarEvent } from '../types';
 
 // Enum for different drag modes
 export enum DragMode {

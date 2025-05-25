@@ -1,5 +1,5 @@
 import { CalendarEvent } from '@/utils/types';
-import { filterEventsForWeek } from '@/utils/calendar';
+import { filterEventsForWeek } from '@/utils/calendar/calendar';
 
 // Helper function to combine date and time
 export const combineDateAndTime = (date: Date, time: string): Date => {
