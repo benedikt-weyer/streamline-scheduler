@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { hashPassword } from '@/utils/encryption';
+import { hashPassword } from '@/utils/cryptography/encryption';
 import { createClient } from '@/utils/supabase/client';
 
 export function useEncryptionKey() {

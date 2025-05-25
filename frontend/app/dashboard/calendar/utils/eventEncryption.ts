@@ -4,7 +4,7 @@ import {
   deriveKeyFromPassword, 
   encryptData,
   decryptData
-} from '@/utils/encryption';
+} from '@/utils/cryptography/encryption';
 
 /**
  * Encrypts event data for storage

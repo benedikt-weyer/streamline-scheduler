@@ -10,7 +10,7 @@ import { CalendarEventDialog, EventFormValues } from '@/components/dashboard/cal
 import { CalendarSidebar } from '@/components/dashboard/calendar/calendar-sidebar';
 
 import { CalendarEvent } from '@/utils/types';
-import { useEncryptionKey } from '@/utils/useEncryptionKey';
+import { useEncryptionKey } from '@/utils/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 
 // Import our custom hooks

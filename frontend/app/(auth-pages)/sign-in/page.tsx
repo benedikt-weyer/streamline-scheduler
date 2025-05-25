@@ -7,7 +7,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 
-import { hashPassword, storeHashedPassword } from "@/utils/encryption";
+import { hashPassword, storeHashedPassword } from "@/utils/cryptography/encryption";
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";

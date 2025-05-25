@@ -1,7 +1,7 @@
 'use client';
 
 import { signOutAction } from "@/app/actions";
-import { clearHashedPassword } from "@/utils/encryption";
+import { clearHashedPassword } from "@/utils/cryptography/encryption";
 import { Button } from "../ui/button";
 
 export default function SignOutButton() {

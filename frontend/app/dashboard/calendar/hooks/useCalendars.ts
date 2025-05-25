@@ -12,7 +12,7 @@ import {
   deriveKeyFromPassword, 
   encryptData,
   decryptData
-} from '@/utils/encryption';
+} from '@/utils/cryptography/encryption';
 import { useError } from '@/utils/context/ErrorContext';
 
 export function useCalendars(encryptionKey: string | null) {

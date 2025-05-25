@@ -12,7 +12,7 @@ import {
   generateSalt, 
   getHashedPassword, 
   deriveKeyFromPassword 
-} from '@/utils/encryption';
+} from '@/utils/cryptography/encryption';
 import { createClient } from '@/utils/supabase/client';
 import { CanDoItem } from '@/utils/types';
 
