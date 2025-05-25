@@ -55,8 +55,8 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
 
     const setTags = (newTags: Tag[] | ((prev: Tag[]) => Tag[])) => {
       const updatedTags = typeof newTags === 'function' ? newTags(tags) : newTags;
-      if (externalTags) {
-        onTagsChange?.(updatedTags);
+      if (onTagsChange) {
+        onTagsChange(updatedTags);
       } else {
         setInternalTags(updatedTags);
       }
