@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CanDoItem } from '@/utils/can-do-list/can-do-list-types';
 import { useState } from 'react';
-import { Edit } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 import EditItemDialog from './edit-item-dialog';
 
 interface ItemListItemProps {
@@ -74,7 +74,8 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
             onClick={() => onDeleteItem(item.id)}
             className="text-destructive hover:text-destructive/80"
           >
-            Delete
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Delete</span>
           </Button>
         </div>
       </li>
