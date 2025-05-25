@@ -46,7 +46,7 @@ export default function AddItemForm({ form, onSubmit, isLoading }: AddItemFormPr
                 <FormControl>
                   <TaggedInput
                     {...field}
-                    placeholder="Add a new item... (use #d15m for duration)"
+                    placeholder="Add a new item... (type # to see duration options)"
                     disabled={isLoading}
                     tags={tags}
                     onTagsChange={setTags}
