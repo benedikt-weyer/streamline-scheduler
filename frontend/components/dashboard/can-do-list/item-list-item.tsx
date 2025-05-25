@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CanDoItem } from '@/utils/can-do-list/can-do-list-types';
 import { useState } from 'react';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Clock } from 'lucide-react';
 import EditItemDialog from './edit-item-dialog';
 
 interface ItemListItemProps {
@@ -60,7 +60,10 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
         
         <div className="flex items-center space-x-1">
           {item.estimatedDuration && (
-            <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm">⏱ {item.estimatedDuration} min</span>
+            <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {item.estimatedDuration} min
+            </span>
           )}
           <Button
             variant="ghost"

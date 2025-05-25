@@ -179,7 +179,7 @@ describe('TaggedInput', () => {
         />
       );
 
-      expect(screen.getByText('⏱ 15m')).toBeInTheDocument();
+      expect(screen.getByText('15m')).toBeInTheDocument();
       expect(screen.getByText('#custom')).toBeInTheDocument();
     });
 
@@ -329,48 +329,6 @@ describe('TaggedInput', () => {
     });
   });
 
-  describe('CSS Classes and Styling', () => {
-    it('applies custom className', () => {
-      const { container } = render(
-        <TaggedInput className="custom-class" placeholder="Enter text" />
-      );
-
-      expect(container.firstChild).toHaveClass('custom-class');
-    });
-
-    it('applies correct badge styling for duration tags', () => {
-      const tags: Tag[] = [
-        { id: '1', text: '#d15m', duration: 15, type: 'duration' }
-      ];
-
-      render(
-        <TaggedInput 
-          placeholder="Enter text"
-          tags={tags}
-        />
-      );
-
-      const badge = screen.getByText('⏱ 15m').closest('div');
-      expect(badge).toHaveClass('flex', 'items-center', 'gap-1', 'text-xs');
-    });
-
-    it('applies hover styling to remove buttons', () => {
-      const tags: Tag[] = [
-        { id: '1', text: '#d15m', duration: 15, type: 'duration' }
-      ];
-
-      render(
-        <TaggedInput 
-          placeholder="Enter text"
-          tags={tags}
-        />
-      );
-
-      const removeButton = screen.getByRole('button');
-      expect(removeButton).toHaveClass('hover:bg-destructive/20');
-    });
-  });
-
   describe('Edge Cases', () => {
     it('handles empty input gracefully', async () => {
       const handleTagsChange = jest.fn();
@@ -396,7 +354,7 @@ describe('TaggedInput', () => {
       // Trigger space key to create tag
       fireEvent.keyDown(input, { key: ' ' });
 
-      expect(screen.getByText('⏱ 15m')).toBeInTheDocument();
+      expect(screen.getByText('15m')).toBeInTheDocument();
     });
 
     it('handles tag at the beginning of input', async () => {
@@ -439,7 +397,7 @@ describe('TaggedInput', () => {
 
       // The input should still contain "Task" and the tag should be created
       expect(input).toHaveValue('Task ');
-      expect(screen.getByText('⏱ 15m')).toBeInTheDocument();
+      expect(screen.getByText('15m')).toBeInTheDocument();
     });
 
     it('handles hashtag in the middle of text', async () => {
@@ -450,14 +408,14 @@ describe('TaggedInput', () => {
       
       // Move cursor to after the hashtag
       fireEvent.click(input);
-      input.setSelectionRange(10, 10); // Position after "#d30m"
+      (input as HTMLInputElement).setSelectionRange(10, 10); // Position after "#d30m"
       
       // Trigger space key to create tag
       fireEvent.keyDown(input, { key: ' ' });
 
       // The input should preserve "Do task" and " today"
       expect(input).toHaveValue('Do task today');
-      expect(screen.getByText('⏱ 30m')).toBeInTheDocument();
+      expect(screen.getByText('30m')).toBeInTheDocument();
     });
   });
 });

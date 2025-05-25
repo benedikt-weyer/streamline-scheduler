@@ -3,7 +3,7 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { X, Clock } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
 
 export interface Tag {
@@ -214,7 +214,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                   variant="secondary"
                   className="flex items-center gap-1 text-xs"
                 >
-                  {tag.type === 'duration' && '⏱ '}
+                  {tag.type === 'duration' && <Clock className="h-3 w-3" />}
                   {tag.type === 'duration' ? `${tag.duration}m` : tag.text}
                   <button
                     type="button"
