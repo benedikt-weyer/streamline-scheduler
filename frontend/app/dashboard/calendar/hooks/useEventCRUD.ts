@@ -4,8 +4,7 @@ import { useError } from '@/utils/context/ErrorContext';
 import { 
   addCalendarEvent, 
   updateCalendarEvent, 
-  deleteCalendarEvent,
-  updateEventCalendar
+  deleteCalendarEvent
 } from '../actions';
 import { encryptEventData } from '../utils/eventEncryption';
 import { processEventData } from '../utils/eventDataProcessing';
@@ -135,7 +134,7 @@ export const useEventCRUD = (
         skipNextEventReload();
       }
       
-      await updateEventCalendar(eventId, encryptedData, iv, salt);
+      await updateCalendarEvent(eventId, encryptedData, iv, salt);
       
       eventActions.setEvents(prevEvents =>
         prevEvents.map(e =>
