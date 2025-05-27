@@ -28,6 +28,7 @@ export async function addCanDoItem(
   encryptedData: string,
   iv: string,
   salt: string,
+  projectId?: string,
   silent = false
 ): Promise<EncryptedCanDoItem> {
   const supabase = await createClient();
@@ -45,7 +46,8 @@ export async function addCanDoItem(
       user_id: user.id,
       encrypted_data: encryptedData,
       iv,
-      salt
+      salt,
+      project_id: projectId
     })
     .select()
     .single();
@@ -67,6 +69,7 @@ export async function updateCanDoItem(
   encryptedData: string,
   iv: string,
   salt: string,
+  projectId?: string,
   silent = false
 ): Promise<EncryptedCanDoItem> {
   const supabase = await createClient();
@@ -76,7 +79,8 @@ export async function updateCanDoItem(
     .update({
       encrypted_data: encryptedData,
       iv,
-      salt
+      salt,
+      project_id: projectId
     })
     .eq('id', id)
     .select()
@@ -91,6 +95,31 @@ export async function updateCanDoItem(
   
   revalidatePath('/dashboard/can-do-list');
   return data as EncryptedCanDoItem;
+}
+
+// Move an item to a different project
+export async function moveCanDoItemToProject(
+  id: string,
+  projectId?: string,
+  silent = false
+): Promise<void> {
+  const supabase = await createClient();
+  
+  const { error } = await supabase
+    .from('can_do_list')
+    .update({
+      project_id: projectId
+    })
+    .eq('id', id);
+  
+  if (error) {
+    if (!silent) {
+      console.error("Error moving can-do item:", error);
+    }
+    throw new Error(`Failed to move can-do item: ${error.message}`);
+  }
+  
+  revalidatePath('/dashboard/can-do-list');
 }
 
 // Delete a can-do item
@@ -110,4 +139,32 @@ export async function deleteCanDoItem(id: string, silent = false): Promise<void>
   }
   
   revalidatePath('/dashboard/can-do-list');
+}
+
+// Fetch can-do items for a specific project
+export async function fetchCanDoItemsByProject(projectId?: string, silent = false): Promise<EncryptedCanDoItem[]> {
+  const supabase = await createClient();
+  
+  let query = supabase
+    .from('can_do_list')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  // If projectId is null or undefined, get items without a project
+  if (projectId === null || projectId === undefined) {
+    query = query.is('project_id', null);
+  } else {
+    query = query.eq('project_id', projectId);
+  }
+  
+  const { data, error } = await query;
+  
+  if (error) {
+    if (!silent) {
+      console.error("Error fetching can-do items by project:", error);
+    }
+    throw new Error(`Failed to fetch can-do items by project: ${error.message}`);
+  }
+  
+  return data as EncryptedCanDoItem[];
 }
