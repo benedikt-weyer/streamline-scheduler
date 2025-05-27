@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CanDoItem } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItem, Project } from '@/utils/can-do-list/can-do-list-types';
 import { useState } from 'react';
 import { Edit, Trash2, Clock } from 'lucide-react';
 import EditItemDialog from './edit-item-dialog';
@@ -11,10 +11,11 @@ interface ItemListItemProps {
   readonly item: CanDoItem;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteItem: (id: string) => Promise<void>;
-  readonly onUpdateItem: (id: string, content: string, estimatedDuration?: number) => Promise<void>;
+  readonly onUpdateItem: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<void>;
+  readonly projects?: Project[];
 }
 
-export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onUpdateItem }: ItemListItemProps) {
+export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onUpdateItem, projects = [] }: ItemListItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -22,10 +23,10 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
     setIsEditDialogOpen(true);
   };
 
-  const handleSave = async (id: string, content: string, estimatedDuration?: number) => {
+  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string) => {
     setIsUpdating(true);
     try {
-      await onUpdateItem(id, content, estimatedDuration);
+      await onUpdateItem(id, content, estimatedDuration, projectId);
     } finally {
       setIsUpdating(false);
     }
@@ -92,6 +93,7 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
         onClose={handleCloseDialog}
         onSave={handleSave}
         isLoading={isUpdating}
+        projects={projects}
       />
     </>
   );

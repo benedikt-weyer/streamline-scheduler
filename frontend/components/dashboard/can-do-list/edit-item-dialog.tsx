@@ -15,7 +15,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
-import { CanDoItem } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItem, Project, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Predefined duration options in minutes
 const PREDEFINED_DURATIONS = [
@@ -33,7 +34,8 @@ const editItemSchema = z.object({
       z.string().regex(/^\d*$/, { message: 'Must be a number' }),
       z.number().int().min(0).optional()
     ])
-    .optional()
+    .optional(),
+  projectId: z.string().optional()
 });
 
 type EditItemFormValues = z.infer<typeof editItemSchema>;
@@ -42,8 +44,9 @@ interface EditItemDialogProps {
   readonly item: CanDoItem | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSave: (id: string, content: string, estimatedDuration?: number) => Promise<void>;
+  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<void>;
   readonly isLoading?: boolean;
+  readonly projects?: Project[];
 }
 
 export default function EditItemDialog({ 
@@ -51,7 +54,8 @@ export default function EditItemDialog({
   isOpen, 
   onClose, 
   onSave, 
-  isLoading = false 
+  isLoading = false,
+  projects = []
 }: EditItemDialogProps) {
   const form = useForm<EditItemFormValues>({
     resolver: zodResolver(editItemSchema),
@@ -66,7 +70,8 @@ export default function EditItemDialog({
     if (item && isOpen) {
       form.reset({
         content: item.content,
-        estimatedDuration: item.estimatedDuration?.toString() ?? ''
+        estimatedDuration: item.estimatedDuration?.toString() ?? '',
+        projectId: item.projectId ?? ''
       });
     }
   }, [item, isOpen, form]);
@@ -76,12 +81,13 @@ export default function EditItemDialog({
     const duration = values.estimatedDuration ? Number(values.estimatedDuration) : undefined;
     if (
       values.content.trim() === item.content.trim() &&
-      duration === item.estimatedDuration
+      duration === item.estimatedDuration &&
+      values.projectId === item.projectId
     ) {
       onClose();
       return;
     }
-    await onSave(item.id, values.content, duration);
+    await onSave(item.id, values.content, duration, values.projectId);
     onClose();
   };
 
@@ -157,6 +163,37 @@ export default function EditItemDialog({
                 {form.formState.errors.estimatedDuration.message}
               </p>
             )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="project">Project</Label>
+            <Select 
+              value={form.watch('projectId') ?? '__inbox__'} 
+              onValueChange={(value) => form.setValue('projectId', value === '__inbox__' ? undefined : value)}
+              disabled={isLoading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a project..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__inbox__">
+                  <div className="flex items-center gap-2">
+                    <span>{DEFAULT_PROJECT_NAME}</span>
+                  </div>
+                </SelectItem>
+                {projects.map(project => (
+                  <SelectItem key={project.id} value={project.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: project.color }}
+                      />
+                      <span>{project.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <DialogFooter>

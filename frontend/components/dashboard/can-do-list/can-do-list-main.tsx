@@ -1,21 +1,22 @@
 'use client';
 
 import { useCanDoList } from '@/hooks/can-do-list/useCanDoList';
+import { useProjects } from '@/hooks/can-do-list/useProjects';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { useError } from '@/utils/context/ErrorContext';
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { parseDurationFromContent } from '@/utils/can-do-list/duration-parser';
 
-import CanDoListHeader from './can-do-list-header';
 import ErrorDisplay from './error-display';
 import AddItemForm from './add-item-form';
 import LoadingState from './loading-state';
 import EmptyState from './empty-state';
 import ItemList from './item-list';
 import AuthenticationRequired from './authentication-required';
+import ProjectSidebar from './project-sidebar';
 
 // Define schema for new item validation
 const addItemSchema = z.object({
@@ -29,18 +30,31 @@ type AddItemFormValues = {
 export default function CanDoListMain() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
   const { error } = useError();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
 
   // Use the main can-do list hook
   const {
     items,
-    isLoading,
+    isLoading: isLoadingItems,
     loadItems,
+    loadItemsByProject,
     handleAddItem,
     handleUpdateItem,
     handleToggleComplete,
-    handleDeleteItem,
-    isSubscribed
+    handleDeleteItem
   } = useCanDoList(encryptionKey);
+
+  // Use projects hook
+  const {
+    projects,
+    isLoading: isLoadingProjects,
+    loadProjects,
+    handleAddProject,
+    handleUpdateProject,
+    handleDeleteProject
+  } = useProjects(encryptionKey);
+
+  const isLoading = isLoadingItems || isLoadingProjects;
 
   // Initialize form with react-hook-form and zod validation
   const form = useForm<{ content: string }>({
@@ -50,26 +64,61 @@ export default function CanDoListMain() {
     }
   });
 
-  // Load items when encryption key becomes available
+  // Load items and projects when encryption key becomes available
   useEffect(() => {
     if (encryptionKey) {
-      loadItems(encryptionKey);
+      loadProjects(encryptionKey);
+      if (selectedProjectId) {
+        loadItemsByProject(encryptionKey, selectedProjectId);
+      } else {
+        loadItems(encryptionKey);
+      }
     }
-  }, [encryptionKey, loadItems]);
+  }, [encryptionKey, selectedProjectId, loadItems, loadItemsByProject, loadProjects]);
+
+  // Handle project selection
+  const handleProjectSelect = (projectId?: string) => {
+    setSelectedProjectId(projectId);
+  };
+
+  // Filter items based on selected project
+  const filteredItems = useMemo(() => {
+    if (selectedProjectId) {
+      return items.filter(item => item.projectId === selectedProjectId);
+    } else {
+      // Show items without project (inbox)
+      return items.filter(item => !item.projectId);
+    }
+  }, [items, selectedProjectId]);
+
+  // Calculate item counts per project
+  const itemCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    
+    // Count inbox items (items without project)
+    counts['inbox'] = items.filter(item => !item.projectId).length;
+    
+    // Count items per project
+    projects.forEach(project => {
+      counts[project.id] = items.filter(item => item.projectId === project.id).length;
+    });
+    
+    return counts;
+  }, [items, projects]);
 
   // Add a new item using react-hook-form
   const onSubmit = async (values: AddItemFormValues) => {
     // Parse duration hashtags from content
     const parsed = parseDurationFromContent(values.content);
-    const success = await handleAddItem(parsed.content, parsed.duration);
+    const success = await handleAddItem(parsed.content, parsed.duration, selectedProjectId);
     if (success) {
       form.reset();
     }
   };
 
   // Handle update action
-  const onUpdateItem = async (id: string, content: string, estimatedDuration?: number) => {
-    await handleUpdateItem(id, content, estimatedDuration);
+  const onUpdateItem = async (id: string, content: string, estimatedDuration?: number, projectId?: string) => {
+    await handleUpdateItem(id, content, estimatedDuration, projectId);
   };
 
   // Handle toggle complete action
@@ -90,23 +139,44 @@ export default function CanDoListMain() {
       />
       
       {(encryptionKey || isLoadingKey) && (
-        <div className="max-w-2xl mx-auto p-4">
-          <h1 className="text-2xl font-bold mb-2">Your Can-Do List</h1>
-          <ErrorDisplay error={error} />
-          <AddItemForm 
-            form={form} 
-            onSubmit={onSubmit} 
-            isLoading={isLoading} 
-          />
-          <LoadingState isLoading={isLoading} />
-          <EmptyState isLoading={isLoading} itemsLength={items.length} />
-          <ItemList 
-            items={items}
+        <div className="flex h-screen">
+          <ProjectSidebar
+            projects={projects}
+            selectedProjectId={selectedProjectId}
+            onProjectSelect={handleProjectSelect}
+            onAddProject={handleAddProject}
+            onUpdateProject={handleUpdateProject}
+            onDeleteProject={handleDeleteProject}
             isLoading={isLoading}
-            onToggleComplete={onToggleComplete}
-            onDeleteItem={onDeleteItem}
-            onUpdateItem={onUpdateItem}
+            itemCounts={itemCounts}
           />
+          
+          <div className="flex-1 overflow-hidden">
+            <div className="max-w-2xl mx-auto p-4 h-full overflow-y-auto">
+              <h1 className="text-2xl font-bold mb-2">
+                {selectedProjectId 
+                  ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
+                  : 'Inbox'
+                }
+              </h1>
+              <ErrorDisplay error={error} />
+              <AddItemForm 
+                form={form} 
+                onSubmit={onSubmit} 
+                isLoading={isLoading} 
+              />
+              <LoadingState isLoading={isLoading} />
+              <EmptyState isLoading={isLoading} itemsLength={filteredItems.length} />
+              <ItemList 
+                items={filteredItems}
+                isLoading={isLoading}
+                onToggleComplete={onToggleComplete}
+                onDeleteItem={onDeleteItem}
+                onUpdateItem={onUpdateItem}
+                projects={projects}
+              />
+            </div>
+          </div>
         </div>
       )}
     </>
