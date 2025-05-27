@@ -94,9 +94,9 @@ export default function ProjectSidebar({
     const indentLevel = projectNode.level;
 
     return (
-      <div key={projectNode.id} className="relative group w-full">
+      <div key={projectNode.id} className="relative w-full">
         <div 
-          className="relative flex items-center w-full"
+          className="relative flex items-center w-full group"
           style={{ paddingLeft: indentLevel > 0 ? `${indentLevel * 16 + 8}px` : '0px' }}
         >
           {/* Expand/Collapse button for projects with children */}
