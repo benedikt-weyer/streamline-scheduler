@@ -139,7 +139,7 @@ export default function CanDoListMain() {
       />
       
       {(encryptionKey || isLoadingKey) && (
-        <div className="flex h-screen">
+        <div className="flex h-screen w-full">
           <ProjectSidebar
             projects={projects}
             selectedProjectId={selectedProjectId}
