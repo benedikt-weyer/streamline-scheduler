@@ -56,6 +56,17 @@ pkgs.mkShell {
       nohup bash -c "cd \"$PROJECT_DIR/frontend\" && pnpm dev" > /tmp/nextjs.log 2>&1 &
       echo "Next.js server started in background (logs at /tmp/nextjs.log)"
       echo -e "📱 Access the app at \e]8;;http://localhost:3000\e\\http://localhost:3000\e]8;;\e\\"
+      
+      # Wait a moment for the server to start, then open browser
+      sleep 3
+      echo "🌐 Opening browser..."
+      if command -v xdg-open > /dev/null; then
+        xdg-open http://localhost:3000
+      elif command -v open > /dev/null; then
+        open http://localhost:3000
+      else
+        echo "⚠️  Could not auto-open browser. Please visit http://localhost:3000 manually"
+      fi
     }
 
     # Define function to stop Next.js server only
