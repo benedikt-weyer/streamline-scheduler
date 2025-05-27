@@ -64,7 +64,7 @@ export default function ProjectSidebar({
   const inboxCount = itemCounts['inbox'] || 0;
 
   return (
-    <div className="w-64 bg-muted/30 border-r border-border h-full flex flex-col">
+    <div className="w-72 bg-muted/30 border-r border-border h-full flex flex-col">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
