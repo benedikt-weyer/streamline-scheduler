@@ -94,13 +94,13 @@ export default function ProjectSidebar({
     const indentLevel = projectNode.level;
 
     return (
-      <div key={projectNode.id} className="relative group">
+      <div key={projectNode.id} className="relative group w-full">
         <div 
-          className="relative flex items-center"
+          className="relative flex items-center w-full"
           style={{ paddingLeft: indentLevel > 0 ? `${indentLevel * 16 + 8}px` : '0px' }}
         >
           {/* Expand/Collapse button for projects with children */}
-            <div className="w-6 h-6 mr-1 flex items-center justify-center">
+            <div className="w-3 h-6 mr-1 flex items-center justify-center">
             {hasChildren && (
               <Button
               variant="ghost"
@@ -120,11 +120,11 @@ export default function ProjectSidebar({
           {/* Project button */}
           <button
             onClick={() => onProjectSelect(projectNode.id)}
-            className={`flex-1 flex items-center justify-between p-2 text-left rounded-md transition-colors ${
+            className={`flex-1 flex items-center justify-between p-2 text-left rounded-md transition-colors overflow-hidden ${
               isSelected
                 ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-muted/50'
-            } ${!hasChildren && indentLevel > 0 ? 'ml-7' : ''}`}
+            }`}
           >
             <div className="flex items-center gap-2 min-w-0">
               {isSelected ? (
@@ -172,7 +172,7 @@ export default function ProjectSidebar({
         
         {/* Render children if expanded */}
         {hasChildren && isExpanded && (
-          <div className="space-y-1">
+          <div className="space-y-1 w-full">
             {projectNode.children.map(renderProjectItem)}
           </div>
         )}
@@ -184,7 +184,7 @@ export default function ProjectSidebar({
   const inboxCount = itemCounts['inbox'] || 0;
 
   return (
-    <div className="w-72 bg-muted/30 border-r border-border h-full flex flex-col">
+    <div className="w-1/6 bg-muted/30 border-r border-border h-full flex flex-col">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
