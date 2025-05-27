@@ -37,7 +37,6 @@ export default function CanDoListMain() {
     items,
     isLoading: isLoadingItems,
     loadItems,
-    loadItemsByProject,
     handleAddItem,
     handleUpdateItem,
     handleToggleComplete,
@@ -94,7 +93,6 @@ export default function CanDoListMain() {
     
     // Count inbox items (items without project)
     counts['inbox'] = items.filter(item => !item.projectId).length;
-    console.log(items);
     
     // Count items per project
     projects.forEach(project => {
