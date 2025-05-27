@@ -21,8 +21,8 @@ export default async function ProtectedPage() {
       <section className="bg-card rounded-lg shadow p-6">
         <h2 className="text-2xl font-semibold mb-4">Can-Do List</h2>
         <ErrorProvider>
-            <CanDoListMain />
-          </ErrorProvider>
+          <CanDoListMain />
+        </ErrorProvider>
       </section>
     </div>
   );
