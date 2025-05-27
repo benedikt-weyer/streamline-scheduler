@@ -97,7 +97,7 @@ export default function ProjectSidebar({
       <div key={projectNode.id} className="relative group">
         <div 
           className="relative flex items-center"
-          style={{ paddingLeft: `${indentLevel * 16 + 8}px` }}
+          style={{ paddingLeft: indentLevel > 0 ? `${indentLevel * 16 + 8}px` : '0px' }}
         >
           {/* Expand/Collapse button for projects with children */}
           {hasChildren && (
@@ -122,7 +122,7 @@ export default function ProjectSidebar({
               isSelected
                 ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-muted/50'
-            } ${!hasChildren ? 'ml-7' : ''}`}
+            } ${!hasChildren && indentLevel > 0 ? 'ml-7' : ''}`}
           >
             <div className="flex items-center gap-2 min-w-0">
               {isSelected ? (
@@ -201,11 +201,11 @@ export default function ProjectSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-2 space-y-1">
+        <div className="px-2 space-y-1">
           {/* Default Inbox Project */}
           <button
             onClick={() => onProjectSelect(undefined)}
-            className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors ${
+            className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-3 ${
               selectedProjectId === undefined
                 ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-muted/50'
@@ -225,6 +225,11 @@ export default function ProjectSidebar({
               </Badge>
             )}
           </button>
+
+          {/* Divider between inbox and user projects */}
+          {projects.length > 0 && (
+            <div className="border-t border-foreground/10 mx-4 h-4" />
+          )}
 
           {/* Hierarchical User Projects */}
           <div className="space-y-1">
