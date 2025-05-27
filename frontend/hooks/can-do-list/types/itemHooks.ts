@@ -15,10 +15,11 @@ export interface ItemLoaderHook {
 }
 
 export interface ItemCRUDHook {
-  handleAddItem: (content: string, estimatedDuration?: number) => Promise<boolean>;
-  handleUpdateItem: (id: string, content: string, estimatedDuration?: number) => Promise<boolean>;
+  handleAddItem: (content: string, estimatedDuration?: number, projectId?: string) => Promise<boolean>;
+  handleUpdateItem: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<boolean>;
   handleToggleComplete: (id: string, completed: boolean) => Promise<boolean>;
   handleDeleteItem: (id: string) => Promise<boolean>;
+  handleMoveItemToProject: (id: string, projectId?: string) => Promise<boolean>;
 }
 
 export interface ItemSubscriptionHook {
@@ -28,6 +29,7 @@ export interface ItemSubscriptionHook {
 
 export interface CanDoListHook extends ItemState, ItemCRUDHook {
   loadItems: (key: string) => Promise<CanDoItem[]>;
+  loadItemsByProject: (key: string, projectId?: string) => Promise<CanDoItem[]>;
   isSubscribed: boolean;
   skipNextItemReload: () => void;
 }

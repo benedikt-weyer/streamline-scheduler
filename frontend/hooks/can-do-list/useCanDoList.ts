@@ -16,7 +16,7 @@ export function useCanDoList(
   const [items, isLoading, itemActions] = useItemState();
 
   // Initialize specialized hooks
-  const { loadItems } = useItemLoader(itemActions);
+  const { loadItems, loadItemsByProject } = useItemLoader(itemActions);
   
   // Create a stable wrapper for loadItems that returns void for subscription
   const loadItemsForSubscription = useCallback(async (key: string): Promise<void> => {
@@ -29,7 +29,8 @@ export function useCanDoList(
     handleAddItem, 
     handleUpdateItem,
     handleToggleComplete, 
-    handleDeleteItem 
+    handleDeleteItem,
+    handleMoveItemToProject
   } = useItemCRUD(items, itemActions, encryptionKey, skipNextItemReload);
 
   // Memoize the returned object to prevent unnecessary re-renders
@@ -37,20 +38,24 @@ export function useCanDoList(
     items,
     isLoading,
     loadItems,
+    loadItemsByProject,
     handleAddItem,
     handleUpdateItem,
     handleToggleComplete,
     handleDeleteItem,
+    handleMoveItemToProject,
     isSubscribed,
     skipNextItemReload
   }), [
     items,
     isLoading,
     loadItems,
+    loadItemsByProject,
     handleAddItem,
     handleUpdateItem,
     handleToggleComplete,
     handleDeleteItem,
+    handleMoveItemToProject,
     isSubscribed,
     skipNextItemReload
   ]);

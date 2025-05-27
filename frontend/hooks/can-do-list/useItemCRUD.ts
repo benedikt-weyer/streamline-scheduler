@@ -6,7 +6,8 @@ import {
   addCanDoItem, 
   updateCanDoItem, 
   deleteCanDoItem,
-  fetchCanDoItems
+  fetchCanDoItems,
+  moveCanDoItemToProject
 } from '../../app/dashboard/can-do-list/actions';
 import { 
   encryptData, 
@@ -26,7 +27,7 @@ export const useItemCRUD = (
 ) => {
   const { setError } = useError();
 
-  const handleAddItem = useCallback(async (content: string, estimatedDuration?: number): Promise<boolean> => {
+  const handleAddItem = useCallback(async (content: string, estimatedDuration?: number, projectId?: string): Promise<boolean> => {
     if (!encryptionKey) return false;
     try {
       if (skipNextItemReload) {
@@ -41,14 +42,15 @@ export const useItemCRUD = (
         estimatedDuration: estimatedDuration
       };
       const encryptedData = encryptData(itemData, derivedKey, iv);
-      const newEncryptedItem = await addCanDoItem(encryptedData, iv, salt);
+      const newEncryptedItem = await addCanDoItem(encryptedData, iv, salt, projectId);
       const newItem: CanDoItem = {
         id: newEncryptedItem.id,
         content: itemData.content,
         completed: itemData.completed,
         createdAt: new Date(newEncryptedItem.created_at),
         updatedAt: new Date(newEncryptedItem.updated_at),
-        estimatedDuration: estimatedDuration
+        estimatedDuration: estimatedDuration,
+        projectId: projectId
       };
       itemActions.setItems(prevItems => [newItem, ...prevItems]);
       return true;
@@ -59,7 +61,7 @@ export const useItemCRUD = (
     }
   }, [encryptionKey, itemActions, setError, skipNextItemReload]);
 
-  const handleUpdateItem = useCallback(async (id: string, content: string, estimatedDuration?: number): Promise<boolean> => {
+  const handleUpdateItem = useCallback(async (id: string, content: string, estimatedDuration?: number, projectId?: string): Promise<boolean> => {
     if (!encryptionKey) return false;
     
     try {
@@ -87,12 +89,12 @@ export const useItemCRUD = (
       
       const encryptedData = encryptData(updatedItemData, derivedKey, iv);
       
-      await updateCanDoItem(id, encryptedData, iv, salt);
+      await updateCanDoItem(id, encryptedData, iv, salt, projectId);
       
       itemActions.setItems(prevItems =>
         prevItems.map(item =>
           item.id === id
-            ? { ...item, content: content.trim(), estimatedDuration: estimatedDuration }
+            ? { ...item, content: content.trim(), estimatedDuration: estimatedDuration, projectId: projectId }
             : item
         )
       );
@@ -164,10 +166,34 @@ export const useItemCRUD = (
     }
   }, [itemActions, setError, skipNextItemReload]);
 
+  const handleMoveItemToProject = useCallback(async (id: string, projectId?: string): Promise<boolean> => {
+    try {
+      if (skipNextItemReload) {
+        skipNextItemReload();
+      }
+      
+      await moveCanDoItemToProject(id, projectId);
+      
+      itemActions.setItems(prevItems =>
+        prevItems.map(item =>
+          item.id === id
+            ? { ...item, projectId: projectId }
+            : item
+        )
+      );
+      return true;
+    } catch (error) {
+      console.error('Error moving item to project:', error);
+      setError('Failed to move item to project');
+      return false;
+    }
+  }, [itemActions, setError, skipNextItemReload]);
+
   return {
     handleAddItem,
     handleUpdateItem,
     handleToggleComplete,
-    handleDeleteItem
+    handleDeleteItem,
+    handleMoveItemToProject
   };
 };
