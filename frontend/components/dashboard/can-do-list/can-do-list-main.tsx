@@ -68,13 +68,10 @@ export default function CanDoListMain() {
   useEffect(() => {
     if (encryptionKey) {
       loadProjects(encryptionKey);
-      if (selectedProjectId) {
-        loadItemsByProject(encryptionKey, selectedProjectId);
-      } else {
-        loadItems(encryptionKey);
-      }
+      // Always load all items for count calculations
+      loadItems(encryptionKey);
     }
-  }, [encryptionKey, selectedProjectId, loadItems, loadItemsByProject, loadProjects]);
+  }, [encryptionKey, loadItems, loadProjects]);
 
   // Handle project selection
   const handleProjectSelect = (projectId?: string) => {
@@ -97,6 +94,7 @@ export default function CanDoListMain() {
     
     // Count inbox items (items without project)
     counts['inbox'] = items.filter(item => !item.projectId).length;
+    console.log(items);
     
     // Count items per project
     projects.forEach(project => {
