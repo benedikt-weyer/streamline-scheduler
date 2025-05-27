@@ -137,7 +137,7 @@ export default function ProjectSidebar({
                   </div>
                   <div className="flex items-center gap-1">
                     {count > 0 && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs group-hover:opacity-0 transition-opacity">
                         {count}
                       </Badge>
                     )}
@@ -147,9 +147,11 @@ export default function ProjectSidebar({
                   variant="ghost"
                   size="sm"
                   onClick={() => setEditingProject(project)}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity ${
+                    isSelected ? 'hover:bg-primary-foreground/20' : ''
+                  }`}
                 >
-                  <Settings className="h-3 w-3" />
+                  <Settings className={`h-3 w-3 ${isSelected ? 'text-primary-foreground' : ''}`} />
                   <span className="sr-only">Edit Project</span>
                 </Button>
               </div>
