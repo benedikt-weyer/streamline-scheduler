@@ -33,6 +33,7 @@ export const useProjectLoader = (
               id: project.id,
               name: decryptedData.name,
               color: decryptedData.color,
+              parentId: project.parent_id,
               createdAt: new Date(project.created_at),
               updatedAt: project.updated_at ? new Date(project.updated_at) : undefined
             };

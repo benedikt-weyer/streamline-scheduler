@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,10 +12,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Project } from '@/utils/can-do-list/can-do-list-types';
+import { getAvailableParents } from '@/utils/can-do-list/project-hierarchy';
 
 // Predefined color options
 const PROJECT_COLORS = [
@@ -35,6 +44,7 @@ const PROJECT_COLORS = [
 const addProjectSchema = z.object({
   name: z.string().min(1, { message: "Project name is required" }).max(50, { message: "Project name must be 50 characters or less" }),
   color: z.string().min(1, { message: "Please select a color" }),
+  parentId: z.string().optional(),
 });
 
 type AddProjectFormValues = z.infer<typeof addProjectSchema>;
@@ -42,15 +52,19 @@ type AddProjectFormValues = z.infer<typeof addProjectSchema>;
 interface AddProjectDialogProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSave: (name: string, color: string) => Promise<boolean>;
+  readonly onSave: (name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly isLoading?: boolean;
+  readonly projects?: Project[];
+  readonly preselectedParentId?: string;
 }
 
 export default function AddProjectDialog({
   isOpen,
   onClose,
   onSave,
-  isLoading = false
+  isLoading = false,
+  projects = [],
+  preselectedParentId
 }: AddProjectDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
 
@@ -58,14 +72,24 @@ export default function AddProjectDialog({
     resolver: zodResolver(addProjectSchema),
     defaultValues: {
       name: '',
-      color: PROJECT_COLORS[0]
+      color: PROJECT_COLORS[0],
+      parentId: preselectedParentId
     }
   });
+
+  // Update form when preselectedParentId changes
+  React.useEffect(() => {
+    if (preselectedParentId !== undefined) {
+      form.setValue('parentId', preselectedParentId);
+    } else {
+      form.setValue('parentId', undefined);
+    }
+  }, [preselectedParentId, form]);
 
   const handleSubmit = async (values: AddProjectFormValues) => {
     setIsSaving(true);
     try {
-      const success = await onSave(values.name.trim(), values.color);
+      const success = await onSave(values.name.trim(), values.color, values.parentId);
       if (success) {
         form.reset();
         onClose();
@@ -137,6 +161,38 @@ export default function AddProjectDialog({
                   </FormControl>
                 </FormItem>
               )}
+            />
+
+            <FormField
+              control={form.control}
+              name="parentId"
+              render={({ field }) => {
+                const availableParents = getAvailableParents(projects);
+                return (
+                  <FormItem>
+                    <FormLabel>Parent Project (Optional)</FormLabel>
+                    <FormControl>
+                      <Select 
+                        value={field.value || 'NO_PARENT'} 
+                        onValueChange={(value) => field.onChange(value === 'NO_PARENT' ? undefined : value)}
+                        disabled={isSaving || isLoading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a parent project..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="NO_PARENT">No parent (top-level project)</SelectItem>
+                          {availableParents.map(project => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                  </FormItem>
+                );
+              }}
             />
 
             <DialogFooter>

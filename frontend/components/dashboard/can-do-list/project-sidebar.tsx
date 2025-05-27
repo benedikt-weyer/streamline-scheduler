@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Project, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
-import { Plus, Settings, Folder, FolderOpen } from 'lucide-react';
+import { buildProjectTree, flattenProjectTree, ProjectNode } from '@/utils/can-do-list/project-hierarchy';
+import { Plus, Settings, Folder, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react';
 import AddProjectDialog from './add-project-dialog';
 import EditProjectDialog from './edit-project-dialog';
 
@@ -12,8 +13,8 @@ interface ProjectSidebarProps {
   readonly projects: Project[];
   readonly selectedProjectId?: string;
   readonly onProjectSelect: (projectId?: string) => void;
-  readonly onAddProject: (name: string, color: string) => Promise<boolean>;
-  readonly onUpdateProject: (id: string, name: string, color: string) => Promise<boolean>;
+  readonly onAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
+  readonly onUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onDeleteProject: (id: string) => Promise<boolean>;
   readonly isLoading?: boolean;
   readonly itemCounts?: Record<string, number>;
@@ -31,17 +32,20 @@ export default function ProjectSidebar({
 }: ProjectSidebarProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [selectedParentForAdd, setSelectedParentForAdd] = useState<string | undefined>(undefined);
 
-  const handleAddProject = async (name: string, color: string) => {
-    const success = await onAddProject(name, color);
+  const handleAddProject = async (name: string, color: string, parentId?: string) => {
+    const success = await onAddProject(name, color, parentId || selectedParentForAdd);
     if (success) {
       setIsAddDialogOpen(false);
+      setSelectedParentForAdd(undefined);
     }
     return success;
   };
 
-  const handleEditProject = async (id: string, name: string, color: string) => {
-    const success = await onUpdateProject(id, name, color);
+  const handleEditProject = async (id: string, name: string, color: string, parentId?: string) => {
+    const success = await onUpdateProject(id, name, color, parentId);
     if (success) {
       setEditingProject(null);
     }
@@ -58,6 +62,120 @@ export default function ProjectSidebar({
       }
     }
     return success;
+  };
+
+  const toggleProjectExpanded = (projectId: string) => {
+    setExpandedProjects(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(projectId)) {
+        newSet.delete(projectId);
+      } else {
+        newSet.add(projectId);
+      }
+      return newSet;
+    });
+  };
+
+  const openAddDialogForParent = (parentId?: string) => {
+    setSelectedParentForAdd(parentId);
+    setIsAddDialogOpen(true);
+  };
+
+  // Build project tree and flatten it for display
+  const projectTree = buildProjectTree(projects);
+  const flattenedProjects = flattenProjectTree(projectTree);
+
+  // Render a single project item
+  const renderProjectItem = (projectNode: ProjectNode) => {
+    const count = itemCounts[projectNode.id] || 0;
+    const isSelected = selectedProjectId === projectNode.id;
+    const hasChildren = projectNode.children.length > 0;
+    const isExpanded = expandedProjects.has(projectNode.id);
+    const indentLevel = projectNode.level;
+
+    return (
+      <div key={projectNode.id} className="relative group">
+        <div 
+          className="relative flex items-center"
+          style={{ paddingLeft: `${indentLevel * 16 + 8}px` }}
+        >
+          {/* Expand/Collapse button for projects with children */}
+          {hasChildren && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleProjectExpanded(projectNode.id)}
+              className="h-6 w-6 p-0 mr-1 hover:bg-muted/50"
+            >
+              {isExpanded ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+            </Button>
+          )}
+          
+          {/* Project button */}
+          <button
+            onClick={() => onProjectSelect(projectNode.id)}
+            className={`flex-1 flex items-center justify-between p-2 text-left rounded-md transition-colors ${
+              isSelected
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-muted/50'
+            } ${!hasChildren ? 'ml-7' : ''}`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {isSelected ? (
+                <FolderOpen className="h-4 w-4 flex-shrink-0" />
+              ) : (
+                <Folder className="h-4 w-4 flex-shrink-0" />
+              )}
+              <div
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{ backgroundColor: projectNode.color }}
+              />
+              <span className="truncate">{projectNode.name}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              {count > 0 && (
+                <Badge variant="secondary" className="text-xs group-hover:opacity-0 transition-opacity">
+                  {count}
+                </Badge>
+              )}
+            </div>
+          </button>
+          
+          {/* Actions dropdown */}
+          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openAddDialogForParent(projectNode.id)}
+              className={`h-6 w-6 p-0 ${isSelected ? 'hover:bg-primary-foreground/20' : ''}`}
+              title="Add subproject"
+            >
+              <Plus className={`h-3 w-3 ${isSelected ? 'text-primary-foreground' : ''}`} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setEditingProject(projectNode)}
+              className={`h-6 w-6 p-0 ${isSelected ? 'hover:bg-primary-foreground/20' : ''}`}
+              title="Edit project"
+            >
+              <Settings className={`h-3 w-3 ${isSelected ? 'text-primary-foreground' : ''}`} />
+            </Button>
+          </div>
+        </div>
+        
+        {/* Render children if expanded */}
+        {hasChildren && isExpanded && (
+          <div className="space-y-1">
+            {projectNode.children.map(renderProjectItem)}
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Calculate inbox count (items without project)
@@ -108,63 +226,23 @@ export default function ProjectSidebar({
             )}
           </button>
 
-          {/* User Projects */}
-          {projects.map(project => {
-            const count = itemCounts[project.id] || 0;
-            const isSelected = selectedProjectId === project.id;
-
-            return (
-              <div key={project.id} className="relative group">
-                <button
-                  onClick={() => onProjectSelect(project.id)}
-                  className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors ${
-                    isSelected
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {isSelected ? (
-                      <FolderOpen className="h-4 w-4 flex-shrink-0" />
-                    ) : (
-                      <Folder className="h-4 w-4 flex-shrink-0" />
-                    )}
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: project.color }}
-                    />
-                    <span className="truncate">{project.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {count > 0 && (
-                      <Badge variant="secondary" className="text-xs group-hover:opacity-0 transition-opacity">
-                        {count}
-                      </Badge>
-                    )}
-                  </div>
-                </button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setEditingProject(project)}
-                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity ${
-                    isSelected ? 'hover:bg-primary-foreground/20' : ''
-                  }`}
-                >
-                  <Settings className={`h-3 w-3 ${isSelected ? 'text-primary-foreground' : ''}`} />
-                  <span className="sr-only">Edit Project</span>
-                </Button>
-              </div>
-            );
-          })}
+          {/* Hierarchical User Projects */}
+          <div className="space-y-1">
+            {projectTree.map(renderProjectItem)}
+          </div>
         </div>
       </div>
 
       <AddProjectDialog
         isOpen={isAddDialogOpen}
-        onClose={() => setIsAddDialogOpen(false)}
+        onClose={() => {
+          setIsAddDialogOpen(false);
+          setSelectedParentForAdd(undefined);
+        }}
         onSave={handleAddProject}
         isLoading={isLoading}
+        projects={projects}
+        preselectedParentId={selectedParentForAdd}
       />
 
       <EditProjectDialog
@@ -174,6 +252,7 @@ export default function ProjectSidebar({
         onSave={handleEditProject}
         onDelete={handleDeleteProject}
         isLoading={isLoading}
+        projects={projects}
       />
     </div>
   );

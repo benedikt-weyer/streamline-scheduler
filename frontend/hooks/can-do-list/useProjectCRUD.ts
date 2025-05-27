@@ -24,7 +24,7 @@ export const useProjectCRUD = (
 ) => {
   const { setError } = useError();
 
-  const handleAddProject = useCallback(async (name: string, color: string): Promise<boolean> => {
+  const handleAddProject = useCallback(async (name: string, color: string, parentId?: string): Promise<boolean> => {
     if (!encryptionKey) return false;
     
     try {
@@ -38,12 +38,13 @@ export const useProjectCRUD = (
       };
       
       const encryptedData = encryptData(projectData, derivedKey, iv);
-      const newEncryptedProject = await addProject(encryptedData, iv, salt);
+      const newEncryptedProject = await addProject(encryptedData, iv, salt, parentId);
       
       const newProject: Project = {
         id: newEncryptedProject.id,
         name: projectData.name,
         color: projectData.color,
+        parentId: parentId,
         createdAt: new Date(newEncryptedProject.created_at),
         updatedAt: new Date(newEncryptedProject.updated_at)
       };
@@ -57,7 +58,7 @@ export const useProjectCRUD = (
     }
   }, [encryptionKey, projectActions, setError]);
 
-  const handleUpdateProject = useCallback(async (id: string, name: string, color: string): Promise<boolean> => {
+  const handleUpdateProject = useCallback(async (id: string, name: string, color: string, parentId?: string): Promise<boolean> => {
     if (!encryptionKey) return false;
     
     try {
@@ -76,12 +77,12 @@ export const useProjectCRUD = (
       };
       
       const encryptedData = encryptData(updatedProjectData, derivedKey, iv);
-      await updateProject(id, encryptedData, iv, salt);
+      await updateProject(id, encryptedData, iv, salt, parentId);
       
       projectActions.setProjects(prevProjects =>
         prevProjects.map(project =>
           project.id === id
-            ? { ...project, name: name.trim(), color: color }
+            ? { ...project, name: name.trim(), color: color, parentId: parentId }
             : project
         )
       );

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Project } from '@/utils/can-do-list/can-do-list-types';
 import { useProjectState } from './useProjectState';
 import { useProjectLoader } from './useProjectLoader';
@@ -8,8 +8,8 @@ export interface ProjectHook {
   projects: Project[];
   isLoading: boolean;
   loadProjects: (key: string) => Promise<Project[]>;
-  handleAddProject: (name: string, color: string) => Promise<boolean>;
-  handleUpdateProject: (id: string, name: string, color: string) => Promise<boolean>;
+  handleAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
+  handleUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   handleDeleteProject: (id: string) => Promise<boolean>;
 }
 

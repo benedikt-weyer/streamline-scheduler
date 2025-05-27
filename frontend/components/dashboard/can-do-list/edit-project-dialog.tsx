@@ -12,6 +12,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -26,6 +33,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Project } from '@/utils/can-do-list/can-do-list-types';
+import { getAvailableParents, canMoveProject } from '@/utils/can-do-list/project-hierarchy';
 import { Trash2 } from 'lucide-react';
 
 // Predefined color options
@@ -46,6 +54,7 @@ const PROJECT_COLORS = [
 const editProjectSchema = z.object({
   name: z.string().min(1, { message: "Project name is required" }).max(50, { message: "Project name must be 50 characters or less" }),
   color: z.string().min(1, { message: "Please select a color" }),
+  parentId: z.string().optional(),
 });
 
 type EditProjectFormValues = z.infer<typeof editProjectSchema>;
@@ -54,9 +63,10 @@ interface EditProjectDialogProps {
   readonly project: Project | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSave: (id: string, name: string, color: string) => Promise<boolean>;
+  readonly onSave: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onDelete: (id: string) => Promise<boolean>;
   readonly isLoading?: boolean;
+  readonly projects?: Project[];
 }
 
 export default function EditProjectDialog({
@@ -65,7 +75,8 @@ export default function EditProjectDialog({
   onClose,
   onSave,
   onDelete,
-  isLoading = false
+  isLoading = false,
+  projects = []
 }: EditProjectDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -75,7 +86,8 @@ export default function EditProjectDialog({
     resolver: zodResolver(editProjectSchema),
     defaultValues: {
       name: '',
-      color: PROJECT_COLORS[0]
+      color: PROJECT_COLORS[0],
+      parentId: undefined
     }
   });
 
@@ -84,7 +96,8 @@ export default function EditProjectDialog({
     if (project) {
       form.reset({
         name: project.name,
-        color: project.color
+        color: project.color,
+        parentId: project.parentId
       });
     }
   }, [project, form]);
@@ -94,7 +107,7 @@ export default function EditProjectDialog({
     
     setIsSaving(true);
     try {
-      const success = await onSave(project.id, values.name.trim(), values.color);
+      const success = await onSave(project.id, values.name.trim(), values.color, values.parentId);
       if (success) {
         onClose();
       }
@@ -205,6 +218,42 @@ export default function EditProjectDialog({
                     </FormControl>
                   </FormItem>
                 )}
+              />
+
+              <FormField
+                control={form.control}
+                name="parentId"
+                render={({ field }) => {
+                  if (!project) return null;
+                  
+                  const availableParents = getAvailableParents(project.id, projects).filter(p => 
+                    canMoveProject(project.id, p.id, projects)
+                  );
+                  return (
+                    <FormItem>
+                      <FormLabel>Parent Project (Optional)</FormLabel>
+                      <FormControl>
+                        <Select 
+                          value={field.value || 'NO_PARENT'} 
+                          onValueChange={(value) => field.onChange(value === 'NO_PARENT' ? undefined : value)}
+                          disabled={isSaving || isLoading}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a parent project..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NO_PARENT">No parent (top-level project)</SelectItem>
+                            {availableParents.map(parentProject => (
+                              <SelectItem key={parentProject.id} value={parentProject.id}>
+                                {parentProject.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                    </FormItem>
+                  );
+                }}
               />
 
               <DialogFooter className="flex-col sm:flex-row gap-2">

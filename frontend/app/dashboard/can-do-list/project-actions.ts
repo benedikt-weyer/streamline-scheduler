@@ -34,6 +34,7 @@ export async function addProject(
   encryptedData: string,
   iv: string,
   salt: string,
+  parentId?: string,
   silent = false
 ): Promise<EncryptedProject> {
   const supabase = await createClient();
@@ -51,7 +52,8 @@ export async function addProject(
       user_id: user.id,
       encrypted_data: encryptedData,
       iv,
-      salt
+      salt,
+      parent_id: parentId
     })
     .select()
     .single();
@@ -73,6 +75,7 @@ export async function updateProject(
   encryptedData: string,
   iv: string,
   salt: string,
+  parentId?: string,
   silent = false
 ): Promise<void> {
   const supabase = await createClient();
@@ -90,6 +93,7 @@ export async function updateProject(
       encrypted_data: encryptedData,
       iv,
       salt,
+      parent_id: parentId,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)

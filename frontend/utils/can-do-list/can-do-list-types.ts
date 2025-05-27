@@ -23,6 +23,7 @@ export interface Project {
   id: string;
   name: string;
   color: string;
+  parentId?: string;
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -35,6 +36,7 @@ export interface EncryptedProject {
   salt: string;
   created_at: string;
   updated_at: string;
+  parent_id?: string;
 }
 
 export interface CanDoList {
