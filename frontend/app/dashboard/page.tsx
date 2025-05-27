@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import CanDoListWrapper from "@/components/dashboard/can-do-list/can-do-list-wrapper";
+import { CanDoListMain } from "@/components/dashboard/can-do-list";
+import { ErrorProvider } from "@/utils/context/ErrorContext";
 
 export default async function ProtectedPage() {
   const supabase = await createClient();
@@ -19,7 +20,9 @@ export default async function ProtectedPage() {
       
       <section className="bg-card rounded-lg shadow p-6">
         <h2 className="text-2xl font-semibold mb-4">Can-Do List</h2>
-        <CanDoListWrapper />
+        <ErrorProvider>
+            <CanDoListMain />
+          </ErrorProvider>
       </section>
     </div>
   );

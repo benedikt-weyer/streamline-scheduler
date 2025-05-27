@@ -10,7 +10,6 @@ export { default as LoadingState } from './loading-state';
 export { default as EmptyState } from './empty-state';
 export { default as ErrorDisplay } from './error-display';
 export { default as AuthenticationRequired } from './authentication-required';
-export { default as CanDoListWrapper } from './can-do-list-wrapper';
 
 // Export types
 export type { FilterType, SortType } from './list-controls';
