@@ -100,20 +100,22 @@ export default function ProjectSidebar({
           style={{ paddingLeft: indentLevel > 0 ? `${indentLevel * 16 + 8}px` : '0px' }}
         >
           {/* Expand/Collapse button for projects with children */}
-          {hasChildren && (
-            <Button
+            <div className="w-6 h-6 mr-1 flex items-center justify-center">
+            {hasChildren && (
+              <Button
               variant="ghost"
               size="sm"
               onClick={() => toggleProjectExpanded(projectNode.id)}
-              className="h-6 w-6 p-0 mr-1 hover:bg-muted/50"
-            >
+              className="h-full w-full p-0 hover:bg-muted/50"
+              >
               {isExpanded ? (
                 <ChevronDown className="h-3 w-3" />
               ) : (
                 <ChevronRight className="h-3 w-3" />
               )}
-            </Button>
-          )}
+              </Button>
+            )}
+            </div>
           
           {/* Project button */}
           <button
