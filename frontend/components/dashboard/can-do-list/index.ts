@@ -1,5 +1,4 @@
 export { default as CanDoListMain } from './can-do-list-main';
-export { default as CanDoListHeader } from './can-do-list-header';
 export { default as AddItemForm } from './add-item-form';
 export { default as EditItemDialog } from './edit-item-dialog';
 export { default as ItemList } from './item-list';
