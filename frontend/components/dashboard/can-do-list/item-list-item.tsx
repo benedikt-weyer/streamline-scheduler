@@ -43,21 +43,21 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
           item.completed ? 'bg-muted' : ''
         }`}
       >
-        <div className="flex items-center space-x-3 flex-1 min-w-0 p-3">
+        <button className="flex items-center space-x-3 flex-1 min-w-0 p-3 cursor-pointer text-left"
+          onClick={() => onToggleComplete(item.id, item.completed)}
+        >
           <Checkbox
             checked={item.completed}
-            onCheckedChange={() => onToggleComplete(item.id, item.completed)}
             id={`item-${item.id}`}
           />
-          <label
-            htmlFor={`item-${item.id}`}
+          <span
             className={`flex-1 min-w-0 cursor-pointer ${
               item.completed ? 'line-through text-muted-foreground' : ''
             }`}
           >
             <span className="block truncate">{item.content}</span>
-          </label>
-        </div>
+          </span>
+        </button>
         
         <div className="flex items-center space-x-1">
           {item.estimatedDuration && (
