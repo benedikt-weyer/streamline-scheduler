@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Settings, Folder, FolderOpen } from 'lucide-react';
+import { Plus, Settings, Folder, FolderOpen, ChevronDown, ChevronRight } from 'lucide-react';
 import { SimpleTreeItemWrapper, TreeItemComponentProps } from 'dnd-kit-sortable-tree';
 
 interface TreeItemData {
@@ -12,6 +12,7 @@ interface TreeItemData {
   color: string;
   count: number;
   isSelected: boolean;
+  collapsed?: boolean;
   onSelect: () => void;
   onEdit: () => void;
   onAddChild: () => void;
@@ -21,7 +22,18 @@ const ProjectTreeItem = React.forwardRef<
   HTMLDivElement,
   TreeItemComponentProps<TreeItemData>
 >((props, ref) => {
-  const { item } = props;
+  const { item, onCollapse } = props;
+  // Check if this item has children by looking at the children in the tree data structure
+  // TreeItems in dnd-kit-sortable-tree have a children property containing child items
+  const hasChildren = (item as any).children && (item as any).children.length > 0;
+
+  const handleToggleCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Use the onCollapse callback provided by dnd-kit-sortable-tree
+    if (onCollapse && hasChildren) {
+      onCollapse();
+    }
+  };
 
   return (
     <SimpleTreeItemWrapper 
@@ -30,6 +42,24 @@ const ProjectTreeItem = React.forwardRef<
       className="no-border-tree-item"
     >
       <div className="relative flex items-center w-full group">
+        {/* Custom Collapse/Expand button for projects with children */}
+        <div className="w-3 h-6 mr-2 flex items-center justify-center">
+          {hasChildren && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggleCollapse}
+              className="h-full w-full p-0 hover:bg-muted/50"
+            >
+              {item.collapsed ? (
+                <ChevronRight className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+            </Button>
+          )}
+        </div>
+        
         {/* Project button */}
         <button
           onClick={item.onSelect}

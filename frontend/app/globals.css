@@ -79,13 +79,16 @@
   outline: none;
   box-shadow: none;
 
-  padding-top: 0;
-  padding-bottom: 0;
+  padding: 0;
 
   color: var(--primary);
 }
 
 .dnd-sortable-tree_simple_handle {
+  display: none;
+}
+
+.dnd-sortable-tree_simple_tree-item-collapse_button {
   display: none;
 }
 

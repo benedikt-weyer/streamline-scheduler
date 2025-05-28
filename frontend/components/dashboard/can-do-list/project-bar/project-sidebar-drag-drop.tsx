@@ -233,7 +233,7 @@ export default function ProjectSidebarWithDragDrop({
               items={treeItems}
               onItemsChanged={handleItemsChanged}
               TreeItemComponent={ProjectTreeItem}
-              indentationWidth={36}
+              indentationWidth={16}
               pointerSensorOptions={{
                 activationConstraint: {
                   distance: 8
