@@ -128,7 +128,7 @@ export const useItemCRUD = (
       
       const updatedItemData = {
         content: item.content,
-        completed: !completed
+        completed: completed
       };
       
       const encryptedData = encryptData(updatedItemData, derivedKey, iv);
@@ -138,7 +138,7 @@ export const useItemCRUD = (
       itemActions.setItems(prevItems =>
         prevItems.map(item =>
           item.id === id
-            ? { ...item, completed: !completed }
+            ? { ...item, completed: completed }
             : item
         )
       );
