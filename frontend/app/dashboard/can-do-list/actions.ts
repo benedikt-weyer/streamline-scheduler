@@ -2,10 +2,10 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-import { EncryptedCanDoItem } from "@/utils/can-do-list/can-do-list-types";
+import { EncryptedTask } from "@/utils/can-do-list/can-do-list-types";
 
-// Fetch all encrypted can-do items for the current user
-export async function fetchCanDoItems(silent = false): Promise<EncryptedCanDoItem[]> {
+// Fetch all encrypted tasks for the current user
+export async function fetchTasks(silent = false): Promise<EncryptedTask[]> {
   const supabase = await createClient();
   
   const { data, error } = await supabase
@@ -15,29 +15,29 @@ export async function fetchCanDoItems(silent = false): Promise<EncryptedCanDoIte
   
   if (error) {
     if (!silent) {
-      console.error("Error fetching can-do items:", error);
+      console.error("Error fetching tasks:", error);
     }
-    throw new Error(`Failed to fetch can-do items: ${error.message}`);
+    throw new Error(`Failed to fetch tasks: ${error.message}`);
   }
   
-  return data as EncryptedCanDoItem[];
+  return data as EncryptedTask[];
 }
 
-// Add a new encrypted can-do item
-export async function addCanDoItem(
+// Add a new encrypted task
+export async function addTask(
   encryptedData: string,
   iv: string,
   salt: string,
   projectId?: string,
   silent = false
-): Promise<EncryptedCanDoItem> {
+): Promise<EncryptedTask> {
   const supabase = await createClient();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    throw new Error('User must be authenticated to add items');
+    throw new Error('User must be authenticated to add tasks');
   }
   
   const { data, error } = await supabase
@@ -54,24 +54,24 @@ export async function addCanDoItem(
   
   if (error) {
     if (!silent) {
-      console.error("Error adding can-do item:", error);
+      console.error("Error adding task:", error);
     }
-    throw new Error(`Failed to add can-do item: ${error.message}`);
+    throw new Error(`Failed to add task: ${error.message}`);
   }
   
   revalidatePath('/dashboard/can-do-list');
-  return data as EncryptedCanDoItem;
+  return data as EncryptedTask;
 }
 
-// Update an existing encrypted can-do item
-export async function updateCanDoItem(
+// Update an existing encrypted task
+export async function updateTask(
   id: string,
   encryptedData: string,
   iv: string,
   salt: string,
   projectId?: string,
   silent = false
-): Promise<EncryptedCanDoItem> {
+): Promise<EncryptedTask> {
   const supabase = await createClient();
   
   const { data, error } = await supabase
@@ -88,17 +88,17 @@ export async function updateCanDoItem(
   
   if (error) {
     if (!silent) {
-      console.error("Error updating can-do item:", error);
+      console.error("Error updating task:", error);
     }
-    throw new Error(`Failed to update can-do item: ${error.message}`);
+    throw new Error(`Failed to update task: ${error.message}`);
   }
   
   revalidatePath('/dashboard/can-do-list');
-  return data as EncryptedCanDoItem;
+  return data as EncryptedTask;
 }
 
-// Move an item to a different project
-export async function moveCanDoItemToProject(
+// Move a task to a different project
+export async function moveTaskToProject(
   id: string,
   projectId?: string,
   silent = false
@@ -114,16 +114,16 @@ export async function moveCanDoItemToProject(
   
   if (error) {
     if (!silent) {
-      console.error("Error moving can-do item:", error);
+      console.error("Error moving task:", error);
     }
-    throw new Error(`Failed to move can-do item: ${error.message}`);
+    throw new Error(`Failed to move task: ${error.message}`);
   }
   
   revalidatePath('/dashboard/can-do-list');
 }
 
-// Delete a can-do item
-export async function deleteCanDoItem(id: string, silent = false): Promise<void> {
+// Delete a task
+export async function deleteTask(id: string, silent = false): Promise<void> {
   const supabase = await createClient();
   
   const { error } = await supabase
@@ -133,23 +133,23 @@ export async function deleteCanDoItem(id: string, silent = false): Promise<void>
   
   if (error) {
     if (!silent) {
-      console.error("Error deleting can-do item:", error);
+      console.error("Error deleting task:", error);
     }
-    throw new Error(`Failed to delete can-do item: ${error.message}`);
+    throw new Error(`Failed to delete task: ${error.message}`);
   }
   
   revalidatePath('/dashboard/can-do-list');
 }
 
-// Bulk delete can-do items by IDs
-export async function bulkDeleteCanDoItems(ids: string[], silent = false): Promise<void> {
+// Bulk delete tasks by IDs
+export async function bulkDeleteTasks(ids: string[], silent = false): Promise<void> {
   const supabase = await createClient();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    throw new Error('User must be authenticated to delete items');
+    throw new Error('User must be authenticated to delete tasks');
   }
   
   if (ids.length === 0) {
@@ -164,16 +164,16 @@ export async function bulkDeleteCanDoItems(ids: string[], silent = false): Promi
   
   if (error) {
     if (!silent) {
-      console.error("Error bulk deleting can-do items:", error);
+      console.error("Error bulk deleting tasks:", error);
     }
-    throw new Error(`Failed to bulk delete can-do items: ${error.message}`);
+    throw new Error(`Failed to bulk delete tasks: ${error.message}`);
   }
   
   revalidatePath('/dashboard/can-do-list');
 }
 
 // Fetch can-do items for a specific project
-export async function fetchCanDoItemsByProject(projectId?: string, silent = false): Promise<EncryptedCanDoItem[]> {
+export async function fetchTasksByProject(projectId?: string, silent = false): Promise<EncryptedTask[]> {
   const supabase = await createClient();
   
   let query = supabase

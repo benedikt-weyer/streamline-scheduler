@@ -115,14 +115,14 @@
   }
 }
 
-.item-fade-out {
+.task-fade-out {
   animation: fadeOut 300ms ease-in-out forwards;
 }
 
-.item-fade-in {
+.task-fade-in {
   animation: fadeIn 300ms ease-in-out forwards;
 }
 
-.item-transition {
+.task-transition {
   transition: all 300ms ease-in-out;
 }

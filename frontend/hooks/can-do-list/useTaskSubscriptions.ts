@@ -4,12 +4,12 @@ import { createClient } from '@/utils/supabase/client';
 /**
  * Hook for managing real-time subscriptions to can-do list changes
  */
-export function useItemSubscriptions(
+export function useTaskSubscriptions(
   encryptionKey: string | null,
-  itemLoadFn: (key: string) => Promise<void>
+  taskLoadFn: (key: string) => Promise<void>
 ) {
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const skipNextItemReloadRef = useRef<boolean>(false);
+  const skipNextTaskReloadRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!encryptionKey) {
@@ -31,18 +31,18 @@ export function useItemSubscriptions(
         }, 
         async (payload) => {
           // Skip reload if we're in the middle of a local update operation
-          if (skipNextItemReloadRef.current) {
+          if (skipNextTaskReloadRef.current) {
             setTimeout(() => {
-              skipNextItemReloadRef.current = false;
+              skipNextTaskReloadRef.current = false;
             }, 500); // 500ms delay
             return;
           }
           
-          // Reload items when a change is detected
+          // Reload tasks when a change is detected
           try {
-            await itemLoadFn(encryptionKey);
+            await taskLoadFn(encryptionKey);
           } catch (error) {
-            console.error('Error reloading items after subscription update:', error);
+            console.error('Error reloading tasks after subscription update:', error);
           }
         }
       )
@@ -57,12 +57,12 @@ export function useItemSubscriptions(
       }
       setIsSubscribed(false);
     };
-  }, [encryptionKey, itemLoadFn]);
+  }, [encryptionKey, taskLoadFn]);
 
-  // Function to skip the next item reload (useful for local operations)
-  const skipNextItemReload = () => {
-    skipNextItemReloadRef.current = true;
+  // Function to skip the next task reload (useful for local operations)
+  const skipNextTaskReload = () => {
+    skipNextTaskReloadRef.current = true;
   };
 
-  return { isSubscribed, skipNextItemReload };
+  return { isSubscribed, skipNextTaskReload };
 }

@@ -2,20 +2,20 @@
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CanDoItem, Project } from '@/utils/can-do-list/can-do-list-types';
+import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 import { useState } from 'react';
 import { Edit, Trash2, Clock } from 'lucide-react';
-import EditItemDialog from './edit-item-dialog';
+import EditTaskDialog from './edit-task-dialog';
 
-interface ItemListItemProps {
-  readonly item: CanDoItem;
+interface TaskListItemProps {
+  readonly task: Task;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
-  readonly onDeleteItem: (id: string) => Promise<void>;
-  readonly onUpdateItem: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<void>;
+  readonly onDeleteTask: (id: string) => Promise<void>;
+  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<void>;
   readonly projects?: Project[];
 }
 
-export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onUpdateItem, projects = [] }: ItemListItemProps) {
+export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, projects = [] }: TaskListItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -27,7 +27,7 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
   const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string) => {
     setIsUpdating(true);
     try {
-      await onUpdateItem(id, content, estimatedDuration, projectId);
+      await onUpdateTask(id, content, estimatedDuration, projectId);
     } finally {
       setIsUpdating(false);
     }
@@ -38,16 +38,16 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
   };
 
   const handleToggleCompleteClick = async () => {
-    if (!item.completed) {
+    if (!task.completed) {
       // If marking as complete, trigger animation first
       setIsAnimatingOut(true);
       // Wait for animation to complete, then actually toggle
       setTimeout(async () => {
-        await onToggleComplete(item.id, !item.completed);
+        await onToggleComplete(task.id, !task.completed);
       }, 300); // Match animation duration
     } else {
       // If marking as incomplete, toggle immediately
-      await onToggleComplete(item.id, !item.completed);
+      await onToggleComplete(task.id, !task.completed);
     }
   };
 
@@ -61,37 +61,37 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
   return (
     <>
       <li 
-        className={`flex items-center justify-between rounded-md border item-transition ${
-          item.completed ? 'bg-muted' : ''
+        className={`flex items-center justify-between rounded-md border task-transition ${
+          task.completed ? 'bg-muted' : ''
         } ${
-          isAnimatingOut ? 'item-fade-out' : 'item-fade-in'
+          isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
         }`}
       >
         <div className="flex items-center space-x-3 flex-1 min-w-0 p-3">
           <Checkbox
-            checked={item.completed}
-            id={`item-${item.id}`}
+            checked={task.completed}
+            id={`task-${task.id}`}
             onCheckedChange={handleToggleCompleteClick}
           />
           <span
             className={`flex-1 min-w-0 cursor-pointer ${
-              item.completed ? 'line-through text-muted-foreground' : ''
+              task.completed ? 'line-through text-muted-foreground' : ''
             }`}
             onClick={handleToggleCompleteClick}
             onKeyDown={handleToggleCompleteKeyDown}
             role="button"
             tabIndex={0}
-            aria-label={`Mark "${item.content}" as ${item.completed ? 'incomplete' : 'complete'}`}
+            aria-label={`Mark "${task.content}" as ${task.completed ? 'incomplete' : 'complete'}`}
           >
-            <span className="block truncate">{item.content}</span>
+            <span className="block truncate">{task.content}</span>
           </span>
         </div>
         
         <div className="flex items-center space-x-1">
-          {item.estimatedDuration && (
+          {task.estimatedDuration && (
             <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {item.estimatedDuration} min
+              {task.estimatedDuration} min
             </span>
           )}
           <Button
@@ -106,7 +106,7 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onDeleteItem(item.id)}
+            onClick={() => onDeleteTask(task.id)}
             className="text-destructive hover:text-destructive/80"
           >
             <Trash2 className="h-4 w-4" />
@@ -115,8 +115,8 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
         </div>
       </li>
 
-      <EditItemDialog
-        item={item}
+      <EditTaskDialog
+        task={task}
         isOpen={isEditDialogOpen}
         onClose={handleCloseDialog}
         onSave={handleSave}

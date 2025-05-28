@@ -1,65 +1,65 @@
 import { useCallback, useMemo } from 'react';
-import { CanDoListHook } from './types/itemHooks';
-import { useItemState } from './useItemState';
-import { useItemLoader } from './useItemLoader';
-import { useItemCRUD } from './useItemCRUD';
-import { useItemSubscriptions } from './useItemSubscriptions';
+import { CanDoListHook } from './types/taskHooks';
+import { useTaskState } from './useTaskState';
+import { useTaskLoader } from './useTaskLoader';
+import { useTaskCRUD } from './useTaskCRUD';
+import { useTaskSubscriptions } from './useTaskSubscriptions';
 
 /**
  * Main orchestrating hook for can-do list
- * Coordinates all item-related operations through smaller, focused hooks
+ * Coordinates all task-related operations through smaller, focused hooks
  */
 export function useCanDoList(
   encryptionKey: string | null
 ): CanDoListHook {
-  // Initialize item state management
-  const [items, isLoading, itemActions] = useItemState();
+  // Initialize task state management
+  const [tasks, isLoading, taskActions] = useTaskState();
 
   // Initialize specialized hooks
-  const { loadItems, loadItemsByProject } = useItemLoader(itemActions);
+  const { loadTasks, loadTasksByProject } = useTaskLoader(taskActions);
   
-  // Create a stable wrapper for loadItems that returns void for subscription
-  const loadItemsForSubscription = useCallback(async (key: string): Promise<void> => {
-    await loadItems(key);
-  }, [loadItems]);
+  // Create a stable wrapper for loadTasks that returns void for subscription
+  const loadTasksForSubscription = useCallback(async (key: string): Promise<void> => {
+    await loadTasks(key);
+  }, [loadTasks]);
   
-  const { isSubscribed, skipNextItemReload } = useItemSubscriptions(encryptionKey, loadItemsForSubscription);
+  const { isSubscribed, skipNextTaskReload } = useTaskSubscriptions(encryptionKey, loadTasksForSubscription);
   
   const { 
-    handleAddItem, 
-    handleUpdateItem,
+    handleAddTask, 
+    handleUpdateTask,
     handleToggleComplete, 
-    handleDeleteItem,
-    handleMoveItemToProject,
+    handleDeleteTask,
+    handleMoveTaskToProject,
     handleBulkDeleteCompleted
-  } = useItemCRUD(items, itemActions, encryptionKey, skipNextItemReload);
+  } = useTaskCRUD(tasks, taskActions, encryptionKey, skipNextTaskReload);
 
   // Memoize the returned object to prevent unnecessary re-renders
   return useMemo(() => ({
-    items,
+    tasks,
     isLoading,
-    loadItems,
-    loadItemsByProject,
-    handleAddItem,
-    handleUpdateItem,
+    loadTasks,
+    loadTasksByProject,
+    handleAddTask,
+    handleUpdateTask,
     handleToggleComplete,
-    handleDeleteItem,
-    handleMoveItemToProject,
+    handleDeleteTask,
+    handleMoveTaskToProject,
     handleBulkDeleteCompleted,
     isSubscribed,
-    skipNextItemReload
+    skipNextTaskReload
   }), [
-    items,
+    tasks,
     isLoading,
-    loadItems,
-    loadItemsByProject,
-    handleAddItem,
-    handleUpdateItem,
+    loadTasks,
+    loadTasksByProject,
+    handleAddTask,
+    handleUpdateTask,
     handleToggleComplete,
-    handleDeleteItem,
-    handleMoveItemToProject,
+    handleDeleteTask,
+    handleMoveTaskToProject,
     handleBulkDeleteCompleted,
     isSubscribed,
-    skipNextItemReload
+    skipNextTaskReload
   ]);
 }

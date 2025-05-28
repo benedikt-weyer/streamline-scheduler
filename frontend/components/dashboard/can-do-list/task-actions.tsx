@@ -9,13 +9,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, Edit, Copy, Trash2 } from 'lucide-react';
 
-interface ItemActionsProps {
+interface TaskActionsProps {
   readonly onEdit?: () => void;
   readonly onDuplicate?: () => void;
   readonly onDelete: () => void;
 }
 
-export default function ItemActions({ onEdit, onDuplicate, onDelete }: ItemActionsProps) {
+export default function TaskActions({ onEdit, onDuplicate, onDelete }: TaskActionsProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

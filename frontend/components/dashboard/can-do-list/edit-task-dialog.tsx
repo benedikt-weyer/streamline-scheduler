@@ -15,7 +15,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
-import { CanDoItem, Project, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
+import { Task, Project, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Predefined duration options in minutes
@@ -26,9 +26,9 @@ const PREDEFINED_DURATIONS = [
   { label: '3 hours', value: 180 },
 ] as const;
 
-// Define schema for edit item validation
-const editItemSchema = z.object({
-  content: z.string().min(1, { message: "Item content is required" }),
+// Define schema for edit task validation
+const editTaskSchema = z.object({
+  content: z.string().min(1, { message: "Task content is required" }),
   estimatedDuration: z
     .union([
       z.string().regex(/^\d*$/, { message: 'Must be a number' }),
@@ -38,10 +38,10 @@ const editItemSchema = z.object({
   projectId: z.string().optional()
 });
 
-type EditItemFormValues = z.infer<typeof editItemSchema>;
+type EditTaskFormValues = z.infer<typeof editTaskSchema>;
 
-interface EditItemDialogProps {
-  readonly item: CanDoItem | null;
+interface EditTaskDialogProps {
+  readonly task: Task | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<void>;
@@ -49,45 +49,45 @@ interface EditItemDialogProps {
   readonly projects?: Project[];
 }
 
-export default function EditItemDialog({ 
-  item, 
+export default function EditTaskDialog({ 
+  task, 
   isOpen, 
   onClose, 
   onSave, 
   isLoading = false,
   projects = []
-}: EditItemDialogProps) {
-  const form = useForm<EditItemFormValues>({
-    resolver: zodResolver(editItemSchema),
+}: EditTaskDialogProps) {
+  const form = useForm<EditTaskFormValues>({
+    resolver: zodResolver(editTaskSchema),
     defaultValues: {
       content: '',
       estimatedDuration: ''
     }
   });
 
-  // Reset form when item changes or dialog opens
+  // Reset form when task changes or dialog opens
   useEffect(() => {
-    if (item && isOpen) {
+    if (task && isOpen) {
       form.reset({
-        content: item.content,
-        estimatedDuration: item.estimatedDuration?.toString() ?? '',
-        projectId: item.projectId ?? ''
+        content: task.content,
+        estimatedDuration: task.estimatedDuration?.toString() ?? '',
+        projectId: task.projectId ?? ''
       });
     }
-  }, [item, isOpen, form]);
+  }, [task, isOpen, form]);
 
-  const onSubmit = async (values: EditItemFormValues) => {
-    if (!item) return;
+  const onSubmit = async (values: EditTaskFormValues) => {
+    if (!task) return;
     const duration = values.estimatedDuration ? Number(values.estimatedDuration) : undefined;
     if (
-      values.content.trim() === item.content.trim() &&
-      duration === item.estimatedDuration &&
-      values.projectId === item.projectId
+      values.content.trim() === task.content.trim() &&
+      duration === task.estimatedDuration &&
+      values.projectId === task.projectId
     ) {
       onClose();
       return;
     }
-    await onSave(item.id, values.content, duration, values.projectId);
+    await onSave(task.id, values.content, duration, values.projectId);
     onClose();
   };
 
@@ -108,9 +108,9 @@ export default function EditItemDialog({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]" onKeyDown={handleKeyDown}>
         <DialogHeader>
-          <DialogTitle>Edit Item</DialogTitle>
+          <DialogTitle>Edit Task</DialogTitle>
           <DialogDescription>
-            Make changes to your can-do item here. Click save when you're done.
+            Make changes to your can-do task here. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
         

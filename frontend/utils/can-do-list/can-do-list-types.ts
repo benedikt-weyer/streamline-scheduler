@@ -1,4 +1,4 @@
-export interface CanDoItem {
+export interface Task {
   id: string;
   content: string;
   completed: boolean;
@@ -8,7 +8,7 @@ export interface CanDoItem {
   projectId?: string; // Reference to project
 }
 
-export interface EncryptedCanDoItem {
+export interface EncryptedTask {
   id: string;
   user_id: string;
   encrypted_data: string;
@@ -44,7 +44,7 @@ export interface EncryptedProject {
 }
 
 export interface CanDoList {
-  items: CanDoItem[];
+  tasks: Task[];
 }
 
 // Default project constant

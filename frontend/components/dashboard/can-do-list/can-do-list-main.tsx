@@ -14,19 +14,19 @@ import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 
 import ErrorDisplay from './error-display';
-import AddItemForm from './add-item-form';
+import AddTaskForm from './add-task-form';
 import LoadingState from './loading-state';
 import EmptyState from './empty-state';
-import ItemList from './item-list';
+import TaskList from './task-list';
 import AuthenticationRequired from './authentication-required';
 import ProjectSidebarDynamic from './project-bar/project-sidebar-dynamic';
 
-// Define schema for new item validation
-const addItemSchema = z.object({
-  content: z.string().min(1, { message: "Item content is required" }),
+// Define schema for new task validation
+const addTaskSchema = z.object({
+  content: z.string().min(1, { message: "Task content is required" }),
 });
 
-type AddItemFormValues = {
+type AddTaskFormValues = {
   content: string;
 };
 
@@ -38,13 +38,13 @@ export default function CanDoListMain() {
 
   // Use the main can-do list hook
   const {
-    items,
-    isLoading: isLoadingItems,
-    loadItems,
-    handleAddItem,
-    handleUpdateItem,
+    tasks,
+    isLoading: isLoadingTasks,
+    loadTasks,
+    handleAddTask,
+    handleUpdateTask,
     handleToggleComplete,
-    handleDeleteItem,
+    handleDeleteTask,
     handleBulkDeleteCompleted
   } = useCanDoList(encryptionKey);
 
@@ -60,26 +60,26 @@ export default function CanDoListMain() {
     handleUpdateProjectCollapsedState
   } = useProjects(encryptionKey);
 
-  const isLoading = isLoadingItems || isLoadingProjects;
+  const isLoading = isLoadingTasks || isLoadingProjects;
 
   // Initialize form with react-hook-form and zod validation
   const form = useForm<{ content: string }>({
-    resolver: zodResolver(addItemSchema),
+    resolver: zodResolver(addTaskSchema),
     defaultValues: {
       content: ''
     }
   });
 
-  // Load items and projects when encryption key becomes available
+  // Load tasks and projects when encryption key becomes available
   useEffect(() => {
     console.log('[CanDoListMain] useEffect triggered with encryptionKey:', !!encryptionKey);
     if (encryptionKey) {
-      console.log('[CanDoListMain] Loading projects and items...');
+      console.log('[CanDoListMain] Loading projects and tasks...');
       loadProjects(encryptionKey);
-      // Always load all items for count calculations
-      loadItems(encryptionKey);
+      // Always load all tasks for count calculations
+      loadTasks(encryptionKey);
     }
-  }, [encryptionKey, loadItems, loadProjects]);
+  }, [encryptionKey, loadTasks, loadProjects]);
 
   // Debug projects state
   useEffect(() => {
@@ -91,69 +91,69 @@ export default function CanDoListMain() {
     setSelectedProjectId(projectId);
   };
 
-  // Filter items based on selected project and tab
-  const filteredItems = useMemo(() => {
-    let baseItems;
+  // Filter tasks based on selected project and tab
+  const filteredTasks = useMemo(() => {
+    let baseTasks;
     if (selectedProjectId) {
-      baseItems = items.filter(item => item.projectId === selectedProjectId);
+      baseTasks = tasks.filter(task => task.projectId === selectedProjectId);
     } else {
-      // Show items without project (inbox)
-      baseItems = items.filter(item => !item.projectId);
+      // Show tasks without project (inbox)
+      baseTasks = tasks.filter(task => !task.projectId);
     }
     
     // Filter by tab
-    return baseItems.filter(item => {
+    return baseTasks.filter(task => {
       if (activeTab === 'active') {
-        return !item.completed;
+        return !task.completed;
       } else {
-        return item.completed;
+        return task.completed;
       }
     });
-  }, [items, selectedProjectId, activeTab]);
+  }, [tasks, selectedProjectId, activeTab]);
 
   // Get active and completed counts for current project
   const { activeCount, completedCount } = useMemo(() => {
-    let baseItems;
+    let baseTasks;
     if (selectedProjectId) {
-      baseItems = items.filter(item => item.projectId === selectedProjectId);
+      baseTasks = tasks.filter(task => task.projectId === selectedProjectId);
     } else {
-      baseItems = items.filter(item => !item.projectId);
+      baseTasks = tasks.filter(task => !task.projectId);
     }
     
-    const active = baseItems.filter(item => !item.completed).length;
-    const completed = baseItems.filter(item => item.completed).length;
+    const active = baseTasks.filter(task => !task.completed).length;
+    const completed = baseTasks.filter(task => task.completed).length;
     
     return { activeCount: active, completedCount: completed };
-  }, [items, selectedProjectId]);
+  }, [tasks, selectedProjectId]);
 
-  // Calculate item counts per project
-  const itemCounts = useMemo(() => {
+  // Calculate task counts per project
+  const taskCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     
-    // Count inbox items (items without project)
-    counts['inbox'] = items.filter(item => !item.projectId).length;
+    // Count inbox tasks (tasks without project)
+    counts['inbox'] = tasks.filter(task => !task.projectId).length;
     
-    // Count items per project
+    // Count tasks per project
     projects.forEach(project => {
-      counts[project.id] = items.filter(item => item.projectId === project.id).length;
+      counts[project.id] = tasks.filter(task => task.projectId === project.id).length;
     });
     
     return counts;
-  }, [items, projects]);
+  }, [tasks, projects]);
 
-  // Add a new item using react-hook-form
-  const onSubmit = async (values: AddItemFormValues) => {
+  // Add a new task using react-hook-form
+  const onSubmit = async (values: AddTaskFormValues) => {
     // Parse duration hashtags from content
     const parsed = parseDurationFromContent(values.content);
-    const success = await handleAddItem(parsed.content, parsed.duration, selectedProjectId);
+    const success = await handleAddTask(parsed.content, parsed.duration, selectedProjectId);
     if (success) {
       form.reset();
     }
   };
 
   // Handle update action
-  const onUpdateItem = async (id: string, content: string, estimatedDuration?: number, projectId?: string) => {
-    await handleUpdateItem(id, content, estimatedDuration, projectId);
+  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string) => {
+    await handleUpdateTask(id, content, estimatedDuration, projectId);
   };
 
   // Handle toggle complete action
@@ -162,16 +162,16 @@ export default function CanDoListMain() {
   };
 
   // Handle delete action
-  const onDeleteItem = async (id: string) => {
-    await handleDeleteItem(id);
+  const onDeleteTask = async (id: string) => {
+    await handleDeleteTask(id);
   };
 
-  // Handle bulk delete completed items
+  // Handle bulk delete completed tasks
   const handleBulkDelete = async () => {
     const deletedCount = await handleBulkDeleteCompleted(selectedProjectId);
     if (deletedCount > 0) {
-      // If we deleted items and are on completed tab, stay on the tab
-      // The items will automatically be removed from the view
+      // If we deleted tasks and are on completed tab, stay on the tab
+      // The tasks will automatically be removed from the view
     }
   };
 
@@ -194,7 +194,7 @@ export default function CanDoListMain() {
             onBulkReorderProjects={handleBulkReorderProjects}
             onUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
             isLoading={isLoading}
-            itemCounts={itemCounts}
+            itemCounts={taskCounts}
           />
           
           <div className="flex-1 overflow-hidden">
@@ -228,19 +228,19 @@ export default function CanDoListMain() {
                 </TabsList>
 
                 <TabsContent value="active" className="mt-0">
-                  <AddItemForm 
+                  <AddTaskForm 
                     form={form} 
                     onSubmit={onSubmit} 
                     isLoading={isLoading} 
                   />
                   <LoadingState isLoading={isLoading} />
-                  <EmptyState isLoading={isLoading} itemsLength={filteredItems.length} />
-                  <ItemList 
-                    items={filteredItems}
+                  <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
+                  <TaskList 
+                    tasks={filteredTasks}
                     isLoading={isLoading}
                     onToggleComplete={onToggleComplete}
-                    onDeleteItem={onDeleteItem}
-                    onUpdateItem={onUpdateItem}
+                    onDeleteTask={onDeleteTask}
+                    onUpdateTask={onUpdateTask}
                     projects={projects}
                   />
                 </TabsContent>
@@ -248,7 +248,7 @@ export default function CanDoListMain() {
                 <TabsContent value="completed" className="mt-0">
                   <div className="mb-4 flex justify-between items-center">
                     <p className="text-sm text-muted-foreground">
-                      {completedCount} completed {completedCount === 1 ? 'item' : 'items'}
+                      {completedCount} completed {completedCount === 1 ? 'task' : 'tasks'}
                     </p>
                     {completedCount > 0 && (
                       <Button
@@ -264,13 +264,13 @@ export default function CanDoListMain() {
                     )}
                   </div>
                   <LoadingState isLoading={isLoading} />
-                  <EmptyState isLoading={isLoading} itemsLength={filteredItems.length} />
-                  <ItemList 
-                    items={filteredItems}
+                  <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
+                  <TaskList 
+                    tasks={filteredTasks}
                     isLoading={isLoading}
                     onToggleComplete={onToggleComplete}
-                    onDeleteItem={onDeleteItem}
-                    onUpdateItem={onUpdateItem}
+                    onDeleteTask={onDeleteTask}
+                    onUpdateTask={onUpdateTask}
                     projects={projects}
                   />
                 </TabsContent>

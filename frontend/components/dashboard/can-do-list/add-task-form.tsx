@@ -6,20 +6,20 @@ import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { UseFormReturn } from 'react-hook-form';
 import { useState } from 'react';
 
-interface AddItemFormValues {
+interface AddTaskFormValues {
   content: string;
 }
 
-interface AddItemFormProps {
+interface AddTaskFormProps {
   readonly form: UseFormReturn<{ content: string }>;
   readonly onSubmit: (values: { content: string }) => Promise<void>;
   readonly isLoading: boolean;
 }
 
-export default function AddItemForm({ form, onSubmit, isLoading }: AddItemFormProps) {
+export default function AddTaskForm({ form, onSubmit, isLoading }: AddTaskFormProps) {
   const [tags, setTags] = useState<Tag[]>([]);
 
-  const handleSubmit = async (values: AddItemFormValues) => {
+  const handleSubmit = async (values: AddTaskFormValues) => {
     // Combine content with tags for submission
     let submissionContent = values.content.trim();
     
@@ -46,7 +46,7 @@ export default function AddItemForm({ form, onSubmit, isLoading }: AddItemFormPr
                 <FormControl>
                   <TaggedInput
                     {...field}
-                    placeholder="Add a new item... (type # to see duration options)"
+                    placeholder="Add a new task... (type # to see duration options)"
                     disabled={isLoading}
                     tags={tags}
                     onTagsChange={setTags}
