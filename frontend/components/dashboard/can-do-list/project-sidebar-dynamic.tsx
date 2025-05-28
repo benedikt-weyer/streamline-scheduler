@@ -1,0 +1,49 @@
+'use client';
+
+import dynamic from 'next/dynamic';
+import { Project } from '@/utils/can-do-list/can-do-list-types';
+
+// Dynamic import of the drag and drop sidebar to prevent SSR issues
+const ProjectSidebarWithDragDrop = dynamic(
+  () => import('./project-sidebar-drag-drop'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-1/6 bg-muted/30 border-r border-border h-full flex flex-col">
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+              Projects
+            </h2>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-2 space-y-1">
+            <div className="animate-pulse">
+              <div className="h-8 bg-muted rounded-md mb-2"></div>
+              <div className="h-6 bg-muted/60 rounded-md mb-1"></div>
+              <div className="h-6 bg-muted/60 rounded-md mb-1"></div>
+              <div className="h-6 bg-muted/60 rounded-md"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+);
+
+interface ProjectSidebarDynamicProps {
+  readonly projects: Project[];
+  readonly selectedProjectId?: string;
+  readonly onProjectSelect: (projectId?: string) => void;
+  readonly onAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
+  readonly onUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
+  readonly onDeleteProject: (id: string) => Promise<boolean>;
+  readonly onBulkReorderProjects: (updates: Array<{ id: string; parentId?: string; displayOrder: number }>) => Promise<boolean>;
+  readonly isLoading?: boolean;
+  readonly itemCounts?: Record<string, number>;
+}
+
+export default function ProjectSidebarDynamic(props: ProjectSidebarDynamicProps) {
+  return <ProjectSidebarWithDragDrop {...props} />;
+}

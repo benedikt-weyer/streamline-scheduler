@@ -24,6 +24,8 @@ export interface Project {
   name: string;
   color: string;
   parentId?: string;
+  displayOrder: number;
+  isCollapsed: boolean;
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -37,6 +39,8 @@ export interface EncryptedProject {
   created_at: string;
   updated_at: string;
   parent_id?: string;
+  display_order: number;
+  is_collapsed: boolean;
 }
 
 export interface CanDoList {

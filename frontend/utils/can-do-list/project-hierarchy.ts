@@ -48,9 +48,9 @@ export function buildProjectTree(projects: Project[]): ProjectNode[] {
     }
   });
 
-  // Sort children recursively
+  // Sort children recursively by displayOrder
   const sortProjects = (nodes: ProjectNode[]) => {
-    nodes.sort((a, b) => a.name.localeCompare(b.name));
+    nodes.sort((a, b) => a.displayOrder - b.displayOrder);
     nodes.forEach(node => sortProjects(node.children));
   };
 

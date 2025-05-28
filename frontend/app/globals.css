@@ -67,3 +67,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Override dnd-kit-sortable-tree borders */
+.sortable-tree-item,
+.sortable-tree-item > *,
+[data-dnd-kit-sortable-tree],
+.no-border-tree-item,
+.no-border-tree-item > *,
+.no-border-tree-item div {
+  border: none;
+  outline: none;
+  box-shadow: none;
+
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.dnd-sortable-tree_simple_handle {
+  display: none;
+}

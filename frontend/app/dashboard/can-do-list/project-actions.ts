@@ -12,19 +12,24 @@ export async function fetchProjects(): Promise<EncryptedProject[]> {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
+    console.log('[fetchProjects] No authenticated user found');
     throw new Error('User must be authenticated to fetch projects');
   }
+  
+  console.log('[fetchProjects] Fetching projects for user:', user.id);
   
   const { data, error } = await supabase
     .from('projects')
     .select('*')
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
+    .order('display_order', { ascending: true });
   
   if (error) {
-    console.error("Error fetching projects:", error);
+    console.error("[fetchProjects] Error fetching projects:", error);
     throw new Error(`Failed to fetch projects: ${error.message}`);
   }
+  
+  console.log('[fetchProjects] Successfully fetched projects:', data?.length || 0);
   
   return data as EncryptedProject[];
 }
@@ -35,6 +40,8 @@ export async function addProject(
   iv: string,
   salt: string,
   parentId?: string,
+  displayOrder?: number,
+  isCollapsed?: boolean,
   silent = false
 ): Promise<EncryptedProject> {
   const supabase = await createClient();
@@ -45,6 +52,22 @@ export async function addProject(
   if (!user) {
     throw new Error('User must be authenticated to add projects');
   }
+
+  // If no displayOrder provided, get the next order for this parent
+  let finalDisplayOrder = displayOrder;
+  if (finalDisplayOrder === undefined) {
+    const { data: maxOrderData } = await supabase
+      .from('projects')
+      .select('display_order')
+      .eq('user_id', user.id)
+      .eq('parent_id', parentId ?? null)
+      .order('display_order', { ascending: false })
+      .limit(1);
+    
+    finalDisplayOrder = maxOrderData && maxOrderData.length > 0 
+      ? (maxOrderData[0].display_order ?? 0) + 1 
+      : 0;
+  }
   
   const { data, error } = await supabase
     .from('projects')
@@ -53,7 +76,9 @@ export async function addProject(
       encrypted_data: encryptedData,
       iv,
       salt,
-      parent_id: parentId
+      parent_id: parentId,
+      display_order: finalDisplayOrder,
+      is_collapsed: isCollapsed ?? false
     })
     .select()
     .single();
@@ -76,6 +101,55 @@ export async function updateProject(
   iv: string,
   salt: string,
   parentId?: string,
+  displayOrder?: number,
+  isCollapsed?: boolean,
+  silent = false
+): Promise<void> {
+  const supabase = await createClient();
+  
+  // Get the authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User must be authenticated to update projects');
+  }
+  
+  const updateData: any = {
+    encrypted_data: encryptedData,
+    iv,
+    salt,
+    parent_id: parentId,
+    updated_at: new Date().toISOString()
+  };
+
+  if (displayOrder !== undefined) {
+    updateData.display_order = displayOrder;
+  }
+
+  if (isCollapsed !== undefined) {
+    updateData.is_collapsed = isCollapsed;
+  }
+  
+  const { error } = await supabase
+    .from('projects')
+    .update(updateData)
+    .eq('id', id)
+    .eq('user_id', user.id);
+  
+  if (error) {
+    if (!silent) {
+      console.error("Error updating project:", error);
+    }
+    throw new Error(`Failed to update project: ${error.message}`);
+  }
+  
+  revalidatePath('/dashboard/can-do-list');
+}
+
+// Update project collapsed state
+export async function updateProjectCollapsedState(
+  id: string,
+  isCollapsed: boolean,
   silent = false
 ): Promise<void> {
   const supabase = await createClient();
@@ -90,10 +164,7 @@ export async function updateProject(
   const { error } = await supabase
     .from('projects')
     .update({
-      encrypted_data: encryptedData,
-      iv,
-      salt,
-      parent_id: parentId,
+      is_collapsed: isCollapsed,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
@@ -101,9 +172,9 @@ export async function updateProject(
   
   if (error) {
     if (!silent) {
-      console.error("Error updating project:", error);
+      console.error("Error updating project collapsed state:", error);
     }
-    throw new Error(`Failed to update project: ${error.message}`);
+    throw new Error(`Failed to update project collapsed state: ${error.message}`);
   }
   
   revalidatePath('/dashboard/can-do-list');
@@ -131,6 +202,43 @@ export async function deleteProject(id: string, silent = false): Promise<void> {
       console.error("Error deleting project:", error);
     }
     throw new Error(`Failed to delete project: ${error.message}`);
+  }
+  
+  revalidatePath('/dashboard/can-do-list');
+}
+
+// Bulk update project orders and parents (for drag and drop)
+export async function bulkUpdateProjectOrder(
+  updates: Array<{ id: string; parentId?: string; displayOrder: number }>,
+  silent = false
+): Promise<void> {
+  const supabase = await createClient();
+  
+  // Get the authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User must be authenticated to update projects');
+  }
+
+  // Perform bulk update using a transaction-like approach
+  for (const update of updates) {
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        parent_id: update.parentId ?? null,
+        display_order: update.displayOrder,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', update.id)
+      .eq('user_id', user.id);
+    
+    if (error) {
+      if (!silent) {
+        console.error("Error updating project order:", error);
+      }
+      throw new Error(`Failed to update project order: ${error.message}`);
+    }
   }
   
   revalidatePath('/dashboard/can-do-list');

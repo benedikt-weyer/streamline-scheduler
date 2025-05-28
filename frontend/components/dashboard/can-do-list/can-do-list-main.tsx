@@ -16,7 +16,7 @@ import LoadingState from './loading-state';
 import EmptyState from './empty-state';
 import ItemList from './item-list';
 import AuthenticationRequired from './authentication-required';
-import ProjectSidebar from './project-sidebar';
+import ProjectSidebarDynamic from './project-sidebar-dynamic';
 
 // Define schema for new item validation
 const addItemSchema = z.object({
@@ -50,7 +50,9 @@ export default function CanDoListMain() {
     loadProjects,
     handleAddProject,
     handleUpdateProject,
-    handleDeleteProject
+    handleDeleteProject,
+    handleBulkReorderProjects,
+    handleUpdateProjectCollapsedState
   } = useProjects(encryptionKey);
 
   const isLoading = isLoadingItems || isLoadingProjects;
@@ -65,12 +67,19 @@ export default function CanDoListMain() {
 
   // Load items and projects when encryption key becomes available
   useEffect(() => {
+    console.log('[CanDoListMain] useEffect triggered with encryptionKey:', !!encryptionKey);
     if (encryptionKey) {
+      console.log('[CanDoListMain] Loading projects and items...');
       loadProjects(encryptionKey);
       // Always load all items for count calculations
       loadItems(encryptionKey);
     }
   }, [encryptionKey, loadItems, loadProjects]);
+
+  // Debug projects state
+  useEffect(() => {
+    console.log('[CanDoListMain] Projects state updated:', projects.length, projects.map(p => p.name));
+  }, [projects]);
 
   // Handle project selection
   const handleProjectSelect = (projectId?: string) => {
@@ -136,13 +145,15 @@ export default function CanDoListMain() {
       
       {(encryptionKey || isLoadingKey) && (
         <div className="flex h-screen w-full">
-          <ProjectSidebar
+          <ProjectSidebarDynamic
             projects={projects}
             selectedProjectId={selectedProjectId}
             onProjectSelect={handleProjectSelect}
             onAddProject={handleAddProject}
             onUpdateProject={handleUpdateProject}
             onDeleteProject={handleDeleteProject}
+            onBulkReorderProjects={handleBulkReorderProjects}
+            onUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
             isLoading={isLoading}
             itemCounts={itemCounts}
           />

@@ -19,8 +19,15 @@ export const useProjectState = (): [Project[], boolean, ProjectStateActions] => 
         ? projectsOrUpdater(prevProjects) 
         : projectsOrUpdater;
       
-      // Sort projects by creation date (newest first)
-      return newProjects.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      // Sort projects by displayOrder within parent groups
+      return newProjects.sort((a, b) => {
+        // First sort by parentId to group together
+        if (a.parentId !== b.parentId) {
+          return (a.parentId ?? '').localeCompare(b.parentId ?? '');
+        }
+        // Then sort by displayOrder within the same parent
+        return a.displayOrder - b.displayOrder;
+      });
     });
   }, []);
 

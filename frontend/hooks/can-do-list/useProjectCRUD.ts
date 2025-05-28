@@ -5,7 +5,9 @@ import { useError } from '@/utils/context/ErrorContext';
 import { 
   addProject, 
   updateProject, 
-  deleteProject
+  deleteProject,
+  bulkUpdateProjectOrder,
+  updateProjectCollapsedState
 } from '../../app/dashboard/can-do-list/project-actions';
 import { 
   encryptData, 
@@ -45,6 +47,8 @@ export const useProjectCRUD = (
         name: projectData.name,
         color: projectData.color,
         parentId: parentId,
+        displayOrder: newEncryptedProject.display_order ?? 0,
+        isCollapsed: newEncryptedProject.is_collapsed ?? false,
         createdAt: new Date(newEncryptedProject.created_at),
         updatedAt: new Date(newEncryptedProject.updated_at)
       };
@@ -106,9 +110,68 @@ export const useProjectCRUD = (
     }
   }, [projectActions, setError]);
 
+  const handleBulkReorderProjects = useCallback(async (
+    updates: Array<{ id: string; parentId?: string; displayOrder: number }>
+  ): Promise<boolean> => {
+    try {
+      await bulkUpdateProjectOrder(updates);
+      
+      // Create update map for faster lookup
+      const updateMap = new Map(updates.map(u => [u.id, u]));
+      
+      // Update local state
+      projectActions.setProjects(prevProjects => {
+        const updatedProjects = prevProjects.map(project => {
+          const update = updateMap.get(project.id);
+          return update ? {
+            ...project,
+            parentId: update.parentId,
+            displayOrder: update.displayOrder
+          } : project;
+        });
+        
+        // Sort by displayOrder within each parent group
+        return updatedProjects.sort((a, b) => {
+          if (a.parentId !== b.parentId) {
+            return (a.parentId ?? '').localeCompare(b.parentId ?? '');
+          }
+          return a.displayOrder - b.displayOrder;
+        });
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error reordering projects:', error);
+      setError('Failed to reorder projects');
+      return false;
+    }
+  }, [projectActions, setError]);
+
+  const handleUpdateProjectCollapsedState = useCallback(async (id: string, isCollapsed: boolean): Promise<boolean> => {
+    try {
+      await updateProjectCollapsedState(id, isCollapsed);
+      
+      // Update local state
+      projectActions.setProjects(prevProjects =>
+        prevProjects.map(project =>
+          project.id === id
+            ? { ...project, isCollapsed }
+            : project
+        )
+      );
+      return true;
+    } catch (error) {
+      console.error('Error updating project collapsed state:', error);
+      setError('Failed to update project collapsed state');
+      return false;
+    }
+  }, [projectActions, setError]);
+
   return {
     handleAddProject,
     handleUpdateProject,
-    handleDeleteProject
+    handleDeleteProject,
+    handleBulkReorderProjects,
+    handleUpdateProjectCollapsedState
   };
 };

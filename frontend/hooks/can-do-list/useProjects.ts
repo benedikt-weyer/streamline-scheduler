@@ -11,6 +11,8 @@ export interface ProjectHook {
   handleAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
   handleUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   handleDeleteProject: (id: string) => Promise<boolean>;
+  handleBulkReorderProjects: (updates: Array<{ id: string; parentId?: string; displayOrder: number }>) => Promise<boolean>;
+  handleUpdateProjectCollapsedState: (id: string, isCollapsed: boolean) => Promise<boolean>;
 }
 
 /**
@@ -27,7 +29,9 @@ export function useProjects(encryptionKey: string | null): ProjectHook {
   const { 
     handleAddProject, 
     handleUpdateProject,
-    handleDeleteProject 
+    handleDeleteProject,
+    handleBulkReorderProjects,
+    handleUpdateProjectCollapsedState
   } = useProjectCRUD(projects, projectActions, encryptionKey);
 
   // Memoize the returned object to prevent unnecessary re-renders
@@ -37,13 +41,17 @@ export function useProjects(encryptionKey: string | null): ProjectHook {
     loadProjects,
     handleAddProject,
     handleUpdateProject,
-    handleDeleteProject
+    handleDeleteProject,
+    handleBulkReorderProjects,
+    handleUpdateProjectCollapsedState
   }), [
     projects,
     isLoading,
     loadProjects,
     handleAddProject,
     handleUpdateProject,
-    handleDeleteProject
+    handleDeleteProject,
+    handleBulkReorderProjects,
+    handleUpdateProjectCollapsedState
   ]);
 }
