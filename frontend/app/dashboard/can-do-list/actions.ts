@@ -151,16 +151,52 @@ export async function moveTaskToProject(
 export async function deleteTask(id: string, silent = false): Promise<void> {
   const supabase = await createClient();
   
+  // Get the authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User must be authenticated to delete tasks');
+  }
+
+  // First, get the task's project_id before deleting it so we can reorder the remaining tasks
+  const { data: taskToDelete, error: fetchError } = await supabase
+    .from('can_do_list')
+    .select('project_id, display_order')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+
+  if (fetchError) {
+    if (!silent) {
+      console.error("Error fetching task before deletion:", fetchError);
+    }
+    throw new Error(`Failed to fetch task before deletion: ${fetchError.message}`);
+  }
+
+  if (!taskToDelete) {
+    if (!silent) {
+      console.error("Task not found or user not authorized");
+    }
+    throw new Error("Task not found or user not authorized");
+  }
+
   const { error } = await supabase
     .from('can_do_list')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user.id);
   
   if (error) {
     if (!silent) {
       console.error("Error deleting task:", error);
     }
     throw new Error(`Failed to delete task: ${error.message}`);
+  }
+
+  // Only reorder if the deleted task was an active task (positive display_order)
+  if (taskToDelete.display_order >= 0) {
+    console.log('Reordering active tasks after deletion for project:', taskToDelete.project_id);
+    await reorderActiveTasksInProject(taskToDelete.project_id, silent);
   }
   
   revalidatePath('/dashboard/can-do-list');
