@@ -41,20 +41,42 @@ export async function addTask(
     throw new Error('User must be authenticated to add tasks');
   }
 
-  // If no displayOrder provided, get the next order for this project (highest = at top)
+  // If no displayOrder provided, add at the top (display order 0) and move all other tasks down
   let finalDisplayOrder = displayOrder;
   if (finalDisplayOrder === undefined) {
-    const { data: maxOrderData } = await supabase
-      .from('can_do_list')
-      .select('display_order')
-      .eq('user_id', user.id)
-      .eq('project_id', projectId ?? null)
-      .order('display_order', { ascending: false })
-      .limit(1);
+    // New tasks should be added at the top (display order 0)
+    finalDisplayOrder = 0;
     
-    finalDisplayOrder = maxOrderData && maxOrderData.length > 0 
-      ? (maxOrderData[0].display_order ?? 0) + 1 
-      : 0;
+    console.log('Adding new task at top, incrementing existing active tasks');
+    
+    // Get all existing active tasks in this project and increment their display orders
+    let query = supabase
+      .from('can_do_list')
+      .select('id, display_order')
+      .eq('user_id', user.id)
+      .gte('display_order', 0); // Only get active tasks (positive display_order)
+    
+    // Handle null project_id correctly
+    if (projectId === null || projectId === undefined) {
+      query = query.is('project_id', null);
+    } else {
+      query = query.eq('project_id', projectId);
+    }
+    
+    const { data: existingTasks } = await query;
+    
+    if (existingTasks && existingTasks.length > 0) {
+      // Increment all existing active tasks' display orders by 1
+      const updates = existingTasks.map(task => 
+        supabase
+          .from('can_do_list')
+          .update({ display_order: task.display_order + 1 })
+          .eq('id', task.id)
+          .eq('user_id', user.id)
+      );
+      
+      await Promise.all(updates);
+    }
   }
   
   const { data, error } = await supabase
