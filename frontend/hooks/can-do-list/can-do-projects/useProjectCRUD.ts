@@ -8,7 +8,7 @@ import {
   deleteProject,
   bulkUpdateProjectOrder,
   updateProjectCollapsedState
-} from '../../app/dashboard/can-do-list/project-actions';
+} from '../../../app/dashboard/can-do-list/project-actions';
 import { 
   encryptData, 
   generateIV, 

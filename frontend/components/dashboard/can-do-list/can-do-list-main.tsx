@@ -1,7 +1,7 @@
 'use client';
 
 import { useCanDoList } from '@/hooks/can-do-list/useCanDoList';
-import { useProjects } from '@/hooks/can-do-list/useProjects';
+import { useProjects } from '@/hooks/can-do-list/can-do-projects/useProjects';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { useError } from '@/utils/context/ErrorContext';
 import { useEffect, useState, useMemo } from 'react';
