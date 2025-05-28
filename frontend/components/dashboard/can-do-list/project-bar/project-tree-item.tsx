@@ -53,7 +53,7 @@ const ProjectTreeItem = React.forwardRef<
           </div>
           <div className="flex items-center gap-1">
             {item.count > 0 && (
-              <Badge variant="secondary" className="text-xs group-hover:opacity-0 transition-opacity">
+              <Badge variant="secondary" className="text-xs group-hover:opacity-0 transition-opacity !text-primary">
                 {item.count}
               </Badge>
             )}
