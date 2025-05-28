@@ -261,3 +261,163 @@ export async function bulkUpdateTaskOrder(
 
   revalidatePath('/dashboard/can-do-list');
 }
+
+// Toggle task completion with automatic reordering
+export async function toggleTaskCompleteWithReorder(
+  id: string,
+  encryptedData: string,
+  iv: string,
+  salt: string,
+  completed: boolean,
+  projectId?: string,
+  silent = false
+): Promise<EncryptedTask> {
+  const supabase = await createClient();
+  
+  // Get the authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User must be authenticated to update tasks');
+  }
+
+  let newDisplayOrder: number;
+
+  if (completed) {
+    // When completing a task, always set display order to -1
+    newDisplayOrder = -1;
+
+    console.log('Completing task, setting display order to -1');
+  } else {
+    // When uncompleting a task, set it to display order 0 (top)
+    // and increment all other active tasks' display orders
+    newDisplayOrder = 0;
+
+    console.log('Uncompleting task, incrementing display orders of active tasks');
+    
+    // First, get all active tasks and increment their display orders manually
+    let query = supabase
+      .from('can_do_list')
+      .select('id, display_order')
+      .eq('user_id', user.id)
+      .gte('display_order', 0); // Only get active tasks (positive display_order)
+    
+    // Handle null project_id correctly
+    if (projectId === null || projectId === undefined) {
+      query = query.is('project_id', null);
+    } else {
+      query = query.eq('project_id', projectId);
+    }
+    
+    const { data: activeTasks } = await query;
+    console.log('select where user_id:', user.id, 'and project_id:', projectId ?? null, 'display_order >= 0');
+    
+    console.log('Active tasks before incrementing:', activeTasks);
+    
+    if (activeTasks && activeTasks.length > 0) {
+      // Increment all active tasks' display orders by 1
+      const updates = activeTasks.map(task => 
+        supabase
+          .from('can_do_list')
+          .update({ display_order: task.display_order + 1 })
+          .eq('id', task.id)
+          .eq('user_id', user.id)
+      );
+      
+      await Promise.all(updates);
+    }
+  }
+
+  // Update the task with new completion status and display order
+  const { data, error } = await supabase
+    .from('can_do_list')
+    .update({
+      encrypted_data: encryptedData,
+      iv,
+      salt,
+      display_order: newDisplayOrder,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .select()
+    .single();
+  
+  if (error) {
+    if (!silent) {
+      console.error("Error toggling task completion:", error);
+    }
+    throw new Error(`Failed to toggle task completion: ${error.message}`);
+  }
+
+  // If we completed a task, reorder remaining active tasks to fill gaps
+  if (completed) {
+    console.log('Reordering active tasks for project:', projectId);
+    await reorderActiveTasksInProject(projectId, silent);
+  }
+
+  revalidatePath('/dashboard/can-do-list');
+  return data as EncryptedTask;
+}
+
+// Helper function to reorder active tasks in a project to fill gaps
+async function reorderActiveTasksInProject(projectId?: string, silent = false): Promise<void> {
+  const supabase = await createClient();
+  
+  // Get the authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User must be authenticated to reorder tasks');
+  }
+
+  console.log('Reordering tasks for project:', projectId);
+
+  // Fetch all active tasks (non-completed) for this project, ordered by display_order
+  let query = supabase
+    .from('can_do_list')
+    .select('id, display_order')
+    .eq('user_id', user.id)
+    .gte('display_order', 0) // Only get tasks with positive display_order (active tasks)
+    .order('display_order', { ascending: true });
+
+  // Handle null project_id correctly
+  if (projectId === null || projectId === undefined) {
+    query = query.is('project_id', null);
+  } else {
+    query = query.eq('project_id', projectId);
+  }
+
+  const { data: activeTasks, error } = await query;
+
+  console.log('Found active tasks:', activeTasks);
+
+  if (error) {
+    console.error("Error fetching active tasks for reordering:", error);
+    if (!silent) {
+      console.error("Error fetching active tasks for reordering:", error);
+    }
+    return;
+  }
+
+  if (!activeTasks || activeTasks.length === 0) {
+    console.log('No active tasks found, skipping reorder');
+    return;
+  }
+
+  // Always reorder to ensure sequential ordering (0, 1, 2, ...)
+  // This will fill any gaps left by completed tasks
+  const updates = activeTasks.map((task, index) => ({
+    id: task.id,
+    displayOrder: index
+  }));
+
+  console.log('Updates to apply for sequential ordering:', updates);
+
+  // Apply the updates to ensure sequential ordering
+  if (updates.length > 0) {
+    console.log('Applying bulk updates to ensure sequential ordering');
+    await bulkUpdateTaskOrder(updates, silent);
+  }
+}
+

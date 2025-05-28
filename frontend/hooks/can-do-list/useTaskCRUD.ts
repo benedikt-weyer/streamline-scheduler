@@ -8,7 +8,8 @@ import {
   deleteTask,
   fetchTasks,
   moveTaskToProject,
-  bulkDeleteTasks
+  bulkDeleteTasks,
+  toggleTaskCompleteWithReorder
 } from '../../app/dashboard/can-do-list/actions';
 import { 
   encryptData, 
@@ -130,20 +131,36 @@ export const useTaskCRUD = (
       
       const updatedTaskData = {
         content: task.content,
-        completed: completed
+        completed: completed,
+        estimatedDuration: task.estimatedDuration
       };
       
       const encryptedData = encryptData(updatedTaskData, derivedKey, iv);
       
-      await updateTask(id, encryptedData, iv, salt);
+      // Use the new action that handles display order and reordering
+      await toggleTaskCompleteWithReorder(id, encryptedData, iv, salt, completed, task.projectId);
       
-      taskActions.setTasks(prevTasks =>
-        prevTasks.map(task =>
-          task.id === id
-            ? { ...task, completed: completed }
-            : task
-        )
-      );
+      if (completed) {
+        // When completing a task, update local state to show it as completed
+        // The backend will assign a negative display order
+        taskActions.setTasks(prevTasks =>
+          prevTasks.map(prevTask =>
+            prevTask.id === id
+              ? { ...prevTask, completed: completed, displayOrder: -1 }
+              : prevTask
+          )
+        );
+      } else {
+        // When uncompleting a task, it will get a new positive display order from the backend
+        // We'll let the subscription or next reload handle the proper ordering
+        taskActions.setTasks(prevTasks =>
+          prevTasks.map(prevTask =>
+            prevTask.id === id
+              ? { ...prevTask, completed: completed }
+              : prevTask
+          )
+        );
+      }
       return true;
     } catch (error) {
       console.error('Error toggling task completion:', error);

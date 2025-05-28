@@ -104,7 +104,9 @@ export default function TaskList({
 
   if (isLoading || localTasks.length === 0) return null;
 
-  const taskIds = localTasks.map(task => task.id);
+  // Only include active (non-completed) tasks in drag and drop operations
+  const activeTasks = localTasks.filter(task => !task.completed);
+  const taskIds = activeTasks.map(task => task.id);
   const activeTask = activeId ? localTasks.find(task => task.id === activeId) : null;
 
   return (

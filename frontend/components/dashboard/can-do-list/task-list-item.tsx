@@ -22,6 +22,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
+  // Only enable sorting for active (non-completed) tasks
   const {
     attributes,
     listeners,
@@ -29,7 +30,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({ 
+    id: task.id,
+    disabled: task.completed // Disable dragging for completed tasks
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -79,9 +83,11 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
       <div 
         ref={setNodeRef}
         style={style}
-        {...attributes}
-        {...listeners}
-        className={`flex items-center justify-between rounded-md border task-transition cursor-grab active:cursor-grabbing ${
+        {...(!task.completed ? attributes : {})}
+        {...(!task.completed ? listeners : {})}
+        className={`flex items-center justify-between rounded-md border task-transition ${
+          !task.completed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+        } ${
           task.completed ? 'bg-muted' : ''
         } ${
           isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
