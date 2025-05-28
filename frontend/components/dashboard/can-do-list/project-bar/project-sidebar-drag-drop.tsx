@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Project, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
 import { Plus, Folder, FolderOpen } from 'lucide-react';
-import AddProjectDialog from './add-project-dialog';
-import EditProjectDialog from './edit-project-dialog';
+import AddProjectDialog from '../add-project-dialog';
+import EditProjectDialog from '../edit-project-dialog';
 import { SortableTree, TreeItems } from 'dnd-kit-sortable-tree';
 import ProjectTreeItem from './project-tree-item';
 

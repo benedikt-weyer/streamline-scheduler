@@ -16,7 +16,7 @@ import LoadingState from './loading-state';
 import EmptyState from './empty-state';
 import ItemList from './item-list';
 import AuthenticationRequired from './authentication-required';
-import ProjectSidebarDynamic from './project-sidebar-dynamic';
+import ProjectSidebarDynamic from './project-bar/project-sidebar-dynamic';
 
 // Define schema for new item validation
 const addItemSchema = z.object({
