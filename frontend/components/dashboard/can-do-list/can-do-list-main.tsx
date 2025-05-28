@@ -45,7 +45,8 @@ export default function CanDoListMain() {
     handleUpdateTask,
     handleToggleComplete,
     handleDeleteTask,
-    handleBulkDeleteCompleted
+    handleBulkDeleteCompleted,
+    handleReorderTasks
   } = useCanDoList(encryptionKey);
 
   // Use projects hook
@@ -241,7 +242,9 @@ export default function CanDoListMain() {
                     onToggleComplete={onToggleComplete}
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
+                    onReorderTasks={handleReorderTasks}
                     projects={projects}
+                    currentProjectId={selectedProjectId}
                   />
                 </TabsContent>
 
@@ -271,7 +274,9 @@ export default function CanDoListMain() {
                     onToggleComplete={onToggleComplete}
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
+                    onReorderTasks={handleReorderTasks}
                     projects={projects}
+                    currentProjectId={selectedProjectId}
                   />
                 </TabsContent>
               </Tabs>

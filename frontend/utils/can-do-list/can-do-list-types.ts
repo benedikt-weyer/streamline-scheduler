@@ -6,6 +6,7 @@ export interface Task {
   updatedAt?: Date;
   estimatedDuration?: number; // in minutes
   projectId?: string; // Reference to project
+  displayOrder: number;
 }
 
 export interface EncryptedTask {
@@ -17,6 +18,7 @@ export interface EncryptedTask {
   created_at: string;
   updated_at: string;
   project_id?: string; // Reference to project
+  display_order: number;
 }
 
 export interface Project {

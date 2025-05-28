@@ -3,6 +3,7 @@ import { CanDoListHook } from './types/taskHooks';
 import { useTaskState } from './useTaskState';
 import { useTaskLoader } from './useTaskLoader';
 import { useTaskCRUD } from './useTaskCRUD';
+import { useTaskReorder } from './useTaskReorder';
 import { useTaskSubscriptions } from './useTaskSubscriptions';
 
 /**
@@ -34,6 +35,8 @@ export function useCanDoList(
     handleBulkDeleteCompleted
   } = useTaskCRUD(tasks, taskActions, encryptionKey, skipNextTaskReload);
 
+  const { reorderTasks } = useTaskReorder(tasks, taskActions, skipNextTaskReload);
+
   // Memoize the returned object to prevent unnecessary re-renders
   return useMemo(() => ({
     tasks,
@@ -46,6 +49,7 @@ export function useCanDoList(
     handleDeleteTask,
     handleMoveTaskToProject,
     handleBulkDeleteCompleted,
+    handleReorderTasks: reorderTasks,
     isSubscribed,
     skipNextTaskReload
   }), [
@@ -59,6 +63,7 @@ export function useCanDoList(
     handleDeleteTask,
     handleMoveTaskToProject,
     handleBulkDeleteCompleted,
+    reorderTasks,
     isSubscribed,
     skipNextTaskReload
   ]);

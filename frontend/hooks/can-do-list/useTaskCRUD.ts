@@ -51,7 +51,8 @@ export const useTaskCRUD = (
         createdAt: new Date(newEncryptedTask.created_at),
         updatedAt: new Date(newEncryptedTask.updated_at),
         estimatedDuration: estimatedDuration,
-        projectId: projectId
+        projectId: projectId,
+        displayOrder: newEncryptedTask.display_order ?? 0
       };
       taskActions.setTasks(prevTasks => [newTask, ...prevTasks]);
       return true;

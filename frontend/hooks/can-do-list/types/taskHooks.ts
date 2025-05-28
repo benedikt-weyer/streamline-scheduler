@@ -21,6 +21,7 @@ export interface TaskCRUDHook {
   handleDeleteTask: (id: string) => Promise<boolean>;
   handleMoveTaskToProject: (id: string, projectId?: string) => Promise<boolean>;
   handleBulkDeleteCompleted: (projectId?: string) => Promise<number>;
+  handleReorderTasks: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
 }
 
 export interface TaskSubscriptionHook {

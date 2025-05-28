@@ -6,6 +6,8 @@ import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 import { useState } from 'react';
 import { Edit, Trash2, Clock } from 'lucide-react';
 import EditTaskDialog from './edit-task-dialog';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface TaskListItemProps {
   readonly task: Task;
@@ -19,6 +21,20 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   const handleEdit = () => {
     setIsEditDialogOpen(true);
@@ -60,27 +76,36 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
 
   return (
     <>
-      <li 
-        className={`flex items-center justify-between rounded-md border task-transition ${
+      <div 
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className={`flex items-center justify-between rounded-md border task-transition cursor-grab active:cursor-grabbing ${
           task.completed ? 'bg-muted' : ''
         } ${
           isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
+        } ${
+          isDragging ? 'opacity-50' : ''
         }`}
       >
-        <div className="flex items-center space-x-3 flex-1 min-w-0 p-3">
+        <div 
+          className="flex items-center space-x-3 flex-1 min-w-0 p-3"
+          onClick={handleToggleCompleteClick}
+          onKeyDown={handleToggleCompleteKeyDown}
+          role="button"
+          tabIndex={0}
+        >
           <Checkbox
             checked={task.completed}
             id={`task-${task.id}`}
             onCheckedChange={handleToggleCompleteClick}
+            onPointerDown={(e) => e.stopPropagation()}
           />
           <span
             className={`flex-1 min-w-0 cursor-pointer ${
               task.completed ? 'line-through text-muted-foreground' : ''
             }`}
-            onClick={handleToggleCompleteClick}
-            onKeyDown={handleToggleCompleteKeyDown}
-            role="button"
-            tabIndex={0}
             aria-label={`Mark "${task.content}" as ${task.completed ? 'incomplete' : 'complete'}`}
           >
             <span className="block truncate">{task.content}</span>
@@ -98,6 +123,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             variant="ghost"
             size="sm"
             onClick={handleEdit}
+            onPointerDown={(e) => e.stopPropagation()}
             className="text-muted-foreground hover:text-foreground"
           >
             <Edit className="h-4 w-4" />
@@ -107,13 +133,14 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             variant="ghost"
             size="sm"
             onClick={() => onDeleteTask(task.id)}
+            onPointerDown={(e) => e.stopPropagation()}
             className="text-destructive hover:text-destructive/80"
           >
             <Trash2 className="h-4 w-4" />
             <span className="sr-only">Delete</span>
           </Button>
         </div>
-      </li>
+      </div>
 
       <EditTaskDialog
         task={task}

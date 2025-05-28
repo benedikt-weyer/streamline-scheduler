@@ -15,8 +15,15 @@ export const useTaskState = (): [Task[], boolean, TaskStateActions] => {
         ? tasksOrUpdater(prevTasks) 
         : tasksOrUpdater;
       
-      // Sort tasks by creation date (newest first)
-      return newTasks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      // Sort tasks by display order, with fallback to creation date for same display order
+      return newTasks.sort((a, b) => {
+        // First compare by display order
+        if (a.displayOrder !== b.displayOrder) {
+          return a.displayOrder - b.displayOrder;
+        }
+        // If display order is the same, sort by creation date (newest first as fallback)
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
     });
   }, []);
 

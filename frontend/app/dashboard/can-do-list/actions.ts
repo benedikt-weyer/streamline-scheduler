@@ -11,7 +11,7 @@ export async function fetchTasks(silent = false): Promise<EncryptedTask[]> {
   const { data, error } = await supabase
     .from('can_do_list')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('display_order', { ascending: true });
   
   if (error) {
     if (!silent) {
@@ -29,6 +29,7 @@ export async function addTask(
   iv: string,
   salt: string,
   projectId?: string,
+  displayOrder?: number,
   silent = false
 ): Promise<EncryptedTask> {
   const supabase = await createClient();
@@ -39,6 +40,22 @@ export async function addTask(
   if (!user) {
     throw new Error('User must be authenticated to add tasks');
   }
+
+  // If no displayOrder provided, get the next order for this project (highest = at top)
+  let finalDisplayOrder = displayOrder;
+  if (finalDisplayOrder === undefined) {
+    const { data: maxOrderData } = await supabase
+      .from('can_do_list')
+      .select('display_order')
+      .eq('user_id', user.id)
+      .eq('project_id', projectId ?? null)
+      .order('display_order', { ascending: false })
+      .limit(1);
+    
+    finalDisplayOrder = maxOrderData && maxOrderData.length > 0 
+      ? (maxOrderData[0].display_order ?? 0) + 1 
+      : 0;
+  }
   
   const { data, error } = await supabase
     .from('can_do_list')
@@ -47,7 +64,8 @@ export async function addTask(
       encrypted_data: encryptedData,
       iv,
       salt,
-      project_id: projectId
+      project_id: projectId,
+      display_order: finalDisplayOrder
     })
     .select()
     .single();
@@ -70,18 +88,25 @@ export async function updateTask(
   iv: string,
   salt: string,
   projectId?: string,
+  displayOrder?: number,
   silent = false
 ): Promise<EncryptedTask> {
   const supabase = await createClient();
+
+  const updateData: any = {
+    encrypted_data: encryptedData,
+    iv,
+    salt,
+    project_id: projectId
+  };
+
+  if (displayOrder !== undefined) {
+    updateData.display_order = displayOrder;
+  }
   
   const { data, error } = await supabase
     .from('can_do_list')
-    .update({
-      encrypted_data: encryptedData,
-      iv,
-      salt,
-      project_id: projectId
-    })
+    .update(updateData)
     .eq('id', id)
     .select()
     .single();
@@ -179,7 +204,7 @@ export async function fetchTasksByProject(projectId?: string, silent = false): P
   let query = supabase
     .from('can_do_list')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('display_order', { ascending: true });
   
   // If projectId is null or undefined, get items without a project
   if (projectId === null || projectId === undefined) {
@@ -198,4 +223,41 @@ export async function fetchTasksByProject(projectId?: string, silent = false): P
   }
   
   return data as EncryptedTask[];
+}
+
+// Bulk update task display orders for drag and drop reordering
+export async function bulkUpdateTaskOrder(
+  updates: { id: string; displayOrder: number }[],
+  silent = false
+): Promise<void> {
+  const supabase = await createClient();
+  
+  // Get the authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User must be authenticated to update tasks');
+  }
+
+  // Perform bulk update using a batch of individual updates
+  const updatePromises = updates.map(({ id, displayOrder }) =>
+    supabase
+      .from('can_do_list')
+      .update({ display_order: displayOrder })
+      .eq('id', id)
+      .eq('user_id', user.id) // Ensure user can only update their own tasks
+  );
+
+  const results = await Promise.all(updatePromises);
+  
+  // Check for any errors
+  const errors = results.filter(result => result.error);
+  if (errors.length > 0) {
+    if (!silent) {
+      console.error("Error bulk updating task order:", errors);
+    }
+    throw new Error(`Failed to update task order: ${errors[0].error?.message}`);
+  }
+
+  revalidatePath('/dashboard/can-do-list');
 }
