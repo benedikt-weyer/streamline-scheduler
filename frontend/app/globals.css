@@ -81,6 +81,8 @@
 
   padding-top: 0;
   padding-bottom: 0;
+
+  color: var(--primary);
 }
 
 .dnd-sortable-tree_simple_handle {
