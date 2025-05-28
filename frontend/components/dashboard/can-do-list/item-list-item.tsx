@@ -18,6 +18,7 @@ interface ItemListItemProps {
 export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onUpdateItem, projects = [] }: ItemListItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
   const handleEdit = () => {
     setIsEditDialogOpen(true);
@@ -36,24 +37,51 @@ export default function ItemListItem({ item, onToggleComplete, onDeleteItem, onU
     setIsEditDialogOpen(false);
   };
 
+  const handleToggleCompleteClick = async () => {
+    if (!item.completed) {
+      // If marking as complete, trigger animation first
+      setIsAnimatingOut(true);
+      // Wait for animation to complete, then actually toggle
+      setTimeout(async () => {
+        await onToggleComplete(item.id, !item.completed);
+      }, 300); // Match animation duration
+    } else {
+      // If marking as incomplete, toggle immediately
+      await onToggleComplete(item.id, !item.completed);
+    }
+  };
+
+  const handleToggleCompleteKeyDown = async (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      await handleToggleCompleteClick();
+    }
+  };
+
   return (
     <>
       <li 
-        className={`flex items-center justify-between rounded-md border ${
+        className={`flex items-center justify-between rounded-md border item-transition ${
           item.completed ? 'bg-muted' : ''
+        } ${
+          isAnimatingOut ? 'item-fade-out' : 'item-fade-in'
         }`}
       >
         <div className="flex items-center space-x-3 flex-1 min-w-0 p-3">
           <Checkbox
             checked={item.completed}
             id={`item-${item.id}`}
-            onCheckedChange={() => onToggleComplete(item.id, !item.completed)}
+            onCheckedChange={handleToggleCompleteClick}
           />
           <span
             className={`flex-1 min-w-0 cursor-pointer ${
               item.completed ? 'line-through text-muted-foreground' : ''
             }`}
-            onClick={() => onToggleComplete(item.id, !item.completed)}
+            onClick={handleToggleCompleteClick}
+            onKeyDown={handleToggleCompleteKeyDown}
+            role="button"
+            tabIndex={0}
+            aria-label={`Mark "${item.content}" as ${item.completed ? 'incomplete' : 'complete'}`}
           >
             <span className="block truncate">{item.content}</span>
           </span>

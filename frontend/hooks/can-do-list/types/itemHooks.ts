@@ -20,6 +20,7 @@ export interface ItemCRUDHook {
   handleToggleComplete: (id: string, completed: boolean) => Promise<boolean>;
   handleDeleteItem: (id: string) => Promise<boolean>;
   handleMoveItemToProject: (id: string, projectId?: string) => Promise<boolean>;
+  handleBulkDeleteCompleted: (projectId?: string) => Promise<number>;
 }
 
 export interface ItemSubscriptionHook {

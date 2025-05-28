@@ -88,3 +88,38 @@
 .dnd-sortable-tree_simple_handle {
   display: none;
 }
+
+/* Animation classes for can-do list items */
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.item-fade-out {
+  animation: fadeOut 300ms ease-in-out forwards;
+}
+
+.item-fade-in {
+  animation: fadeIn 300ms ease-in-out forwards;
+}
+
+.item-transition {
+  transition: all 300ms ease-in-out;
+}

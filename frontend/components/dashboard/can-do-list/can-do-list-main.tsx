@@ -9,6 +9,9 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { parseDurationFromContent } from '@/utils/can-do-list/duration-parser';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Trash2 } from 'lucide-react';
 
 import ErrorDisplay from './error-display';
 import AddItemForm from './add-item-form';
@@ -31,6 +34,7 @@ export default function CanDoListMain() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
   const { error } = useError();
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
+  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
 
   // Use the main can-do list hook
   const {
@@ -40,7 +44,8 @@ export default function CanDoListMain() {
     handleAddItem,
     handleUpdateItem,
     handleToggleComplete,
-    handleDeleteItem
+    handleDeleteItem,
+    handleBulkDeleteCompleted
   } = useCanDoList(encryptionKey);
 
   // Use projects hook
@@ -86,14 +91,39 @@ export default function CanDoListMain() {
     setSelectedProjectId(projectId);
   };
 
-  // Filter items based on selected project
+  // Filter items based on selected project and tab
   const filteredItems = useMemo(() => {
+    let baseItems;
     if (selectedProjectId) {
-      return items.filter(item => item.projectId === selectedProjectId);
+      baseItems = items.filter(item => item.projectId === selectedProjectId);
     } else {
       // Show items without project (inbox)
-      return items.filter(item => !item.projectId);
+      baseItems = items.filter(item => !item.projectId);
     }
+    
+    // Filter by tab
+    return baseItems.filter(item => {
+      if (activeTab === 'active') {
+        return !item.completed;
+      } else {
+        return item.completed;
+      }
+    });
+  }, [items, selectedProjectId, activeTab]);
+
+  // Get active and completed counts for current project
+  const { activeCount, completedCount } = useMemo(() => {
+    let baseItems;
+    if (selectedProjectId) {
+      baseItems = items.filter(item => item.projectId === selectedProjectId);
+    } else {
+      baseItems = items.filter(item => !item.projectId);
+    }
+    
+    const active = baseItems.filter(item => !item.completed).length;
+    const completed = baseItems.filter(item => item.completed).length;
+    
+    return { activeCount: active, completedCount: completed };
   }, [items, selectedProjectId]);
 
   // Calculate item counts per project
@@ -136,6 +166,15 @@ export default function CanDoListMain() {
     await handleDeleteItem(id);
   };
 
+  // Handle bulk delete completed items
+  const handleBulkDelete = async () => {
+    const deletedCount = await handleBulkDeleteCompleted(selectedProjectId);
+    if (deletedCount > 0) {
+      // If we deleted items and are on completed tab, stay on the tab
+      // The items will automatically be removed from the view
+    }
+  };
+
   return (
     <>
       <AuthenticationRequired 
@@ -167,21 +206,75 @@ export default function CanDoListMain() {
                 }
               </h1>
               <ErrorDisplay error={error} />
-              <AddItemForm 
-                form={form} 
-                onSubmit={onSubmit} 
-                isLoading={isLoading} 
-              />
-              <LoadingState isLoading={isLoading} />
-              <EmptyState isLoading={isLoading} itemsLength={filteredItems.length} />
-              <ItemList 
-                items={filteredItems}
-                isLoading={isLoading}
-                onToggleComplete={onToggleComplete}
-                onDeleteItem={onDeleteItem}
-                onUpdateItem={onUpdateItem}
-                projects={projects}
-              />
+              
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="active" className="flex items-center gap-2">
+                    Active
+                    {activeCount > 0 && (
+                      <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                        {activeCount}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="completed" className="flex items-center gap-2">
+                    Completed
+                    {completedCount > 0 && (
+                      <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                        {completedCount}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="active" className="mt-0">
+                  <AddItemForm 
+                    form={form} 
+                    onSubmit={onSubmit} 
+                    isLoading={isLoading} 
+                  />
+                  <LoadingState isLoading={isLoading} />
+                  <EmptyState isLoading={isLoading} itemsLength={filteredItems.length} />
+                  <ItemList 
+                    items={filteredItems}
+                    isLoading={isLoading}
+                    onToggleComplete={onToggleComplete}
+                    onDeleteItem={onDeleteItem}
+                    onUpdateItem={onUpdateItem}
+                    projects={projects}
+                  />
+                </TabsContent>
+
+                <TabsContent value="completed" className="mt-0">
+                  <div className="mb-4 flex justify-between items-center">
+                    <p className="text-sm text-muted-foreground">
+                      {completedCount} completed {completedCount === 1 ? 'item' : 'items'}
+                    </p>
+                    {completedCount > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleBulkDelete}
+                        disabled={isLoading}
+                        className="text-destructive hover:text-destructive/80"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete All Completed
+                      </Button>
+                    )}
+                  </div>
+                  <LoadingState isLoading={isLoading} />
+                  <EmptyState isLoading={isLoading} itemsLength={filteredItems.length} />
+                  <ItemList 
+                    items={filteredItems}
+                    isLoading={isLoading}
+                    onToggleComplete={onToggleComplete}
+                    onDeleteItem={onDeleteItem}
+                    onUpdateItem={onUpdateItem}
+                    projects={projects}
+                  />
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </div>

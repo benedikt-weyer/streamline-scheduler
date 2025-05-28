@@ -141,6 +141,37 @@ export async function deleteCanDoItem(id: string, silent = false): Promise<void>
   revalidatePath('/dashboard/can-do-list');
 }
 
+// Bulk delete can-do items by IDs
+export async function bulkDeleteCanDoItems(ids: string[], silent = false): Promise<void> {
+  const supabase = await createClient();
+  
+  // Get the authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User must be authenticated to delete items');
+  }
+  
+  if (ids.length === 0) {
+    return;
+  }
+  
+  const { error } = await supabase
+    .from('can_do_list')
+    .delete()
+    .eq('user_id', user.id)
+    .in('id', ids);
+  
+  if (error) {
+    if (!silent) {
+      console.error("Error bulk deleting can-do items:", error);
+    }
+    throw new Error(`Failed to bulk delete can-do items: ${error.message}`);
+  }
+  
+  revalidatePath('/dashboard/can-do-list');
+}
+
 // Fetch can-do items for a specific project
 export async function fetchCanDoItemsByProject(projectId?: string, silent = false): Promise<EncryptedCanDoItem[]> {
   const supabase = await createClient();

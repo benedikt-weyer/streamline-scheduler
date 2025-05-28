@@ -7,7 +7,8 @@ import {
   updateCanDoItem, 
   deleteCanDoItem,
   fetchCanDoItems,
-  moveCanDoItemToProject
+  moveCanDoItemToProject,
+  bulkDeleteCanDoItems
 } from '../../app/dashboard/can-do-list/actions';
 import { 
   encryptData, 
@@ -189,11 +190,49 @@ export const useItemCRUD = (
     }
   }, [itemActions, setError, skipNextItemReload]);
 
+  const handleBulkDeleteCompleted = useCallback(async (projectId?: string): Promise<number> => {
+    try {
+      if (skipNextItemReload) {
+        skipNextItemReload();
+      }
+      
+      // Filter completed items for the given project (or all items if no project)
+      const completedItems = items.filter(item => {
+        const isCompleted = item.completed;
+        if (projectId === undefined) {
+          // If no project is selected, include items without projectId
+          return isCompleted && !item.projectId;
+        } else {
+          // If project is selected, include items with matching projectId
+          return isCompleted && item.projectId === projectId;
+        }
+      });
+      
+      if (completedItems.length === 0) {
+        return 0;
+      }
+      
+      const idsToDelete = completedItems.map(item => item.id);
+      await bulkDeleteCanDoItems(idsToDelete);
+      
+      itemActions.setItems(prevItems => 
+        prevItems.filter(item => !idsToDelete.includes(item.id))
+      );
+      
+      return completedItems.length;
+    } catch (error) {
+      console.error('Error bulk deleting completed items:', error);
+      setError('Failed to delete completed items');
+      return 0;
+    }
+  }, [items, itemActions, setError, skipNextItemReload]);
+
   return {
     handleAddItem,
     handleUpdateItem,
     handleToggleComplete,
     handleDeleteItem,
-    handleMoveItemToProject
+    handleMoveItemToProject,
+    handleBulkDeleteCompleted
   };
 };

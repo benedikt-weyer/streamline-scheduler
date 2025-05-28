@@ -30,7 +30,8 @@ export function useCanDoList(
     handleUpdateItem,
     handleToggleComplete, 
     handleDeleteItem,
-    handleMoveItemToProject
+    handleMoveItemToProject,
+    handleBulkDeleteCompleted
   } = useItemCRUD(items, itemActions, encryptionKey, skipNextItemReload);
 
   // Memoize the returned object to prevent unnecessary re-renders
@@ -44,6 +45,7 @@ export function useCanDoList(
     handleToggleComplete,
     handleDeleteItem,
     handleMoveItemToProject,
+    handleBulkDeleteCompleted,
     isSubscribed,
     skipNextItemReload
   }), [
@@ -56,6 +58,7 @@ export function useCanDoList(
     handleToggleComplete,
     handleDeleteItem,
     handleMoveItemToProject,
+    handleBulkDeleteCompleted,
     isSubscribed,
     skipNextItemReload
   ]);
