@@ -25,7 +25,7 @@ export const createRecurrencePattern = (
   recurrenceFrequency?: RecurrenceFrequency,
   recurrenceInterval?: number,
   recurrenceEndDate?: string,
-  daysOfWeek?: string[]
+  daysOfWeek?: number[]
 ): RecurrencePattern | undefined => {
   if (!recurrenceFrequency || recurrenceFrequency === RecurrenceFrequency.None) {
     return undefined;

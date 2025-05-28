@@ -197,5 +197,5 @@ export async function fetchTasksByProject(projectId?: string, silent = false): P
     throw new Error(`Failed to fetch can-do items by project: ${error.message}`);
   }
   
-  return data as EncryptedCanDoItem[];
+  return data as EncryptedTask[];
 }

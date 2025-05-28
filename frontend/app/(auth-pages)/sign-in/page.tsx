@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 
 import { hashPassword, storeHashedPassword } from "@/utils/cryptography/encryption";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,7 +26,7 @@ const signInSchema = z.object({
 
 type SignInFormValues = z.infer<typeof signInSchema>;
 
-export default function Login() {
+function SignInForm() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState<Message | null>(null);
 
@@ -114,5 +114,13 @@ export default function Login() {
         </div>
       </form>
     </Form>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInForm />
+    </Suspense>
   );
 }

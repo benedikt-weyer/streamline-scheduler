@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Task } from '@/utils/can-do-list/can-do-list-types';
-import { TaskStateActions } from './types/itemHooks';
+import { TaskStateActions } from './types/taskHooks';
 
 /**
  * Hook for managing can-do task state

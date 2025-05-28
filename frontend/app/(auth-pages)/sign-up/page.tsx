@@ -5,7 +5,7 @@ import { FormMessage, Message } from "@/components/auth/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -20,7 +20,7 @@ const signUpSchema = z.object({
 
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
-export default function Signup() {
+function SignUpForm() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState<Message | null>(null);
 
@@ -95,5 +95,13 @@ export default function Signup() {
         </div>
       </form>
     </Form>
+  );
+}
+
+export default function Signup() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignUpForm />
+    </Suspense>
   );
 }

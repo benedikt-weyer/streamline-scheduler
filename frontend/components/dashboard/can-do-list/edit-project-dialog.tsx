@@ -224,7 +224,9 @@ export default function EditProjectDialog({
                 control={form.control}
                 name="parentId"
                 render={({ field }) => {
-                  if (!project) return null;
+                  if (!project) {
+                    return <></>;
+                  }
                   
                   const availableParents = getAvailableParents(project.id, projects).filter(p => 
                     canMoveProject(project.id, p.id, projects)
