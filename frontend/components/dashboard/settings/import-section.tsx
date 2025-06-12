@@ -121,7 +121,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
 
     // Check for potential conflicts and data issues
     if (tasks && tasks.length > 0) {
-      warnings.push(`Importing ${tasks.length} tasks - these will be added to your existing data`);
+      warnings.push(`Processing ${tasks.length} tasks - duplicates will be automatically skipped`);
       
       // Check if tasks have required fields
       const invalidTasks = tasks.filter(task => !task.encrypted_data || !task.iv || !task.salt);
@@ -137,7 +137,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
     }
     
     if (projects && projects.length > 0) {
-      warnings.push(`Importing ${projects.length} projects - these will be added to your existing data`);
+      warnings.push(`Processing ${projects.length} projects - duplicates will be automatically skipped`);
       
       // Check if projects have required fields
       const invalidProjects = projects.filter(project => !project.encrypted_data || !project.iv || !project.salt);
@@ -153,7 +153,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
     }
 
     if (calendars && calendars.length > 0) {
-      warnings.push(`Importing ${calendars.length} calendars - these will be added to your existing data`);
+      warnings.push(`Processing ${calendars.length} calendars - duplicates will be automatically skipped`);
       
       // Check if calendars have required fields
       const invalidCalendars = calendars.filter(calendar => !calendar.encrypted_data || !calendar.iv || !calendar.salt);
@@ -163,7 +163,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
     }
 
     if (calendarEvents && calendarEvents.length > 0) {
-      warnings.push(`Importing ${calendarEvents.length} calendar events - these will be added to your existing data`);
+      warnings.push(`Processing ${calendarEvents.length} calendar events - duplicates will be automatically skipped`);
       
       // Check if events have required fields
       const invalidEvents = calendarEvents.filter(event => !event.encrypted_data || !event.iv || !event.salt);
@@ -229,9 +229,9 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
       setError(''); // Clear any previous errors
       
       // Success feedback with more detail
-      const summary = `Successfully imported: ${preview.data.data.tasks.length} tasks, ${preview.data.data.projects.length} projects, ${preview.data.data.calendars.length} calendars, ${preview.data.data.calendarEvents.length} events`;
+      const summary = `Processed for import: ${preview.data.data.tasks.length} tasks, ${preview.data.data.projects.length} projects, ${preview.data.data.calendars.length} calendars, ${preview.data.data.calendarEvents.length} events`;
       
-      alert(`Data imported successfully!\n\n${summary}\n\nNote: Some relationships between items may need to be re-established manually. Please refresh the page to see your imported data.`);
+      alert(`Data import completed!\n\n${summary}\n\nNote: Duplicate items (same encrypted data) were automatically skipped. Some relationships between items may need to be re-established manually. Please refresh the page to see your imported data.`);
       
       // Reset form
       setImportData('');

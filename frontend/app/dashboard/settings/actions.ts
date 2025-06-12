@@ -172,74 +172,152 @@ export async function importUserData(data: ExportedData): Promise<void> {
       });
     };
 
+    // Helper function to find duplicates by comparing encrypted data
+    const findNewEntries = (newItems: any[], existingItems: any[]) => {
+      return newItems.filter(newItem => {
+        // Check if this item already exists by comparing encrypted_data, iv, and salt
+        const isDuplicate = existingItems.some(existing => 
+          existing.encrypted_data === newItem.encrypted_data &&
+          existing.iv === newItem.iv &&
+          existing.salt === newItem.salt
+        );
+        return !isDuplicate;
+      });
+    };
+
+    // Fetch existing data to check for duplicates
+    console.log('Fetching existing data to check for duplicates...');
+    const [existingTasks, existingProjects, existingCalendars, existingEvents] = await Promise.all([
+      supabase.from('can_do_list').select('encrypted_data, iv, salt').eq('user_id', user.id),
+      supabase.from('projects').select('encrypted_data, iv, salt').eq('user_id', user.id),
+      supabase.from('calendars').select('encrypted_data, iv, salt').eq('user_id', user.id),
+      supabase.from('calendar_events').select('encrypted_data, iv, salt').eq('user_id', user.id)
+    ]);
+
     // Import data in correct order to handle foreign key constraints
 
     // 1. Import projects first (they might reference each other)
     if (data.data.projects && data.data.projects.length > 0) {
-      console.log('Importing projects...');
+      console.log('Processing projects for import...');
       const projectsToInsert = prepareForInsert(data.data.projects);
       
-      // For projects with parent relationships, we need to handle them carefully
-      // First, import projects without parents
-      const rootProjects = projectsToInsert.filter(p => !p.parent_id);
-      const childProjects = projectsToInsert.filter(p => p.parent_id);
+      // Find new projects (skip duplicates)
+      const newProjects = findNewEntries(projectsToInsert, existingProjects.data || []);
+      const skippedProjectsCount = projectsToInsert.length - newProjects.length;
       
-      if (rootProjects.length > 0) {
-        const { error: projectError } = await supabase.from('projects').insert(rootProjects);
-        if (projectError) {
-          console.error('Project import error:', projectError);
-          throw new Error(`Failed to import projects: ${projectError.message}`);
-        }
-        console.log(`Imported ${rootProjects.length} root projects`);
+      if (skippedProjectsCount > 0) {
+        console.log(`Skipping ${skippedProjectsCount} duplicate projects`);
       }
       
-      // For child projects, we'll insert them without parent_id for now
-      // In a more sophisticated version, we'd map old IDs to new IDs
-      if (childProjects.length > 0) {
-        const childProjectsWithoutParent = childProjects.map(({ parent_id, ...rest }) => rest);
-        const { error: childProjectError } = await supabase.from('projects').insert(childProjectsWithoutParent);
-        if (childProjectError) {
-          console.error('Child project import error:', childProjectError);
-          throw new Error(`Failed to import child projects: ${childProjectError.message}`);
+      if (newProjects.length > 0) {
+        console.log(`Importing ${newProjects.length} new projects...`);
+        
+        // For projects with parent relationships, we need to handle them carefully
+        // First, import projects without parents
+        const rootProjects = newProjects.filter(p => !p.parent_id);
+        const childProjects = newProjects.filter(p => p.parent_id);
+        
+        if (rootProjects.length > 0) {
+          const { error: projectError } = await supabase.from('projects').insert(rootProjects);
+          if (projectError) {
+            console.error('Project import error:', projectError);
+            throw new Error(`Failed to import projects: ${projectError.message}`);
+          }
+          console.log(`Imported ${rootProjects.length} root projects`);
         }
-        console.log(`Imported ${childProjects.length} child projects (parent relationships not preserved)`);
+        
+        // For child projects, we'll insert them without parent_id for now
+        // In a more sophisticated version, we'd map old IDs to new IDs
+        if (childProjects.length > 0) {
+          const childProjectsWithoutParent = childProjects.map(({ parent_id, ...rest }) => rest);
+          const { error: childProjectError } = await supabase.from('projects').insert(childProjectsWithoutParent);
+          if (childProjectError) {
+            console.error('Child project import error:', childProjectError);
+            throw new Error(`Failed to import child projects: ${childProjectError.message}`);
+          }
+          console.log(`Imported ${childProjects.length} child projects (parent relationships not preserved)`);
+        }
+      } else {
+        console.log('No new projects to import (all were duplicates)');
       }
     }
 
     // 2. Import calendars
     if (data.data.calendars && data.data.calendars.length > 0) {
-      console.log('Importing calendars...');
+      console.log('Processing calendars for import...');
       const calendarsToInsert = prepareForInsert(data.data.calendars);
-      const { error: calendarError } = await supabase.from('calendars').insert(calendarsToInsert);
-      if (calendarError) {
-        console.error('Calendar import error:', calendarError);
-        throw new Error(`Failed to import calendars: ${calendarError.message}`);
+      
+      // Find new calendars (skip duplicates)
+      const newCalendars = findNewEntries(calendarsToInsert, existingCalendars.data || []);
+      const skippedCalendarsCount = calendarsToInsert.length - newCalendars.length;
+      
+      if (skippedCalendarsCount > 0) {
+        console.log(`Skipping ${skippedCalendarsCount} duplicate calendars`);
       }
-      console.log(`Imported ${calendarsToInsert.length} calendars`);
+      
+      if (newCalendars.length > 0) {
+        console.log(`Importing ${newCalendars.length} new calendars...`);
+        const { error: calendarError } = await supabase.from('calendars').insert(newCalendars);
+        if (calendarError) {
+          console.error('Calendar import error:', calendarError);
+          throw new Error(`Failed to import calendars: ${calendarError.message}`);
+        }
+        console.log(`Imported ${newCalendars.length} calendars`);
+      } else {
+        console.log('No new calendars to import (all were duplicates)');
+      }
     }
 
     // 3. Import tasks (they reference projects, but we'll import them without project_id for now)
     if (data.data.tasks && data.data.tasks.length > 0) {
-      console.log('Importing tasks...');
+      console.log('Processing tasks for import...');
       const tasksToInsert = prepareForInsert(data.data.tasks).map(({ project_id, ...rest }) => rest);
-      const { error: taskError } = await supabase.from('can_do_list').insert(tasksToInsert);
-      if (taskError) {
-        console.error('Task import error:', taskError);
-        throw new Error(`Failed to import tasks: ${taskError.message}`);
+      
+      // Find new tasks (skip duplicates)
+      const newTasks = findNewEntries(tasksToInsert, existingTasks.data || []);
+      const skippedTasksCount = tasksToInsert.length - newTasks.length;
+      
+      if (skippedTasksCount > 0) {
+        console.log(`Skipping ${skippedTasksCount} duplicate tasks`);
       }
-      console.log(`Imported ${tasksToInsert.length} tasks (project relationships not preserved)`);
+      
+      if (newTasks.length > 0) {
+        console.log(`Importing ${newTasks.length} new tasks...`);
+        const { error: taskError } = await supabase.from('can_do_list').insert(newTasks);
+        if (taskError) {
+          console.error('Task import error:', taskError);
+          throw new Error(`Failed to import tasks: ${taskError.message}`);
+        }
+        console.log(`Imported ${newTasks.length} tasks (project relationships not preserved)`);
+      } else {
+        console.log('No new tasks to import (all were duplicates)');
+      }
     }
 
     // 4. Import calendar events (they might reference calendars, but we'll import them without calendar_id references for now)
     if (data.data.calendarEvents && data.data.calendarEvents.length > 0) {
-      console.log('Importing calendar events...');
+      console.log('Processing calendar events for import...');
       const eventsToInsert = prepareForInsert(data.data.calendarEvents);
-      const { error: eventError } = await supabase.from('calendar_events').insert(eventsToInsert);
-      if (eventError) {
-        console.error('Calendar event import error:', eventError);
-        throw new Error(`Failed to import calendar events: ${eventError.message}`);
+      
+      // Find new events (skip duplicates)
+      const newEvents = findNewEntries(eventsToInsert, existingEvents.data || []);
+      const skippedEventsCount = eventsToInsert.length - newEvents.length;
+      
+      if (skippedEventsCount > 0) {
+        console.log(`Skipping ${skippedEventsCount} duplicate calendar events`);
       }
-      console.log(`Imported ${eventsToInsert.length} calendar events`);
+      
+      if (newEvents.length > 0) {
+        console.log(`Importing ${newEvents.length} new calendar events...`);
+        const { error: eventError } = await supabase.from('calendar_events').insert(newEvents);
+        if (eventError) {
+          console.error('Calendar event import error:', eventError);
+          throw new Error(`Failed to import calendar events: ${eventError.message}`);
+        }
+        console.log(`Imported ${newEvents.length} calendar events`);
+      } else {
+        console.log('No new calendar events to import (all were duplicates)');
+      }
     }
 
     // 5. Import profile (optional)
