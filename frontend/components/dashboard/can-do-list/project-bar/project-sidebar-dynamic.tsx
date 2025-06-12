@@ -9,7 +9,7 @@ const ProjectSidebarWithDragDrop = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="w-1/6 bg-muted/30 border-r border-border h-full flex flex-col">
+      <div className="bg-muted/30 border-r border-border h-full flex flex-col">
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
@@ -43,6 +43,7 @@ interface ProjectSidebarDynamicProps {
   readonly onUpdateProjectCollapsedState: (id: string, isCollapsed: boolean) => Promise<boolean>;
   readonly isLoading?: boolean;
   readonly itemCounts?: Record<string, number>;
+  readonly isCollapsed?: boolean;
 }
 
 export default function ProjectSidebarDynamic(props: ProjectSidebarDynamicProps) {

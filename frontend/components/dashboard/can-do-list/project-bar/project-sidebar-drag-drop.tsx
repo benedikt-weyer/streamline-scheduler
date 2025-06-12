@@ -21,6 +21,7 @@ interface ProjectSidebarProps {
   readonly onUpdateProjectCollapsedState: (id: string, isCollapsed: boolean) => Promise<boolean>;
   readonly isLoading?: boolean;
   readonly itemCounts?: Record<string, number>;
+  readonly isCollapsed?: boolean;
 }
 
 interface TreeItemData {
@@ -45,7 +46,8 @@ export default function ProjectSidebarWithDragDrop({
   onBulkReorderProjects,
   onUpdateProjectCollapsedState,
   isLoading = false,
-  itemCounts = {}
+  itemCounts = {},
+  isCollapsed = false
 }: ProjectSidebarProps) {
   console.log('[ProjectSidebarWithDragDrop] Rendering with projects:', projects.length, projects.map(p => p.name));
   
@@ -177,8 +179,22 @@ export default function ProjectSidebarWithDragDrop({
   // Calculate inbox count (items without project)
   const inboxCount = itemCounts['inbox'] || 0;
 
+  // Collapsed view
+  if (isCollapsed) {
+    return (
+      <div className="w-16 bg-muted/30 border-r border-border h-full flex flex-col items-center py-4">
+        <div className="flex flex-col items-center gap-2">
+          <Folder className="h-6 w-6 text-muted-foreground" />
+          {inboxCount > 0 && (
+            <div className="w-2 h-2 bg-primary rounded-full" title={`${inboxCount} tasks in inbox`} />
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-1/6 bg-muted/30 border-r border-border h-full flex flex-col">
+    <div className="bg-muted/30 border-r border-border h-full flex flex-col">
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">

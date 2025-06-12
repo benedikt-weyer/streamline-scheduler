@@ -10,6 +10,7 @@ import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { SchedulerTaskList, SchedulerCalendar, SchedulerTaskItem } from '@/components/dashboard/scheduler';
+import ProjectSidebarDynamic from '@/components/dashboard/can-do-list/project-bar/project-sidebar-dynamic';
 import { addMinutes, format } from 'date-fns';
 
 function SchedulerPageContent() {
@@ -71,6 +72,9 @@ function SchedulerPageContent() {
   // Drag and drop state
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [isTaskbarCollapsed, setIsTaskbarCollapsed] = useState(false);
+  
+  // Project selection state for desktop view
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
 
   // Load tasks and projects when encryption key becomes available
   useEffect(() => {
@@ -83,7 +87,37 @@ function SchedulerPageContent() {
   // Get default calendar for creating events from tasks
   const defaultCalendar = calendars.find((cal: Calendar) => cal.isDefault) || calendars[0];
 
-  // Organize tasks by project for flat hierarchy display
+  // Handle project selection for desktop view
+  const handleProjectSelect = (projectId?: string) => {
+    setSelectedProjectId(projectId);
+  };
+
+  // Calculate task counts per project for sidebar
+  const taskCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    
+    // Count inbox tasks (tasks without project)
+    counts['inbox'] = tasks.filter(task => !task.projectId && !task.completed).length;
+    
+    // Count tasks per project
+    projects.forEach(project => {
+      counts[project.id] = tasks.filter(task => task.projectId === project.id && !task.completed).length;
+    });
+    
+    return counts;
+  }, [tasks, projects]);
+
+  // Filter tasks based on selected project for desktop view
+  const filteredTasks = useMemo(() => {
+    if (selectedProjectId) {
+      return tasks.filter(task => task.projectId === selectedProjectId && !task.completed);
+    } else {
+      // Show tasks without project (inbox)
+      return tasks.filter(task => !task.projectId && !task.completed);
+    }
+  }, [tasks, selectedProjectId]);
+
+  // Organize tasks by project for flat hierarchy display (mobile view)
   const organizedTasks = useMemo(() => {
     const organized: Array<{ type: 'project' | 'task'; data: Project | Task }> = [];
     
@@ -165,7 +199,7 @@ function SchedulerPageContent() {
         setError('Failed to create calendar event from task');
       }
     }
-  }, [activeTask, defaultCalendar, handleSubmitEvent, handleToggleComplete, setError]);
+  }, [activeTask, defaultCalendar, handleSubmitEvent, setError]);
 
   if (isLoadingKey) {
     return (
@@ -192,32 +226,85 @@ function SchedulerPageContent() {
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex h-screen w-full">
-        {/* Tasks Sidebar */}
-        <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-1/3'} border-r bg-background`}>
-          <SchedulerTaskList
-            organizedTasks={organizedTasks}
-            onToggleComplete={handleToggleComplete}
-            onDeleteTask={handleDeleteTask}
-            onUpdateTask={handleUpdateTask}
-            projects={projects}
-            isCollapsed={isTaskbarCollapsed}
-            isLoading={isLoadingTasks || isLoadingProjects}
-          />
+        {/* Mobile Layout */}
+        <div className="md:hidden flex w-full">
+          {/* Tasks Sidebar - Mobile */}
+          <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-1/3'} border-r bg-background`}>
+            <SchedulerTaskList
+              organizedTasks={organizedTasks}
+              onToggleComplete={handleToggleComplete}
+              onDeleteTask={handleDeleteTask}
+              onUpdateTask={handleUpdateTask}
+              projects={projects}
+              isCollapsed={isTaskbarCollapsed}
+              isLoading={isLoadingTasks || isLoadingProjects}
+            />
+          </div>
+
+          {/* Calendar - Mobile */}
+          <div className="flex-1 overflow-hidden">
+            <SchedulerCalendar
+              events={events}
+              calendars={calendars}
+              onEventUpdate={onEventUpdate}
+              onCalendarToggle={handleCalendarToggle}
+              onCalendarCreate={handleCalendarCreate}
+              onCalendarEdit={handleCalendarEdit}
+              onCalendarDelete={handleCalendarDelete}
+              onSetDefaultCalendar={handleSetDefaultCalendar}
+              isLoading={isLoadingCalendar}
+            />
+          </div>
         </div>
 
-        {/* Calendar */}
-        <div className="flex-1 overflow-hidden">
-          <SchedulerCalendar
-            events={events}
-            calendars={calendars}
-            onEventUpdate={onEventUpdate}
-            onCalendarToggle={handleCalendarToggle}
-            onCalendarCreate={handleCalendarCreate}
-            onCalendarEdit={handleCalendarEdit}
-            onCalendarDelete={handleCalendarDelete}
-            onSetDefaultCalendar={handleSetDefaultCalendar}
-            isLoading={isLoadingCalendar}
-          />
+        {/* Desktop Layout */}
+        <div className="hidden md:flex w-full">
+          {/* Project Sidebar - Desktop */}
+          <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-1/6'}`}>
+            <ProjectSidebarDynamic
+              projects={projects}
+              selectedProjectId={selectedProjectId}
+              onProjectSelect={handleProjectSelect}
+              onAddProject={handleAddProject}
+              onUpdateProject={handleUpdateProject}
+              onDeleteProject={handleDeleteProject}
+              onBulkReorderProjects={handleBulkReorderProjects}
+              onUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
+              isLoading={isLoadingTasks || isLoadingProjects}
+              itemCounts={taskCounts}
+              isCollapsed={isTaskbarCollapsed}
+            />
+          </div>
+
+          {/* Tasks Panel - Desktop */}
+          <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-2/6'} border-r bg-background`}>
+            <SchedulerTaskList
+              organizedTasks={[]} // Empty for desktop - we'll use filteredTasks instead
+              filteredTasks={filteredTasks}
+              selectedProjectId={selectedProjectId}
+              onToggleComplete={handleToggleComplete}
+              onDeleteTask={handleDeleteTask}
+              onUpdateTask={handleUpdateTask}
+              projects={projects}
+              isCollapsed={isTaskbarCollapsed}
+              isLoading={isLoadingTasks || isLoadingProjects}
+            />
+          </div>
+
+          {/* Calendar - Desktop */}
+          <div className="flex-1 overflow-hidden">
+            <SchedulerCalendar
+              events={events}
+              calendars={calendars}
+              onEventUpdate={onEventUpdate}
+              onCalendarToggle={handleCalendarToggle}
+              onCalendarCreate={handleCalendarCreate}
+              onCalendarEdit={handleCalendarEdit}
+              onCalendarDelete={handleCalendarDelete}
+              onSetDefaultCalendar={handleSetDefaultCalendar}
+              isLoading={isLoadingCalendar}
+            />
+          </div>
         </div>
 
         {/* Drag Overlay */}
