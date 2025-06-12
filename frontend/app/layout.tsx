@@ -46,6 +46,7 @@ export default function RootLayout({
                     <NavLink href="/dashboard/can-do-list">Can-Do List</NavLink>
                     <NavLink href="/dashboard/calendar">Calendar</NavLink>
                     <NavLink href="/dashboard/scheduler">Scheduler</NavLink>
+                    <NavLink href="/dashboard/settings">Settings</NavLink>
                   </div>
 
                   {/* Right section of the navigation bar */}
