@@ -3,13 +3,15 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/shadcn-utils';
 
 interface NavLinkProps {
   href: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-export function NavLink({ href, children }: NavLinkProps) {
+export function NavLink({ href, children, className }: NavLinkProps) {
   const pathname = usePathname();
   const isActive = pathname.startsWith(href);
 
@@ -18,7 +20,10 @@ export function NavLink({ href, children }: NavLinkProps) {
       asChild 
       variant={isActive ? "default" : "ghost"} 
       size="sm"
-      className={isActive ? "bg-primary text-primary-foreground" : ""}
+      className={cn(
+        isActive ? "bg-primary text-primary-foreground" : "",
+        className
+      )}
     >
       <Link href={href}>{children}</Link>
     </Button>

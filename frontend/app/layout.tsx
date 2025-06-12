@@ -7,7 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import "./globals.css";
 import { Button } from "@/components/ui/button";
-import { NavLink } from "@/components/ui/navigation";
+import { MobileNavbar } from "@/components/ui/mobile-navbar";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -39,26 +39,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <main className="min-h-screen flex flex-col items-center">
-
-              <nav className="w-full flex justify-between items-center border-b border-b-foreground/10 h-20 px-10">
-                  <div className="flex items-center gap-4">
-                    <Link href={"/"} className="font-bold text-2xl">Streamline Sheduler</Link>
-                    <NavLink href="/dashboard/can-do-list">Can-Do List</NavLink>
-                    <NavLink href="/dashboard/calendar">Calendar</NavLink>
-                    <NavLink href="/dashboard/scheduler">Scheduler</NavLink>
-                    <NavLink href="/dashboard/settings">Settings</NavLink>
-                  </div>
-
-                  {/* Right section of the navigation bar */}
-                  <div className="flex items-center gap-4">
-                    <ThemeSwitcher />
-                    {!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
-                  </div>
-              </nav>
-
-              <main className="flex flex-col gap-20 w-full items-center">
-                {children}
-              </main>
+            <MobileNavbar 
+              themeSwitcher={<ThemeSwitcher />}
+              authComponent={!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
+            />
+            <main className="flex flex-col gap-20 w-full items-center">
+              {children}
+            </main>
           </main>
         </ThemeProvider>
       </body>
