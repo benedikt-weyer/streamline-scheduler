@@ -48,6 +48,9 @@ export default function RootLayout({
                     <Button asChild variant="ghost" size="sm">
                       <Link href="/dashboard/calendar">Calendar</Link>
                     </Button>
+                    <Button asChild variant="ghost" size="sm">
+                      <Link href="/dashboard/scheduler">Scheduler</Link>
+                    </Button>
                   </div>
 
                   {/* Right section of the navigation bar */}
