@@ -9,7 +9,7 @@ import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/core';
-import { SchedulerTaskList, SchedulerCalendar, SchedulerTaskItem } from '@/components/dashboard/scheduler';
+import { SchedulerTaskList, SchedulerCalendar, SchedulerTaskItem, SchedulerMobile } from '@/components/dashboard/scheduler';
 import ProjectSidebarDynamic from '@/components/dashboard/can-do-list/project-bar/project-sidebar-dynamic';
 import { addMinutes, format } from 'date-fns';
 
@@ -223,41 +223,38 @@ function SchedulerPageContent() {
     );
   }
 
+    // Create wrapper functions to match expected signatures
+  const handleSubmitEventWrapper = async (eventData: any): Promise<void> => {
+    const result = await handleSubmitEvent(eventData);
+    // Convert result to void
+  };
+
+  const handleDeleteEventWrapper = async (id: string): Promise<void> => {
+    const result = await handleDeleteEvent(id);
+    // Convert result to void
+  };
+
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex h-screen w-full">
-        {/* Mobile Layout */}
-        <div className="md:hidden flex w-full">
-          {/* Tasks Sidebar - Mobile */}
-          <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-1/3'} border-r bg-background`}>
-            <SchedulerTaskList
-              organizedTasks={organizedTasks}
-              onToggleComplete={handleToggleComplete}
-              onDeleteTask={handleDeleteTask}
-              onUpdateTask={handleUpdateTask}
-              projects={projects}
-              isCollapsed={isTaskbarCollapsed}
-              isLoading={isLoadingTasks || isLoadingProjects}
-            />
-          </div>
+    <div className="flex h-screen w-full">
+      {/* Mobile Layout */}
+      <div className="md:hidden w-full">
+        <SchedulerMobile
+          tasks={tasks}
+          projects={projects}  
+          events={events}
+          calendars={calendars}
+          onToggleComplete={handleToggleComplete}
+          onDeleteTask={handleDeleteTask}
+          onUpdateTask={handleUpdateTask}
+          onEventUpdate={onEventUpdate}
+          onSubmitEvent={handleSubmitEventWrapper}
+          onDeleteEvent={handleDeleteEventWrapper}
+          isLoading={isLoadingTasks || isLoadingProjects || isLoadingCalendar}
+        />
+      </div>
 
-          {/* Calendar - Mobile */}
-          <div className="flex-1 overflow-hidden">
-            <SchedulerCalendar
-              events={events}
-              calendars={calendars}
-              onEventUpdate={onEventUpdate}
-              onCalendarToggle={handleCalendarToggle}
-              onCalendarCreate={handleCalendarCreate}
-              onCalendarEdit={handleCalendarEdit}
-              onCalendarDelete={handleCalendarDelete}
-              onSetDefaultCalendar={handleSetDefaultCalendar}
-              isLoading={isLoadingCalendar}
-            />
-          </div>
-        </div>
-
-        {/* Desktop Layout */}
+      {/* Desktop Layout */}
+      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="hidden md:flex w-full">
           {/* Project Sidebar - Desktop */}
           <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-1/6'}`}>
@@ -305,23 +302,23 @@ function SchedulerPageContent() {
               isLoading={isLoadingCalendar}
             />
           </div>
-        </div>
 
-        {/* Drag Overlay */}
-        <DragOverlay>
-          {activeTask ? (
-            <SchedulerTaskItem
-              task={activeTask}
-              onToggleComplete={handleToggleComplete}
-              onDeleteTask={handleDeleteTask}
-              onUpdateTask={handleUpdateTask}
-              projects={projects}
-              isDragOverlay={true}
-            />
-          ) : null}
-        </DragOverlay>
-      </div>
-    </DndContext>
+          {/* Drag Overlay */}
+          <DragOverlay>
+            {activeTask ? (
+              <SchedulerTaskItem
+                task={activeTask}
+                onToggleComplete={handleToggleComplete}
+                onDeleteTask={handleDeleteTask}
+                onUpdateTask={handleUpdateTask}
+                projects={projects}
+                isDragOverlay={true}
+              />
+            ) : null}
+          </DragOverlay>
+        </div>
+      </DndContext>
+    </div>
   );
 }
 
