@@ -103,10 +103,10 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
     // Data validation
     const { tasks, projects, calendars, calendarEvents } = data.data;
     
-    if (!Array.isArray(tasks)) errors.push('Invalid tasks data');
-    if (!Array.isArray(projects)) errors.push('Invalid projects data');
-    if (!Array.isArray(calendars)) errors.push('Invalid calendars data');
-    if (!Array.isArray(calendarEvents)) errors.push('Invalid calendar events data');
+    if (!Array.isArray(tasks)) errors.push('Invalid tasks data - must be an array');
+    if (!Array.isArray(projects)) errors.push('Invalid projects data - must be an array');
+    if (!Array.isArray(calendars)) errors.push('Invalid calendars data - must be an array');
+    if (!Array.isArray(calendarEvents)) errors.push('Invalid calendar events data - must be an array');
 
     // Version compatibility
     if (data.version !== '1.0.0') {
@@ -114,20 +114,69 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
     }
 
     // Data size warnings
-    const totalItems = tasks.length + projects.length + calendars.length + calendarEvents.length;
+    const totalItems = (tasks?.length || 0) + (projects?.length || 0) + (calendars?.length || 0) + (calendarEvents?.length || 0);
     if (totalItems > 1000) {
       warnings.push(`Large import detected (${totalItems} items) - this may take a while`);
     }
 
-    // Check for potential conflicts
-    if (tasks.length > 0) {
+    // Check for potential conflicts and data issues
+    if (tasks && tasks.length > 0) {
       warnings.push(`Importing ${tasks.length} tasks - these will be added to your existing data`);
+      
+      // Check if tasks have required fields
+      const invalidTasks = tasks.filter(task => !task.encrypted_data || !task.iv || !task.salt);
+      if (invalidTasks.length > 0) {
+        errors.push(`${invalidTasks.length} tasks are missing required encryption fields`);
+      }
+      
+      // Check for tasks with project references
+      const tasksWithProjects = tasks.filter(task => task.project_id);
+      if (tasksWithProjects.length > 0) {
+        warnings.push(`${tasksWithProjects.length} tasks reference projects - these relationships will be lost during import`);
+      }
     }
-    if (projects.length > 0) {
+    
+    if (projects && projects.length > 0) {
       warnings.push(`Importing ${projects.length} projects - these will be added to your existing data`);
+      
+      // Check if projects have required fields
+      const invalidProjects = projects.filter(project => !project.encrypted_data || !project.iv || !project.salt);
+      if (invalidProjects.length > 0) {
+        errors.push(`${invalidProjects.length} projects are missing required encryption fields`);
+      }
+      
+      // Check for nested projects
+      const nestedProjects = projects.filter(project => project.parent_id);
+      if (nestedProjects.length > 0) {
+        warnings.push(`${nestedProjects.length} projects have parent relationships - these relationships will be lost during import`);
+      }
     }
 
-    const summary = `${tasks.length} tasks, ${projects.length} projects, ${calendars.length} calendars, ${calendarEvents.length} events`;
+    if (calendars && calendars.length > 0) {
+      warnings.push(`Importing ${calendars.length} calendars - these will be added to your existing data`);
+      
+      // Check if calendars have required fields
+      const invalidCalendars = calendars.filter(calendar => !calendar.encrypted_data || !calendar.iv || !calendar.salt);
+      if (invalidCalendars.length > 0) {
+        errors.push(`${invalidCalendars.length} calendars are missing required encryption fields`);
+      }
+    }
+
+    if (calendarEvents && calendarEvents.length > 0) {
+      warnings.push(`Importing ${calendarEvents.length} calendar events - these will be added to your existing data`);
+      
+      // Check if events have required fields
+      const invalidEvents = calendarEvents.filter(event => !event.encrypted_data || !event.iv || !event.salt);
+      if (invalidEvents.length > 0) {
+        errors.push(`${invalidEvents.length} calendar events are missing required encryption fields`);
+      }
+    }
+
+    if (totalItems === 0) {
+      warnings.push('No data to import - the export appears to be empty');
+    }
+
+    const summary = `${tasks?.length || 0} tasks, ${projects?.length || 0} projects, ${calendars?.length || 0} calendars, ${calendarEvents?.length || 0} events`;
 
     return {
       isValid: errors.length === 0,
@@ -175,11 +224,14 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
 
     setIsImporting(true);
     try {
+      console.log('Starting import process...');
       await importUserData(preview.data);
       setError(''); // Clear any previous errors
       
-      // Success feedback
-      alert('Data imported successfully! Please refresh the page to see your imported data.');
+      // Success feedback with more detail
+      const summary = `Successfully imported: ${preview.data.data.tasks.length} tasks, ${preview.data.data.projects.length} projects, ${preview.data.data.calendars.length} calendars, ${preview.data.data.calendarEvents.length} events`;
+      
+      alert(`Data imported successfully!\n\n${summary}\n\nNote: Some relationships between items may need to be re-established manually. Please refresh the page to see your imported data.`);
       
       // Reset form
       setImportData('');
@@ -191,7 +243,8 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
       }
     } catch (error) {
       console.error('Import failed:', error);
-      setError('Failed to import data');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(`Import failed: ${errorMessage}`);
     } finally {
       setIsImporting(false);
     }
