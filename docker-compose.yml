@@ -168,7 +168,7 @@ services:
   # Database
   db:
     container_name: supabase-db
-    image: supabase/postgres:15.6.1.96
+    image: supabase/postgres:15.8.1.060
     restart: unless-stopped
     ports:
       - "${POSTGRES_PORT:-54322}:5432"
