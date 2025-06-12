@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { createClientServer } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export interface ExportedData {
@@ -18,7 +18,7 @@ export interface ExportedData {
 
 // Fetch all user data for export
 export async function exportAllUserData(): Promise<ExportedData> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -113,7 +113,7 @@ export async function exportAllUserData(): Promise<ExportedData> {
 
 // Delete all user data
 export async function deleteAllUserData(): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -144,7 +144,7 @@ export async function deleteAllUserData(): Promise<void> {
 
 // Import user data (this would be used after validating in dry-run)
 export async function importUserData(data: ExportedData): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {

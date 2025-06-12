@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { createClientBrowser } from '@/utils/supabase/client';
 
 /**
  * Hook for managing real-time subscriptions to can-do list changes
@@ -18,7 +18,7 @@ export function useTaskSubscriptions(
     }
 
     // Initialize Supabase client
-    const supabase = createClient();
+    const supabase = createClientBrowser();
     
     // Subscribe to changes on the can_do_list table
     const subscription = supabase

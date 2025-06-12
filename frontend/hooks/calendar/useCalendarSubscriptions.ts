@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { createClientBrowser } from '@/utils/supabase/client';
 
 export function useCalendarSubscriptions(
   encryptionKey: string | null,
@@ -15,7 +15,7 @@ export function useCalendarSubscriptions(
       return;
     }
 
-    const supabase = createClient();
+    const supabase = createClientBrowser();
     let calendarSubscription: any = null;
     let eventSubscription: any = null;
 

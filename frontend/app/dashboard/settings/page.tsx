@@ -1,10 +1,10 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClientServer } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { ErrorProvider } from "@/utils/context/ErrorContext";
 import { SettingsMain } from "@/components/dashboard/settings";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
 
   const {
     data: { user },

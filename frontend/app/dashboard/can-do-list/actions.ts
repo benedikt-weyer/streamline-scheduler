@@ -1,12 +1,12 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClientServer } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { EncryptedTask } from "@/utils/can-do-list/can-do-list-types";
 
 // Fetch all encrypted tasks for the current user
 export async function fetchTasks(silent = false): Promise<EncryptedTask[]> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   const { data, error } = await supabase
     .from('can_do_list')
@@ -32,7 +32,7 @@ export async function addTask(
   displayOrder?: number,
   silent = false
 ): Promise<EncryptedTask> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -113,7 +113,7 @@ export async function updateTask(
   displayOrder?: number,
   silent = false
 ): Promise<EncryptedTask> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
 
   const updateData: any = {
     encrypted_data: encryptedData,
@@ -150,7 +150,7 @@ export async function moveTaskToProject(
   projectId?: string,
   silent = false
 ): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   const { error } = await supabase
     .from('can_do_list')
@@ -171,7 +171,7 @@ export async function moveTaskToProject(
 
 // Delete a task
 export async function deleteTask(id: string, silent = false): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -226,7 +226,7 @@ export async function deleteTask(id: string, silent = false): Promise<void> {
 
 // Bulk delete tasks by IDs
 export async function bulkDeleteTasks(ids: string[], silent = false): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -257,7 +257,7 @@ export async function bulkDeleteTasks(ids: string[], silent = false): Promise<vo
 
 // Fetch can-do items for a specific project
 export async function fetchTasksByProject(projectId?: string, silent = false): Promise<EncryptedTask[]> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   let query = supabase
     .from('can_do_list')
@@ -288,7 +288,7 @@ export async function bulkUpdateTaskOrder(
   updates: { id: string; displayOrder: number }[],
   silent = false
 ): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -330,7 +330,7 @@ export async function toggleTaskCompleteWithReorder(
   projectId?: string,
   silent = false
 ): Promise<EncryptedTask> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -420,7 +420,7 @@ export async function toggleTaskCompleteWithReorder(
 
 // Helper function to reorder active tasks in a project to fill gaps
 async function reorderActiveTasksInProject(projectId?: string, silent = false): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();

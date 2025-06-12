@@ -23,19 +23,30 @@ generate_password() {
 
 # Function to generate a random JWT secret (64 characters)
 generate_jwt_secret() {
-    openssl rand -base64 64 | tr -d "=+/" | cut -c1-64
+    #openssl rand -base64 64 | tr -d "=+/\n" | cut -c1-64
+    echo "your-super-secret-jwt-token-with-at-least-32-characters-long"
 }
 
 # Function to generate Supabase keys
 generate_supabase_keys() {
     # Generate ANON key (for demo - in production you should use supabase CLI)
-    echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+    echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
 }
 
 # Function to generate service role key
 generate_service_key() {
     # Generate SERVICE_ROLE key (for demo - in production you should use supabase CLI)
-    echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+    echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
+}
+
+# Function to generate vault encryption key (32 characters)
+generate_vault_key() {
+    openssl rand -base64 32 | tr -d "=+/" | cut -c1-32
+}
+
+# Function to generate secret key base (64 characters)
+generate_secret_key_base() {
+    openssl rand -base64 64 | tr -d "=+/" | cut -c1-64
 }
 
 # Function to prompt for user input with default
@@ -89,6 +100,8 @@ DASHBOARD_PASSWORD=$(generate_password)
 LOGFLARE_API_KEY=$(generate_password)
 ANON_KEY=$(generate_supabase_keys)
 SERVICE_ROLE_KEY=$(generate_service_key)
+VAULT_ENC_KEY=$(generate_vault_key)
+SECRET_KEY_BASE=$(generate_secret_key_base)
 
 echo -e "${GREEN}✓ Secrets generated${NC}"
 
@@ -136,6 +149,7 @@ DB_NAME=$(prompt_with_default "Database Name" "postgres")
 # Port configuration
 echo ""
 echo -e "${BLUE}🌐 Port Configuration:${NC}"
+FRONTEND_PORT=$(prompt_with_default "Frontend Port" "3000")
 KONG_HTTP_PORT=$(prompt_with_default "Kong HTTP Port" "54321")
 KONG_HTTPS_PORT=$(prompt_with_default "Kong HTTPS Port" "54323")
 STUDIO_PORT=$(prompt_with_default "Supabase Studio Port" "54324")
@@ -167,6 +181,10 @@ JWT_EXPIRY=3600
 ANON_KEY=$ANON_KEY
 SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
 
+# Encryption Keys
+VAULT_ENC_KEY=$VAULT_ENC_KEY
+SECRET_KEY_BASE=$SECRET_KEY_BASE
+
 # Dashboard Access
 DASHBOARD_USERNAME=admin
 DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD
@@ -177,6 +195,7 @@ DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD
 
 # Public URLs
 SUPABASE_PUBLIC_URL=$SUPABASE_PUBLIC_URL
+NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_PUBLIC_URL
 API_EXTERNAL_URL=$API_EXTERNAL_URL
 SITE_URL=$SITE_URL
 ADDITIONAL_REDIRECT_URLS=
@@ -185,6 +204,7 @@ ADDITIONAL_REDIRECT_URLS=
 # 🔌 PORTS
 ############################################
 
+FRONTEND_PORT=$FRONTEND_PORT
 KONG_HTTP_PORT=$KONG_HTTP_PORT
 KONG_HTTPS_PORT=$KONG_HTTPS_PORT
 STUDIO_PORT=$STUDIO_PORT
@@ -195,7 +215,7 @@ STUDIO_PORT=$STUDIO_PORT
 
 DISABLE_SIGNUP=false
 ENABLE_EMAIL_SIGNUP=true
-ENABLE_EMAIL_AUTOCONFIRM=false
+ENABLE_EMAIL_AUTOCONFIRM=true
 ENABLE_PHONE_SIGNUP=false
 ENABLE_PHONE_AUTOCONFIRM=false
 ENABLE_ANONYMOUS_USERS=false

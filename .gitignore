@@ -1,1 +1,7 @@
 .local/
+.env*
+backend/volumes/
+certs/
+
+docker-compose.override.yml
+docker-compose.override.yaml
