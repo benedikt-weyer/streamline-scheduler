@@ -27,36 +27,87 @@ export async function exportAllUserData(): Promise<ExportedData> {
 
   try {
     // Fetch all data in parallel
-    const [tasksResult, projectsResult, calendarsResult, eventsResult, profileResult] = await Promise.all([
+    const [tasksResult, projectsResult, calendarsResult, eventsResult] = await Promise.all([
       supabase.from('can_do_list').select('*').eq('user_id', user.id),
       supabase.from('projects').select('*').eq('user_id', user.id),
       supabase.from('calendars').select('*').eq('user_id', user.id),
-      supabase.from('calendar_events').select('*').eq('user_id', user.id),
-      supabase.from('profiles').select('*').eq('id', user.id)
+      supabase.from('calendar_events').select('*').eq('user_id', user.id)
     ]);
 
-    // Check for errors
-    if (tasksResult.error) throw tasksResult.error;
-    if (projectsResult.error) throw projectsResult.error;
-    if (calendarsResult.error) throw calendarsResult.error;
-    if (eventsResult.error) throw eventsResult.error;
-    if (profileResult.error) throw profileResult.error;
+    // Try to fetch profile separately (it might not exist)
+    let profileResult;
+    try {
+      profileResult = await supabase.from('profiles').select('*').eq('id', user.id);
+    } catch (profileError) {
+      console.log('Profiles table not available or no profile found:', profileError);
+      profileResult = { data: null, error: null };
+    }
 
-    return {
+    // Check for errors
+    if (tasksResult.error) {
+      console.error('Tasks fetch error:', tasksResult.error);
+      throw new Error(`Failed to fetch tasks: ${tasksResult.error.message}`);
+    }
+    if (projectsResult.error) {
+      console.error('Projects fetch error:', projectsResult.error);
+      throw new Error(`Failed to fetch projects: ${projectsResult.error.message}`);
+    }
+    if (calendarsResult.error) {
+      console.error('Calendars fetch error:', calendarsResult.error);
+      throw new Error(`Failed to fetch calendars: ${calendarsResult.error.message}`);
+    }
+    if (eventsResult.error) {
+      console.error('Events fetch error:', eventsResult.error);
+      throw new Error(`Failed to fetch events: ${eventsResult.error.message}`);
+    }
+    if (profileResult.error) {
+      console.warn('Profile fetch error (non-fatal):', profileResult.error);
+      // Don't throw error for profile - it's optional
+    }
+
+    // Ensure all data is serializable by converting to plain objects
+    const sanitizeData = (data: any): any => {
+      if (data === null || data === undefined) {
+        return null;
+      }
+      try {
+        return JSON.parse(JSON.stringify(data));
+      } catch (error) {
+        console.warn('Failed to sanitize data:', error);
+        return null;
+      }
+    };
+
+    const exportData: ExportedData = {
       version: '1.0.0',
       timestamp: new Date().toISOString(),
       userId: user.id,
       data: {
-        tasks: tasksResult.data || [],
-        projects: projectsResult.data || [],
-        calendars: calendarsResult.data || [],
-        calendarEvents: eventsResult.data || [],
-        profile: profileResult.data?.[0] || null
+        tasks: sanitizeData(tasksResult.data) || [],
+        projects: sanitizeData(projectsResult.data) || [],
+        calendars: sanitizeData(calendarsResult.data) || [],
+        calendarEvents: sanitizeData(eventsResult.data) || [],
+        profile: sanitizeData(profileResult?.data?.[0]) || null
       }
     };
+
+    console.log('Export data prepared:', {
+      version: exportData.version,
+      timestamp: exportData.timestamp,
+      userId: exportData.userId,
+      counts: {
+        tasks: exportData.data.tasks.length,
+        projects: exportData.data.projects.length,
+        calendars: exportData.data.calendars.length,
+        calendarEvents: exportData.data.calendarEvents.length,
+        hasProfile: !!exportData.data.profile
+      }
+    });
+
+    return exportData;
   } catch (error) {
     console.error('Error exporting user data:', error);
-    throw new Error('Failed to export user data');
+    throw new Error(`Failed to export user data: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
