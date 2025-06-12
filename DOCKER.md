@@ -4,17 +4,41 @@ This Docker Compose configuration starts both the frontend (Next.js) and backend
 
 ## Quick Start
 
+### For Development
+
 1. **Clone the repository** (if you haven't already)
 
-2. **Create environment file**: Copy the environment variables you need. The Docker Compose file includes sensible defaults, but you may want to customize them:
+2. **Run the development setup script**:
 
 ```bash
-# Create a .env file with your custom values
-# All variables have defaults in docker-compose.yml, so this is optional
-touch .env
+./setup_dev.sh
 ```
 
 3. **Start the services**:
+
+```bash
+docker compose up -d
+```
+
+### For Production
+
+1. **Clone the repository** (if you haven't already)
+
+2. **Run the production setup script**:
+
+```bash
+./setup_prod.sh
+```
+
+This interactive script will:
+- Generate secure passwords and secrets
+- Prompt for production configuration (domain, email settings, etc.)
+- Create both `.env` and `frontend/.env.local` files
+- Provide security recommendations
+
+3. **Review and customize the generated files**
+
+4. **Start the services**:
 
 ```bash
 docker compose up -d
@@ -80,6 +104,42 @@ The following environment variables can be customized (all have defaults):
 - `SMTP_PORT`: SMTP server port
 - `SMTP_USER`: SMTP username
 - `SMTP_PASS`: SMTP password
+
+## Setup Scripts
+
+### Development Setup (`setup_dev.sh`)
+
+The development setup script creates environment files with sensible defaults for local development:
+
+- Creates `.env` file with development-friendly settings
+- Creates `frontend/.env.local` with local Supabase configuration
+- Uses demo Supabase keys (safe for development)
+- Enables auto-confirmation for emails and phone numbers
+- Sets up localhost URLs
+
+```bash
+./setup_dev.sh
+```
+
+### Production Setup (`setup_prod.sh`)
+
+The production setup script interactively configures your environment for production:
+
+- **Generates secure secrets**: Passwords, JWT secrets, API keys
+- **Prompts for configuration**: Domain, email settings, database config
+- **Creates production files**: Both `.env` and `frontend/.env.local`
+- **Provides security guidance**: Recommendations for production deployment
+
+```bash
+./setup_prod.sh
+```
+
+**Script Features:**
+- Interactive prompts with sensible defaults
+- Automatic backup of existing .env files
+- Secure password generation using OpenSSL
+- Production-specific security settings
+- Comprehensive documentation in generated files
 
 ## Development
 
@@ -160,14 +220,19 @@ docker compose up -d
 
 ```
 ├── docker-compose.yml          # Main Docker Compose configuration
+├── setup_dev.sh               # Development environment setup script
+├── setup_prod.sh              # Production environment setup script
+├── DOCKER.md                  # This documentation file
 ├── frontend/
 │   ├── Dockerfile             # Frontend container configuration
 │   ├── next.config.ts         # Next.js configuration (with standalone output)
+│   ├── .env.local             # Frontend environment variables (created by setup scripts)
 │   └── ...                    # Frontend source code
-└── backend/
-    ├── volumes/               # Supabase configuration files
-    │   ├── api/kong.yml       # Kong gateway configuration
-    │   ├── db/                # Database initialization scripts
-    │   └── functions/         # Edge functions
-    └── ...                    # Other backend files
+├── backend/
+│   ├── volumes/               # Supabase configuration files
+│   │   ├── api/kong.yml       # Kong gateway configuration
+│   │   ├── db/                # Database initialization scripts
+│   │   └── functions/         # Edge functions
+│   └── ...                    # Other backend files
+└── .env                       # Main environment configuration (created by setup scripts)
 ``` 
