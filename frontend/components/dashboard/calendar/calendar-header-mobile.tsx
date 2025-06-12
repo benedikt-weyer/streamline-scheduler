@@ -1,0 +1,155 @@
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { subWeeks, addWeeks, startOfWeek, format } from 'date-fns';
+import { ChevronLeft, ChevronRight, Calendar, Plus, Settings } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Calendar as CalendarType } from '@/utils/calendar/calendar-types';
+
+interface CalendarHeaderMobileProps {
+  currentWeek: Date;
+  setCurrentWeek: React.Dispatch<React.SetStateAction<Date>>;
+  openNewEventDialog: () => void;
+  calendars: CalendarType[];
+  onCalendarToggle: (calendarId: string, isVisible: boolean) => void;
+  onCalendarCreate: (name: string, color: string) => void;
+  onCalendarEdit: (calendarId: string, name: string, color: string) => void;
+  onCalendarDelete: (calendarId: string) => void;
+  onSetDefaultCalendar: (calendarId: string) => void;
+}
+
+export function CalendarHeaderMobile({ 
+  currentWeek, 
+  setCurrentWeek, 
+  openNewEventDialog,
+  calendars,
+  onCalendarToggle,
+  onCalendarCreate,
+  onCalendarEdit,
+  onCalendarDelete,
+  onSetDefaultCalendar
+}: CalendarHeaderMobileProps) {
+  const [isCalendarMenuOpen, setIsCalendarMenuOpen] = useState(false);
+
+  // Navigate to previous week
+  const goToPreviousWeek = () => {
+    setCurrentWeek(prevWeek => subWeeks(prevWeek, 1));
+  };
+
+  // Navigate to next week
+  const goToNextWeek = () => {
+    setCurrentWeek(prevWeek => addWeeks(prevWeek, 1));
+  };
+
+  // Go to current week
+  const goToCurrentWeek = () => {
+    setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }));
+  };
+
+  const handleCalendarCreate = () => {
+    // For mobile, we'll use a simple prompt for now
+    const name = prompt('Calendar name:');
+    if (name?.trim()) {
+      onCalendarCreate(name.trim(), '#4f46e5');
+    }
+    setIsCalendarMenuOpen(false);
+  };
+
+  const handleCalendarToggle = (calendarId: string, currentVisibility: boolean) => {
+    onCalendarToggle(calendarId, !currentVisibility);
+  };
+
+  const visibleCalendarsCount = calendars.filter(cal => cal.isVisible).length;
+
+  return (
+    <div className="space-y-3">
+      {/* Week Navigation */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button onClick={goToCurrentWeek} size="sm" variant="outline" className="text-xs">
+            Today
+          </Button>
+          <div className="flex items-center border rounded-md overflow-hidden">
+            <Button onClick={goToPreviousWeek} size="sm" variant="outline" className="rounded-r-none border-0 px-2">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button onClick={goToNextWeek} size="sm" variant="outline" className="rounded-l-none border-0 px-2">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        <Button onClick={openNewEventDialog} size="sm">
+          <Plus className="h-4 w-4 mr-1" />
+          Event
+        </Button>
+      </div>
+
+      {/* Month/Week Info and Calendar Settings */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-medium">
+          {format(currentWeek, 'MMM yyyy')} - Week {format(currentWeek, 'w')}
+        </h2>
+        
+        {/* Calendar Settings Dropdown */}
+        <DropdownMenu open={isCalendarMenuOpen} onOpenChange={setIsCalendarMenuOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="text-xs">
+                {visibleCalendarsCount} of {calendars.length}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          
+          <DropdownMenuContent align="end" className="w-64">
+            <div className="px-2 py-1.5 text-sm font-medium">Calendars</div>
+            <DropdownMenuSeparator />
+            
+            {/* Calendar List */}
+            {calendars.map((calendar) => (
+              <DropdownMenuItem
+                key={calendar.id}
+                onClick={() => handleCalendarToggle(calendar.id, calendar.isVisible)}
+                className="flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-3 h-3 rounded-full border-2`}
+                    style={{ 
+                      borderColor: calendar.color,
+                      backgroundColor: calendar.isVisible ? calendar.color : 'transparent'
+                    }}
+                  />
+                  <span className={calendar.isVisible ? 'text-foreground' : 'text-muted-foreground'}>
+                    {calendar.name}
+                  </span>
+                  {calendar.isDefault && (
+                    <span className="text-xs bg-amber-100 text-amber-800 px-1 rounded">
+                      Default
+                    </span>
+                  )}
+                </div>
+              </DropdownMenuItem>
+            ))}
+            
+            <DropdownMenuSeparator />
+            
+            {/* Add Calendar */}
+            <DropdownMenuItem onClick={handleCalendarCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Calendar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+} 

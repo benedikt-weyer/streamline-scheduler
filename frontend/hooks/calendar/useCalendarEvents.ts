@@ -35,7 +35,6 @@ export function useCalendarEvents(
     handleEventUpdate 
   } = useRecurrenceEventActions(
     events, 
-    calendars, 
     eventActions, 
     encryptionKey, 
     skipNextEventReload

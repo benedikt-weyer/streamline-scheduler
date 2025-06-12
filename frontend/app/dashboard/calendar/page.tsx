@@ -8,6 +8,8 @@ import { CalendarHeader } from '@/components/dashboard/calendar/calendar-header'
 import { CalendarGrid } from '@/components/dashboard/calendar/calendar-grid';
 import { CalendarEventDialog, EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
 import { CalendarSidebar } from '@/components/dashboard/calendar/calendar-sidebar';
+import { CalendarHeaderMobile } from '@/components/dashboard/calendar/calendar-header-mobile';
+import { CalendarGridMobile } from '@/components/dashboard/calendar/calendar-grid-mobile';
 
 import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
@@ -257,35 +259,36 @@ function CalendarContent() {
 
   return (
     <div className="flex w-full h-full">
-      {/* Calendar Sidebar */}
-      <CalendarSidebar
-        calendars={calendars}
-        onCalendarToggle={handleCalendarToggle}
-        onCalendarCreate={handleCalendarCreate}
-        onCalendarEdit={handleCalendarEdit}
-        onCalendarDelete={handleCalendarDeleteWithEvents}
-        onSetDefaultCalendar={setCalendarAsDefault}
-      />
-      
-      {/* Main Calendar Content */}
-      <div className="flex-1 px-4">
-        <CalendarHeader 
-          currentWeek={currentWeek}
-          setCurrentWeek={setCurrentWeek}
-          openNewEventDialog={openNewEventDialogHandler}
-        />
-        
-        {error && (
-          <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4">
-            {error}
-          </div>
-        )}
-        
-        {/* Display loading or calendar grid */}
-        {isLoadingEvents ? (
-          <div className="text-center py-8">Loading your encrypted calendar...</div>
-        ) : (
-            <CalendarGrid 
+      {/* Mobile Layout */}
+      <div className="md:hidden w-full flex flex-col h-screen">
+        {/* Mobile Header */}
+        <div className="border-b p-4 flex-shrink-0">
+          <CalendarHeaderMobile 
+            currentWeek={currentWeek}
+            setCurrentWeek={setCurrentWeek}
+            openNewEventDialog={openNewEventDialogHandler}
+            calendars={calendars}
+            onCalendarToggle={handleCalendarToggle}
+            onCalendarCreate={handleCalendarCreate}
+            onCalendarEdit={handleCalendarEdit}
+            onCalendarDelete={handleCalendarDeleteWithEvents}
+            onSetDefaultCalendar={setCalendarAsDefault}
+          />
+        </div>
+
+        {/* Mobile Calendar Content */}
+        <div className="flex-1 p-4 overflow-hidden">
+          {error && (
+            <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4">
+              {error}
+            </div>
+          )}
+          
+          {/* Display loading or calendar grid */}
+          {isLoadingEvents ? (
+            <div className="text-center py-8">Loading your encrypted calendar...</div>
+          ) : (
+            <CalendarGridMobile 
               days={daysOfWeek}
               events={eventsInCurrentWeek}
               calendars={calendars}
@@ -293,22 +296,65 @@ function CalendarContent() {
               openNewEventDialog={openNewEventDialogWithDayHandler}
               onEventUpdate={handleEventUpdate}
             />
-        )}
-        
-        {/* Event dialog */}
-        <CalendarEventDialog 
-          isOpen={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          selectedEvent={selectedEvent}
-          calendars={visibleCalendars}
-          defaultCalendarId={defaultCalendarId}
-          onSubmit={onSubmitEvent}
-          onDelete={onDeleteEvent}
-          onDeleteThisOccurrence={onDeleteThisOccurrenceHandler}
-          onDeleteThisAndFuture={onDeleteThisAndFutureHandler}
-          onDeleteAllInSeries={onDeleteAllInSeriesHandler}
-        />
+          )}
+        </div>
       </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden md:flex w-full h-full">
+        {/* Calendar Sidebar */}
+        <CalendarSidebar
+          calendars={calendars}
+          onCalendarToggle={handleCalendarToggle}
+          onCalendarCreate={handleCalendarCreate}
+          onCalendarEdit={handleCalendarEdit}
+          onCalendarDelete={handleCalendarDeleteWithEvents}
+          onSetDefaultCalendar={setCalendarAsDefault}
+        />
+        
+        {/* Main Calendar Content */}
+        <div className="flex-1 px-4">
+          <CalendarHeader 
+            currentWeek={currentWeek}
+            setCurrentWeek={setCurrentWeek}
+            openNewEventDialog={openNewEventDialogHandler}
+          />
+          
+          {error && (
+            <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4">
+              {error}
+            </div>
+          )}
+          
+          {/* Display loading or calendar grid */}
+          {isLoadingEvents ? (
+            <div className="text-center py-8">Loading your encrypted calendar...</div>
+          ) : (
+              <CalendarGrid 
+                days={daysOfWeek}
+                events={eventsInCurrentWeek}
+                calendars={calendars}
+                openEditDialog={openEditDialog}
+                openNewEventDialog={openNewEventDialogWithDayHandler}
+                onEventUpdate={handleEventUpdate}
+              />
+          )}
+        </div>
+      </div>
+
+      {/* Event dialog */}
+      <CalendarEventDialog 
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        selectedEvent={selectedEvent}
+        calendars={visibleCalendars}
+        defaultCalendarId={defaultCalendarId}
+        onSubmit={onSubmitEvent}
+        onDelete={onDeleteEvent}
+        onDeleteThisOccurrence={onDeleteThisOccurrenceHandler}
+        onDeleteThisAndFuture={onDeleteThisAndFutureHandler}
+        onDeleteAllInSeries={onDeleteAllInSeriesHandler}
+      />
     </div>
   );
 }

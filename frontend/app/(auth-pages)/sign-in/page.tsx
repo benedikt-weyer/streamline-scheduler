@@ -2,21 +2,19 @@
 
 import { signInAction } from "@/app/actions";
 
-import { FormMessage, Message } from "@/components/auth/form-message";
+import { FormMessage as AuthFormMessage, Message } from "@/components/auth/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 import { hashPassword, storeHashedPassword } from "@/utils/cryptography/encryption";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-
-
 
 // Define the schema for form validation
 const signInSchema = z.object({
@@ -26,7 +24,7 @@ const signInSchema = z.object({
 
 type SignInFormValues = z.infer<typeof signInSchema>;
 
-export default function Login() {
+function SignInForm() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState<Message | null>(null);
 
@@ -64,7 +62,11 @@ export default function Login() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-w-64">
+      <form 
+        onSubmit={form.handleSubmit(onSubmit)} 
+        className="flex-1 flex flex-col min-w-64"
+        autoComplete="on"
+      >
         <h1 className="text-2xl font-medium">Sign in</h1>
         <p className="text-sm text-foreground">
           Don't have an account?{" "}
@@ -78,10 +80,17 @@ export default function Login() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel htmlFor="email">Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="you@example.com" {...field} />
+                  <Input 
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@example.com" 
+                    {...field} 
+                  />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -92,7 +101,7 @@ export default function Login() {
             render={({ field }) => (
               <FormItem>
                 <div className="flex justify-between items-center">
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel htmlFor="current-password">Password</FormLabel>
                   <Link
                     className="text-xs text-foreground underline"
                     href="/forgot-password"
@@ -101,8 +110,15 @@ export default function Login() {
                   </Link>
                 </div>
                 <FormControl>
-                  <Input type="password" placeholder="Your password" {...field} />
+                  <Input 
+                    id="current-password"
+                    type="password" 
+                    autoComplete="current-password"
+                    placeholder="Your password" 
+                    {...field} 
+                  />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -110,9 +126,17 @@ export default function Login() {
           <SubmitButton pendingText="Signing In...">
             Sign in
           </SubmitButton>
-          { message ? <FormMessage message={message} /> : null }
+          { message ? <AuthFormMessage message={message} /> : null }
         </div>
       </form>
     </Form>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInForm />
+    </Suspense>
   );
 }

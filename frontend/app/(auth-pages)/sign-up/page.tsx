@@ -1,26 +1,30 @@
 'use client';
 
 import { signUpAction } from "@/app/actions";
-import { FormMessage, Message } from "@/components/auth/form-message";
+import { FormMessage as AuthFormMessage, Message } from "@/components/auth/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 // Define the schema for form validation
 const signUpSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" })
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  confirmPassword: z.string().min(1, { message: "Please confirm your password" })
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
-export default function Signup() {
+function SignUpForm() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState<Message | null>(null);
 
@@ -29,7 +33,8 @@ export default function Signup() {
     resolver: zodResolver(signUpSchema),
     defaultValues: {
       email: '',
-      password: ''
+      password: '',
+      confirmPassword: ''
     }
   });
 
@@ -53,7 +58,11 @@ export default function Signup() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-w-64 max-w-64 mx-auto">
+      <form 
+        onSubmit={form.handleSubmit(onSubmit)} 
+        className="flex flex-col min-w-64 max-w-64 mx-auto"
+        autoComplete="on"
+      >
         <h1 className="text-2xl font-medium">Sign up</h1>
         <p className="text-sm text text-foreground">
           Already have an account?{" "}
@@ -67,10 +76,17 @@ export default function Signup() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel htmlFor="signup-email">Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="you@example.com" {...field} />
+                  <Input 
+                    id="signup-email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@example.com" 
+                    {...field} 
+                  />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -80,10 +96,37 @@ export default function Signup() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel htmlFor="new-password">Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="Your password" {...field} />
+                  <Input 
+                    id="new-password"
+                    type="password" 
+                    autoComplete="new-password"
+                    placeholder="Your password" 
+                    {...field} 
+                  />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel htmlFor="confirm-password">Confirm Password</FormLabel>
+                <FormControl>
+                  <Input 
+                    id="confirm-password"
+                    type="password" 
+                    autoComplete="new-password"
+                    placeholder="Confirm your password" 
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -91,9 +134,17 @@ export default function Signup() {
           <SubmitButton pendingText="Signing up...">
             Sign up
           </SubmitButton>
-          {message && <FormMessage message={message} />}
+          {message && <AuthFormMessage message={message} />}
         </div>
       </form>
     </Form>
+  );
+}
+
+export default function Signup() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignUpForm />
+    </Suspense>
   );
 }
