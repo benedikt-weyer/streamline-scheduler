@@ -23,6 +23,9 @@ COPY . .
 
 RUN corepack enable pnpm && pnpm run build
 
+# Ensure public directory exists (create empty one if it doesn't)
+RUN mkdir -p /app/public
+
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
@@ -34,10 +37,8 @@ ENV NODE_ENV production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy public directory from builder if available, otherwise create empty directory
-RUN mkdir -p ./public
-RUN --mount=from=builder,source=/app/public,target=/tmp/public,rw \
-    if [ -d "/tmp/public" ]; then cp -r /tmp/public/* ./public/ 2>/dev/null || true; fi
+# Copy public directory from builder (now guaranteed to exist)
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
