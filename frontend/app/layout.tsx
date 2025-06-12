@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import "./globals.css";
 import { Button } from "@/components/ui/button";
+import { NavLink } from "@/components/ui/navigation";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -42,15 +43,9 @@ export default function RootLayout({
               <nav className="w-full flex justify-between items-center border-b border-b-foreground/10 h-20 px-10">
                   <div className="flex items-center gap-4">
                     <Link href={"/"} className="font-bold text-2xl">Streamline Sheduler</Link>
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href="/dashboard/can-do-list">Can-Do List</Link>
-                    </Button>
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href="/dashboard/calendar">Calendar</Link>
-                    </Button>
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href="/dashboard/scheduler">Scheduler</Link>
-                    </Button>
+                    <NavLink href="/dashboard/can-do-list">Can-Do List</NavLink>
+                    <NavLink href="/dashboard/calendar">Calendar</NavLink>
+                    <NavLink href="/dashboard/scheduler">Scheduler</NavLink>
                   </div>
 
                   {/* Right section of the navigation bar */}

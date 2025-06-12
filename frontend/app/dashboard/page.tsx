@@ -15,15 +15,10 @@ export default async function ProtectedPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto p-4">
+    <div className="flex flex-col gap-6 mx-auto p-8 w-full">
       <h1 className="text-3xl font-bold">Dashboard</h1>
       
-      <section className="bg-card rounded-lg shadow p-6">
-        <h2 className="text-2xl font-semibold mb-4">Can-Do List</h2>
-        <ErrorProvider>
-          <CanDoListMain />
-        </ErrorProvider>
-      </section>
+      <p>Welcome to Streamline Sheduler!</p>
     </div>
   );
 }
