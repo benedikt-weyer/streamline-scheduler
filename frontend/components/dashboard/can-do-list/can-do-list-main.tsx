@@ -185,19 +185,21 @@ export default function CanDoListMain() {
       
       {(encryptionKey || isLoadingKey) && (
         <div className="flex h-screen w-full">
-          <ProjectSidebarDynamic
-            projects={projects}
-            selectedProjectId={selectedProjectId}
-            onProjectSelect={handleProjectSelect}
-            onAddProject={handleAddProject}
-            onUpdateProject={handleUpdateProject}
-            onDeleteProject={handleDeleteProject}
-            onBulkReorderProjects={handleBulkReorderProjects}
-            onUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
-            isLoading={isLoading}
-            itemCounts={taskCounts}
-          />
-          
+          <div className="w-1/6">
+            <ProjectSidebarDynamic
+              projects={projects}
+              selectedProjectId={selectedProjectId}
+              onProjectSelect={handleProjectSelect}
+              onAddProject={handleAddProject}
+              onUpdateProject={handleUpdateProject}
+              onDeleteProject={handleDeleteProject}
+              onBulkReorderProjects={handleBulkReorderProjects}
+              onUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
+              isLoading={isLoading}
+              itemCounts={taskCounts}
+            />
+          </div>
+
           <div className="flex-1 overflow-hidden">
             <div className="max-w-2xl mx-auto p-4 h-full overflow-y-auto">
               <h1 className="text-2xl font-bold mb-2">
