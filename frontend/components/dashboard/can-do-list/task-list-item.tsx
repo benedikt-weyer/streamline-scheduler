@@ -96,7 +96,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
         }`}
       >
         <div 
-          className="flex items-center space-x-3 flex-1 min-w-0 p-3"
+          className="flex items-center space-x-3 flex-1 min-w-0 p-3 md:p-3 py-4 md:py-3"
           onClick={handleToggleCompleteClick}
           onKeyDown={handleToggleCompleteKeyDown}
           role="button"
@@ -118,7 +118,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           </span>
         </div>
         
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 pr-2">
           {task.estimatedDuration && (
             <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -130,7 +130,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             size="sm"
             onClick={handleEdit}
             onPointerDown={(e) => e.stopPropagation()}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground h-8 w-8 md:h-auto md:w-auto"
           >
             <Edit className="h-4 w-4" />
             <span className="sr-only">Edit</span>
@@ -140,7 +140,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             size="sm"
             onClick={() => onDeleteTask(task.id)}
             onPointerDown={(e) => e.stopPropagation()}
-            className="text-destructive hover:text-destructive/80"
+            className="text-destructive hover:text-destructive/80 h-8 w-8 md:h-auto md:w-auto"
           >
             <Trash2 className="h-4 w-4" />
             <span className="sr-only">Delete</span>

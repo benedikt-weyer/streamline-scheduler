@@ -20,6 +20,7 @@ import EmptyState from './empty-state';
 import TaskList from './task-list';
 import AuthenticationRequired from './authentication-required';
 import ProjectSidebarDynamic from './project-bar/project-sidebar-dynamic';
+import ProjectSelectorMobile from './project-selector-mobile';
 
 // Define schema for new task validation
 const addTaskSchema = z.object({
@@ -185,103 +186,205 @@ export default function CanDoListMain() {
       
       {(encryptionKey || isLoadingKey) && (
         <div className="flex h-screen w-full">
-          <div className="w-1/6">
-            <ProjectSidebarDynamic
-              projects={projects}
-              selectedProjectId={selectedProjectId}
-              onProjectSelect={handleProjectSelect}
-              onAddProject={handleAddProject}
-              onUpdateProject={handleUpdateProject}
-              onDeleteProject={handleDeleteProject}
-              onBulkReorderProjects={handleBulkReorderProjects}
-              onUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
-              isLoading={isLoading}
-              itemCounts={taskCounts}
-            />
-          </div>
-
-          <div className="flex-1 overflow-hidden">
-            <div className="max-w-2xl mx-auto p-4 h-full overflow-y-auto">
-              <h1 className="text-2xl font-bold mb-2">
+          {/* Mobile Layout */}
+          <div className="md:hidden w-full flex flex-col">
+            {/* Mobile Header */}
+            <div className="border-b p-4 flex items-center justify-between">
+              <h1 className="text-xl font-bold">
                 {selectedProjectId 
                   ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
                   : 'Inbox'
                 }
               </h1>
-              <ErrorDisplay error={error} />
-              
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="active" className="flex items-center gap-2">
-                    Active
-                    {activeCount > 0 && (
-                      <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
-                        {activeCount}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="completed" className="flex items-center gap-2">
-                    Completed
-                    {completedCount > 0 && (
-                      <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                        {completedCount}
-                      </span>
-                    )}
-                  </TabsTrigger>
-                </TabsList>
+              <ProjectSelectorMobile
+                projects={projects}
+                selectedProjectId={selectedProjectId}
+                onProjectSelect={handleProjectSelect}
+                taskCounts={taskCounts}
+              />
+            </div>
 
-                <TabsContent value="active" className="mt-0">
-                  <AddTaskForm 
-                    form={form} 
-                    onSubmit={onSubmit} 
-                    isLoading={isLoading} 
-                  />
-                  <LoadingState isLoading={isLoading} />
-                  <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
-                  <TaskList 
-                    tasks={filteredTasks}
-                    isLoading={isLoading}
-                    onToggleComplete={onToggleComplete}
-                    onDeleteTask={onDeleteTask}
-                    onUpdateTask={onUpdateTask}
-                    onReorderTasks={handleReorderTasks}
-                    projects={projects}
-                    currentProjectId={selectedProjectId}
-                  />
-                </TabsContent>
+            {/* Mobile Task List */}
+            <div className="flex-1 overflow-hidden">
+              <div className="h-full overflow-y-auto p-4">
+                <ErrorDisplay error={error} />
+                
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="active" className="flex items-center gap-2">
+                      Active
+                      {activeCount > 0 && (
+                        <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                          {activeCount}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                    <TabsTrigger value="completed" className="flex items-center gap-2">
+                      Completed
+                      {completedCount > 0 && (
+                        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                          {completedCount}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="completed" className="mt-0">
-                  <div className="mb-4 flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">
-                      {completedCount} completed {completedCount === 1 ? 'task' : 'tasks'}
-                    </p>
-                    {completedCount > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleBulkDelete}
-                        disabled={isLoading}
-                        className="text-destructive hover:text-destructive/80"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete All Completed
-                      </Button>
-                    )}
-                  </div>
-                  <LoadingState isLoading={isLoading} />
-                  <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
-                  <TaskList 
-                    tasks={filteredTasks}
-                    isLoading={isLoading}
-                    onToggleComplete={onToggleComplete}
-                    onDeleteTask={onDeleteTask}
-                    onUpdateTask={onUpdateTask}
-                    onReorderTasks={handleReorderTasks}
-                    projects={projects}
-                    currentProjectId={selectedProjectId}
-                  />
-                </TabsContent>
-              </Tabs>
+                  <TabsContent value="active" className="mt-0">
+                    <AddTaskForm 
+                      form={form} 
+                      onSubmit={onSubmit} 
+                      isLoading={isLoading} 
+                    />
+                    <LoadingState isLoading={isLoading} />
+                    <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
+                    <TaskList 
+                      tasks={filteredTasks}
+                      isLoading={isLoading}
+                      onToggleComplete={onToggleComplete}
+                      onDeleteTask={onDeleteTask}
+                      onUpdateTask={onUpdateTask}
+                      onReorderTasks={handleReorderTasks}
+                      projects={projects}
+                      currentProjectId={selectedProjectId}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="completed" className="mt-0">
+                    <div className="mb-4 flex justify-between items-center">
+                      <p className="text-sm text-muted-foreground">
+                        {completedCount} completed {completedCount === 1 ? 'task' : 'tasks'}
+                      </p>
+                      {completedCount > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleBulkDelete}
+                          disabled={isLoading}
+                          className="text-destructive hover:text-destructive/80"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete All
+                        </Button>
+                      )}
+                    </div>
+                    <LoadingState isLoading={isLoading} />
+                    <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
+                    <TaskList 
+                      tasks={filteredTasks}
+                      isLoading={isLoading}
+                      onToggleComplete={onToggleComplete}
+                      onDeleteTask={onDeleteTask}
+                      onUpdateTask={onUpdateTask}
+                      onReorderTasks={handleReorderTasks}
+                      projects={projects}
+                      currentProjectId={selectedProjectId}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden md:flex h-screen w-full">
+            <div className="w-1/4 lg:w-1/5">
+              <ProjectSidebarDynamic
+                projects={projects}
+                selectedProjectId={selectedProjectId}
+                onProjectSelect={handleProjectSelect}
+                onAddProject={handleAddProject}
+                onUpdateProject={handleUpdateProject}
+                onDeleteProject={handleDeleteProject}
+                onBulkReorderProjects={handleBulkReorderProjects}
+                onUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
+                isLoading={isLoading}
+                itemCounts={taskCounts}
+              />
+            </div>
+
+            <div className="flex-1 overflow-hidden">
+              <div className="max-w-3xl mx-auto p-6 h-full overflow-y-auto">
+                <h1 className="text-2xl font-bold mb-2">
+                  {selectedProjectId 
+                    ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
+                    : 'Inbox'
+                  }
+                </h1>
+                <ErrorDisplay error={error} />
+                
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="active" className="flex items-center gap-2">
+                      Active
+                      {activeCount > 0 && (
+                        <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                          {activeCount}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                    <TabsTrigger value="completed" className="flex items-center gap-2">
+                      Completed
+                      {completedCount > 0 && (
+                        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                          {completedCount}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="active" className="mt-0">
+                    <AddTaskForm 
+                      form={form} 
+                      onSubmit={onSubmit} 
+                      isLoading={isLoading} 
+                    />
+                    <LoadingState isLoading={isLoading} />
+                    <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
+                    <TaskList 
+                      tasks={filteredTasks}
+                      isLoading={isLoading}
+                      onToggleComplete={onToggleComplete}
+                      onDeleteTask={onDeleteTask}
+                      onUpdateTask={onUpdateTask}
+                      onReorderTasks={handleReorderTasks}
+                      projects={projects}
+                      currentProjectId={selectedProjectId}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="completed" className="mt-0">
+                    <div className="mb-4 flex justify-between items-center">
+                      <p className="text-sm text-muted-foreground">
+                        {completedCount} completed {completedCount === 1 ? 'task' : 'tasks'}
+                      </p>
+                      {completedCount > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleBulkDelete}
+                          disabled={isLoading}
+                          className="text-destructive hover:text-destructive/80"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete All Completed
+                        </Button>
+                      )}
+                    </div>
+                    <LoadingState isLoading={isLoading} />
+                    <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
+                    <TaskList 
+                      tasks={filteredTasks}
+                      isLoading={isLoading}
+                      onToggleComplete={onToggleComplete}
+                      onDeleteTask={onDeleteTask}
+                      onUpdateTask={onUpdateTask}
+                      onReorderTasks={handleReorderTasks}
+                      projects={projects}
+                      currentProjectId={selectedProjectId}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
             </div>
           </div>
         </div>
