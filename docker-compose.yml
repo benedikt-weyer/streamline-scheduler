@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Frontend service
   frontend:
@@ -194,8 +192,13 @@ services:
       - ./backend/volumes/db/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
       - ./backend/volumes/db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
       - ./backend/volumes/db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
-      - /var/lib/postgresql/data:/var/lib/postgresql/data:Z
+      - ./backend/volumes/db/data:/var/lib/postgresql/data:Z
       - ./backend/volumes/db/init:/docker-entrypoint-initdb.d/migrations:Z
+      - ./backend/volumes/db/logs.sql:/docker-entrypoint-initdb.d/migrations/99-logs.sql:Z
+      # Changes required for Pooler support
+      - ./backend/volumes/db/pooler.sql:/docker-entrypoint-initdb.d/migrations/99-pooler.sql:Z
+      # Use named volume to persist pgsodium decryption key between restarts
+      - db-config:/etc/postgresql-custom
     healthcheck:
       test: pg_isready -U postgres -h localhost
       interval: 5s
@@ -324,6 +327,7 @@ services:
 
 volumes:
   supabase-db-data:
+  db-config:
 
 networks:
   app-network:
