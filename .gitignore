@@ -1,3 +1,6 @@
 .local/
 .env
 backend/volumes/
+
+docker-compose.override.yml
+docker-compose.override.yaml
