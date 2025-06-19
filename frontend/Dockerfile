@@ -17,6 +17,7 @@ COPY . .
 
 # Accept environment variables from host system as build arguments
 ARG NEXT_PUBLIC_SUPABASE_URL
+ARG SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 # Remove sensitive .env files but keep .env.example if it exists
@@ -27,6 +28,7 @@ RUN find . -name ".env.production" -delete 2>/dev/null || true
 
 # create .env.local file with the environment variables
 RUN echo "NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}" > .env.local
+RUN echo "SUPABASE_URL=${SUPABASE_URL}" >> .env.local
 RUN echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}" >> .env.local
 
 # Next.js collects completely anonymous telemetry data about general usage.
