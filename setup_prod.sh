@@ -38,6 +38,16 @@ generate_service_key() {
     echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
 }
 
+# Function to generate vault encryption key (32 characters)
+generate_vault_key() {
+    openssl rand -base64 32 | tr -d "=+/" | cut -c1-32
+}
+
+# Function to generate secret key base (64 characters)
+generate_secret_key_base() {
+    openssl rand -base64 64 | tr -d "=+/" | cut -c1-64
+}
+
 # Function to prompt for user input with default
 prompt_with_default() {
     local prompt="$1"
@@ -89,6 +99,8 @@ DASHBOARD_PASSWORD=$(generate_password)
 LOGFLARE_API_KEY=$(generate_password)
 ANON_KEY=$(generate_supabase_keys)
 SERVICE_ROLE_KEY=$(generate_service_key)
+VAULT_ENC_KEY=$(generate_vault_key)
+SECRET_KEY_BASE=$(generate_secret_key_base)
 
 echo -e "${GREEN}✓ Secrets generated${NC}"
 
@@ -167,6 +179,10 @@ JWT_EXPIRY=3600
 # Use: supabase gen keys --project-ref YOUR_PROJECT_REF
 ANON_KEY=$ANON_KEY
 SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+
+# Encryption Keys
+VAULT_ENC_KEY=$VAULT_ENC_KEY
+SECRET_KEY_BASE=$SECRET_KEY_BASE
 
 # Dashboard Access
 DASHBOARD_USERNAME=admin
