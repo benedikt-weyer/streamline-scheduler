@@ -136,6 +136,7 @@ DB_NAME=$(prompt_with_default "Database Name" "postgres")
 # Port configuration
 echo ""
 echo -e "${BLUE}🌐 Port Configuration:${NC}"
+FRONTEND_PORT=$(prompt_with_default "Frontend Port" "3000")
 KONG_HTTP_PORT=$(prompt_with_default "Kong HTTP Port" "54321")
 KONG_HTTPS_PORT=$(prompt_with_default "Kong HTTPS Port" "54323")
 STUDIO_PORT=$(prompt_with_default "Supabase Studio Port" "54324")
@@ -185,6 +186,7 @@ ADDITIONAL_REDIRECT_URLS=
 # 🔌 PORTS
 ############################################
 
+FRONTEND_PORT=$FRONTEND_PORT
 KONG_HTTP_PORT=$KONG_HTTP_PORT
 KONG_HTTPS_PORT=$KONG_HTTPS_PORT
 STUDIO_PORT=$STUDIO_PORT
