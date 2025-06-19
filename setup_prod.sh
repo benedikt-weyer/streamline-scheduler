@@ -23,7 +23,7 @@ generate_password() {
 
 # Function to generate a random JWT secret (64 characters)
 generate_jwt_secret() {
-    openssl rand -base64 64 | tr -d "=+/" | cut -c1-64
+    openssl rand -base64 64 | tr -d "=+/\n" | cut -c1-64
 }
 
 # Function to generate Supabase keys
