@@ -1,5 +1,5 @@
 .local/
-.env
+.env*
 backend/volumes/
 
 docker-compose.override.yml
