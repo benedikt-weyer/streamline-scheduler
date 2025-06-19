@@ -251,14 +251,14 @@ services:
       LOGFLARE_NODE_HOST: 127.0.0.1
       DB_USERNAME: supabase_admin
       DB_DATABASE: _supabase
-      DB_HOSTNAME: db
+      DB_HOSTNAME: ${POSTGRES_HOST}
       DB_PORT: ${POSTGRES_PORT:-5432}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-your-super-secret-and-long-postgres-password}
       DB_SCHEMA: _analytics
       LOGFLARE_API_KEY: ${LOGFLARE_API_KEY:-your-super-secret-and-long-logflare-key}
       LOGFLARE_SINGLE_TENANT: true
       LOGFLARE_SUPABASE_MODE: true
-      POSTGRES_BACKEND_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD:-your-super-secret-and-long-postgres-password}@db:${POSTGRES_PORT:-5432}/_supabase
+      POSTGRES_BACKEND_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD:-your-super-secret-and-long-postgres-password}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/_supabase
       POSTGRES_BACKEND_SCHEMA: _analytics
       LOGFLARE_FEATURE_FLAG_OVERRIDE: multibackend=true
     ports:
