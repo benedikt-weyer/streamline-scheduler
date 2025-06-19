@@ -16,9 +16,9 @@ ARG SUPABASE_DB_URL
 # Create scripts directory and add scripts
 RUN mkdir -p /scripts \
     && echo '#!/bin/sh\npnpm supabase db push --db-url "${SUPABASE_DB_URL}"' > /scripts/db-push \
-    && echo '#!/bin/sh\nprintenv' > /scripts/print-env \
+    && echo '#!/bin/sh\necho "${SUPABASE_DB_URL}"' > /scripts/print-db-url \
     && chmod +x /scripts/db-push \
-    && chmod +x /scripts/print-env
+    && chmod +x /scripts/print-db-url
 
 # Add scripts directory to PATH
 ENV PATH="/scripts:${PATH}"
