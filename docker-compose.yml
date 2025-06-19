@@ -181,7 +181,7 @@ services:
     image: supabase/postgres:15.8.1.060
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT:-54322}:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     command:
       - postgres
       - -c
@@ -224,14 +224,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - SUPABASE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-your-super-secret-and-long-postgres-password}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD:-your-super-secret-and-long-postgres-password}@db:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
-    volumes:
-      - ./backend/supabase:/app/supabase:Z
-    working_dir: /app/supabase
     networks:
       - app-network
 

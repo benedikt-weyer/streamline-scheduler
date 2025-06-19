@@ -1,4 +1,4 @@
-FROM node:22
+FROM node:lts
 
 WORKDIR /app
 
@@ -10,6 +10,8 @@ RUN pnpm add supabase --save-dev --allow-build=supabase
 
 # Add node_modules/.bin to PATH
 ENV PATH="/app/node_modules/.bin:${PATH}"
+
+ARG SUPABASE_DB_URL
 
 # Create scripts directory and add scripts
 RUN mkdir -p /scripts \
