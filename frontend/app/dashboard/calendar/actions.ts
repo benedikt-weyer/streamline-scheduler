@@ -1,12 +1,12 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { createClientServer } from '@/utils/supabase/server';
 import { EncryptedCalendarEvent, EncryptedCalendar } from '@/utils/calendar/calendar-types';
 
 // Fetch all encrypted calendar events for the current user
 export async function fetchCalendarEvents(): Promise<EncryptedCalendarEvent[]> {
   try {
-    const supabase = await createClient();
+    const supabase = await createClientServer();
     
     // Get the current authenticated user
     const { data: { user } } = await supabase.auth.getUser();
@@ -40,7 +40,7 @@ export async function addCalendarEvent(
   salt: string
 ): Promise<EncryptedCalendarEvent> {
   try {
-    const supabase = await createClient();
+    const supabase = await createClientServer();
     
     // Get the current authenticated user
     const { data: { user } } = await supabase.auth.getUser();
@@ -80,7 +80,7 @@ export async function updateCalendarEvent(
   salt: string
 ): Promise<EncryptedCalendarEvent> {
   try {
-    const supabase = await createClient();
+    const supabase = await createClientServer();
     
     // Get the current authenticated user
     const { data: { user } } = await supabase.auth.getUser();
@@ -116,7 +116,7 @@ export async function updateCalendarEvent(
 // Delete a calendar event
 export async function deleteCalendarEvent(id: string): Promise<void> {
   try {
-    const supabase = await createClient();
+    const supabase = await createClientServer();
     
     // Get the current authenticated user
     const { data: { user } } = await supabase.auth.getUser();
@@ -146,7 +146,7 @@ export async function deleteCalendarEvent(id: string): Promise<void> {
 // Fetch all encrypted calendars for the current user
 export async function fetchCalendars(): Promise<EncryptedCalendar[]> {
   try {
-    const supabase = await createClient();
+    const supabase = await createClientServer();
     
     // Get the current authenticated user
     const { data: { user } } = await supabase.auth.getUser();
@@ -181,7 +181,7 @@ export async function addCalendar(
   isDefault: boolean = false
 ): Promise<EncryptedCalendar> {
   try {
-    const supabase = await createClient();
+    const supabase = await createClientServer();
     
     // Get the current authenticated user
     const { data: { user } } = await supabase.auth.getUser();
@@ -232,7 +232,7 @@ export async function updateCalendar(
   isDefault: boolean = false
 ): Promise<EncryptedCalendar> {
   try {
-    const supabase = await createClient();
+    const supabase = await createClientServer();
     
     // Get the current authenticated user
     const { data: { user } } = await supabase.auth.getUser();
@@ -279,7 +279,7 @@ export async function updateCalendar(
 // Delete a calendar and optionally move its events to another calendar
 export async function deleteCalendar(id: string, moveToCalendarId?: string): Promise<void> {
   try {
-    const supabase = await createClient();
+    const supabase = await createClientServer();
     
     // Get the current authenticated user
     const { data: { user } } = await supabase.auth.getUser();

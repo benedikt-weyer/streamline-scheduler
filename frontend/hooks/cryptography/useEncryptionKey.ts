@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { hashPassword } from '@/utils/cryptography/encryption';
-import { createClient } from '@/utils/supabase/client';
+import { createClientBrowser } from '@/utils/supabase/client';
 
 export function useEncryptionKey() {
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
@@ -12,7 +12,7 @@ export function useEncryptionKey() {
       url: process.env.NEXT_PUBLIC_SUPABASE_URL,
       anonKeyPresent: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     });
-    const supabase = createClient();
+    const supabase = createClientBrowser();
     
     async function loadEncryptionKey() {
       console.log('[useEncryptionKey] Loading initial encryption key...');

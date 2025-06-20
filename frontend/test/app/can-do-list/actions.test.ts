@@ -1,5 +1,5 @@
 import { fetchCanDoItems, addCanDoItem, updateCanDoItem, deleteCanDoItem } from '@/app/dashboard/can-do-list/actions';
-import { createClient } from '@/utils/supabase/server';
+import { createClientServer } from '@/utils/supabase/server';
 
 // Mock the Supabase client
 jest.mock('@/utils/supabase/server', () => ({
@@ -42,7 +42,7 @@ describe('Can-Do List Server Actions', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+    (createClientServer as jest.Mock).mockResolvedValue(mockSupabase);
     // Setup default auth mock to return a test user
     mockSupabase.auth.getUser.mockResolvedValue({
       data: { user: { id: 'user-1' } },

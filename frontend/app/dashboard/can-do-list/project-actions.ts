@@ -1,12 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/utils/supabase/server';
+import { createClientServer } from '@/utils/supabase/server';
 import { EncryptedProject } from '@/utils/can-do-list/can-do-list-types';
 
 // Fetch all encrypted projects for the current user
 export async function fetchProjects(): Promise<EncryptedProject[]> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -44,7 +44,7 @@ export async function addProject(
   isCollapsed?: boolean,
   silent = false
 ): Promise<EncryptedProject> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -105,7 +105,7 @@ export async function updateProject(
   isCollapsed?: boolean,
   silent = false
 ): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -152,7 +152,7 @@ export async function updateProjectCollapsedState(
   isCollapsed: boolean,
   silent = false
 ): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -182,7 +182,7 @@ export async function updateProjectCollapsedState(
 
 // Delete a project
 export async function deleteProject(id: string, silent = false): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();
@@ -212,7 +212,7 @@ export async function bulkUpdateProjectOrder(
   updates: Array<{ id: string; parentId?: string; displayOrder: number }>,
   silent = false
 ): Promise<void> {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
   
   // Get the authenticated user
   const { data: { user } } = await supabase.auth.getUser();

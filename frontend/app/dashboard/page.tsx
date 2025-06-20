@@ -1,11 +1,11 @@
-import { createClient } from "@/utils/supabase/server";
+import { createClientServer } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { CanDoListMain } from "@/components/dashboard/can-do-list";
 import { ErrorProvider } from "@/utils/context/ErrorContext";
 import Link from "next/link";
 
 export default async function ProtectedPage() {
-  const supabase = await createClient();
+  const supabase = await createClientServer();
 
   const {
     data: { user },
