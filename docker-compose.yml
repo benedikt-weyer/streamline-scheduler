@@ -5,8 +5,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_PUBLIC_URL}
-        - SUPABASE_URL=http://kong:8000
+        - NEXT_PUBLIC_SUPABASE_URL=http://kong:8000
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${ANON_KEY}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
