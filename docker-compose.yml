@@ -10,6 +10,8 @@ services:
     # Remove external port mapping since nginx will proxy to this
     expose:
       - "3000"
+    environment:
+      NODE_TLS_REJECT_UNAUTHORIZED: 0
     depends_on:
       kong:
         condition: service_healthy
