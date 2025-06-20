@@ -39,7 +39,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "https://localhost:443", "--no-check-certificate"]
+      test: ["CMD", "curl", "-k", "-s", "-f", "-o", "/dev/null", "https://localhost:443"]
       interval: 10s
       timeout: 5s
       retries: 3
