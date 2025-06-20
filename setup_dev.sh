@@ -48,6 +48,7 @@ DASHBOARD_PASSWORD=this_password_is_insecure_and_should_be_updated
 
 # URLs (Development)
 SUPABASE_PUBLIC_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 API_EXTERNAL_URL=http://localhost:54321
 SITE_URL=http://localhost:3000
 ADDITIONAL_REDIRECT_URLS=
