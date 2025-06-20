@@ -9,7 +9,7 @@ services:
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${ANON_KEY}
     # Remove external port mapping since nginx will proxy to this
     expose:
-      - "${3000}"
+      - "3000"
     depends_on:
       kong:
         condition: service_healthy
