@@ -262,6 +262,7 @@ function SchedulerPageContent() {
               projects={projects}
               selectedProjectId={selectedProjectId}
               onProjectSelect={handleProjectSelect}
+              onRecommendedSelect={() => {}} // No-op for scheduler - recommended tasks not implemented
               onAddProject={handleAddProject}
               onUpdateProject={handleUpdateProject}
               onDeleteProject={handleDeleteProject}
