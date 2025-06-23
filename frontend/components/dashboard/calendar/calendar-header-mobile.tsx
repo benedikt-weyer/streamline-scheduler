@@ -23,6 +23,7 @@ interface CalendarHeaderMobileProps {
   onCalendarEdit: (calendarId: string, name: string, color: string) => void;
   onCalendarDelete: (calendarId: string) => void;
   onSetDefaultCalendar: (calendarId: string) => void;
+  onTodaySelected?: () => void;
 }
 
 export function CalendarHeaderMobile({ 
@@ -34,7 +35,8 @@ export function CalendarHeaderMobile({
   onCalendarCreate,
   onCalendarEdit,
   onCalendarDelete,
-  onSetDefaultCalendar
+  onSetDefaultCalendar,
+  onTodaySelected
 }: CalendarHeaderMobileProps) {
   const [isCalendarMenuOpen, setIsCalendarMenuOpen] = useState(false);
 
@@ -51,6 +53,7 @@ export function CalendarHeaderMobile({
   // Go to current week
   const goToCurrentWeek = () => {
     setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    onTodaySelected?.();
   };
 
   const handleCalendarCreate = () => {

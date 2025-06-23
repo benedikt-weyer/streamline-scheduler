@@ -27,6 +27,7 @@ function CalendarContent() {
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [shouldSelectToday, setShouldSelectToday] = useState<boolean>(false);
   
   // Use ref to store loadEvents function to avoid circular dependency
   const loadEventsRef = useRef<((key: string) => Promise<any>) | null>(null);
@@ -236,8 +237,13 @@ function CalendarContent() {
     openNewEventDialog(day);
   }, [openNewEventDialog]);
 
-  // Combine errors
-  
+  // Handle today selection from mobile header
+  const handleTodaySelected = useCallback(() => {
+    setShouldSelectToday(true);
+    // Reset the flag after a brief delay to allow the effect to trigger
+    setTimeout(() => setShouldSelectToday(false), 100);
+  }, []);
+
   // Show loading or auth required message
   if (isLoadingKey) {
     return <div className="text-center py-8">Loading...</div>;
@@ -273,6 +279,7 @@ function CalendarContent() {
             onCalendarEdit={handleCalendarEdit}
             onCalendarDelete={handleCalendarDeleteWithEvents}
             onSetDefaultCalendar={setCalendarAsDefault}
+            onTodaySelected={handleTodaySelected}
           />
         </div>
 
@@ -295,6 +302,7 @@ function CalendarContent() {
               openEditDialog={openEditDialog}
               openNewEventDialog={openNewEventDialogWithDayHandler}
               onEventUpdate={handleEventUpdate}
+              shouldSelectToday={shouldSelectToday}
             />
           )}
         </div>

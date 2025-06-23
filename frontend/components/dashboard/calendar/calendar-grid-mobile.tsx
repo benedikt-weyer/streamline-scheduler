@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { format, isSameDay, differenceInMinutes } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ interface CalendarGridMobileProps {
   readonly openEditDialog: (event: CalendarEvent) => void;
   readonly openNewEventDialog: (day: Date) => void;
   readonly onEventUpdate?: (updatedEvent: CalendarEvent) => void;
+  readonly shouldSelectToday?: boolean;
 }
 
 export function CalendarGridMobile({
@@ -21,15 +22,27 @@ export function CalendarGridMobile({
   calendars,
   openEditDialog,
   openNewEventDialog,
-  onEventUpdate
+  onEventUpdate,
+  shouldSelectToday = false
 }: CalendarGridMobileProps) {
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Effect to select today's date when shouldSelectToday changes
+  useEffect(() => {
+    if (shouldSelectToday) {
+      const today = new Date();
+      const todayIndex = days.findIndex(day => isSameDay(day, today));
+      if (todayIndex !== -1) {
+        setSelectedDayIndex(todayIndex);
+      }
+    }
+  }, [shouldSelectToday, days]);
+
   // Generate time slots (simplified for mobile)
   const generateMobileTimeSlots = () => {
     const slots = [];
-    for (let hour = 6; hour <= 23; hour++) {
+    for (let hour = 0; hour <= 23; hour++) {
       slots.push(`${hour.toString().padStart(2, '0')}:00`);
     }
     return slots;
@@ -75,20 +88,20 @@ export function CalendarGridMobile({
     const eventStart = new Date(event.startTime);
     const eventEnd = new Date(event.endTime);
     
-    // Calculate start position (6am = 0%)
+    // Calculate start position (midnight = 0%)
     const dayStart = new Date(selectedDay);
-    dayStart.setHours(6, 0, 0, 0);
+    dayStart.setHours(0, 0, 0, 0);
     
-    const startMinutesFromSixAM = differenceInMinutes(eventStart, dayStart);
-    const topPercent = Math.max(0, (startMinutesFromSixAM / (18 * 60)) * 100); // 18 hours from 6am to midnight
+    const startMinutesFromMidnight = differenceInMinutes(eventStart, dayStart);
+    const topPercent = Math.max(0, (startMinutesFromMidnight / (24 * 60)) * 100); // 24 hours from midnight to midnight
     
     // Calculate height
     const durationMinutes = differenceInMinutes(eventEnd, eventStart);
-    const heightPercent = (durationMinutes / (18 * 60)) * 100;
+    const heightPercent = (durationMinutes / (24 * 60)) * 100;
     
     return {
       top: `${topPercent}%`,
-      height: `${Math.max(heightPercent, 5)}%`, // Minimum 5% height
+      height: `${Math.max(heightPercent, 2)}%`, // Minimum 2% height for 24-hour view
     };
   };
 
@@ -140,21 +153,34 @@ export function CalendarGridMobile({
           const dayHasEvents = events.some(event => 
             isSameDay(event.startTime, day) || isSameDay(event.endTime, day)
           );
+          const isSelected = index === selectedDayIndex;
+          const isToday = isSameDay(day, new Date());
           
           return (
             <button
               key={day.toString()}
               onClick={() => setSelectedDayIndex(index)}
-              className={`flex-shrink-0 w-12 h-16 rounded-lg border-2 flex flex-col items-center justify-center text-xs ${
-                index === selectedDayIndex
+              className={`flex-shrink-0 w-12 h-16 rounded-lg border-2 flex flex-col items-center justify-center text-xs relative ${
+                isSelected
                   ? 'border-primary bg-primary text-primary-foreground'
                   : 'border-border bg-background hover:bg-muted'
               }`}
             >
+              {/* Today indicator */}
+              {isToday && (
+                <div className={`absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${
+                  isSelected ? 'bg-primary-foreground' : 'bg-primary'
+                }`} />
+              )}
+              
               <div className="font-medium">
                 {format(day, 'EEE')}
               </div>
-              <div className={`text-lg font-bold ${isSameDay(day, new Date()) ? 'text-primary' : ''}`}>
+              <div className={`text-lg font-bold ${
+                isSelected 
+                  ? (isToday ? 'text-primary-foreground font-extrabold' : 'text-primary-foreground')
+                  : (isToday ? 'text-primary' : '')
+              }`}>
                 {format(day, 'd')}
               </div>
               {dayHasEvents && (
