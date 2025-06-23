@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { Project } from '@/utils/can-do-list/can-do-list-types';
+import { Project, Task } from '@/utils/can-do-list/can-do-list-types';
 
 // Dynamic import of the drag and drop sidebar to prevent SSR issues
 const ProjectSidebarWithDragDrop = dynamic(
@@ -34,8 +34,10 @@ const ProjectSidebarWithDragDrop = dynamic(
 
 interface ProjectSidebarDynamicProps {
   readonly projects: Project[];
+  readonly tasks?: Task[];
   readonly selectedProjectId?: string;
   readonly onProjectSelect: (projectId?: string) => void;
+  readonly onRecommendedSelect: () => void;
   readonly onAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onDeleteProject: (id: string) => Promise<boolean>;
@@ -44,6 +46,7 @@ interface ProjectSidebarDynamicProps {
   readonly isLoading?: boolean;
   readonly itemCounts?: Record<string, number>;
   readonly isCollapsed?: boolean;
+  readonly isRecommendedSelected?: boolean;
 }
 
 export default function ProjectSidebarDynamic(props: ProjectSidebarDynamicProps) {

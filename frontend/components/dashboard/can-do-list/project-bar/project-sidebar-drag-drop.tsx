@@ -3,8 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Project, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
-import { Plus, Folder, FolderOpen } from 'lucide-react';
+import { Project, Task, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
+import { Plus, Folder, FolderOpen, Star } from 'lucide-react';
 import AddProjectDialog from '../add-project-dialog';
 import EditProjectDialog from '../edit-project-dialog';
 import { SortableTree, TreeItems } from 'dnd-kit-sortable-tree';
@@ -12,8 +12,10 @@ import ProjectTreeItem from './project-tree-item';
 
 interface ProjectSidebarProps {
   readonly projects: Project[];
+  readonly tasks?: Task[];
   readonly selectedProjectId?: string;
   readonly onProjectSelect: (projectId?: string) => void;
+  readonly onRecommendedSelect: () => void;
   readonly onAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onDeleteProject: (id: string) => Promise<boolean>;
@@ -22,6 +24,7 @@ interface ProjectSidebarProps {
   readonly isLoading?: boolean;
   readonly itemCounts?: Record<string, number>;
   readonly isCollapsed?: boolean;
+  readonly isRecommendedSelected?: boolean;
 }
 
 interface TreeItemData {
@@ -38,8 +41,10 @@ interface TreeItemData {
 
 export default function ProjectSidebarWithDragDrop({
   projects,
+  tasks = [],
   selectedProjectId,
   onProjectSelect,
+  onRecommendedSelect,
   onAddProject,
   onUpdateProject,
   onDeleteProject,
@@ -47,7 +52,8 @@ export default function ProjectSidebarWithDragDrop({
   onUpdateProjectCollapsedState,
   isLoading = false,
   itemCounts = {},
-  isCollapsed = false
+  isCollapsed = false,
+  isRecommendedSelected = false
 }: ProjectSidebarProps) {
   console.log('[ProjectSidebarWithDragDrop] Rendering with projects:', projects.length, projects.map(p => p.name));
   
@@ -193,6 +199,9 @@ export default function ProjectSidebarWithDragDrop({
     );
   }
 
+  // Calculate recommended tasks count
+  const recommendedCount = tasks.filter(task => !task.completed && (task.importance || task.urgency || task.dueDate)).length;
+
   return (
     <div className="bg-muted/30 border-r border-border h-full flex flex-col">
       <div className="p-4 border-b border-border">
@@ -214,17 +223,37 @@ export default function ProjectSidebarWithDragDrop({
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-2 space-y-1">
+          {/* Recommended Tasks */}
+          {recommendedCount > 0 && (
+            <button
+              onClick={onRecommendedSelect}
+              className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-3 ${
+                isRecommendedSelected
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted/50'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Star className="h-4 w-4 flex-shrink-0 text-amber-500" />
+                <span className="truncate font-medium">Recommended</span>
+              </div>
+              <Badge variant="secondary" className="text-xs">
+                {recommendedCount}
+              </Badge>
+            </button>
+          )}
+
           {/* Default Inbox Project */}
           <button
             onClick={() => onProjectSelect(undefined)}
             className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-3 ${
-              selectedProjectId === undefined
+              selectedProjectId === undefined && !isRecommendedSelected
                 ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-muted/50'
             }`}
           >
             <div className="flex items-center gap-2 min-w-0">
-              {selectedProjectId === undefined ? (
+              {selectedProjectId === undefined && !isRecommendedSelected ? (
                 <FolderOpen className="h-4 w-4 flex-shrink-0" />
               ) : (
                 <Folder className="h-4 w-4 flex-shrink-0" />

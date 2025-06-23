@@ -20,6 +20,7 @@ import AddTaskForm from './add-task-form';
 import LoadingState from './loading-state';
 import EmptyState from './empty-state';
 import TaskList from './task-list';
+import RecommendedTaskList from './recommended-task-list';
 import AuthenticationRequired from './authentication-required';
 import ProjectSidebarDynamic from './project-bar/project-sidebar-dynamic';
 import ProjectSelectorMobile from './project-selector-mobile';
@@ -38,6 +39,7 @@ export default function CanDoListMain() {
   const { error } = useError();
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+  const [isRecommendedSelected, setIsRecommendedSelected] = useState(false);
 
   // Use the main can-do list hook
   const {
@@ -93,6 +95,14 @@ export default function CanDoListMain() {
   // Handle project selection
   const handleProjectSelect = (projectId?: string) => {
     setSelectedProjectId(projectId);
+    setIsRecommendedSelected(false);
+  };
+
+  // Handle recommended tasks selection
+  const handleRecommendedSelect = () => {
+    setIsRecommendedSelected(true);
+    setSelectedProjectId(undefined);
+    setActiveTab('active'); // Recommended tasks are always active
   };
 
   // Filter tasks based on selected project and tab
@@ -190,6 +200,8 @@ export default function CanDoListMain() {
       // The tasks will automatically be removed from the view
     }
   };
+
+
 
   return (
     <>
@@ -304,8 +316,10 @@ export default function CanDoListMain() {
             <div className="w-1/4 lg:w-1/5">
               <ProjectSidebarDynamic
                 projects={projects}
+                tasks={tasks}
                 selectedProjectId={selectedProjectId}
                 onProjectSelect={handleProjectSelect}
+                onRecommendedSelect={handleRecommendedSelect}
                 onAddProject={handleAddProject}
                 onUpdateProject={handleUpdateProject}
                 onDeleteProject={handleDeleteProject}
@@ -313,20 +327,35 @@ export default function CanDoListMain() {
                 onUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
                 isLoading={isLoading}
                 itemCounts={taskCounts}
+                isRecommendedSelected={isRecommendedSelected}
               />
             </div>
 
             <div className="flex-1 overflow-hidden">
               <div className="max-w-3xl mx-auto p-6 h-full overflow-y-auto">
                 <h1 className="text-2xl font-bold mb-2">
-                  {selectedProjectId 
-                    ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
-                    : 'Inbox'
+                  {isRecommendedSelected 
+                    ? 'Recommended Tasks'
+                    : selectedProjectId 
+                      ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
+                      : 'Inbox'
                   }
                 </h1>
                 <ErrorDisplay error={error} />
                 
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
+                {isRecommendedSelected ? (
+                  // Show recommended tasks view
+                  <RecommendedTaskList
+                    tasks={tasks}
+                    projects={projects}
+                    isLoading={isLoading}
+                    onToggleComplete={onToggleComplete}
+                    onDeleteTask={onDeleteTask}
+                    onUpdateTask={onUpdateTask}
+                  />
+                ) : (
+                  // Show regular project/inbox view
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-4">
                     <TabsTrigger value="active" className="flex items-center gap-2">
                       Active
@@ -398,6 +427,7 @@ export default function CanDoListMain() {
                     />
                   </TabsContent>
                 </Tabs>
+                )}
               </div>
             </div>
           </div>
