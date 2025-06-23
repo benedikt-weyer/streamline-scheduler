@@ -9,6 +9,7 @@ export interface Task {
   displayOrder: number;
   importance?: number; // 1-10, how important the task is
   urgency?: number; // 1-10, how urgent the task is
+  dueDate?: Date; // when the task is due
 }
 
 export interface EncryptedTask {

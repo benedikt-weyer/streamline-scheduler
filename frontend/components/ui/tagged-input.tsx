@@ -3,7 +3,7 @@
 import { useState, useRef, forwardRef, useImperativeHandle, useEffect, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { X, Clock, Info, Zap } from 'lucide-react';
+import { X, Clock, Info, Zap, Calendar } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
 
 export interface Tag {
@@ -12,7 +12,8 @@ export interface Tag {
   duration?: number; // in minutes, for duration tags
   importance?: number; // 1-10, for priority tags
   urgency?: number; // 1-10, for priority tags
-  type: 'duration' | 'priority' | 'custom'; // extensible for different tag types
+  dueDate?: Date; // for due date tags
+  type: 'duration' | 'priority' | 'due-date' | 'custom'; // extensible for different tag types
 }
 
 interface TaggedInputProps {
@@ -35,10 +36,11 @@ export interface TagSuggestion {
   id: string;
   text: string;
   description?: string;
-  type: 'duration' | 'priority' | 'custom';
+  type: 'duration' | 'priority' | 'due-date' | 'custom';
   duration?: number; // for duration suggestions
   importance?: number; // for priority suggestions
   urgency?: number; // for priority suggestions
+  dueDate?: Date; // for due date suggestions
 }
 
 export interface TaggedInputRef {
@@ -84,6 +86,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       // Overview/help suggestions
       { id: 'help-duration', text: '#d...', description: 'Duration tags - #d15m, #d1h, #d2h30m', type: 'custom' },
       { id: 'help-priority', text: '#p...', description: 'Priority tags - #p5, #i7, #u3, #i7u3', type: 'custom' },
+      { id: 'help-due-date', text: '#due...', description: 'Due date tags - #due2024-12-25, #duetoday, #duetomorrow', type: 'custom' },
       { id: 'help-custom', text: '#...', description: 'Custom tags - #urgent, #meeting, #personal', type: 'custom' },
       
       // Common duration tags
@@ -108,6 +111,11 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       { id: 'priority-i8u3', text: '#i8u3', description: 'Importance 8, Urgency 3', type: 'priority', importance: 8, urgency: 3 },
       { id: 'priority-i5u7', text: '#i5u7', description: 'Importance 5, Urgency 7', type: 'priority', importance: 5, urgency: 7 },
       { id: 'priority-i9u2', text: '#i9u2', description: 'Importance 9, Urgency 2', type: 'priority', importance: 9, urgency: 2 },
+      
+      // Common due date tags
+      { id: 'due-today', text: '#duetoday', description: 'Due today', type: 'due-date', dueDate: new Date() },
+      { id: 'due-tomorrow', text: '#duetomorrow', description: 'Due tomorrow', type: 'due-date', dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+      { id: 'due-week', text: '#dueweek', description: 'Due in 1 week', type: 'due-date', dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
     ], []);
 
     // Update allSuggestionsRef when needed to avoid infinite re-renders
@@ -208,16 +216,20 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         duration: suggestion.duration,
         importance: suggestion.importance,
         urgency: suggestion.urgency,
+        dueDate: suggestion.dueDate,
         type: suggestion.type
       };
       
-      // Update tags state - override existing duration/priority tag if it's a duration/priority type
+      // Update tags state - override existing duration/priority/due-date tag if it's a duration/priority/due-date type
       setTags(prev => {
         if (suggestion.type === 'duration') {
           const filteredTags = prev.filter(tag => tag.type !== 'duration');
           return [...filteredTags, newTag];
         } else if (suggestion.type === 'priority') {
           const filteredTags = prev.filter(tag => tag.type !== 'priority');
+          return [...filteredTags, newTag];
+        } else if (suggestion.type === 'due-date') {
+          const filteredTags = prev.filter(tag => tag.type !== 'due-date');
           return [...filteredTags, newTag];
         } else {
           return [...prev, newTag];
@@ -348,6 +360,77 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       }
 
       return null;
+    };
+
+    // Parse due date hashtags
+    const parseDueDateTag = (text: string): { dueDate: Date; displayText: string } | null => {
+      // Parse specific date format: #due2024-12-25
+      const dateRegex = /#due(\d{4}-\d{2}-\d{2})/i;
+      const dateMatch = dateRegex.exec(text);
+      
+      if (dateMatch) {
+        const dateString = dateMatch[1];
+        const date = new Date(dateString + 'T00:00:00.000Z');
+        
+        if (!isNaN(date.getTime())) {
+          return {
+            dueDate: date,
+            displayText: formatDueDate(date)
+          };
+        }
+      }
+
+      // Parse relative date formats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (text.toLowerCase() === '#duetoday') {
+        return {
+          dueDate: today,
+          displayText: 'Today'
+        };
+      }
+      
+      if (text.toLowerCase() === '#duetomorrow') {
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        return {
+          dueDate: tomorrow,
+          displayText: 'Tomorrow'
+        };
+      }
+      
+      if (text.toLowerCase() === '#dueweek') {
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+        return {
+          dueDate: nextWeek,
+          displayText: 'Next week'
+        };
+      }
+
+      return null;
+    };
+
+    // Format due date for display
+    const formatDueDate = (date: Date): string => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const targetDate = new Date(date);
+      targetDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = targetDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) return 'Today';
+      if (diffDays === 1) return 'Tomorrow';
+      if (diffDays === -1) return 'Yesterday';
+      if (diffDays > 0 && diffDays <= 7) return `In ${diffDays} days`;
+      if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
+      
+      // For dates further away, show the actual date
+      return date.toLocaleDateString();
     };
 
     // Parse time string to minutes
@@ -522,6 +605,51 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
           return;
         }
       }
+
+      // Check for due date hashtag
+      const dueDateRegex = /#(?:due\d{4}-\d{2}-\d{2}|duetoday|duetomorrow|dueweek)/i;
+      const dueDateMatch = dueDateRegex.exec(lastWord);
+      
+      if (dueDateMatch) {
+        const hashtagText = dueDateMatch[0]; // The full hashtag match (e.g., "#due2024-12-25" or "#duetoday")
+        const parsedTag = parseDueDateTag(hashtagText);
+        
+        if (parsedTag) {
+          e.preventDefault();
+          
+          // Create a new due date tag
+          const newTag: Tag = {
+            id: Date.now().toString(),
+            text: hashtagText,
+            dueDate: parsedTag.dueDate,
+            type: 'due-date'
+          };
+          
+          // Update tags state - override existing due date tag
+          setTags(prev => {
+            // Remove any existing due date tags and add the new one
+            const filteredTags = prev.filter(tag => tag.type !== 'due-date');
+            return [...filteredTags, newTag];
+          });
+          
+          // Remove only the hashtag portion from the input and add a space
+          const hashtagStartPos = cursorPosition - lastWord.length + lastWord.indexOf(hashtagText);
+          const beforeHashtag = currentValue.slice(0, hashtagStartPos);
+          const afterCursor = currentValue.slice(cursorPosition);
+          const newValue = beforeHashtag + ' ' + afterCursor;
+          setValue(newValue);
+          
+          // Focus the input and set cursor position
+          setTimeout(() => {
+            if (inputRef.current) {
+              const newCursorPos = hashtagStartPos + 1;
+              inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+              inputRef.current.focus();
+            }
+          }, 0);
+          return;
+        }
+      }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -593,6 +721,9 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                   {!suggestion.id.startsWith('help-') && suggestion.type === 'duration' && (
                     <Clock className="h-3 w-3 text-muted-foreground" />
                   )}
+                  {!suggestion.id.startsWith('help-') && suggestion.type === 'due-date' && (
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                  )}
                   <span className={cn(
                     "font-mono text-sm",
                     suggestion.id.startsWith('help-') && "text-muted-foreground font-normal"
@@ -617,13 +748,29 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
             {tags.map(tag => {
-              // Get urgency-based color for priority tags
+              // Get color for different tag types
               const getTagColor = () => {
                 if (tag.type === 'priority' && tag.urgency) {
                   if (tag.urgency <= 3) return 'bg-green-100 text-green-700';
                   if (tag.urgency <= 6) return 'bg-yellow-100 text-yellow-700';
                   if (tag.urgency <= 8) return 'bg-orange-100 text-orange-700';
                   return 'bg-red-100 text-red-700';
+                } else if (tag.type === 'due-date' && tag.dueDate) {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  
+                  const targetDate = new Date(tag.dueDate);
+                  targetDate.setHours(0, 0, 0, 0);
+                  
+                  const diffTime = targetDate.getTime() - today.getTime();
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  
+                  if (diffDays < 0) return 'bg-red-100 text-red-700'; // Overdue
+                  if (diffDays === 0) return 'bg-orange-100 text-orange-700'; // Due today
+                  if (diffDays === 1) return 'bg-yellow-100 text-yellow-700'; // Due tomorrow
+                  if (diffDays <= 7) return 'bg-blue-100 text-blue-700'; // Due this week
+                  
+                  return 'bg-gray-100 text-gray-700'; // Due later
                 }
                 return 'bg-secondary text-secondary-foreground';
               };
@@ -644,6 +791,8 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                   // If only one value is provided, use that value directly
                   const priority = imp > 0 ? imp : urg;
                   return `P${priority}`;
+                } else if (tag.type === 'due-date') {
+                  return formatDueDate(tag.dueDate!);
                 }
                 return tag.text;
               };
@@ -658,6 +807,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                 >
                   {tag.type === 'duration' && <Clock className="h-3 w-3" />}
                   {tag.type === 'priority' && <Zap className="h-3 w-3" />}
+                  {tag.type === 'due-date' && <Calendar className="h-3 w-3" />}
                   {getTagDisplayText()}
                   <button
                     type="button"

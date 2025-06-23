@@ -37,7 +37,8 @@ const editTaskSchema = z.object({
     .optional(),
   projectId: z.string().optional(),
   importance: z.number().int().min(0).max(10).optional(),
-  urgency: z.number().int().min(0).max(10).optional()
+  urgency: z.number().int().min(0).max(10).optional(),
+  dueDate: z.string().optional()
 });
 
 type EditTaskFormValues = z.infer<typeof editTaskSchema>;
@@ -46,7 +47,7 @@ interface EditTaskDialogProps {
   readonly task: Task | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number) => Promise<void>;
+  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date) => Promise<void>;
   readonly isLoading?: boolean;
   readonly projects?: Project[];
 }
@@ -75,7 +76,8 @@ export default function EditTaskDialog({
         estimatedDuration: task.estimatedDuration?.toString() ?? '',
         projectId: task.projectId ?? '',
         importance: task.importance ?? 0,
-        urgency: task.urgency ?? 0
+        urgency: task.urgency ?? 0,
+        dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : ''
       });
     }
   }, [task, isOpen, form]);
@@ -85,18 +87,20 @@ export default function EditTaskDialog({
     const duration = values.estimatedDuration ? Number(values.estimatedDuration) : undefined;
     const importance = values.importance === 0 ? undefined : values.importance;
     const urgency = values.urgency === 0 ? undefined : values.urgency;
+    const dueDate = values.dueDate ? new Date(values.dueDate + 'T00:00:00.000Z') : undefined;
     
     if (
       values.content.trim() === task.content.trim() &&
       duration === task.estimatedDuration &&
       values.projectId === task.projectId &&
       importance === task.importance &&
-      urgency === task.urgency
+      urgency === task.urgency &&
+      dueDate?.getTime() === task.dueDate?.getTime()
     ) {
       onClose();
       return;
     }
-    await onSave(task.id, values.content, duration, values.projectId, importance, urgency);
+    await onSave(task.id, values.content, duration, values.projectId, importance, urgency, dueDate);
     onClose();
   };
 
@@ -203,6 +207,21 @@ export default function EditTaskDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="dueDate">Due Date</Label>
+            <Input
+              id="dueDate"
+              type="date"
+              disabled={isLoading}
+              {...form.register('dueDate')}
+            />
+            {form.formState.errors.dueDate && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.dueDate.message}
+              </p>
+            )}
           </div>
 
           {/* Priority Section */}

@@ -4,17 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 import { useState } from 'react';
-import { Edit, Trash2, Clock, Zap } from 'lucide-react';
+import { Edit, Trash2, Clock, Zap, Calendar } from 'lucide-react';
 import EditTaskDialog from './edit-task-dialog';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from '@/utils/can-do-list/priority-utils';
+import { formatDueDate, getDueDateColorClass } from '@/utils/can-do-list/due-date-utils';
 
 interface TaskListItemProps {
   readonly task: Task;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number) => Promise<void>;
+  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date) => Promise<void>;
   readonly projects?: Project[];
 }
 
@@ -56,10 +57,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     setIsEditDialogOpen(true);
   };
 
-  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number) => {
+  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date) => {
     setIsUpdating(true);
     try {
-      await onUpdateTask(id, content, estimatedDuration, projectId, importance, urgency);
+      await onUpdateTask(id, content, estimatedDuration, projectId, importance, urgency, dueDate);
     } finally {
       setIsUpdating(false);
     }
@@ -150,6 +151,12 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             }
             return null;
           })()}
+          {task.dueDate && (
+            <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getDueDateColorClass(task.dueDate)}`}>
+              <Calendar className="h-3 w-3" />
+              {formatDueDate(task.dueDate)}
+            </span>
+          )}
           <Button
             variant="ghost"
             size="sm"

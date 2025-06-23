@@ -35,7 +35,8 @@ export const useTaskLoader = (
             projectId: task.project_id,
             displayOrder: task.display_order ?? 0,
             importance: decryptedData.importance,
-            urgency: decryptedData.urgency
+            urgency: decryptedData.urgency,
+            dueDate: decryptedData.dueDate ? new Date(decryptedData.dueDate) : undefined
           };
         } catch (error) {
           console.error('Failed to decrypt task:', error);

@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { parseDurationFromContent } from '@/utils/can-do-list/duration-parser';
 import { parsePriorityFromContent } from '@/utils/can-do-list/priority-utils';
+import { parseDueDateFromContent } from '@/utils/can-do-list/due-date-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
@@ -150,13 +151,16 @@ export default function CanDoListMain() {
     const parsedDuration = parseDurationFromContent(values.content);
     // Parse priority hashtags from content  
     const parsedPriority = parsePriorityFromContent(parsedDuration.content);
+    // Parse due date hashtags from content
+    const parsedDueDate = parseDueDateFromContent(parsedPriority.content);
     
     const success = await handleAddTask(
-      parsedPriority.content, 
+      parsedDueDate.content, 
       parsedDuration.duration, 
       selectedProjectId,
       parsedPriority.importance,
-      parsedPriority.urgency
+      parsedPriority.urgency,
+      parsedDueDate.dueDate
     );
     if (success) {
       form.reset();
@@ -164,8 +168,8 @@ export default function CanDoListMain() {
   };
 
   // Handle update action
-  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number) => {
-    await handleUpdateTask(id, content, estimatedDuration, projectId, importance, urgency);
+  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date) => {
+    await handleUpdateTask(id, content, estimatedDuration, projectId, importance, urgency, dueDate);
   };
 
   // Handle toggle complete action
