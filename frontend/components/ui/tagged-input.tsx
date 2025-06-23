@@ -226,6 +226,17 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       }
     };
 
+    // Format duration for display
+    const formatDuration = (minutes?: number): string => {
+      if (!minutes) return '0m';
+      if (minutes < 60) {
+        return `${minutes}m`;
+      }
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    };
+
     // Parse duration hashtags similar to the existing parser
     const parseDurationTag = (text: string): { duration: number; displayText: string } | null => {
       const durationRegex = /#d(\d+(?:h\d*m?|\d*m?|h))/i;
@@ -240,7 +251,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       
       return {
         duration,
-        displayText: `${duration}m`
+        displayText: formatDuration(duration)
       };
     };
 
@@ -470,7 +481,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                 className="flex items-center gap-1 text-xs"
               >
                 {tag.type === 'duration' && <Clock className="h-3 w-3" />}
-                {tag.type === 'duration' ? `${tag.duration}m` : tag.text}
+                {tag.type === 'duration' ? formatDuration(tag.duration) : tag.text}
                 <button
                   type="button"
                   onClick={() => removeTag(tag.id)}

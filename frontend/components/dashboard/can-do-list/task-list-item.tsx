@@ -40,6 +40,17 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     transition,
   };
 
+  // Format duration for display
+  const formatDuration = (minutes?: number) => {
+    if (!minutes) return null;
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+  };
+
   const handleEdit = () => {
     setIsEditDialogOpen(true);
   };
@@ -122,7 +133,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           {task.estimatedDuration && (
             <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {task.estimatedDuration} min
+              {formatDuration(task.estimatedDuration)}
             </span>
           )}
           <Button
