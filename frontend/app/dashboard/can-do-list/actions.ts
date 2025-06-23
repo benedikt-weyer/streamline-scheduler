@@ -41,6 +41,9 @@ export async function addTask(
     throw new Error('User must be authenticated to add tasks');
   }
 
+  // Convert empty string to null for proper database handling
+  const normalizedProjectId = projectId === '' ? null : projectId;
+
   // If no displayOrder provided, add at the top (display order 0) and move all other tasks down
   let finalDisplayOrder = displayOrder;
   if (finalDisplayOrder === undefined) {
@@ -57,10 +60,10 @@ export async function addTask(
       .gte('display_order', 0); // Only get active tasks (positive display_order)
     
     // Handle null project_id correctly
-    if (projectId === null || projectId === undefined) {
+    if (normalizedProjectId === null || normalizedProjectId === undefined) {
       query = query.is('project_id', null);
     } else {
-      query = query.eq('project_id', projectId);
+      query = query.eq('project_id', normalizedProjectId);
     }
     
     const { data: existingTasks } = await query;
@@ -78,7 +81,7 @@ export async function addTask(
       await Promise.all(updates);
     }
   }
-  
+
   const { data, error } = await supabase
     .from('can_do_list')
     .insert({
@@ -86,7 +89,7 @@ export async function addTask(
       encrypted_data: encryptedData,
       iv,
       salt,
-      project_id: projectId,
+      project_id: normalizedProjectId,
       display_order: finalDisplayOrder
     })
     .select()
@@ -115,11 +118,14 @@ export async function updateTask(
 ): Promise<EncryptedTask> {
   const supabase = await createClientServer();
 
+  // Convert empty string to null for proper database handling
+  const normalizedProjectId = projectId === '' ? null : projectId;
+
   const updateData: any = {
     encrypted_data: encryptedData,
     iv,
     salt,
-    project_id: projectId
+    project_id: normalizedProjectId
   };
 
   if (displayOrder !== undefined) {
@@ -152,10 +158,13 @@ export async function moveTaskToProject(
 ): Promise<void> {
   const supabase = await createClientServer();
   
+  // Convert empty string to null for proper database handling
+  const normalizedProjectId = projectId === '' ? null : projectId;
+  
   const { error } = await supabase
     .from('can_do_list')
     .update({
-      project_id: projectId
+      project_id: normalizedProjectId
     })
     .eq('id', id);
   
@@ -339,6 +348,9 @@ export async function toggleTaskCompleteWithReorder(
     throw new Error('User must be authenticated to update tasks');
   }
 
+  // Convert empty string to null for proper database handling
+  const normalizedProjectId = projectId === '' ? null : projectId;
+
   let newDisplayOrder: number;
 
   if (completed) {
@@ -361,14 +373,14 @@ export async function toggleTaskCompleteWithReorder(
       .gte('display_order', 0); // Only get active tasks (positive display_order)
     
     // Handle null project_id correctly
-    if (projectId === null || projectId === undefined) {
+    if (normalizedProjectId === null || normalizedProjectId === undefined) {
       query = query.is('project_id', null);
     } else {
-      query = query.eq('project_id', projectId);
+      query = query.eq('project_id', normalizedProjectId);
     }
     
     const { data: activeTasks } = await query;
-    console.log('select where user_id:', user.id, 'and project_id:', projectId ?? null, 'display_order >= 0');
+    console.log('select where user_id:', user.id, 'and project_id:', normalizedProjectId ?? null, 'display_order >= 0');
     
     console.log('Active tasks before incrementing:', activeTasks);
     
@@ -410,8 +422,8 @@ export async function toggleTaskCompleteWithReorder(
 
   // If we completed a task, reorder remaining active tasks to fill gaps
   if (completed) {
-    console.log('Reordering active tasks for project:', projectId);
-    await reorderActiveTasksInProject(projectId, silent);
+    console.log('Reordering active tasks for project:', normalizedProjectId);
+    await reorderActiveTasksInProject(normalizedProjectId, silent);
   }
 
   revalidatePath('/dashboard/can-do-list');
@@ -419,7 +431,7 @@ export async function toggleTaskCompleteWithReorder(
 }
 
 // Helper function to reorder active tasks in a project to fill gaps
-async function reorderActiveTasksInProject(projectId?: string, silent = false): Promise<void> {
+async function reorderActiveTasksInProject(projectId?: string | null, silent = false): Promise<void> {
   const supabase = await createClientServer();
   
   // Get the authenticated user

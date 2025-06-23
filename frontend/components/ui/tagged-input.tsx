@@ -3,14 +3,16 @@
 import { useState, useRef, forwardRef, useImperativeHandle, useEffect, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { X, Clock, Info } from 'lucide-react';
+import { X, Clock, Info, Zap } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
 
 export interface Tag {
   id: string;
   text: string;
   duration?: number; // in minutes, for duration tags
-  type: 'duration' | 'custom'; // extensible for different tag types
+  importance?: number; // 1-10, for priority tags
+  urgency?: number; // 1-10, for priority tags
+  type: 'duration' | 'priority' | 'custom'; // extensible for different tag types
 }
 
 interface TaggedInputProps {
@@ -33,8 +35,10 @@ export interface TagSuggestion {
   id: string;
   text: string;
   description?: string;
-  type: 'duration' | 'custom';
+  type: 'duration' | 'priority' | 'custom';
   duration?: number; // for duration suggestions
+  importance?: number; // for priority suggestions
+  urgency?: number; // for priority suggestions
 }
 
 export interface TaggedInputRef {
@@ -79,6 +83,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
     const defaultSuggestions: TagSuggestion[] = useMemo(() => [
       // Overview/help suggestions
       { id: 'help-duration', text: '#d...', description: 'Duration tags - #d15m, #d1h, #d2h30m', type: 'custom' },
+      { id: 'help-priority', text: '#p...', description: 'Priority tags - #p5, #i7, #u3, #i7u3', type: 'custom' },
       { id: 'help-custom', text: '#...', description: 'Custom tags - #urgent, #meeting, #personal', type: 'custom' },
       
       // Common duration tags
@@ -88,6 +93,21 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       { id: 'duration-1h30m', text: '#d1h30m', description: '1 hour 30 minutes', type: 'duration', duration: 90 },
       { id: 'duration-2h', text: '#d2h', description: '2 hours', type: 'duration', duration: 120 },
       { id: 'duration-3h', text: '#d3h', description: '3 hours', type: 'duration', duration: 180 },
+      
+      // Common priority tags
+      { id: 'priority-p3', text: '#p3', description: 'Priority 3', type: 'priority', importance: 3, urgency: 3 },
+      { id: 'priority-p5', text: '#p5', description: 'Priority 5', type: 'priority', importance: 5, urgency: 5 },
+      { id: 'priority-p7', text: '#p7', description: 'Priority 7', type: 'priority', importance: 7, urgency: 7 },
+      { id: 'priority-p9', text: '#p9', description: 'Priority 9', type: 'priority', importance: 9, urgency: 9 },
+      { id: 'priority-i3', text: '#i3', description: 'Importance 3', type: 'priority', importance: 3 },
+      { id: 'priority-i5', text: '#i5', description: 'Importance 5', type: 'priority', importance: 5 },
+      { id: 'priority-i8', text: '#i8', description: 'Importance 8', type: 'priority', importance: 8 },
+      { id: 'priority-u3', text: '#u3', description: 'Urgency 3', type: 'priority', urgency: 3 },
+      { id: 'priority-u5', text: '#u5', description: 'Urgency 5', type: 'priority', urgency: 5 },
+      { id: 'priority-u8', text: '#u8', description: 'Urgency 8', type: 'priority', urgency: 8 },
+      { id: 'priority-i8u3', text: '#i8u3', description: 'Importance 8, Urgency 3', type: 'priority', importance: 8, urgency: 3 },
+      { id: 'priority-i5u7', text: '#i5u7', description: 'Importance 5, Urgency 7', type: 'priority', importance: 5, urgency: 7 },
+      { id: 'priority-i9u2', text: '#i9u2', description: 'Importance 9, Urgency 2', type: 'priority', importance: 9, urgency: 2 },
     ], []);
 
     // Update allSuggestionsRef when needed to avoid infinite re-renders
@@ -186,13 +206,18 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         id: Date.now().toString(),
         text: suggestion.text,
         duration: suggestion.duration,
+        importance: suggestion.importance,
+        urgency: suggestion.urgency,
         type: suggestion.type
       };
       
-      // Update tags state - override existing duration tag if it's a duration type
+      // Update tags state - override existing duration/priority tag if it's a duration/priority type
       setTags(prev => {
         if (suggestion.type === 'duration') {
           const filteredTags = prev.filter(tag => tag.type !== 'duration');
+          return [...filteredTags, newTag];
+        } else if (suggestion.type === 'priority') {
+          const filteredTags = prev.filter(tag => tag.type !== 'priority');
           return [...filteredTags, newTag];
         } else {
           return [...prev, newTag];
@@ -253,6 +278,76 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         duration,
         displayText: formatDuration(duration)
       };
+    };
+
+    // Parse priority hashtags
+    const parsePriorityTag = (text: string): { importance?: number; urgency?: number; displayText: string } | null => {
+      // Parse combined format: #i7u3 (importance 7, urgency 3)
+      const combinedRegex = /#i(\d)u(\d)/i;
+      const combinedMatch = combinedRegex.exec(text);
+      
+      if (combinedMatch) {
+        const importance = parseInt(combinedMatch[1], 10);
+        const urgency = parseInt(combinedMatch[2], 10);
+        
+        if (importance >= 1 && importance <= 10 && urgency >= 1 && urgency <= 10) {
+          // If both values are provided, take the average
+          const priority = Math.round((importance + urgency) / 2);
+          return {
+            importance,
+            urgency,
+            displayText: `P${priority}`
+          };
+        }
+      }
+
+      // Parse importance only format: #i7
+      const importanceRegex = /#i(\d)/i;
+      const importanceMatch = importanceRegex.exec(text);
+      
+      if (importanceMatch) {
+        const importance = parseInt(importanceMatch[1], 10);
+        
+        if (importance >= 1 && importance <= 10) {
+          return {
+            importance,
+            displayText: `P${importance}`
+          };
+        }
+      }
+
+      // Parse urgency only format: #u5
+      const urgencyRegex = /#u(\d)/i;
+      const urgencyMatch = urgencyRegex.exec(text);
+      
+      if (urgencyMatch) {
+        const urgency = parseInt(urgencyMatch[1], 10);
+        
+        if (urgency >= 1 && urgency <= 10) {
+          return {
+            urgency,
+            displayText: `P${urgency}`
+          };
+        }
+      }
+
+      // Parse simple priority format: #p5 (sets both importance and urgency to 5)
+      const priorityRegex = /#p(\d)/i;
+      const priorityMatch = priorityRegex.exec(text);
+      
+      if (priorityMatch) {
+        const priority = parseInt(priorityMatch[1], 10);
+        
+        if (priority >= 1 && priority <= 10) {
+          return {
+            importance: priority,
+            urgency: priority,
+            displayText: `P${priority}`
+          };
+        }
+      }
+
+      return null;
     };
 
     // Parse time string to minutes
@@ -328,7 +423,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       return false;
     };
 
-    const handleSpaceKeyForDurationTag = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    const handleSpaceKeyForTags = (e: React.KeyboardEvent<HTMLInputElement>): void => {
       const currentValue = inputValue;
       const cursorPosition = inputRef.current?.selectionStart ?? 0;
       
@@ -337,49 +432,96 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       const words = textBeforeCursor.split(' ');
       const lastWord = words[words.length - 1];
       
-      // Check if the last word contains a duration hashtag
+      // Check for duration hashtag first
       const durationRegex = /#d(\d+(?:h\d*m?|\d*m?|h))/i;
-      const match = durationRegex.exec(lastWord);
+      const durationMatch = durationRegex.exec(lastWord);
       
-      if (!match) return;
-
-      const hashtagText = match[0]; // The full hashtag match (e.g., "#d15m")
-      const parsedTag = parseDurationTag(hashtagText);
-      
-      if (!parsedTag) return;
-
-      e.preventDefault();
-      
-      // Create a new tag
-      const newTag: Tag = {
-        id: Date.now().toString(),
-        text: hashtagText,
-        duration: parsedTag.duration,
-        type: 'duration'
-      };
-      
-      // Update tags state - override existing duration tag
-      setTags(prev => {
-        // Remove any existing duration tags and add the new one
-        const filteredTags = prev.filter(tag => tag.type !== 'duration');
-        return [...filteredTags, newTag];
-      });
-      
-      // Remove only the hashtag portion from the input and add a space
-      const hashtagStartPos = cursorPosition - lastWord.length + lastWord.indexOf(hashtagText);
-      const beforeHashtag = currentValue.slice(0, hashtagStartPos);
-      const afterCursor = currentValue.slice(cursorPosition);
-      const newValue = beforeHashtag + ' ' + afterCursor;
-      setValue(newValue);
-      
-      // Focus the input and set cursor position
-      setTimeout(() => {
-        if (inputRef.current) {
-          const newCursorPos = hashtagStartPos + 1;
-          inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
-          inputRef.current.focus();
+      if (durationMatch) {
+        const hashtagText = durationMatch[0]; // The full hashtag match (e.g., "#d15m")
+        const parsedTag = parseDurationTag(hashtagText);
+        
+        if (parsedTag) {
+          e.preventDefault();
+          
+          // Create a new duration tag
+          const newTag: Tag = {
+            id: Date.now().toString(),
+            text: hashtagText,
+            duration: parsedTag.duration,
+            type: 'duration'
+          };
+          
+          // Update tags state - override existing duration tag
+          setTags(prev => {
+            // Remove any existing duration tags and add the new one
+            const filteredTags = prev.filter(tag => tag.type !== 'duration');
+            return [...filteredTags, newTag];
+          });
+          
+          // Remove only the hashtag portion from the input and add a space
+          const hashtagStartPos = cursorPosition - lastWord.length + lastWord.indexOf(hashtagText);
+          const beforeHashtag = currentValue.slice(0, hashtagStartPos);
+          const afterCursor = currentValue.slice(cursorPosition);
+          const newValue = beforeHashtag + ' ' + afterCursor;
+          setValue(newValue);
+          
+          // Focus the input and set cursor position
+          setTimeout(() => {
+            if (inputRef.current) {
+              const newCursorPos = hashtagStartPos + 1;
+              inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+              inputRef.current.focus();
+            }
+          }, 0);
+          return;
         }
-      }, 0);
+      }
+
+      // Check for priority hashtag
+      const priorityRegex = /#(?:p(\d)|i(\d)u(\d)|i(\d)|u(\d))/i;
+      const priorityMatch = priorityRegex.exec(lastWord);
+      
+      if (priorityMatch) {
+        const hashtagText = priorityMatch[0]; // The full hashtag match (e.g., "#p5" or "#i7u3")
+        const parsedTag = parsePriorityTag(hashtagText);
+        
+        if (parsedTag) {
+          e.preventDefault();
+          
+          // Create a new priority tag
+          const newTag: Tag = {
+            id: Date.now().toString(),
+            text: hashtagText,
+            importance: parsedTag.importance,
+            urgency: parsedTag.urgency,
+            type: 'priority'
+          };
+          
+          // Update tags state - override existing priority tag
+          setTags(prev => {
+            // Remove any existing priority tags and add the new one
+            const filteredTags = prev.filter(tag => tag.type !== 'priority');
+            return [...filteredTags, newTag];
+          });
+          
+          // Remove only the hashtag portion from the input and add a space
+          const hashtagStartPos = cursorPosition - lastWord.length + lastWord.indexOf(hashtagText);
+          const beforeHashtag = currentValue.slice(0, hashtagStartPos);
+          const afterCursor = currentValue.slice(cursorPosition);
+          const newValue = beforeHashtag + ' ' + afterCursor;
+          setValue(newValue);
+          
+          // Focus the input and set cursor position
+          setTimeout(() => {
+            if (inputRef.current) {
+              const newCursorPos = hashtagStartPos + 1;
+              inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+              inputRef.current.focus();
+            }
+          }, 0);
+          return;
+        }
+      }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -393,7 +535,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
 
       // Handle space key for duration tags
       if (e.key === ' ') {
-        handleSpaceKeyForDurationTag(e);
+        handleSpaceKeyForTags(e);
       }
     };
 
@@ -474,24 +616,60 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         {/* Tags display - reserved space at bottom */}
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
-            {tags.map(tag => (
-              <Badge
-                key={tag.id}
-                variant="secondary"
-                className="flex items-center gap-1 text-xs"
-              >
-                {tag.type === 'duration' && <Clock className="h-3 w-3" />}
-                {tag.type === 'duration' ? formatDuration(tag.duration) : tag.text}
-                <button
-                  type="button"
-                  onClick={() => removeTag(tag.id)}
-                  className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
-                  disabled={disabled}
+            {tags.map(tag => {
+              // Get urgency-based color for priority tags
+              const getTagColor = () => {
+                if (tag.type === 'priority' && tag.urgency) {
+                  if (tag.urgency <= 3) return 'bg-green-100 text-green-700';
+                  if (tag.urgency <= 6) return 'bg-yellow-100 text-yellow-700';
+                  if (tag.urgency <= 8) return 'bg-orange-100 text-orange-700';
+                  return 'bg-red-100 text-red-700';
+                }
+                return 'bg-secondary text-secondary-foreground';
+              };
+
+              const getTagDisplayText = () => {
+                if (tag.type === 'duration') {
+                  return formatDuration(tag.duration);
+                } else if (tag.type === 'priority') {
+                  const imp = tag.importance || 0;
+                  const urg = tag.urgency || 0;
+                  
+                  // If both values are provided, take the average
+                  if (imp > 0 && urg > 0) {
+                    const priority = Math.round((imp + urg) / 2);
+                    return `P${priority}`;
+                  }
+                  
+                  // If only one value is provided, use that value directly
+                  const priority = imp > 0 ? imp : urg;
+                  return `P${priority}`;
+                }
+                return tag.text;
+              };
+
+              return (
+                <Badge
+                  key={tag.id}
+                  className={cn(
+                    "flex items-center gap-1 text-xs border-0",
+                    getTagColor()
+                  )}
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
+                  {tag.type === 'duration' && <Clock className="h-3 w-3" />}
+                  {tag.type === 'priority' && <Zap className="h-3 w-3" />}
+                  {getTagDisplayText()}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag.id)}
+                    className="ml-1 hover:bg-destructive/20 rounded-full p-0.5"
+                    disabled={disabled}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              );
+            })}
           </div>
         )}
       </div>

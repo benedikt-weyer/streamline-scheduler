@@ -7,6 +7,8 @@ export interface Task {
   estimatedDuration?: number; // in minutes
   projectId?: string; // Reference to project
   displayOrder: number;
+  importance?: number; // 1-10, how important the task is
+  urgency?: number; // 1-10, how urgent the task is
 }
 
 export interface EncryptedTask {

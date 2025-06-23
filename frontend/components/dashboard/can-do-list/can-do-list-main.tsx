@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { parseDurationFromContent } from '@/utils/can-do-list/duration-parser';
+import { parsePriorityFromContent } from '@/utils/can-do-list/priority-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
@@ -146,16 +147,25 @@ export default function CanDoListMain() {
   // Add a new task using react-hook-form
   const onSubmit = async (values: AddTaskFormValues) => {
     // Parse duration hashtags from content
-    const parsed = parseDurationFromContent(values.content);
-    const success = await handleAddTask(parsed.content, parsed.duration, selectedProjectId);
+    const parsedDuration = parseDurationFromContent(values.content);
+    // Parse priority hashtags from content  
+    const parsedPriority = parsePriorityFromContent(parsedDuration.content);
+    
+    const success = await handleAddTask(
+      parsedPriority.content, 
+      parsedDuration.duration, 
+      selectedProjectId,
+      parsedPriority.importance,
+      parsedPriority.urgency
+    );
     if (success) {
       form.reset();
     }
   };
 
   // Handle update action
-  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string) => {
-    await handleUpdateTask(id, content, estimatedDuration, projectId);
+  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number) => {
+    await handleUpdateTask(id, content, estimatedDuration, projectId, importance, urgency);
   };
 
   // Handle toggle complete action

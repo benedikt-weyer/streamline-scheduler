@@ -35,7 +35,9 @@ const editTaskSchema = z.object({
       z.number().int().min(0).optional()
     ])
     .optional(),
-  projectId: z.string().optional()
+  projectId: z.string().optional(),
+  importance: z.number().int().min(0).max(10).optional(),
+  urgency: z.number().int().min(0).max(10).optional()
 });
 
 type EditTaskFormValues = z.infer<typeof editTaskSchema>;
@@ -44,7 +46,7 @@ interface EditTaskDialogProps {
   readonly task: Task | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<void>;
+  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number) => Promise<void>;
   readonly isLoading?: boolean;
   readonly projects?: Project[];
 }
@@ -71,7 +73,9 @@ export default function EditTaskDialog({
       form.reset({
         content: task.content,
         estimatedDuration: task.estimatedDuration?.toString() ?? '',
-        projectId: task.projectId ?? ''
+        projectId: task.projectId ?? '',
+        importance: task.importance ?? 0,
+        urgency: task.urgency ?? 0
       });
     }
   }, [task, isOpen, form]);
@@ -79,15 +83,20 @@ export default function EditTaskDialog({
   const onSubmit = async (values: EditTaskFormValues) => {
     if (!task) return;
     const duration = values.estimatedDuration ? Number(values.estimatedDuration) : undefined;
+    const importance = values.importance === 0 ? undefined : values.importance;
+    const urgency = values.urgency === 0 ? undefined : values.urgency;
+    
     if (
       values.content.trim() === task.content.trim() &&
       duration === task.estimatedDuration &&
-      values.projectId === task.projectId
+      values.projectId === task.projectId &&
+      importance === task.importance &&
+      urgency === task.urgency
     ) {
       onClose();
       return;
     }
-    await onSave(task.id, values.content, duration, values.projectId);
+    await onSave(task.id, values.content, duration, values.projectId, importance, urgency);
     onClose();
   };
 
@@ -194,6 +203,69 @@ export default function EditTaskDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Priority Section */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="importance">Importance (1-10)</Label>
+              <div className="flex items-center space-x-3">
+                <Input
+                  id="importance"
+                  type="range"
+                  min="0"
+                  max="10"
+                  step="1"
+                  disabled={isLoading}
+                  {...form.register('importance', { valueAsNumber: true })}
+                  className="flex-1"
+                />
+                <span className="text-sm text-muted-foreground w-8">
+                  {form.watch('importance') || 0}
+                </span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="urgency">Urgency (1-10)</Label>
+              <div className="flex items-center space-x-3">
+                <Input
+                  id="urgency"
+                  type="range"
+                  min="0"
+                  max="10"
+                  step="1"
+                  disabled={isLoading}
+                  {...form.register('urgency', { valueAsNumber: true })}
+                  className="flex-1"
+                />
+                <span className="text-sm text-muted-foreground w-8">
+                  {form.watch('urgency') || 0}
+                </span>
+              </div>
+            </div>
+            
+            {/* Show calculated priority */}
+            {(() => {
+              const importance = form.watch('importance') || 0;
+              const urgency = form.watch('urgency') || 0;
+              if (importance > 0 || urgency > 0) {
+                let priority;
+                // If both values are provided, take the average
+                if (importance > 0 && urgency > 0) {
+                  priority = Math.round((importance + urgency) / 2);
+                } else {
+                  // If only one value is provided, use that value directly
+                  priority = importance > 0 ? importance : urgency;
+                }
+                return (
+                  <div className="text-sm text-muted-foreground">
+                    Combined Priority: <span className="font-medium">P{priority}</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
           
           <DialogFooter>

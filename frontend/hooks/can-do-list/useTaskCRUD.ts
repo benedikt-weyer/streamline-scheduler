@@ -29,7 +29,7 @@ export const useTaskCRUD = (
 ) => {
   const { setError } = useError();
 
-  const handleAddTask = useCallback(async (content: string, estimatedDuration?: number, projectId?: string): Promise<boolean> => {
+  const handleAddTask = useCallback(async (content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number): Promise<boolean> => {
     if (!encryptionKey) return false;
     try {
       if (skipNextTaskReload) {
@@ -41,7 +41,9 @@ export const useTaskCRUD = (
       const taskData = {
         content: content.trim(),
         completed: false,
-        estimatedDuration: estimatedDuration
+        estimatedDuration: estimatedDuration,
+        importance: importance,
+        urgency: urgency
       };
       const encryptedData = encryptData(taskData, derivedKey, iv);
       const newEncryptedTask = await addTask(encryptedData, iv, salt, projectId);
@@ -53,7 +55,9 @@ export const useTaskCRUD = (
         updatedAt: new Date(newEncryptedTask.updated_at),
         estimatedDuration: estimatedDuration,
         projectId: projectId,
-        displayOrder: newEncryptedTask.display_order ?? 0
+        displayOrder: newEncryptedTask.display_order ?? 0,
+        importance: importance,
+        urgency: urgency
       };
       taskActions.setTasks(prevTasks => [newTask, ...prevTasks]);
       return true;
@@ -64,40 +68,43 @@ export const useTaskCRUD = (
     }
   }, [encryptionKey, taskActions, setError, skipNextTaskReload]);
 
-  const handleUpdateTask = useCallback(async (id: string, content: string, estimatedDuration?: number, projectId?: string): Promise<boolean> => {
+  const handleUpdateTask = useCallback(async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number): Promise<boolean> => {
     if (!encryptionKey) return false;
-    
     try {
       if (skipNextTaskReload) {
         skipNextTaskReload();
       }
       
-      const task = tasks.find(task => task.id === id);
-      if (!task) return false;
+      // Get the existing task to preserve fields that aren't being updated
+      const existingTask = tasks.find(task => task.id === id);
+      if (!existingTask) return false;
       
-      // Find the corresponding encrypted task to get salt and IV
-      const encryptedTasks = await fetchTasks();
-      const encryptedTask = encryptedTasks.find(task => task.id === id);
-      if (!encryptedTask) return false;
-      
-      const salt = encryptedTask.salt;
-      const iv = encryptedTask.iv;
+      const salt = generateSalt();
+      const iv = generateIV();
       const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
-      
-      const updatedTaskData = {
+      const taskData = {
         content: content.trim(),
-        completed: task.completed,
-        estimatedDuration: estimatedDuration
+        completed: existingTask.completed, // Preserve completion status
+        estimatedDuration: estimatedDuration,
+        importance: importance,
+        urgency: urgency
       };
-      
-      const encryptedData = encryptData(updatedTaskData, derivedKey, iv);
-      
+      const encryptedData = encryptData(taskData, derivedKey, iv);
       await updateTask(id, encryptedData, iv, salt, projectId);
       
+      // Update local state
       taskActions.setTasks(prevTasks =>
         prevTasks.map(task =>
           task.id === id
-            ? { ...task, content: content.trim(), estimatedDuration: estimatedDuration, projectId: projectId }
+            ? { 
+                ...task, 
+                content: taskData.content, 
+                estimatedDuration: estimatedDuration,
+                projectId: projectId,
+                importance: importance,
+                urgency: urgency,
+                updatedAt: new Date() 
+              }
             : task
         )
       );
@@ -132,7 +139,9 @@ export const useTaskCRUD = (
       const updatedTaskData = {
         content: task.content,
         completed: completed,
-        estimatedDuration: task.estimatedDuration
+        estimatedDuration: task.estimatedDuration,
+        importance: task.importance,
+        urgency: task.urgency
       };
       
       const encryptedData = encryptData(updatedTaskData, derivedKey, iv);

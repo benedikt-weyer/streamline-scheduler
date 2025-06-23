@@ -4,16 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 import { useState } from 'react';
-import { Edit, Trash2, Clock } from 'lucide-react';
+import { Edit, Trash2, Clock, Zap } from 'lucide-react';
 import EditTaskDialog from './edit-task-dialog';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from '@/utils/can-do-list/priority-utils';
 
 interface TaskListItemProps {
   readonly task: Task;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<void>;
+  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number) => Promise<void>;
   readonly projects?: Project[];
 }
 
@@ -55,10 +56,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     setIsEditDialogOpen(true);
   };
 
-  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string) => {
+  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number) => {
     setIsUpdating(true);
     try {
-      await onUpdateTask(id, content, estimatedDuration, projectId);
+      await onUpdateTask(id, content, estimatedDuration, projectId, importance, urgency);
     } finally {
       setIsUpdating(false);
     }
@@ -136,6 +137,19 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
               {formatDuration(task.estimatedDuration)}
             </span>
           )}
+          {(() => {
+            const priority = calculatePriority(task.importance, task.urgency);
+            const priorityText = getPriorityDisplayText(priority);
+            if (priorityText) {
+              return (
+                <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(task.urgency)}`}>
+                  <Zap className="h-3 w-3" />
+                  {priorityText}
+                </span>
+              );
+            }
+            return null;
+          })()}
           <Button
             variant="ghost"
             size="sm"
