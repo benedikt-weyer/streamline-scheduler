@@ -197,23 +197,61 @@ export default function EditProjectDialog({
                   <FormItem>
                     <FormLabel>Color</FormLabel>
                     <FormControl>
-                      <div className="grid grid-cols-5 gap-2">
-                        {PROJECT_COLORS.map(color => (
-                          <button
-                            key={color}
-                            type="button"
-                            onClick={() => field.onChange(color)}
-                            className={`w-8 h-8 rounded-full border-2 transition-all ${
-                              field.value === color
-                                ? 'border-foreground scale-110'
-                                : 'border-muted-foreground/30 hover:border-muted-foreground/60'
-                            }`}
-                            style={{ backgroundColor: color }}
-                            disabled={isSaving || isLoading}
-                          >
-                            <span className="sr-only">Select {color}</span>
-                          </button>
-                        ))}
+                      <div className="space-y-3">
+                        {/* Predefined Colors */}
+                        <div>
+                          <div className="text-sm text-muted-foreground mb-2">Preset Colors</div>
+                          <div className="grid grid-cols-5 gap-2">
+                            {PROJECT_COLORS.map(color => (
+                              <button
+                                key={color}
+                                type="button"
+                                onClick={() => field.onChange(color)}
+                                className={`w-8 h-8 rounded-full border-2 transition-all ${
+                                  field.value === color
+                                    ? 'border-foreground scale-110'
+                                    : 'border-muted-foreground/30 hover:border-muted-foreground/60'
+                                }`}
+                                style={{ backgroundColor: color }}
+                                disabled={isSaving || isLoading}
+                              >
+                                <span className="sr-only">Select {color}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {/* Custom Color Picker */}
+                        <div>
+                          <div className="text-sm text-muted-foreground mb-2">Custom Color</div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={field.value}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              className="w-8 h-8 rounded border border-muted-foreground/30 cursor-pointer disabled:cursor-not-allowed"
+                              disabled={isSaving || isLoading}
+                            />
+                            <Input
+                              type="text"
+                              value={field.value}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                // Validate hex color format
+                                if (/^#[0-9A-Fa-f]{6}$/.test(value) || value === '') {
+                                  field.onChange(value);
+                                }
+                              }}
+                              placeholder="#000000"
+                              className="w-24 text-sm font-mono"
+                              disabled={isSaving || isLoading}
+                            />
+                            <div
+                              className="w-6 h-6 rounded border border-muted-foreground/30 flex-shrink-0"
+                              style={{ backgroundColor: field.value }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </FormControl>
                   </FormItem>

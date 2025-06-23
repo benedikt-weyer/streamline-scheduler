@@ -81,10 +81,18 @@ export default function AddProjectDialog({
   React.useEffect(() => {
     if (preselectedParentId !== undefined) {
       form.setValue('parentId', preselectedParentId);
+      
+      // Find the parent project and use its color
+      const parentProject = projects.find(p => p.id === preselectedParentId);
+      if (parentProject) {
+        form.setValue('color', parentProject.color);
+      }
     } else {
       form.setValue('parentId', undefined);
+      // Reset to default color when no parent is selected
+      form.setValue('color', PROJECT_COLORS[0]);
     }
-  }, [preselectedParentId, form]);
+  }, [preselectedParentId, projects, form]);
 
   const handleSubmit = async (values: AddProjectFormValues) => {
     setIsSaving(true);
@@ -140,23 +148,61 @@ export default function AddProjectDialog({
                 <FormItem>
                   <FormLabel>Color</FormLabel>
                   <FormControl>
-                    <div className="grid grid-cols-5 gap-2">
-                      {PROJECT_COLORS.map(color => (
-                        <button
-                          key={color}
-                          type="button"
-                          onClick={() => field.onChange(color)}
-                          className={`w-8 h-8 rounded-full border-2 transition-all ${
-                            field.value === color
-                              ? 'border-foreground scale-110'
-                              : 'border-muted-foreground/30 hover:border-muted-foreground/60'
-                          }`}
-                          style={{ backgroundColor: color }}
-                          disabled={isSaving || isLoading}
-                        >
-                          <span className="sr-only">Select {color}</span>
-                        </button>
-                      ))}
+                    <div className="space-y-3">
+                      {/* Predefined Colors */}
+                      <div>
+                        <div className="text-sm text-muted-foreground mb-2">Preset Colors</div>
+                        <div className="grid grid-cols-5 gap-2">
+                          {PROJECT_COLORS.map(color => (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() => field.onChange(color)}
+                              className={`w-8 h-8 rounded-full border-2 transition-all ${
+                                field.value === color
+                                  ? 'border-foreground scale-110'
+                                  : 'border-muted-foreground/30 hover:border-muted-foreground/60'
+                              }`}
+                              style={{ backgroundColor: color }}
+                              disabled={isSaving || isLoading}
+                            >
+                              <span className="sr-only">Select {color}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Custom Color Picker */}
+                      <div>
+                        <div className="text-sm text-muted-foreground mb-2">Custom Color</div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={field.value}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            className="w-8 h-8 rounded border border-muted-foreground/30 cursor-pointer disabled:cursor-not-allowed"
+                            disabled={isSaving || isLoading}
+                          />
+                          <Input
+                            type="text"
+                            value={field.value}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              // Validate hex color format
+                              if (/^#[0-9A-Fa-f]{6}$/.test(value) || value === '') {
+                                field.onChange(value);
+                              }
+                            }}
+                            placeholder="#000000"
+                            className="w-24 text-sm font-mono"
+                            disabled={isSaving || isLoading}
+                          />
+                          <div
+                            className="w-6 h-6 rounded border border-muted-foreground/30 flex-shrink-0"
+                            style={{ backgroundColor: field.value }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </FormControl>
                 </FormItem>
@@ -174,7 +220,21 @@ export default function AddProjectDialog({
                     <FormControl>
                       <Select 
                         value={field.value || 'NO_PARENT'} 
-                        onValueChange={(value) => field.onChange(value === 'NO_PARENT' ? undefined : value)}
+                        onValueChange={(value) => {
+                          const parentId = value === 'NO_PARENT' ? undefined : value;
+                          field.onChange(parentId);
+                          
+                          // Update color based on selected parent
+                          if (parentId) {
+                            const parentProject = projects.find(p => p.id === parentId);
+                            if (parentProject) {
+                              form.setValue('color', parentProject.color);
+                            }
+                          } else {
+                            // Reset to default color when no parent is selected
+                            form.setValue('color', PROJECT_COLORS[0]);
+                          }
+                        }}
                         disabled={isSaving || isLoading}
                       >
                         <SelectTrigger>
