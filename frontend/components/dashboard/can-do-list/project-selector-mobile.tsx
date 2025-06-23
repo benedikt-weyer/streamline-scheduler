@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -9,21 +9,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Project, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
-import { ChevronDown, Folder } from 'lucide-react';
+import { Project, Task, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
+import { ChevronDown, Folder, Star } from 'lucide-react';
 
 interface ProjectSelectorMobileProps {
   readonly projects: Project[];
+  readonly tasks?: Task[];
   readonly selectedProjectId?: string;
   readonly onProjectSelect: (projectId?: string) => void;
+  readonly onRecommendedSelect?: () => void;
   readonly taskCounts: Record<string, number>;
+  readonly isRecommendedSelected?: boolean;
+}
+
+interface FlattenedProject extends Project {
+  depth: number;
 }
 
 export default function ProjectSelectorMobile({
   projects,
+  tasks = [],
   selectedProjectId,
   onProjectSelect,
-  taskCounts
+  onRecommendedSelect,
+  taskCounts,
+  isRecommendedSelected = false
 }: ProjectSelectorMobileProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -32,26 +42,65 @@ export default function ProjectSelectorMobile({
     setIsOpen(false);
   };
 
+  const handleRecommendedSelect = () => {
+    onRecommendedSelect?.();
+    setIsOpen(false);
+  };
+
+  // Flatten nested projects for mobile display
+  const flattenedProjects = useMemo(() => {
+    const flattened: FlattenedProject[] = [];
+    
+    const addProjectsRecursively = (parentId?: string, depth: number = 0) => {
+      const childProjects = projects
+        .filter(p => {
+          const projectParentId = p.parentId ?? undefined;
+          const targetParentId = parentId ?? undefined;
+          return projectParentId === targetParentId;
+        })
+        .sort((a, b) => a.displayOrder - b.displayOrder);
+      
+      childProjects.forEach(project => {
+        flattened.push({ ...project, depth });
+        addProjectsRecursively(project.id, depth + 1);
+      });
+    };
+    
+    addProjectsRecursively();
+    return flattened;
+  }, [projects]);
+
+  // Calculate recommended tasks count
+  const recommendedCount = tasks.filter(task => !task.completed && (task.importance || task.urgency || task.dueDate)).length;
+
   // Get current project name and task count
   const currentProject = selectedProjectId 
     ? projects.find(p => p.id === selectedProjectId)
     : null;
   
-  const currentProjectName = currentProject?.name ?? DEFAULT_PROJECT_NAME;
-  const currentTaskCount = selectedProjectId 
-    ? taskCounts[selectedProjectId] || 0
-    : taskCounts['inbox'] || 0;
+  const currentProjectName = isRecommendedSelected 
+    ? 'Recommended'
+    : currentProject?.name ?? DEFAULT_PROJECT_NAME;
+  const currentTaskCount = isRecommendedSelected
+    ? recommendedCount
+    : selectedProjectId 
+      ? taskCounts[selectedProjectId] || 0
+      : taskCounts['inbox'] || 0;
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="flex items-center gap-2">
           <div className="flex items-center gap-2">
-            {currentProject && (
+            {isRecommendedSelected ? (
+              <Star className="w-3 h-3 text-amber-500" />
+            ) : currentProject ? (
               <div
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: currentProject.color }}
               />
+            ) : (
+              <Folder className="w-3 h-3" />
             )}
             <span className="truncate max-w-24">{currentProjectName}</span>
             {currentTaskCount > 0 && (
@@ -65,11 +114,29 @@ export default function ProjectSelectorMobile({
       </DropdownMenuTrigger>
       
       <DropdownMenuContent align="end" className="w-64">
+        {/* Recommended Tasks */}
+        {recommendedCount > 0 && onRecommendedSelect && (
+          <DropdownMenuItem
+            onClick={handleRecommendedSelect}
+            className={`flex items-center justify-between ${
+              isRecommendedSelected ? 'bg-accent' : ''
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 text-amber-500" />
+              <span>Recommended</span>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              {recommendedCount}
+            </Badge>
+          </DropdownMenuItem>
+        )}
+
         {/* Inbox */}
         <DropdownMenuItem
           onClick={() => handleProjectSelect(undefined)}
           className={`flex items-center justify-between ${
-            selectedProjectId === undefined ? 'bg-accent' : ''
+            selectedProjectId === undefined && !isRecommendedSelected ? 'bg-accent' : ''
           }`}
         >
           <div className="flex items-center gap-2">
@@ -84,34 +151,34 @@ export default function ProjectSelectorMobile({
         </DropdownMenuItem>
 
         {/* User Projects */}
-        {projects.length > 0 && (
+        {flattenedProjects.length > 0 && (
           <>
             <div className="border-t my-1" />
-            {projects
-              .filter(p => !p.parentId) // Show only top-level projects for simplicity on mobile
-              .sort((a, b) => a.displayOrder - b.displayOrder)
-              .map((project) => (
-                <DropdownMenuItem
-                  key={project.id}
-                  onClick={() => handleProjectSelect(project.id)}
-                  className={`flex items-center justify-between ${
-                    selectedProjectId === project.id ? 'bg-accent' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: project.color }}
-                    />
-                    <span className="truncate">{project.name}</span>
-                  </div>
-                  {(taskCounts[project.id] || 0) > 0 && (
-                    <Badge variant="secondary" className="text-xs">
-                      {taskCounts[project.id]}
-                    </Badge>
-                  )}
-                </DropdownMenuItem>
-              ))}
+            {flattenedProjects.map((project) => (
+              <DropdownMenuItem
+                key={project.id}
+                onClick={() => handleProjectSelect(project.id)}
+                className={`flex items-center justify-between ${
+                  selectedProjectId === project.id ? 'bg-accent' : ''
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {/* Indentation for nested projects */}
+                  <div style={{ width: `${project.depth * 16}px` }} className="flex-shrink-0" />
+                  
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: project.color }}
+                  />
+                  <span className="truncate">{project.name}</span>
+                </div>
+                {(taskCounts[project.id] || 0) > 0 && (
+                  <Badge variant="secondary" className="text-xs flex-shrink-0 ml-2">
+                    {taskCounts[project.id]}
+                  </Badge>
+                )}
+              </DropdownMenuItem>
+            ))}
           </>
         )}
       </DropdownMenuContent>

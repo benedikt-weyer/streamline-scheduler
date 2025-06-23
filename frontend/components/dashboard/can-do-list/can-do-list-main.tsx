@@ -217,16 +217,21 @@ export default function CanDoListMain() {
             {/* Mobile Header */}
             <div className="border-b p-4 flex items-center justify-between">
               <h1 className="text-xl font-bold">
-                {selectedProjectId 
-                  ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
-                  : 'Inbox'
+                {isRecommendedSelected 
+                  ? 'Recommended Tasks'
+                  : selectedProjectId 
+                    ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
+                    : 'Inbox'
                 }
               </h1>
               <ProjectSelectorMobile
                 projects={projects}
+                tasks={tasks}
                 selectedProjectId={selectedProjectId}
                 onProjectSelect={handleProjectSelect}
+                onRecommendedSelect={handleRecommendedSelect}
                 taskCounts={taskCounts}
+                isRecommendedSelected={isRecommendedSelected}
               />
             </div>
 
@@ -235,7 +240,19 @@ export default function CanDoListMain() {
               <div className="h-full overflow-y-auto p-4">
                 <ErrorDisplay error={error} />
                 
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
+                {isRecommendedSelected ? (
+                  // Show recommended tasks view on mobile
+                  <RecommendedTaskList
+                    tasks={tasks}
+                    projects={projects}
+                    isLoading={isLoading}
+                    onToggleComplete={onToggleComplete}
+                    onDeleteTask={onDeleteTask}
+                    onUpdateTask={onUpdateTask}
+                  />
+                ) : (
+                  // Show regular project/inbox view on mobile
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-4">
                     <TabsTrigger value="active" className="flex items-center gap-2">
                       Active
@@ -307,6 +324,7 @@ export default function CanDoListMain() {
                     />
                   </TabsContent>
                 </Tabs>
+                )}
               </div>
             </div>
           </div>
