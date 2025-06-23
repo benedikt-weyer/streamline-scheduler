@@ -62,7 +62,11 @@ const ProjectTreeItem = React.forwardRef<
         
         {/* Project button */}
         <button
-          onClick={item.onSelect}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            item.onSelect();
+          }}
           className={`flex-1 flex items-center justify-between p-2 text-left rounded-md transition-colors overflow-hidden ${
             item.isSelected
               ? 'bg-primary text-primary-foreground'
