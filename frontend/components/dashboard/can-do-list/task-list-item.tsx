@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 import { useState } from 'react';
-import { Edit, Trash2, Clock, Zap, Calendar } from 'lucide-react';
+import { Edit, Trash2, Clock, Zap, Calendar, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 import EditTaskDialog from './edit-task-dialog';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -91,6 +92,28 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     }
   };
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(task.content);
+      toast.success('Task content copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy task content:', error);
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = task.content;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast.success('Task content copied to clipboard');
+      } catch (fallbackError) {
+        console.error('Fallback copy failed:', fallbackError);
+        toast.error('Failed to copy task content');
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
   return (
     <>
       <div 
@@ -157,6 +180,16 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
               {formatDueDate(task.dueDate)}
             </span>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopy}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="text-muted-foreground hover:text-foreground h-8 w-8 md:h-auto md:w-auto"
+          >
+            <Copy className="h-4 w-4" />
+            <span className="sr-only">Copy task content</span>
+          </Button>
           <Button
             variant="ghost"
             size="sm"

@@ -8,6 +8,7 @@ import Link from "next/link";
 import "./globals.css";
 import { Button } from "@/components/ui/button";
 import { MobileNavbar } from "@/components/ui/mobile-navbar";
+import { Toaster } from "@/components/ui/sonner";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -47,6 +48,7 @@ export default function RootLayout({
               {children}
             </main>
           </main>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
