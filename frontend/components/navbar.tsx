@@ -12,7 +12,7 @@ interface MobileNavbarProps {
   authComponent: React.ReactNode;
 }
 
-export function MobileNavbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
+export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => {

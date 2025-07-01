@@ -7,7 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import "./globals.css";
 import { Button } from "@/components/ui/button";
-import { MobileNavbar } from "@/components/ui/mobile-navbar";
+import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -39,7 +39,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-            <MobileNavbar 
+            <Navbar 
               themeSwitcher={<ThemeSwitcher />}
               authComponent={!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
             />
