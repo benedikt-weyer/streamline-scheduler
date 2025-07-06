@@ -341,8 +341,7 @@ export function CalendarGridMobile({
       {/* Add Event FAB */}
       <div className="fixed bottom-6 right-6 md:hidden">
         <Button
-          size="lg"
-          className="rounded-full h-14 w-14 shadow-lg"
+          className="rounded-full h-14 w-14 shadow-lg flex items-center justify-center p-0 min-w-0"
           onClick={() => openNewEventDialog(selectedDay)}
         >
           <span className="text-2xl">+</span>
