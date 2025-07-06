@@ -29,7 +29,7 @@ interface TaskListProps {
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
   onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
-  onReorderTasks: (taskIds: string[]) => Promise<void>;
+  onReorderTasks: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
   projects?: Project[];
   currentProjectId?: string;
 }
@@ -94,7 +94,7 @@ export default function TaskList({
 
         // Persist to backend
         try {
-          await onReorderTasks(localTasks.map(task => task.id));
+          await onReorderTasks(oldIndex, newIndex, currentProjectId);
         } catch (error) {
           // Revert on error
           setLocalTasks(tasks);
