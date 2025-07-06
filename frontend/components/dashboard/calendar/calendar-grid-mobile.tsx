@@ -217,29 +217,29 @@ export function CalendarGridMobile({
               return (
                 <div
                   key={event.id}
-                  className="absolute left-1 right-1 bg-opacity-90 rounded-md p-2 text-xs cursor-pointer pointer-events-auto shadow-sm border-l-4"
+                  className="absolute left-1 right-1 rounded-md p-2 text-xs cursor-pointer pointer-events-auto shadow-sm border-l-4"
                   style={{
                     top: style.top,
                     height: style.height,
-                    backgroundColor: `${color}20`,
+                    backgroundColor: color,
                     borderLeftColor: color,
                     minHeight: '2rem'
                   }}
                   onClick={() => handleEventClick(event)}
                 >
-                  <div className="font-medium text-foreground line-clamp-1">
+                  <div className="font-medium text-white line-clamp-1">
                     {event.title}
                   </div>
-                  <div className="text-muted-foreground text-xs">
+                  <div className="text-white text-xs opacity-90">
                     {format(event.startTime, 'HH:mm')} - {format(event.endTime, 'HH:mm')}
                   </div>
                   {event.location && (
-                    <div className="text-muted-foreground text-xs line-clamp-1 mt-1">
+                    <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
                       📍 {event.location}
                     </div>
                   )}
                   {event.description && (
-                    <div className="text-muted-foreground text-xs line-clamp-1 mt-1">
+                    <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
                       {event.description}
                     </div>
                   )}
