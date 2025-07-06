@@ -38,6 +38,7 @@ interface ProjectSidebarDynamicProps {
   readonly selectedProjectId?: string;
   readonly onProjectSelect: (projectId?: string) => void;
   readonly onRecommendedSelect: () => void;
+  readonly onAllTasksSelect: () => void;
   readonly onAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onDeleteProject: (id: string) => Promise<boolean>;
@@ -47,6 +48,7 @@ interface ProjectSidebarDynamicProps {
   readonly itemCounts?: Record<string, number>;
   readonly isCollapsed?: boolean;
   readonly isRecommendedSelected?: boolean;
+  readonly isAllTasksSelected?: boolean;
 }
 
 export default function ProjectSidebarDynamic(props: ProjectSidebarDynamicProps) {

@@ -12,6 +12,8 @@ import { DndContext, DragEndEvent, DragStartEvent, DragOverlay } from '@dnd-kit/
 import { SchedulerTaskList, SchedulerCalendar, SchedulerTaskItem, SchedulerMobile } from '@/components/dashboard/scheduler';
 import ProjectSidebarDynamic from '@/components/dashboard/can-do-list/project-bar/project-sidebar-dynamic';
 import { addMinutes, format } from 'date-fns';
+import { List } from 'lucide-react';
+import TaskListItem from '@/components/dashboard/can-do-list/task-list-item';
 
 function SchedulerPageContent() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
@@ -75,6 +77,7 @@ function SchedulerPageContent() {
   
   // Project selection state for desktop view
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
+  const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
 
   // Load tasks and projects when encryption key becomes available
   useEffect(() => {
@@ -90,6 +93,13 @@ function SchedulerPageContent() {
   // Handle project selection for desktop view
   const handleProjectSelect = (projectId?: string) => {
     setSelectedProjectId(projectId);
+    setIsAllTasksSelected(false);
+  };
+
+  // Handle all tasks selection for desktop view
+  const handleAllTasksSelect = () => {
+    setIsAllTasksSelected(true);
+    setSelectedProjectId(undefined);
   };
 
   // Calculate task counts per project for sidebar
@@ -104,18 +114,83 @@ function SchedulerPageContent() {
       counts[project.id] = tasks.filter(task => task.projectId === project.id && !task.completed).length;
     });
     
+    // Count all tasks
+    counts['all'] = tasks.filter(task => !task.completed).length;
+    
     return counts;
   }, [tasks, projects]);
 
   // Filter tasks based on selected project for desktop view
   const filteredTasks = useMemo(() => {
-    if (selectedProjectId) {
+    if (isAllTasksSelected) {
+      return tasks.filter(task => !task.completed);
+    } else if (selectedProjectId) {
       return tasks.filter(task => task.projectId === selectedProjectId && !task.completed);
     } else {
       // Show tasks without project (inbox)
       return tasks.filter(task => !task.projectId && !task.completed);
     }
-  }, [tasks, selectedProjectId]);
+  }, [tasks, selectedProjectId, isAllTasksSelected]);
+
+  // Group tasks by project when in "All Tasks" mode for scheduler
+  const groupedTasksScheduler = useMemo(() => {
+    if (!isAllTasksSelected) {
+      return null; // Return null when not in "All Tasks" mode
+    }
+
+    // Helper function to build full project path
+    const getProjectPath = (projectId: string): string => {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) return 'Unknown Project';
+      
+      if (!project.parentId) {
+        return project.name;
+      }
+      
+      const parentPath = getProjectPath(project.parentId);
+      return `${parentPath} > ${project.name}`;
+    };
+
+    // Group filtered tasks by project
+    const tasksByProject = new Map<string | undefined, Task[]>();
+    filteredTasks.forEach(task => {
+      // Normalize null and undefined to be the same key for inbox tasks
+      const projectId = task.projectId || undefined;
+      if (!tasksByProject.has(projectId)) {
+        tasksByProject.set(projectId, []);
+      }
+      tasksByProject.get(projectId)!.push(task);
+    });
+
+    // Create organized structure with project headers
+    const organized: Array<{ type: 'project-header' | 'task'; data: Project | Task }> = [];
+
+    // Add inbox section if there are inbox tasks
+    const inboxTasks = tasksByProject.get(undefined) || [];
+    if (inboxTasks.length > 0) {
+      organized.push({ 
+        type: 'project-header', 
+        data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as Project 
+      });
+      inboxTasks.forEach(task => organized.push({ type: 'task', data: task }));
+    }
+
+    // Add tasks grouped by projects with full paths
+    projects
+      .filter(project => tasksByProject.has(project.id))
+      .sort((a, b) => getProjectPath(a.id).localeCompare(getProjectPath(b.id))) // Sort by full path
+      .forEach(project => {
+        const projectWithPath = {
+          ...project,
+          name: getProjectPath(project.id) // Override name with full path
+        };
+        organized.push({ type: 'project-header', data: projectWithPath });
+        const projectTasks = tasksByProject.get(project.id) || [];
+        projectTasks.forEach(task => organized.push({ type: 'task', data: task }));
+      });
+
+    return organized;
+  }, [filteredTasks, projects, isAllTasksSelected]);
 
   // Organize tasks by project for flat hierarchy display (mobile view)
   const organizedTasks = useMemo(() => {
@@ -263,6 +338,7 @@ function SchedulerPageContent() {
               selectedProjectId={selectedProjectId}
               onProjectSelect={handleProjectSelect}
               onRecommendedSelect={() => {}} // No-op for scheduler - recommended tasks not implemented
+              onAllTasksSelect={handleAllTasksSelect}
               onAddProject={handleAddProject}
               onUpdateProject={handleUpdateProject}
               onDeleteProject={handleDeleteProject}
@@ -271,22 +347,70 @@ function SchedulerPageContent() {
               isLoading={isLoadingTasks || isLoadingProjects}
               itemCounts={taskCounts}
               isCollapsed={isTaskbarCollapsed}
+              isAllTasksSelected={isAllTasksSelected}
             />
           </div>
 
           {/* Tasks Panel - Desktop */}
           <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-2/6'} border-r bg-background`}>
-            <SchedulerTaskList
-              organizedTasks={[]} // Empty for desktop - we'll use filteredTasks instead
-              filteredTasks={filteredTasks}
-              selectedProjectId={selectedProjectId}
-              onToggleComplete={handleToggleComplete}
-              onDeleteTask={handleDeleteTask}
-              onUpdateTask={handleUpdateTask}
-              projects={projects}
-              isCollapsed={isTaskbarCollapsed}
-              isLoading={isLoadingTasks || isLoadingProjects}
-            />
+            {isAllTasksSelected && groupedTasksScheduler ? (
+              <div className="flex flex-col h-full">
+                <div className="border-b p-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <List className="h-4 w-4" />
+                    <span>All Tasks</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Drag tasks to calendar to schedule them
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <div className="space-y-4">
+                    {groupedTasksScheduler.map((item, index) => {
+                      if (item.type === 'project-header') {
+                        const project = item.data as Project;
+                        return (
+                          <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
+                            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: project.color }}
+                              />
+                              <span>{project.name}</span>
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        const task = item.data as Task;
+                        return (
+                          <div key={`task-${task.id}`} className="ml-4">
+                            <TaskListItem
+                              task={task}
+                              onToggleComplete={handleToggleComplete}
+                              onDeleteTask={handleDeleteTask}
+                              onUpdateTask={handleUpdateTask}
+                              projects={projects}
+                            />
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <SchedulerTaskList
+                organizedTasks={[]} // Empty for desktop - we'll use filteredTasks instead
+                filteredTasks={filteredTasks}
+                selectedProjectId={selectedProjectId}
+                onToggleComplete={handleToggleComplete}
+                onDeleteTask={handleDeleteTask}
+                onUpdateTask={handleUpdateTask}
+                projects={projects}
+                isCollapsed={isTaskbarCollapsed}
+                isLoading={isLoadingTasks || isLoadingProjects}
+              />
+            )}
           </div>
 
           {/* Calendar - Desktop */}

@@ -24,6 +24,8 @@ import RecommendedTaskList from './recommended-task-list';
 import AuthenticationRequired from './authentication-required';
 import ProjectSidebarDynamic from './project-bar/project-sidebar-dynamic';
 import ProjectSelectorMobile from './project-selector-mobile';
+import TaskListItem from './task-list-item';
+import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 
 // Define schema for new task validation
 const addTaskSchema = z.object({
@@ -40,6 +42,7 @@ export default function CanDoListMain() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [isRecommendedSelected, setIsRecommendedSelected] = useState(false);
+  const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
 
   // Use the main can-do list hook
   const {
@@ -96,19 +99,31 @@ export default function CanDoListMain() {
   const handleProjectSelect = (projectId?: string) => {
     setSelectedProjectId(projectId);
     setIsRecommendedSelected(false);
+    setIsAllTasksSelected(false);
   };
 
   // Handle recommended tasks selection
   const handleRecommendedSelect = () => {
     setIsRecommendedSelected(true);
     setSelectedProjectId(undefined);
+    setIsAllTasksSelected(false);
     setActiveTab('active'); // Recommended tasks are always active
+  };
+
+  // Handle all tasks selection
+  const handleAllTasksSelect = () => {
+    setIsAllTasksSelected(true);
+    setSelectedProjectId(undefined);
+    setIsRecommendedSelected(false);
   };
 
   // Filter tasks based on selected project and tab
   const filteredTasks = useMemo(() => {
     let baseTasks;
-    if (selectedProjectId) {
+    if (isAllTasksSelected) {
+      // Show all tasks regardless of project
+      baseTasks = tasks;
+    } else if (selectedProjectId) {
       baseTasks = tasks.filter(task => task.projectId === selectedProjectId);
     } else {
       // Show tasks without project (inbox)
@@ -123,12 +138,75 @@ export default function CanDoListMain() {
         return task.completed;
       }
     });
-  }, [tasks, selectedProjectId, activeTab]);
+  }, [tasks, selectedProjectId, activeTab, isAllTasksSelected]);
+
+  // Group tasks by project when in "All Tasks" mode
+  const groupedTasks = useMemo(() => {
+    if (!isAllTasksSelected) {
+      return null; // Return null when not in "All Tasks" mode
+    }
+
+    // Helper function to build full project path
+    const getProjectPath = (projectId: string): string => {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) return 'Unknown Project';
+      
+      if (!project.parentId) {
+        return project.name;
+      }
+      
+      const parentPath = getProjectPath(project.parentId);
+      return `${parentPath} > ${project.name}`;
+    };
+
+    // Group filtered tasks by project
+    const tasksByProject = new Map<string | undefined, Task[]>();
+    filteredTasks.forEach(task => {
+      // Normalize null and undefined to be the same key for inbox tasks
+      const projectId = task.projectId || undefined;
+      if (!tasksByProject.has(projectId)) {
+        tasksByProject.set(projectId, []);
+      }
+      tasksByProject.get(projectId)!.push(task);
+    });
+
+    // Create organized structure with project headers
+    const organized: Array<{ type: 'project-header' | 'task'; data: Project | Task }> = [];
+
+    // Add inbox section if there are inbox tasks
+    const inboxTasks = tasksByProject.get(undefined) || [];
+    if (inboxTasks.length > 0) {
+      organized.push({ 
+        type: 'project-header', 
+        data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as Project 
+      });
+      inboxTasks.forEach(task => organized.push({ type: 'task', data: task }));
+    }
+
+    // Add tasks grouped by projects with full paths
+    projects
+      .filter(project => tasksByProject.has(project.id))
+      .sort((a, b) => getProjectPath(a.id).localeCompare(getProjectPath(b.id))) // Sort by full path
+      .forEach(project => {
+        const projectWithPath = {
+          ...project,
+          name: getProjectPath(project.id) // Override name with full path
+        };
+        organized.push({ type: 'project-header', data: projectWithPath });
+        const projectTasks = tasksByProject.get(project.id) || [];
+        projectTasks.forEach(task => organized.push({ type: 'task', data: task }));
+      });
+
+    return organized;
+  }, [filteredTasks, projects, isAllTasksSelected]);
 
   // Get active and completed counts for current project
   const { activeCount, completedCount } = useMemo(() => {
     let baseTasks;
-    if (selectedProjectId) {
+    if (isAllTasksSelected) {
+      // Show all tasks regardless of project
+      baseTasks = tasks;
+    } else if (selectedProjectId) {
       baseTasks = tasks.filter(task => task.projectId === selectedProjectId);
     } else {
       baseTasks = tasks.filter(task => !task.projectId);
@@ -138,7 +216,7 @@ export default function CanDoListMain() {
     const completed = baseTasks.filter(task => task.completed).length;
     
     return { activeCount: active, completedCount: completed };
-  }, [tasks, selectedProjectId]);
+  }, [tasks, selectedProjectId, isAllTasksSelected]);
 
   // Calculate task counts per project
   const taskCounts = useMemo(() => {
@@ -151,6 +229,9 @@ export default function CanDoListMain() {
     projects.forEach(project => {
       counts[project.id] = tasks.filter(task => task.projectId === project.id).length;
     });
+    
+    // Count all tasks
+    counts['all'] = tasks.length;
     
     return counts;
   }, [tasks, projects]);
@@ -219,9 +300,11 @@ export default function CanDoListMain() {
               <h1 className="text-xl font-bold">
                 {isRecommendedSelected 
                   ? 'Recommended Tasks'
-                  : selectedProjectId 
-                    ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
-                    : 'Inbox'
+                  : isAllTasksSelected
+                    ? 'All Tasks'
+                    : selectedProjectId 
+                      ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
+                      : 'Inbox'
                 }
               </h1>
               <ProjectSelectorMobile
@@ -230,8 +313,10 @@ export default function CanDoListMain() {
                 selectedProjectId={selectedProjectId}
                 onProjectSelect={handleProjectSelect}
                 onRecommendedSelect={handleRecommendedSelect}
+                onAllTasksSelect={handleAllTasksSelect}
                 taskCounts={taskCounts}
                 isRecommendedSelected={isRecommendedSelected}
+                isAllTasksSelected={isAllTasksSelected}
               />
             </div>
 
@@ -280,16 +365,51 @@ export default function CanDoListMain() {
                     />
                     <LoadingState isLoading={isLoading} />
                     <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
-                    <TaskList 
-                      tasks={filteredTasks}
-                      isLoading={isLoading}
-                      onToggleComplete={onToggleComplete}
-                      onDeleteTask={onDeleteTask}
-                      onUpdateTask={onUpdateTask}
-                      onReorderTasks={handleReorderTasks}
-                      projects={projects}
-                      currentProjectId={selectedProjectId}
-                    />
+                    
+                    {isAllTasksSelected && groupedTasks ? (
+                      <div className="space-y-4">
+                        {groupedTasks.map((item, index) => {
+                          if (item.type === 'project-header') {
+                            const project = item.data as Project;
+                            return (
+                              <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
+                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: project.color }}
+                                  />
+                                  <span>{project.name}</span>
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            const task = item.data as Task;
+                            return (
+                              <div key={`task-${task.id}`} className="ml-4">
+                                <TaskListItem
+                                  task={task}
+                                  onToggleComplete={onToggleComplete}
+                                  onDeleteTask={onDeleteTask}
+                                  onUpdateTask={onUpdateTask}
+                                  projects={projects}
+                                />
+                              </div>
+                            );
+                          }
+                        })}
+                      </div>
+                    ) : (
+                      <TaskList 
+                        tasks={filteredTasks}
+                        isLoading={isLoading}
+                        onToggleComplete={onToggleComplete}
+                        onDeleteTask={onDeleteTask}
+                        onUpdateTask={onUpdateTask}
+                        onReorderTasks={handleReorderTasks}
+                        projects={projects}
+                        currentProjectId={selectedProjectId}
+                      />
+                    )}
                   </TabsContent>
 
                   <TabsContent value="completed" className="mt-0">
@@ -312,16 +432,51 @@ export default function CanDoListMain() {
                     </div>
                     <LoadingState isLoading={isLoading} />
                     <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
-                    <TaskList 
-                      tasks={filteredTasks}
-                      isLoading={isLoading}
-                      onToggleComplete={onToggleComplete}
-                      onDeleteTask={onDeleteTask}
-                      onUpdateTask={onUpdateTask}
-                      onReorderTasks={handleReorderTasks}
-                      projects={projects}
-                      currentProjectId={selectedProjectId}
-                    />
+                    
+                    {isAllTasksSelected && groupedTasks ? (
+                      <div className="space-y-4">
+                        {groupedTasks.map((item, index) => {
+                          if (item.type === 'project-header') {
+                            const project = item.data as Project;
+                            return (
+                              <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
+                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: project.color }}
+                                  />
+                                  <span>{project.name}</span>
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            const task = item.data as Task;
+                            return (
+                              <div key={`task-${task.id}`} className="ml-4">
+                                <TaskListItem
+                                  task={task}
+                                  onToggleComplete={onToggleComplete}
+                                  onDeleteTask={onDeleteTask}
+                                  onUpdateTask={onUpdateTask}
+                                  projects={projects}
+                                />
+                              </div>
+                            );
+                          }
+                        })}
+                      </div>
+                    ) : (
+                      <TaskList 
+                        tasks={filteredTasks}
+                        isLoading={isLoading}
+                        onToggleComplete={onToggleComplete}
+                        onDeleteTask={onDeleteTask}
+                        onUpdateTask={onUpdateTask}
+                        onReorderTasks={handleReorderTasks}
+                        projects={projects}
+                        currentProjectId={selectedProjectId}
+                      />
+                    )}
                   </TabsContent>
                 </Tabs>
                 )}
@@ -338,6 +493,7 @@ export default function CanDoListMain() {
                 selectedProjectId={selectedProjectId}
                 onProjectSelect={handleProjectSelect}
                 onRecommendedSelect={handleRecommendedSelect}
+                onAllTasksSelect={handleAllTasksSelect}
                 onAddProject={handleAddProject}
                 onUpdateProject={handleUpdateProject}
                 onDeleteProject={handleDeleteProject}
@@ -346,6 +502,7 @@ export default function CanDoListMain() {
                 isLoading={isLoading}
                 itemCounts={taskCounts}
                 isRecommendedSelected={isRecommendedSelected}
+                isAllTasksSelected={isAllTasksSelected}
               />
             </div>
 
@@ -354,9 +511,11 @@ export default function CanDoListMain() {
                 <h1 className="text-2xl font-bold mb-2">
                   {isRecommendedSelected 
                     ? 'Recommended Tasks'
-                    : selectedProjectId 
-                      ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
-                      : 'Inbox'
+                    : isAllTasksSelected
+                      ? 'All Tasks'
+                      : selectedProjectId 
+                        ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
+                        : 'Inbox'
                   }
                 </h1>
                 <ErrorDisplay error={error} />
@@ -401,16 +560,51 @@ export default function CanDoListMain() {
                     />
                     <LoadingState isLoading={isLoading} />
                     <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
-                    <TaskList 
-                      tasks={filteredTasks}
-                      isLoading={isLoading}
-                      onToggleComplete={onToggleComplete}
-                      onDeleteTask={onDeleteTask}
-                      onUpdateTask={onUpdateTask}
-                      onReorderTasks={handleReorderTasks}
-                      projects={projects}
-                      currentProjectId={selectedProjectId}
-                    />
+                    
+                    {isAllTasksSelected && groupedTasks ? (
+                      <div className="space-y-4">
+                        {groupedTasks.map((item, index) => {
+                          if (item.type === 'project-header') {
+                            const project = item.data as Project;
+                            return (
+                              <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
+                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: project.color }}
+                                  />
+                                  <span>{project.name}</span>
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            const task = item.data as Task;
+                            return (
+                              <div key={`task-${task.id}`} className="ml-4">
+                                <TaskListItem
+                                  task={task}
+                                  onToggleComplete={onToggleComplete}
+                                  onDeleteTask={onDeleteTask}
+                                  onUpdateTask={onUpdateTask}
+                                  projects={projects}
+                                />
+                              </div>
+                            );
+                          }
+                        })}
+                      </div>
+                    ) : (
+                      <TaskList 
+                        tasks={filteredTasks}
+                        isLoading={isLoading}
+                        onToggleComplete={onToggleComplete}
+                        onDeleteTask={onDeleteTask}
+                        onUpdateTask={onUpdateTask}
+                        onReorderTasks={handleReorderTasks}
+                        projects={projects}
+                        currentProjectId={selectedProjectId}
+                      />
+                    )}
                   </TabsContent>
 
                   <TabsContent value="completed" className="mt-0">
@@ -427,22 +621,57 @@ export default function CanDoListMain() {
                           className="text-destructive hover:text-destructive/80"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete All Completed
+                          Delete All
                         </Button>
                       )}
                     </div>
                     <LoadingState isLoading={isLoading} />
                     <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
-                    <TaskList 
-                      tasks={filteredTasks}
-                      isLoading={isLoading}
-                      onToggleComplete={onToggleComplete}
-                      onDeleteTask={onDeleteTask}
-                      onUpdateTask={onUpdateTask}
-                      onReorderTasks={handleReorderTasks}
-                      projects={projects}
-                      currentProjectId={selectedProjectId}
-                    />
+                    
+                    {isAllTasksSelected && groupedTasks ? (
+                      <div className="space-y-4">
+                        {groupedTasks.map((item, index) => {
+                          if (item.type === 'project-header') {
+                            const project = item.data as Project;
+                            return (
+                              <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
+                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: project.color }}
+                                  />
+                                  <span>{project.name}</span>
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            const task = item.data as Task;
+                            return (
+                              <div key={`task-${task.id}`} className="ml-4">
+                                <TaskListItem
+                                  task={task}
+                                  onToggleComplete={onToggleComplete}
+                                  onDeleteTask={onDeleteTask}
+                                  onUpdateTask={onUpdateTask}
+                                  projects={projects}
+                                />
+                              </div>
+                            );
+                          }
+                        })}
+                      </div>
+                    ) : (
+                      <TaskList 
+                        tasks={filteredTasks}
+                        isLoading={isLoading}
+                        onToggleComplete={onToggleComplete}
+                        onDeleteTask={onDeleteTask}
+                        onUpdateTask={onUpdateTask}
+                        onReorderTasks={handleReorderTasks}
+                        projects={projects}
+                        currentProjectId={selectedProjectId}
+                      />
+                    )}
                   </TabsContent>
                 </Tabs>
                 )}

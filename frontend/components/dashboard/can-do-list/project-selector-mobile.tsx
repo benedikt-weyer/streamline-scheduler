@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Project, Task, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
-import { ChevronDown, Folder, Star } from 'lucide-react';
+import { ChevronDown, Folder, Star, List } from 'lucide-react';
 
 interface ProjectSelectorMobileProps {
   readonly projects: Project[];
@@ -18,8 +18,10 @@ interface ProjectSelectorMobileProps {
   readonly selectedProjectId?: string;
   readonly onProjectSelect: (projectId?: string) => void;
   readonly onRecommendedSelect?: () => void;
+  readonly onAllTasksSelect?: () => void;
   readonly taskCounts: Record<string, number>;
   readonly isRecommendedSelected?: boolean;
+  readonly isAllTasksSelected?: boolean;
 }
 
 interface FlattenedProject extends Project {
@@ -32,8 +34,10 @@ export default function ProjectSelectorMobile({
   selectedProjectId,
   onProjectSelect,
   onRecommendedSelect,
+  onAllTasksSelect,
   taskCounts,
-  isRecommendedSelected = false
+  isRecommendedSelected = false,
+  isAllTasksSelected = false
 }: ProjectSelectorMobileProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -44,6 +48,11 @@ export default function ProjectSelectorMobile({
 
   const handleRecommendedSelect = () => {
     onRecommendedSelect?.();
+    setIsOpen(false);
+  };
+
+  const handleAllTasksSelect = () => {
+    onAllTasksSelect?.();
     setIsOpen(false);
   };
 
@@ -80,12 +89,16 @@ export default function ProjectSelectorMobile({
   
   const currentProjectName = isRecommendedSelected 
     ? 'Recommended'
-    : currentProject?.name ?? DEFAULT_PROJECT_NAME;
+    : isAllTasksSelected
+      ? 'All Tasks'
+      : currentProject?.name ?? DEFAULT_PROJECT_NAME;
   const currentTaskCount = isRecommendedSelected
     ? recommendedCount
-    : selectedProjectId 
-      ? taskCounts[selectedProjectId] || 0
-      : taskCounts['inbox'] || 0;
+    : isAllTasksSelected
+      ? taskCounts['all'] || 0
+      : selectedProjectId 
+        ? taskCounts[selectedProjectId] || 0
+        : taskCounts['inbox'] || 0;
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -94,6 +107,8 @@ export default function ProjectSelectorMobile({
           <div className="flex items-center gap-2">
             {isRecommendedSelected ? (
               <Star className="w-3 h-3 text-amber-500" />
+            ) : isAllTasksSelected ? (
+              <List className="w-3 h-3" />
             ) : currentProject ? (
               <div
                 className="w-3 h-3 rounded-full"
@@ -132,11 +147,29 @@ export default function ProjectSelectorMobile({
           </DropdownMenuItem>
         )}
 
+        {/* All Tasks */}
+        {onAllTasksSelect && (
+          <DropdownMenuItem
+            onClick={handleAllTasksSelect}
+            className={`flex items-center justify-between ${
+              isAllTasksSelected ? 'bg-accent' : ''
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <List className="h-4 w-4" />
+              <span>All Tasks</span>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              {taskCounts['all'] || 0}
+            </Badge>
+          </DropdownMenuItem>
+        )}
+
         {/* Inbox */}
         <DropdownMenuItem
           onClick={() => handleProjectSelect(undefined)}
           className={`flex items-center justify-between ${
-            selectedProjectId === undefined && !isRecommendedSelected ? 'bg-accent' : ''
+            selectedProjectId === undefined && !isRecommendedSelected && !isAllTasksSelected ? 'bg-accent' : ''
           }`}
         >
           <div className="flex items-center gap-2">

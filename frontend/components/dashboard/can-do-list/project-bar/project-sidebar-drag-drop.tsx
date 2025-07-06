@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Project, Task, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
-import { Plus, Folder, FolderOpen, Star } from 'lucide-react';
+import { Plus, Folder, FolderOpen, Star, List } from 'lucide-react';
 import AddProjectDialog from '../add-project-dialog';
 import EditProjectDialog from '../edit-project-dialog';
 import { SortableTree, TreeItems } from 'dnd-kit-sortable-tree';
@@ -16,6 +16,7 @@ interface ProjectSidebarProps {
   readonly selectedProjectId?: string;
   readonly onProjectSelect: (projectId?: string) => void;
   readonly onRecommendedSelect: () => void;
+  readonly onAllTasksSelect: () => void;
   readonly onAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onDeleteProject: (id: string) => Promise<boolean>;
@@ -25,6 +26,7 @@ interface ProjectSidebarProps {
   readonly itemCounts?: Record<string, number>;
   readonly isCollapsed?: boolean;
   readonly isRecommendedSelected?: boolean;
+  readonly isAllTasksSelected?: boolean;
 }
 
 interface TreeItemData {
@@ -45,6 +47,7 @@ export default function ProjectSidebarWithDragDrop({
   selectedProjectId,
   onProjectSelect,
   onRecommendedSelect,
+  onAllTasksSelect,
   onAddProject,
   onUpdateProject,
   onDeleteProject,
@@ -53,7 +56,8 @@ export default function ProjectSidebarWithDragDrop({
   isLoading = false,
   itemCounts = {},
   isCollapsed = false,
-  isRecommendedSelected = false
+  isRecommendedSelected = false,
+  isAllTasksSelected = false
 }: ProjectSidebarProps) {
   console.log('[ProjectSidebarWithDragDrop] Rendering with projects:', projects.length, projects.map(p => p.name));
   
@@ -202,6 +206,9 @@ export default function ProjectSidebarWithDragDrop({
   // Calculate recommended tasks count
   const recommendedCount = tasks.filter(task => !task.completed && (task.importance || task.urgency || task.dueDate)).length;
 
+  // Calculate all tasks count
+  const allTasksCount = itemCounts['all'] || 0;
+
   return (
     <div className="bg-muted/30 border-r border-border h-full flex flex-col">
       <div className="p-4 border-b border-border">
@@ -222,12 +229,12 @@ export default function ProjectSidebarWithDragDrop({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="px-2 space-y-1">
+        <div className="px-2">
           {/* Recommended Tasks */}
           {recommendedCount > 0 && (
             <button
               onClick={onRecommendedSelect}
-              className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-3 ${
+              className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-2 ${
                 isRecommendedSelected
                   ? 'bg-primary text-primary-foreground'
                   : 'hover:bg-muted/50'
@@ -246,14 +253,14 @@ export default function ProjectSidebarWithDragDrop({
           {/* Default Inbox Project */}
           <button
             onClick={() => onProjectSelect(undefined)}
-            className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-3 ${
-              selectedProjectId === undefined && !isRecommendedSelected
+            className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-2 ${
+              selectedProjectId === undefined && !isRecommendedSelected && !isAllTasksSelected
                 ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-muted/50'
             }`}
           >
             <div className="flex items-center gap-2 min-w-0">
-              {selectedProjectId === undefined && !isRecommendedSelected ? (
+              {selectedProjectId === undefined && !isRecommendedSelected && !isAllTasksSelected ? (
                 <FolderOpen className="h-4 w-4 flex-shrink-0" />
               ) : (
                 <Folder className="h-4 w-4 flex-shrink-0" />
@@ -267,7 +274,27 @@ export default function ProjectSidebarWithDragDrop({
             )}
           </button>
 
-          {/* Divider between inbox and user projects */}
+          {/* All Tasks */}
+          <button
+            onClick={onAllTasksSelect}
+            className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-2 ${
+              isAllTasksSelected
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-muted/50'
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <List className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate font-medium">All Tasks</span>
+            </div>
+            {allTasksCount > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {allTasksCount}
+              </Badge>
+            )}
+          </button>
+
+          {/* Divider between task overviews and projects */}
           {projects.length > 0 && (
             <div className="border-t border-foreground/10 mx-4 h-4" />
           )}
