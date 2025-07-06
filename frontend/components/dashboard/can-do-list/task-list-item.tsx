@@ -121,7 +121,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
         style={style}
         {...(!task.completed ? attributes : {})}
         {...(!task.completed ? listeners : {})}
-        className={`flex items-center justify-between rounded-md border task-transition ${
+        className={`flex rounded-md border task-transition ${
           !task.completed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
         } ${
           task.completed ? 'bg-muted' : ''
@@ -131,55 +131,96 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           isDragging ? 'opacity-50' : ''
         }`}
       >
-        <div 
-          className="flex items-center space-x-3 flex-1 min-w-0 p-3 md:p-3 py-4 md:py-3"
-          onClick={handleToggleCompleteClick}
-          onKeyDown={handleToggleCompleteKeyDown}
-          role="button"
-          tabIndex={0}
-        >
-          <Checkbox
-            checked={task.completed}
-            id={`task-${task.id}`}
-            onCheckedChange={handleToggleCompleteClick}
-            onPointerDown={(e) => e.stopPropagation()}
-          />
-          <span
-            className={`flex-1 min-w-0 cursor-pointer ${
-              task.completed ? 'line-through text-muted-foreground' : ''
-            }`}
-            aria-label={`Mark "${task.content}" as ${task.completed ? 'incomplete' : 'complete'}`}
+        {/* Main content area */}
+        <div className="flex-1 min-w-0">
+          {/* Task name row */}
+          <div 
+            className="flex items-center space-x-3 p-3 md:p-3 py-4 md:py-3"
+            onClick={handleToggleCompleteClick}
+            onKeyDown={handleToggleCompleteKeyDown}
+            role="button"
+            tabIndex={0}
           >
-            <span className="block truncate">{task.content}</span>
-          </span>
+            <Checkbox
+              checked={task.completed}
+              id={`task-${task.id}`}
+              onCheckedChange={handleToggleCompleteClick}
+              onPointerDown={(e) => e.stopPropagation()}
+            />
+            <span
+              className={`flex-1 min-w-0 cursor-pointer ${
+                task.completed ? 'line-through text-muted-foreground' : ''
+              }`}
+              aria-label={`Mark "${task.content}" as ${task.completed ? 'incomplete' : 'complete'}`}
+            >
+              <span className="block truncate">{task.content}</span>
+            </span>
+          </div>
+          
+          {/* Badges row - only show on mobile when there are badges */}
+          {(task.estimatedDuration || task.importance || task.urgency || task.dueDate) && (
+            <div className="md:hidden flex items-center space-x-1 pl-12 pr-3 pb-3">
+              {task.estimatedDuration && (
+                <span className="text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatDuration(task.estimatedDuration)}
+                </span>
+              )}
+              {(() => {
+                const priority = calculatePriority(task.importance, task.urgency);
+                const priorityText = getPriorityDisplayText(priority);
+                if (priorityText) {
+                  return (
+                    <span className={`text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(task.urgency)}`}>
+                      <Zap className="h-3 w-3" />
+                      {priorityText}
+                    </span>
+                  );
+                }
+                return null;
+              })()}
+              {task.dueDate && (
+                <span className={`text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getDueDateColorClass(task.dueDate)}`}>
+                  <Calendar className="h-3 w-3" />
+                  {formatDueDate(task.dueDate)}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         
-        <div className="flex items-center space-x-1 pr-2">
-          {task.estimatedDuration && (
-            <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              {formatDuration(task.estimatedDuration)}
-            </span>
-          )}
-          {(() => {
-            const priority = calculatePriority(task.importance, task.urgency);
-            const priorityText = getPriorityDisplayText(priority);
-            if (priorityText) {
-              return (
-                <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(task.urgency)}`}>
-                  <Zap className="h-3 w-3" />
-                  {priorityText}
-                </span>
-              );
-            }
-            return null;
-          })()}
-          {task.dueDate && (
-            <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getDueDateColorClass(task.dueDate)}`}>
-              <Calendar className="h-3 w-3" />
-              {formatDueDate(task.dueDate)}
-            </span>
-          )}
+        {/* Action buttons - vertically centered */}
+        <div className="flex items-center space-x-1 pr-2 self-center">
+          {/* Desktop badges - hidden on mobile */}
+          <div className="hidden md:flex items-center space-x-1">
+            {task.estimatedDuration && (
+              <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {formatDuration(task.estimatedDuration)}
+              </span>
+            )}
+            {(() => {
+              const priority = calculatePriority(task.importance, task.urgency);
+              const priorityText = getPriorityDisplayText(priority);
+              if (priorityText) {
+                return (
+                  <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(task.urgency)}`}>
+                    <Zap className="h-3 w-3" />
+                    {priorityText}
+                  </span>
+                );
+              }
+              return null;
+            })()}
+            {task.dueDate && (
+              <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getDueDateColorClass(task.dueDate)}`}>
+                <Calendar className="h-3 w-3" />
+                {formatDueDate(task.dueDate)}
+              </span>
+            )}
+          </div>
+          
+          {/* Action buttons */}
           <Button
             variant="ghost"
             size="sm"
