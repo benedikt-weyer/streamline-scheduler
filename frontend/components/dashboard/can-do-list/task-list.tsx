@@ -23,18 +23,20 @@ import {
 import { useState, useEffect } from 'react';
 
 interface TaskListProps {
-  readonly tasks: Task[];
-  readonly isLoading: boolean;
-  readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
-  readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<void>;
-  readonly onReorderTasks?: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
-  readonly projects?: Project[];
-  readonly currentProjectId?: string;
+  tasks: Task[];
+  allTasks?: Task[]; // All tasks for blocking relationships
+  isLoading: boolean;
+  onToggleComplete: (id: string, completed: boolean) => Promise<void>;
+  onDeleteTask: (id: string) => Promise<void>;
+  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
+  onReorderTasks: (taskIds: string[]) => Promise<void>;
+  projects?: Project[];
+  currentProjectId?: string;
 }
 
 export default function TaskList({ 
   tasks, 
+  allTasks,
   isLoading, 
   onToggleComplete, 
   onDeleteTask, 
@@ -92,7 +94,7 @@ export default function TaskList({
 
         // Persist to backend
         try {
-          await onReorderTasks(oldIndex, newIndex, currentProjectId);
+          await onReorderTasks(localTasks.map(task => task.id));
         } catch (error) {
           // Revert on error
           setLocalTasks(tasks);
@@ -139,6 +141,7 @@ export default function TaskList({
                   onDeleteTask={onDeleteTask}
                   onUpdateTask={onUpdateTask}
                   projects={projects}
+                  tasks={allTasks ?? tasks}
                 />
                 
                 {/* Drop indicator below */}
@@ -159,6 +162,7 @@ export default function TaskList({
             onDeleteTask={onDeleteTask}
             onUpdateTask={onUpdateTask}
             projects={projects}
+            tasks={allTasks ?? tasks}
           />
         ) : null}
       </DragOverlay>

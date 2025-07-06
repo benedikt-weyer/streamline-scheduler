@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 import { useState } from 'react';
-import { Edit, Trash2, Clock, Zap, Calendar, Copy } from 'lucide-react';
+import { Edit, Trash2, Clock, Zap, Calendar, Copy, Shield, AlertCircle, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import EditTaskDialog from './edit-task-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from '@/utils/can-do-list/priority-utils';
@@ -16,11 +18,12 @@ interface TaskListItemProps {
   readonly task: Task;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date) => Promise<void>;
+  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
   readonly projects?: Project[];
+  readonly tasks?: Task[];
 }
 
-export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, projects = [] }: TaskListItemProps) {
+export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, projects = [], tasks = [] }: TaskListItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -58,10 +61,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     setIsEditDialogOpen(true);
   };
 
-  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date) => {
+  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => {
     setIsUpdating(true);
     try {
-      await onUpdateTask(id, content, estimatedDuration, projectId, importance, urgency, dueDate);
+      await onUpdateTask(id, content, estimatedDuration, projectId, importance, urgency, dueDate, blockedBy);
     } finally {
       setIsUpdating(false);
     }
@@ -70,6 +73,14 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const handleCloseDialog = () => {
     setIsEditDialogOpen(false);
   };
+
+  // Check if task is blocked and find the blocking task
+  const isBlocked = task.blockedBy && !task.completed;
+  const blockingTask = isBlocked ? tasks.find(t => t.id === task.blockedBy) : null;
+
+  // Check if task is blocking other tasks and find the blocked tasks
+  const blockedTasks = tasks.filter(t => t.blockedBy === task.id && !t.completed);
+  const isBlocking = blockedTasks.length > 0 && !task.completed;
 
   const handleToggleCompleteClick = async () => {
     if (!task.completed) {
@@ -124,7 +135,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
         className={`flex rounded-md border task-transition ${
           !task.completed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
         } ${
-          task.completed ? 'bg-muted' : ''
+          task.completed ? 'bg-muted' : isBlocked ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50' : ''
         } ${
           isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
         } ${
@@ -155,11 +166,53 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             >
               <span className="block truncate">{task.content}</span>
             </span>
+            {/* Show blocked indicator on the same line for mobile */}
+            {isBlocked && (
+              <div className="md:hidden flex items-center">
+                <Shield className="h-4 w-4 text-red-500 dark:text-red-400" />
+              </div>
+            )}
+            {/* Show blocking indicator on the same line for mobile */}
+            {isBlocking && (
+              <div className="md:hidden flex items-center">
+                <Lock className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+              </div>
+            )}
           </div>
           
           {/* Badges row - only show on mobile when there are badges */}
-          {(task.estimatedDuration || task.importance || task.urgency || task.dueDate) && (
+          {(task.estimatedDuration || task.importance || task.urgency || task.dueDate || isBlocked || isBlocking) && (
             <div className="md:hidden flex items-center space-x-1 pl-12 pr-3 pb-3">
+              {isBlocked && (
+                <span className="text-xs text-red-800 dark:text-red-200 bg-red-100 dark:bg-red-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
+                  <Shield className="h-3 w-3" />
+                  Blocked{blockingTask ? ` by "${blockingTask.content.substring(0, 20)}${blockingTask.content.length > 20 ? '...' : ''}"` : ''}
+                </span>
+              )}
+              {isBlocking && (
+                <TooltipProvider>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <span className="text-xs text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
+                        <Lock className="h-3 w-3" />
+                        Blocking {blockedTasks.length} task{blockedTasks.length === 1 ? '' : 's'}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipPrimitive.Portal>
+                      <TooltipContent side="bottom" className="max-w-xs !bg-white dark:!bg-slate-950 border" style={{ zIndex: 999999 }}>
+                        <div className="space-y-1">
+                          <div className="font-medium">Blocked tasks:</div>
+                          {blockedTasks.map((blockedTask) => (
+                            <div key={blockedTask.id} className="text-sm">
+                              • {blockedTask.content}
+                            </div>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </TooltipPrimitive.Portal>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               {task.estimatedDuration && (
                 <span className="text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
                   <Clock className="h-3 w-3" />
@@ -193,6 +246,36 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
         <div className="flex items-center space-x-1 pr-2 self-center">
           {/* Desktop badges - hidden on mobile */}
           <div className="hidden md:flex items-center space-x-1">
+            {isBlocked && (
+              <span className="ml-2 text-xs text-red-800 dark:text-red-200 bg-red-100 dark:bg-red-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                Blocked{blockingTask ? ` by "${blockingTask.content.substring(0, 15)}${blockingTask.content.length > 15 ? '...' : ''}"` : ''}
+              </span>
+            )}
+            {isBlocking && (
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <span className="ml-2 text-xs text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
+                      <Lock className="h-3 w-3" />
+                      Blocks {blockedTasks.length} task{blockedTasks.length === 1 ? '' : 's'}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipPrimitive.Portal>
+                    <TooltipContent side="bottom" className="max-w-xs !bg-white dark:!bg-slate-950 border" style={{ zIndex: 999999 }}>
+                      <div className="space-y-1">
+                        <div className="font-medium">Blocked tasks:</div>
+                        {blockedTasks.map((blockedTask) => (
+                          <div key={blockedTask.id} className="text-sm">
+                            • {blockedTask.content}
+                          </div>
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  </TooltipPrimitive.Portal>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             {task.estimatedDuration && (
               <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
                 <Clock className="h-3 w-3" />
@@ -261,6 +344,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
         onSave={handleSave}
         isLoading={isUpdating}
         projects={projects}
+        tasks={tasks}
       />
     </>
   );

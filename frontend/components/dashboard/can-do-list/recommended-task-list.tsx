@@ -14,7 +14,7 @@ interface RecommendedTaskListProps {
   isLoading?: boolean;
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
-  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date) => Promise<void>;
+  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
 }
 
 export default function RecommendedTaskList({
@@ -85,8 +85,8 @@ export default function RecommendedTaskList({
       {/* Task List */}
       <div className="space-y-2">
         {recommendedTasks.map((task, index) => {
-          const score = calculateRecommendationScore(task);
-          const reason = getRecommendationReason(task);
+          const score = calculateRecommendationScore(task, tasks);
+          const reason = getRecommendationReason(task, tasks);
           
           return (
             <div key={task.id} className="relative">
@@ -121,6 +121,7 @@ export default function RecommendedTaskList({
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
                     projects={projects}
+                    tasks={tasks}
                   />
                   
                   {/* Additional info for recommended view */}

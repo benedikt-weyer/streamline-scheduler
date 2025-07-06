@@ -259,8 +259,8 @@ export default function CanDoListMain() {
   };
 
   // Handle update action
-  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date) => {
-    await handleUpdateTask(id, content, estimatedDuration, projectId, importance, urgency, dueDate);
+  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => {
+    await handleUpdateTask(id, content, estimatedDuration, projectId, importance, urgency, dueDate, blockedBy);
   };
 
   // Handle toggle complete action
@@ -392,6 +392,7 @@ export default function CanDoListMain() {
                                   onDeleteTask={onDeleteTask}
                                   onUpdateTask={onUpdateTask}
                                   projects={projects}
+                                  tasks={tasks}
                                 />
                               </div>
                             );
@@ -401,6 +402,7 @@ export default function CanDoListMain() {
                     ) : (
                       <TaskList 
                         tasks={filteredTasks}
+                        allTasks={tasks}
                         isLoading={isLoading}
                         onToggleComplete={onToggleComplete}
                         onDeleteTask={onDeleteTask}
@@ -459,6 +461,7 @@ export default function CanDoListMain() {
                                   onDeleteTask={onDeleteTask}
                                   onUpdateTask={onUpdateTask}
                                   projects={projects}
+                                  tasks={tasks}
                                 />
                               </div>
                             );
@@ -468,6 +471,7 @@ export default function CanDoListMain() {
                     ) : (
                       <TaskList 
                         tasks={filteredTasks}
+                        allTasks={tasks}
                         isLoading={isLoading}
                         onToggleComplete={onToggleComplete}
                         onDeleteTask={onDeleteTask}
@@ -587,6 +591,7 @@ export default function CanDoListMain() {
                                   onDeleteTask={onDeleteTask}
                                   onUpdateTask={onUpdateTask}
                                   projects={projects}
+                                  tasks={tasks}
                                 />
                               </div>
                             );
@@ -596,6 +601,7 @@ export default function CanDoListMain() {
                     ) : (
                       <TaskList 
                         tasks={filteredTasks}
+                        allTasks={tasks}
                         isLoading={isLoading}
                         onToggleComplete={onToggleComplete}
                         onDeleteTask={onDeleteTask}
@@ -654,6 +660,7 @@ export default function CanDoListMain() {
                                   onDeleteTask={onDeleteTask}
                                   onUpdateTask={onUpdateTask}
                                   projects={projects}
+                                  tasks={tasks}
                                 />
                               </div>
                             );
@@ -663,6 +670,7 @@ export default function CanDoListMain() {
                     ) : (
                       <TaskList 
                         tasks={filteredTasks}
+                        allTasks={tasks}
                         isLoading={isLoading}
                         onToggleComplete={onToggleComplete}
                         onDeleteTask={onDeleteTask}

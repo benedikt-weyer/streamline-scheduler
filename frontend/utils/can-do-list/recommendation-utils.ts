@@ -5,10 +5,10 @@
 import { Task } from './can-do-list-types';
 
 /**
- * Calculate a recommendation score for a task based on importance, urgency, and due date
+ * Calculate a recommendation score for a task based on importance, urgency, due date, and blocking relationships
  * Higher scores indicate higher priority tasks that should be recommended
  */
-export function calculateRecommendationScore(task: Task): number {
+export function calculateRecommendationScore(task: Task, allTasks: Task[]): number {
   let score = 0;
   
   // Base score from importance and urgency (0-10 each, max 20)
@@ -46,6 +46,40 @@ export function calculateRecommendationScore(task: Task): number {
     // Tasks due later get no bonus
   }
   
+  // Blocking task bonus: if this task blocks other important tasks, boost its score
+  const blockedTasks = allTasks.filter(t => t.blockedBy === task.id && !t.completed);
+  if (blockedTasks.length > 0) {
+    // Calculate the highest score among blocked tasks
+    const maxBlockedScore = Math.max(...blockedTasks.map(blockedTask => {
+      // Calculate blocked task's base score (without blocking bonus to avoid recursion)
+      const blockedImportance = blockedTask.importance || 0;
+      const blockedUrgency = blockedTask.urgency || 0;
+      let blockedScore = blockedImportance + blockedUrgency;
+      
+      // Add due date bonus for blocked task
+      if (blockedTask.dueDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dueDate = new Date(blockedTask.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 0) blockedScore += 15;
+        else if (diffDays === 0) blockedScore += 12;
+        else if (diffDays === 1) blockedScore += 8;
+        else if (diffDays <= 3) blockedScore += 5;
+        else if (diffDays <= 7) blockedScore += 2;
+      }
+      
+      return blockedScore;
+    }));
+    
+    // Add blocking bonus: ensure blocking task ranks higher than blocked task
+    // Add the max blocked score + 5 to guarantee higher ranking
+    score += maxBlockedScore + 5;
+  }
+  
   return score;
 }
 
@@ -62,7 +96,7 @@ export function getRecommendedTasks(tasks: Task[], limit: number = 20): Task[] {
   // Calculate scores and sort
   const tasksWithScores = activeTasks.map(task => ({
     task,
-    score: calculateRecommendationScore(task)
+    score: calculateRecommendationScore(task, tasks)
   }));
   
   // Sort by score (highest first), then by creation date (newest first) as tiebreaker
@@ -80,10 +114,33 @@ export function getRecommendedTasks(tasks: Task[], limit: number = 20): Task[] {
 /**
  * Get a human-readable explanation of why a task is recommended
  */
-export function getRecommendationReason(task: Task): string {
+export function getRecommendationReason(task: Task, allTasks: Task[]): string {
   const importance = task.importance || 0;
   const urgency = task.urgency || 0;
   const reasons: string[] = [];
+  
+  // Check if this task blocks important tasks
+  const blockedTasks = allTasks.filter(t => t.blockedBy === task.id && !t.completed);
+  if (blockedTasks.length > 0) {
+    const highImportanceBlocked = blockedTasks.some(t => (t.importance || 0) >= 8);
+    const highUrgencyBlocked = blockedTasks.some(t => (t.urgency || 0) >= 8);
+    const overdueTasks = blockedTasks.filter(t => {
+      if (!t.dueDate) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dueDate = new Date(t.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      return dueDate.getTime() < today.getTime();
+    });
+    
+    if (highImportanceBlocked || highUrgencyBlocked) {
+      reasons.push('Blocks important tasks');
+    } else if (overdueTasks.length > 0) {
+      reasons.push('Blocks overdue tasks');
+    } else {
+      reasons.push(`Blocks ${blockedTasks.length} task${blockedTasks.length === 1 ? '' : 's'}`);
+    }
+  }
   
   if (importance >= 8) {
     reasons.push('High importance');

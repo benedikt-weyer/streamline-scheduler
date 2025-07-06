@@ -11,12 +11,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Task, Project, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/shadcn-utils';
 
 // Predefined duration options in minutes
 const PREDEFINED_DURATIONS = [
@@ -38,7 +53,8 @@ const editTaskSchema = z.object({
   projectId: z.string().optional(),
   importance: z.number().int().min(0).max(10).optional(),
   urgency: z.number().int().min(0).max(10).optional(),
-  dueDate: z.string().optional()
+  dueDate: z.string().optional(),
+  blockedBy: z.string().optional()
 });
 
 type EditTaskFormValues = z.infer<typeof editTaskSchema>;
@@ -47,9 +63,10 @@ interface EditTaskDialogProps {
   readonly task: Task | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date) => Promise<void>;
+  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
   readonly isLoading?: boolean;
   readonly projects?: Project[];
+  readonly tasks?: Task[];
 }
 
 export default function EditTaskDialog({ 
@@ -58,13 +75,17 @@ export default function EditTaskDialog({
   onClose, 
   onSave, 
   isLoading = false,
-  projects = []
+  projects = [],
+  tasks = []
 }: EditTaskDialogProps) {
+  const [blockedByOpen, setBlockedByOpen] = useState(false);
+  
   const form = useForm<EditTaskFormValues>({
     resolver: zodResolver(editTaskSchema),
     defaultValues: {
       content: '',
-      estimatedDuration: ''
+      estimatedDuration: '',
+      blockedBy: ''
     }
   });
 
@@ -77,7 +98,8 @@ export default function EditTaskDialog({
         projectId: task.projectId ?? '',
         importance: task.importance ?? 0,
         urgency: task.urgency ?? 0,
-        dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : ''
+        dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : '',
+        blockedBy: task.blockedBy ?? ''
       });
     }
   }, [task, isOpen, form]);
@@ -88,6 +110,7 @@ export default function EditTaskDialog({
     const importance = values.importance === 0 ? undefined : values.importance;
     const urgency = values.urgency === 0 ? undefined : values.urgency;
     const dueDate = values.dueDate ? new Date(values.dueDate + 'T00:00:00.000Z') : undefined;
+    const blockedBy = values.blockedBy || undefined;
     
     if (
       values.content.trim() === task.content.trim() &&
@@ -95,12 +118,13 @@ export default function EditTaskDialog({
       values.projectId === task.projectId &&
       importance === task.importance &&
       urgency === task.urgency &&
-      dueDate?.getTime() === task.dueDate?.getTime()
+      dueDate?.getTime() === task.dueDate?.getTime() &&
+      blockedBy === task.blockedBy
     ) {
       onClose();
       return;
     }
-    await onSave(task.id, values.content, duration, values.projectId, importance, urgency, dueDate);
+    await onSave(task.id, values.content, duration, values.projectId, importance, urgency, dueDate, blockedBy);
     onClose();
   };
 
@@ -118,7 +142,7 @@ export default function EditTaskDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose} modal={false}>
       <DialogContent className="sm:max-w-[425px]" onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle>Edit Task</DialogTitle>
@@ -220,6 +244,86 @@ export default function EditTaskDialog({
             {form.formState.errors.dueDate && (
               <p className="text-sm text-destructive">
                 {form.formState.errors.dueDate.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="blockedBy">Blocked By</Label>
+            <Popover open={blockedByOpen} onOpenChange={setBlockedByOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={blockedByOpen}
+                  className="w-full justify-between"
+                  disabled={isLoading}
+                >
+                  {form.watch('blockedBy') ? 
+                    tasks.find(t => t.id === form.watch('blockedBy'))?.content || 'Select a blocking task...' :
+                    'Select a blocking task...'
+                  }
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0">
+                <Command>
+                  <CommandInput placeholder="Search tasks..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>No tasks found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="not blocked"
+                        onSelect={() => {
+                          form.setValue('blockedBy', undefined);
+                          setBlockedByOpen(false);
+                        }}
+                      >
+                        Not blocked
+                        <Check
+                          className={cn(
+                            "ml-auto h-4 w-4",
+                            !form.watch('blockedBy') ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                      </CommandItem>
+                      {tasks
+                        .filter(t => t.id !== task?.id && !t.completed) // Don't show current task or completed tasks
+                        .sort((a, b) => a.content.localeCompare(b.content))
+                        .map(blockingTask => (
+                          <CommandItem
+                            key={blockingTask.id}
+                            value={blockingTask.content}
+                            onSelect={() => {
+                              form.setValue('blockedBy', blockingTask.id);
+                              setBlockedByOpen(false);
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="truncate max-w-64">{blockingTask.content}</span>
+                              {blockingTask.projectId && (
+                                <span className="text-xs text-muted-foreground">
+                                  ({projects.find(p => p.id === blockingTask.projectId)?.name || 'Unknown'})
+                                </span>
+                              )}
+                            </div>
+                            <Check
+                              className={cn(
+                                "ml-auto h-4 w-4",
+                                form.watch('blockedBy') === blockingTask.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                        ))
+                      }
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {form.formState.errors.blockedBy && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.blockedBy.message}
               </p>
             )}
           </div>
