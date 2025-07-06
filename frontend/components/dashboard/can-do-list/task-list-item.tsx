@@ -185,7 +185,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             size="sm"
             onClick={handleCopy}
             onPointerDown={(e) => e.stopPropagation()}
-            className="text-muted-foreground hover:text-foreground h-8 w-8 md:h-auto md:w-auto"
+            className="text-muted-foreground hover:text-foreground p-2"
           >
             <Copy className="h-4 w-4" />
             <span className="sr-only">Copy task content</span>
@@ -195,7 +195,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             size="sm"
             onClick={handleEdit}
             onPointerDown={(e) => e.stopPropagation()}
-            className="text-muted-foreground hover:text-foreground h-8 w-8 md:h-auto md:w-auto"
+            className="text-muted-foreground hover:text-foreground p-2"
           >
             <Edit className="h-4 w-4" />
             <span className="sr-only">Edit</span>
@@ -205,7 +205,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             size="sm"
             onClick={() => onDeleteTask(task.id)}
             onPointerDown={(e) => e.stopPropagation()}
-            className="text-destructive hover:text-destructive/80 h-8 w-8 md:h-auto md:w-auto"
+            className="text-destructive hover:text-destructive/80 p-2"
           >
             <Trash2 className="h-4 w-4" />
             <span className="sr-only">Delete</span>
