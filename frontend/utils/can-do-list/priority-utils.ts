@@ -3,15 +3,15 @@
  */
 
 /**
- * Calculate priority from importance and urgency
- * @param importance - 1-10 scale
+ * Calculate priority from impact and urgency
+ * @param impact - 1-10 scale
  * @param urgency - 1-10 scale
  * @returns Combined priority score
  */
-export function calculatePriority(importance?: number, urgency?: number): number | null {
-  if (!importance && !urgency) return null;
+export function calculatePriority(impact?: number, urgency?: number): number | null {
+  if (!impact && !urgency) return null;
   
-  const imp = importance || 0;
+  const imp = impact || 0;
   const urg = urgency || 0;
   
   if (imp === 0 && urg === 0) return null;
@@ -51,20 +51,20 @@ export function getPriorityDisplayText(priority: number | null): string | null {
 
 /**
  * Parse priority hashtags from content
- * Supports formats: #p5, #i7u3 (importance 7, urgency 3)
+ * Supports formats: #p5, #i7u3 (impact 7, urgency 3)
  */
 export interface ParsedPriority {
   content: string;
-  importance?: number;
+  impact?: number;
   urgency?: number;
 }
 
 export function parsePriorityFromContent(content: string): ParsedPriority {
   let cleanedContent = content;
-  let importance: number | undefined;
+  let impact: number | undefined;
   let urgency: number | undefined;
 
-  // Parse combined format: #i7u3 (importance 7, urgency 3)
+  // Parse combined format: #i7u3 (impact 7, urgency 3)
   const combinedRegex = /#i(\d)u(\d)/gi;
   const combinedMatches = [...content.matchAll(combinedRegex)];
   
@@ -74,23 +74,23 @@ export function parsePriorityFromContent(content: string): ParsedPriority {
     const urgValue = parseInt(match[2], 10);
     
     if (impValue >= 1 && impValue <= 10 && urgValue >= 1 && urgValue <= 10) {
-      importance = impValue;
+      impact = impValue;
       urgency = urgValue;
       cleanedContent = cleanedContent.replace(fullMatch, '').trim();
     }
   }
 
-  // Parse importance only format: #i7
-  if (!importance) {
-    const importanceRegex = /#i(\d)(?!u)/gi; // Negative lookahead to avoid matching #i7u3
-    const importanceMatches = [...content.matchAll(importanceRegex)];
+  // Parse impact only format: #i7
+  if (!impact) {
+    const impactRegex = /#i(\d)(?!u)/gi; // Negative lookahead to avoid matching #i7u3
+    const impactMatches = [...content.matchAll(impactRegex)];
     
-    for (const match of importanceMatches) {
+    for (const match of impactMatches) {
       const fullMatch = match[0]; // e.g., "#i7"
       const impValue = parseInt(match[1], 10);
       
       if (impValue >= 1 && impValue <= 10) {
-        importance = impValue;
+        impact = impValue;
         cleanedContent = cleanedContent.replace(fullMatch, '').trim();
       }
     }
@@ -112,8 +112,8 @@ export function parsePriorityFromContent(content: string): ParsedPriority {
     }
   }
 
-  // Parse simple priority format: #p5 (sets both importance and urgency to 5)
-  if (!importance && !urgency) {
+  // Parse simple priority format: #p5 (sets both impact and urgency to 5)
+  if (!impact && !urgency) {
     const priorityRegex = /#p(\d)/gi;
     const priorityMatches = [...content.matchAll(priorityRegex)];
     
@@ -122,7 +122,7 @@ export function parsePriorityFromContent(content: string): ParsedPriority {
       const priValue = parseInt(match[1], 10);
       
       if (priValue >= 1 && priValue <= 10) {
-        importance = priValue;
+        impact = priValue;
         urgency = priValue;
         cleanedContent = cleanedContent.replace(fullMatch, '').trim();
       }
@@ -134,7 +134,7 @@ export function parsePriorityFromContent(content: string): ParsedPriority {
 
   return {
     content: cleanedContent,
-    importance,
+    impact,
     urgency
   };
 }
@@ -144,10 +144,10 @@ export function parsePriorityFromContent(content: string): ParsedPriority {
  */
 export function getPriorityExamples(): string[] {
   return [
-    '#p5 (priority 5 - sets both importance and urgency to 5)',
-    '#i7 (importance 7 only)',
+    '#p5 (priority 5 - sets both impact and urgency to 5)',
+    '#i7 (impact 7 only)',
     '#u3 (urgency 3 only)',
-    '#i8u3 (importance 8, urgency 3)',
-    '#i9u9 (importance 9, urgency 9 - highest priority)'
+    '#i8u3 (impact 8, urgency 3)',
+    '#i9u9 (impact 9, urgency 9 - highest priority)'
   ];
 } 

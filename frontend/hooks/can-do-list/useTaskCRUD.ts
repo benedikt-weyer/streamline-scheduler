@@ -29,7 +29,7 @@ export const useTaskCRUD = (
 ) => {
   const { setError } = useError();
 
-  const handleAddTask = useCallback(async (content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string): Promise<boolean> => {
+  const handleAddTask = useCallback(async (content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string): Promise<boolean> => {
     if (!encryptionKey) return false;
     try {
       if (skipNextTaskReload) {
@@ -42,7 +42,7 @@ export const useTaskCRUD = (
         content: content.trim(),
         completed: false,
         estimatedDuration: estimatedDuration,
-        importance: importance,
+        impact: impact,
         urgency: urgency,
         dueDate: dueDate,
         blockedBy: blockedBy
@@ -58,7 +58,7 @@ export const useTaskCRUD = (
         estimatedDuration: estimatedDuration,
         projectId: projectId,
         displayOrder: newEncryptedTask.display_order ?? 0,
-        importance: importance,
+        impact: impact,
         urgency: urgency,
         dueDate: dueDate,
         blockedBy: blockedBy
@@ -72,7 +72,7 @@ export const useTaskCRUD = (
     }
   }, [encryptionKey, taskActions, setError, skipNextTaskReload]);
 
-  const handleUpdateTask = useCallback(async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string): Promise<boolean> => {
+  const handleUpdateTask = useCallback(async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string): Promise<boolean> => {
     if (!encryptionKey) return false;
     try {
       if (skipNextTaskReload) {
@@ -90,7 +90,7 @@ export const useTaskCRUD = (
         content: content.trim(),
         completed: existingTask.completed, // Preserve completion status
         estimatedDuration: estimatedDuration,
-        importance: importance,
+        impact: impact,
         urgency: urgency,
         dueDate: dueDate,
         blockedBy: blockedBy
@@ -107,7 +107,7 @@ export const useTaskCRUD = (
                 content: taskData.content, 
                 estimatedDuration: estimatedDuration,
                 projectId: projectId,
-                importance: importance,
+                impact: impact,
                 urgency: urgency,
                 dueDate: dueDate,
                 blockedBy: blockedBy,
@@ -148,7 +148,7 @@ export const useTaskCRUD = (
         content: task.content,
         completed: completed,
         estimatedDuration: task.estimatedDuration,
-        importance: task.importance,
+        impact: task.impact,
         urgency: task.urgency,
         dueDate: task.dueDate,
         blockedBy: task.blockedBy

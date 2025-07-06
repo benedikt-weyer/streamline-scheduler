@@ -14,7 +14,7 @@ interface RecommendedTaskListProps {
   isLoading?: boolean;
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
-  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
+  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
 }
 
 export default function RecommendedTaskList({
@@ -61,7 +61,7 @@ export default function RecommendedTaskList({
           No Recommended Tasks
         </h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Add importance, urgency ratings, or due dates to your tasks to see personalized recommendations here.
+          Add impact, urgency ratings, or due dates to your tasks to see personalized recommendations here.
         </p>
       </div>
     );
@@ -79,7 +79,7 @@ export default function RecommendedTaskList({
       </div>
       
       <div className="text-sm text-muted-foreground mb-4">
-        Tasks ranked by importance, urgency, and due dates. Focus on these for maximum impact.
+        Tasks ranked by impact, urgency, and due dates. Focus on these for maximum impact.
       </div>
 
       {/* Task List */}

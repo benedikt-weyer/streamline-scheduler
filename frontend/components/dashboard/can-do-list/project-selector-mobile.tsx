@@ -80,7 +80,7 @@ export default function ProjectSelectorMobile({
   }, [projects]);
 
   // Calculate recommended tasks count
-  const recommendedCount = tasks.filter(task => !task.completed && (task.importance || task.urgency || task.dueDate)).length;
+      const recommendedCount = tasks.filter(task => !task.completed && (task.impact || task.urgency || task.dueDate)).length;
 
   // Get current project name and task count
   const currentProject = selectedProjectId 

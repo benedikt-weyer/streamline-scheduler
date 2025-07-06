@@ -34,7 +34,7 @@ export const useTaskLoader = (
             estimatedDuration: decryptedData.estimatedDuration,
             projectId: task.project_id,
             displayOrder: task.display_order ?? 0,
-            importance: decryptedData.importance,
+            impact: decryptedData.impact,
             urgency: decryptedData.urgency,
             dueDate: decryptedData.dueDate ? new Date(decryptedData.dueDate) : undefined,
             blockedBy: decryptedData.blockedBy

@@ -204,7 +204,7 @@ export default function ProjectSidebarWithDragDrop({
   }
 
   // Calculate recommended tasks count
-  const recommendedCount = tasks.filter(task => !task.completed && (task.importance || task.urgency || task.dueDate)).length;
+      const recommendedCount = tasks.filter(task => !task.completed && (task.impact || task.urgency || task.dueDate)).length;
 
   // Calculate all tasks count
   const allTasksCount = itemCounts['all'] || 0;

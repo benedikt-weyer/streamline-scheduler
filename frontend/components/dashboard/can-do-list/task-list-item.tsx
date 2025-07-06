@@ -18,7 +18,7 @@ interface TaskListItemProps {
   readonly task: Task;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
+  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
   readonly projects?: Project[];
   readonly tasks?: Task[];
 }
@@ -61,10 +61,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     setIsEditDialogOpen(true);
   };
 
-  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => {
+  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => {
     setIsUpdating(true);
     try {
-      await onUpdateTask(id, content, estimatedDuration, projectId, importance, urgency, dueDate, blockedBy);
+      await onUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy);
     } finally {
       setIsUpdating(false);
     }
@@ -181,7 +181,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           </div>
           
           {/* Badges row - only show on mobile when there are badges */}
-          {(task.estimatedDuration || task.importance || task.urgency || task.dueDate || isBlocked || isBlocking) && (
+          {(task.estimatedDuration || task.impact || task.urgency || task.dueDate || isBlocked || isBlocking) && (
             <div className="md:hidden flex items-center space-x-1 pl-12 pr-3 pb-3">
               {isBlocked && (
                 <span className="text-xs text-red-800 dark:text-red-200 bg-red-100 dark:bg-red-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
@@ -220,7 +220,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
                 </span>
               )}
               {(() => {
-                const priority = calculatePriority(task.importance, task.urgency);
+                const priority = calculatePriority(task.impact, task.urgency);
                 const priorityText = getPriorityDisplayText(priority);
                 if (priorityText) {
                   return (
@@ -283,7 +283,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
               </span>
             )}
             {(() => {
-              const priority = calculatePriority(task.importance, task.urgency);
+              const priority = calculatePriority(task.impact, task.urgency);
               const priorityText = getPriorityDisplayText(priority);
               if (priorityText) {
                 return (

@@ -10,7 +10,7 @@ export interface Tag {
   id: string;
   text: string;
   duration?: number; // in minutes, for duration tags
-  importance?: number; // 1-10, for priority tags
+  impact?: number; // 1-10, for priority tags
   urgency?: number; // 1-10, for priority tags
   dueDate?: Date; // for due date tags
   type: 'duration' | 'priority' | 'due-date' | 'custom'; // extensible for different tag types
@@ -38,7 +38,7 @@ export interface TagSuggestion {
   description?: string;
   type: 'duration' | 'priority' | 'due-date' | 'custom';
   duration?: number; // for duration suggestions
-  importance?: number; // for priority suggestions
+  impact?: number; // for priority suggestions
   urgency?: number; // for priority suggestions
   dueDate?: Date; // for due date suggestions
 }
@@ -98,19 +98,19 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       { id: 'duration-3h', text: '#d3h', description: '3 hours', type: 'duration', duration: 180 },
       
       // Common priority tags
-      { id: 'priority-p3', text: '#p3', description: 'Priority 3', type: 'priority', importance: 3, urgency: 3 },
-      { id: 'priority-p5', text: '#p5', description: 'Priority 5', type: 'priority', importance: 5, urgency: 5 },
-      { id: 'priority-p7', text: '#p7', description: 'Priority 7', type: 'priority', importance: 7, urgency: 7 },
-      { id: 'priority-p9', text: '#p9', description: 'Priority 9', type: 'priority', importance: 9, urgency: 9 },
-      { id: 'priority-i3', text: '#i3', description: 'Importance 3', type: 'priority', importance: 3 },
-      { id: 'priority-i5', text: '#i5', description: 'Importance 5', type: 'priority', importance: 5 },
-      { id: 'priority-i8', text: '#i8', description: 'Importance 8', type: 'priority', importance: 8 },
+      { id: 'priority-p3', text: '#p3', description: 'Priority 3', type: 'priority', impact: 3, urgency: 3 },
+      { id: 'priority-p5', text: '#p5', description: 'Priority 5', type: 'priority', impact: 5, urgency: 5 },
+      { id: 'priority-p7', text: '#p7', description: 'Priority 7', type: 'priority', impact: 7, urgency: 7 },
+      { id: 'priority-p9', text: '#p9', description: 'Priority 9', type: 'priority', impact: 9, urgency: 9 },
+      { id: 'priority-i3', text: '#i3', description: 'Impact 3', type: 'priority', impact: 3 },
+      { id: 'priority-i5', text: '#i5', description: 'Impact 5', type: 'priority', impact: 5 },
+      { id: 'priority-i8', text: '#i8', description: 'Impact 8', type: 'priority', impact: 8 },
       { id: 'priority-u3', text: '#u3', description: 'Urgency 3', type: 'priority', urgency: 3 },
       { id: 'priority-u5', text: '#u5', description: 'Urgency 5', type: 'priority', urgency: 5 },
       { id: 'priority-u8', text: '#u8', description: 'Urgency 8', type: 'priority', urgency: 8 },
-      { id: 'priority-i8u3', text: '#i8u3', description: 'Importance 8, Urgency 3', type: 'priority', importance: 8, urgency: 3 },
-      { id: 'priority-i5u7', text: '#i5u7', description: 'Importance 5, Urgency 7', type: 'priority', importance: 5, urgency: 7 },
-      { id: 'priority-i9u2', text: '#i9u2', description: 'Importance 9, Urgency 2', type: 'priority', importance: 9, urgency: 2 },
+      { id: 'priority-i8u3', text: '#i8u3', description: 'Impact 8, Urgency 3', type: 'priority', impact: 8, urgency: 3 },
+      { id: 'priority-i5u7', text: '#i5u7', description: 'Impact 5, Urgency 7', type: 'priority', impact: 5, urgency: 7 },
+      { id: 'priority-i9u2', text: '#i9u2', description: 'Impact 9, Urgency 2', type: 'priority', impact: 9, urgency: 2 },
       
       // Common due date tags
       { id: 'due-today', text: '#duetoday', description: 'Due today', type: 'due-date', dueDate: new Date() },
@@ -214,7 +214,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         id: Date.now().toString(),
         text: suggestion.text,
         duration: suggestion.duration,
-        importance: suggestion.importance,
+        impact: suggestion.impact,
         urgency: suggestion.urgency,
         dueDate: suggestion.dueDate,
         type: suggestion.type
@@ -293,37 +293,37 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
     };
 
     // Parse priority hashtags
-    const parsePriorityTag = (text: string): { importance?: number; urgency?: number; displayText: string } | null => {
-      // Parse combined format: #i7u3 (importance 7, urgency 3)
+    const parsePriorityTag = (text: string): { impact?: number; urgency?: number; displayText: string } | null => {
+      // Parse combined format: #i7u3 (impact 7, urgency 3)
       const combinedRegex = /#i(\d)u(\d)/i;
       const combinedMatch = combinedRegex.exec(text);
       
       if (combinedMatch) {
-        const importance = parseInt(combinedMatch[1], 10);
+        const impact = parseInt(combinedMatch[1], 10);
         const urgency = parseInt(combinedMatch[2], 10);
         
-        if (importance >= 1 && importance <= 10 && urgency >= 1 && urgency <= 10) {
+        if (impact >= 1 && impact <= 10 && urgency >= 1 && urgency <= 10) {
           // If both values are provided, take the average
-          const priority = Math.round((importance + urgency) / 2);
+          const priority = Math.round((impact + urgency) / 2);
           return {
-            importance,
+            impact,
             urgency,
             displayText: `P${priority}`
           };
         }
       }
 
-      // Parse importance only format: #i7
-      const importanceRegex = /#i(\d)/i;
-      const importanceMatch = importanceRegex.exec(text);
+      // Parse impact only format: #i7
+      const impactRegex = /#i(\d)/i;
+      const impactMatch = impactRegex.exec(text);
       
-      if (importanceMatch) {
-        const importance = parseInt(importanceMatch[1], 10);
+      if (impactMatch) {
+        const impact = parseInt(impactMatch[1], 10);
         
-        if (importance >= 1 && importance <= 10) {
+        if (impact >= 1 && impact <= 10) {
           return {
-            importance,
-            displayText: `P${importance}`
+            impact,
+            displayText: `P${impact}`
           };
         }
       }
@@ -343,7 +343,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         }
       }
 
-      // Parse simple priority format: #p5 (sets both importance and urgency to 5)
+      // Parse simple priority format: #p5 (sets both impact and urgency to 5)
       const priorityRegex = /#p(\d)/i;
       const priorityMatch = priorityRegex.exec(text);
       
@@ -352,7 +352,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         
         if (priority >= 1 && priority <= 10) {
           return {
-            importance: priority,
+            impact: priority,
             urgency: priority,
             displayText: `P${priority}`
           };
@@ -575,7 +575,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
           const newTag: Tag = {
             id: Date.now().toString(),
             text: hashtagText,
-            importance: parsedTag.importance,
+            impact: parsedTag.impact,
             urgency: parsedTag.urgency,
             type: 'priority'
           };
@@ -779,7 +779,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                 if (tag.type === 'duration') {
                   return formatDuration(tag.duration);
                 } else if (tag.type === 'priority') {
-                  const imp = tag.importance || 0;
+                  const imp = tag.impact || 0;
                   const urg = tag.urgency || 0;
                   
                   // If both values are provided, take the average

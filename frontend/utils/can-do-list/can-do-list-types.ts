@@ -7,7 +7,7 @@ export interface Task {
   estimatedDuration?: number; // in minutes
   projectId?: string; // Reference to project
   displayOrder: number;
-  importance?: number; // 1-10, how important the task is
+  impact?: number; // 1-10, how important the task is
   urgency?: number; // 1-10, how urgent the task is
   dueDate?: Date; // when the task is due
   blockedBy?: string; // Reference to task that blocks this task

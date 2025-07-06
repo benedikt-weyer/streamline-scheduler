@@ -5,16 +5,16 @@
 import { Task } from './can-do-list-types';
 
 /**
- * Calculate a recommendation score for a task based on importance, urgency, due date, and blocking relationships
+ * Calculate a recommendation score for a task based on impact, urgency, due date, and blocking relationships
  * Higher scores indicate higher priority tasks that should be recommended
  */
 export function calculateRecommendationScore(task: Task, allTasks: Task[]): number {
   let score = 0;
   
-  // Base score from importance and urgency (0-10 each, max 20)
-  const importance = task.importance || 0;
+  // Base score from impact and urgency (0-10 each, max 20)
+  const impact = task.impact || 0;
   const urgency = task.urgency || 0;
-  score += importance + urgency;
+  score += impact + urgency;
   
   // Due date multiplier (adds urgency based on how soon the task is due)
   if (task.dueDate) {
@@ -52,9 +52,9 @@ export function calculateRecommendationScore(task: Task, allTasks: Task[]): numb
     // Calculate the highest score among blocked tasks
     const maxBlockedScore = Math.max(...blockedTasks.map(blockedTask => {
       // Calculate blocked task's base score (without blocking bonus to avoid recursion)
-      const blockedImportance = blockedTask.importance || 0;
+      const blockedImpact = blockedTask.impact || 0;
       const blockedUrgency = blockedTask.urgency || 0;
-      let blockedScore = blockedImportance + blockedUrgency;
+      let blockedScore = blockedImpact + blockedUrgency;
       
       // Add due date bonus for blocked task
       if (blockedTask.dueDate) {
@@ -115,14 +115,14 @@ export function getRecommendedTasks(tasks: Task[], limit: number = 20): Task[] {
  * Get a human-readable explanation of why a task is recommended
  */
 export function getRecommendationReason(task: Task, allTasks: Task[]): string {
-  const importance = task.importance || 0;
+  const impact = task.impact || 0;
   const urgency = task.urgency || 0;
   const reasons: string[] = [];
   
   // Check if this task blocks important tasks
   const blockedTasks = allTasks.filter(t => t.blockedBy === task.id && !t.completed);
   if (blockedTasks.length > 0) {
-    const highImportanceBlocked = blockedTasks.some(t => (t.importance || 0) >= 8);
+    const highImpactBlocked = blockedTasks.some(t => (t.impact || 0) >= 8);
     const highUrgencyBlocked = blockedTasks.some(t => (t.urgency || 0) >= 8);
     const overdueTasks = blockedTasks.filter(t => {
       if (!t.dueDate) return false;
@@ -133,7 +133,7 @@ export function getRecommendationReason(task: Task, allTasks: Task[]): string {
       return dueDate.getTime() < today.getTime();
     });
     
-    if (highImportanceBlocked || highUrgencyBlocked) {
+    if (highImpactBlocked || highUrgencyBlocked) {
       reasons.push('Blocks important tasks');
     } else if (overdueTasks.length > 0) {
       reasons.push('Blocks overdue tasks');
@@ -142,10 +142,10 @@ export function getRecommendationReason(task: Task, allTasks: Task[]): string {
     }
   }
   
-  if (importance >= 8) {
-    reasons.push('High importance');
-  } else if (importance >= 5) {
-    reasons.push('Medium importance');
+  if (impact >= 8) {
+    reasons.push('High impact');
+  } else if (impact >= 5) {
+    reasons.push('Medium impact');
   }
   
   if (urgency >= 8) {

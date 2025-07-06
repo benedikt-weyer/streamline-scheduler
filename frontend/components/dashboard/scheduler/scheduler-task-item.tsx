@@ -14,7 +14,7 @@ interface SchedulerTaskItemProps {
   readonly task: Task;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number) => Promise<void>;
+  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number) => Promise<void>;
   readonly projects?: Project[];
   readonly isDragOverlay?: boolean;
 }
@@ -74,8 +74,8 @@ export function SchedulerTaskItem({
     await onDeleteTask(task.id);
   };
 
-  const handleUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number) => {
-    await onUpdateTask(id, content, estimatedDuration, projectId, importance, urgency);
+  const handleUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number) => {
+    await onUpdateTask(id, content, estimatedDuration, projectId, impact, urgency);
     setShowEdit(false);
   };
 
@@ -139,7 +139,7 @@ export function SchedulerTaskItem({
                 </div>
               )}
               {(() => {
-                const priority = calculatePriority(task.importance, task.urgency);
+                const priority = calculatePriority(task.impact, task.urgency);
                 const priorityText = getPriorityDisplayText(priority);
                 if (priorityText) {
                   return (

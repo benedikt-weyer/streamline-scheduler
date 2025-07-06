@@ -249,7 +249,7 @@ export default function CanDoListMain() {
       parsedDueDate.content, 
       parsedDuration.duration, 
       selectedProjectId,
-      parsedPriority.importance,
+      parsedPriority.impact,
       parsedPriority.urgency,
       parsedDueDate.dueDate
     );
@@ -259,8 +259,8 @@ export default function CanDoListMain() {
   };
 
   // Handle update action
-  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, importance?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => {
-    await handleUpdateTask(id, content, estimatedDuration, projectId, importance, urgency, dueDate, blockedBy);
+  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => {
+    await handleUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy);
   };
 
   // Handle toggle complete action
