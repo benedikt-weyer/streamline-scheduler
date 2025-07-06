@@ -157,40 +157,6 @@ export function CalendarGridMobile({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Day Navigation Header */}
-      <div className="flex items-center justify-between mb-4 pb-3 border-b">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={goToPreviousDay}
-          disabled={selectedDayIndex === 0}
-          className="flex items-center gap-1"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Prev
-        </Button>
-        
-        <div className="text-center">
-          <div className="text-lg font-semibold">
-            {format(selectedDay, 'EEEE')}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {format(selectedDay, 'MMM d, yyyy')}
-          </div>
-        </div>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={goToNextDay}
-          disabled={selectedDayIndex === days.length - 1}
-          className="flex items-center gap-1"
-        >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
       {/* Week Overview Bar */}
       <div className="flex gap-1 mb-4 overflow-x-auto pb-2" ref={scrollRef}>
         {days.map((day, index) => {
