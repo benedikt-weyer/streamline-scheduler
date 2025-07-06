@@ -128,7 +128,15 @@ export default function ProjectSelectorMobile({
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent 
+        align="end" 
+        className="w-64" 
+        style={{ 
+          maxHeight: 'min(20rem, var(--radix-popper-available-height))',
+          overflowY: 'auto',
+          overflowX: 'hidden'
+        }}
+      >
         {/* Recommended Tasks */}
         {recommendedCount > 0 && onRecommendedSelect && (
           <DropdownMenuItem
