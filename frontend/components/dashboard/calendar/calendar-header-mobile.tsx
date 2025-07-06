@@ -20,6 +20,8 @@ interface CalendarHeaderMobileProps {
   calendars: CalendarType[];
   onCalendarToggle: (calendarId: string, isVisible: boolean) => void;
   onCalendarCreate: (name: string, color: string) => void;
+  onICSCalendarCreate: (name: string, color: string, icsUrl: string) => void;
+  onICSCalendarRefresh: (calendarId: string) => void;
   onCalendarEdit: (calendarId: string, name: string, color: string) => void;
   onCalendarDelete: (calendarId: string) => void;
   onSetDefaultCalendar: (calendarId: string) => void;
@@ -33,6 +35,8 @@ export function CalendarHeaderMobile({
   calendars,
   onCalendarToggle,
   onCalendarCreate,
+  onICSCalendarCreate,
+  onICSCalendarRefresh,
   onCalendarEdit,
   onCalendarDelete,
   onSetDefaultCalendar,

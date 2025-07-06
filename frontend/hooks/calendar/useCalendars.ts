@@ -5,7 +5,7 @@ import {
   updateCalendar, 
   deleteCalendar,
 } from '../../app/dashboard/calendar/actions';
-import { Calendar } from '@/utils/calendar/calendar-types';
+import { Calendar, CalendarType } from '@/utils/calendar/calendar-types';
 import { 
   generateSalt, 
   generateIV, 
@@ -75,6 +75,9 @@ export function useCalendars(encryptionKey: string | null) {
               color: decryptedData.color,
               isVisible: decryptedData.isVisible ?? true, // Default to visible if not specified
               isDefault: cal.is_default,
+              type: (decryptedData.type as CalendarType) || CalendarType.Regular,
+              icsUrl: decryptedData.icsUrl || undefined,
+              lastSync: decryptedData.lastSync ? new Date(decryptedData.lastSync) : undefined,
               createdAt: new Date(cal.created_at),
               updatedAt: cal.updated_at ? new Date(cal.updated_at) : undefined
             } as Calendar;
@@ -107,7 +110,8 @@ export function useCalendars(encryptionKey: string | null) {
       const calendarData = {
         name: 'My Calendar',
         color: '#3b82f6', // Blue color
-        isVisible: true
+        isVisible: true,
+        type: CalendarType.Regular
       };
       
       const encryptedData = encryptData(calendarData, derivedKey, iv);
@@ -119,6 +123,7 @@ export function useCalendars(encryptionKey: string | null) {
         color: '#3b82f6',
         isVisible: true,
         isDefault: true,
+        type: CalendarType.Regular,
         createdAt: new Date(newCalendarRecord.created_at),
         updatedAt: newCalendarRecord.updated_at ? new Date(newCalendarRecord.updated_at) : undefined
       };
@@ -155,11 +160,16 @@ export function useCalendars(encryptionKey: string | null) {
       const iv = generateIV();
       const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
       
-      // Prepare the data to encrypt - making sure to include the NEW visibility state
+      // Prepare the data to encrypt - making sure to include the NEW visibility state and preserve all fields
       const calendarData = {
         name: calendar.name,
         color: calendar.color,
-        isVisible: isVisible // Use the new visibility value that was passed in
+        isVisible: isVisible, // Use the new visibility value that was passed in
+        type: calendar.type, // Preserve the calendar type
+        ...(calendar.type === CalendarType.ICS && {
+          icsUrl: calendar.icsUrl,
+          lastSync: calendar.lastSync?.toISOString()
+        })
       };
       
       console.log('Saving calendar visibility:', calendarId, isVisible); // Debug log
@@ -189,7 +199,8 @@ export function useCalendars(encryptionKey: string | null) {
       const calendarData = {
         name,
         color,
-        isVisible: true
+        isVisible: true,
+        type: CalendarType.Regular
       };
       
       const encryptedData = encryptData(calendarData, derivedKey, iv);
@@ -205,6 +216,7 @@ export function useCalendars(encryptionKey: string | null) {
         color,
         isVisible: true,
         isDefault,
+        type: CalendarType.Regular,
         createdAt: new Date(newEncryptedCalendar.created_at),
         updatedAt: newEncryptedCalendar.updated_at ? new Date(newEncryptedCalendar.updated_at) : undefined
       };
@@ -214,6 +226,93 @@ export function useCalendars(encryptionKey: string | null) {
     } catch (error) {
       console.error('Error creating calendar:', error);
       setError('Failed to create calendar');
+      throw error;
+    }
+  };
+
+  // Handle ICS calendar creation
+  const handleICSCalendarCreate = async (name: string, color: string, icsUrl: string) => {
+    if (!encryptionKey) return;
+    
+    try {
+      const salt = generateSalt();
+      const iv = generateIV();
+      const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+      
+      const calendarData = {
+        name,
+        color,
+        isVisible: true,
+        type: CalendarType.ICS,
+        icsUrl,
+        lastSync: new Date().toISOString()
+      };
+      
+      const encryptedData = encryptData(calendarData, derivedKey, iv);
+      
+      // Determine if this should be the default calendar
+      const isDefault = calendars.length === 0;
+      
+      const newEncryptedCalendar = await addCalendar(encryptedData, iv, salt, isDefault);
+      
+      const newCalendar: Calendar = {
+        id: newEncryptedCalendar.id,
+        name,
+        color,
+        isVisible: true,
+        isDefault,
+        type: CalendarType.ICS,
+        icsUrl,
+        lastSync: new Date(),
+        createdAt: new Date(newEncryptedCalendar.created_at),
+        updatedAt: newEncryptedCalendar.updated_at ? new Date(newEncryptedCalendar.updated_at) : undefined
+      };
+      
+      setCalendars(prevCalendars => [...prevCalendars, newCalendar]);
+      return newCalendar;
+    } catch (error) {
+      console.error('Error creating ICS calendar:', error);
+      setError('Failed to create ICS calendar');
+      throw error;
+    }
+  };
+
+  // Handle ICS calendar refresh
+  const handleICSCalendarRefresh = async (calendarId: string) => {
+    if (!encryptionKey) return;
+    
+    try {
+      const calendar = calendars.find(cal => cal.id === calendarId);
+      if (!calendar || calendar.type !== CalendarType.ICS) return;
+      
+      const salt = generateSalt();
+      const iv = generateIV();
+      const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+      
+      const calendarData = {
+        name: calendar.name,
+        color: calendar.color,
+        isVisible: calendar.isVisible,
+        type: CalendarType.ICS,
+        icsUrl: calendar.icsUrl,
+        lastSync: new Date().toISOString()
+      };
+      
+      const encryptedData = encryptData(calendarData, derivedKey, iv);
+      
+      await updateCalendar(calendarId, encryptedData, iv, salt, calendar.isDefault);
+      
+      // Update local state
+      setCalendars(prevCalendars =>
+        prevCalendars.map(cal =>
+          cal.id === calendarId
+            ? { ...cal, lastSync: new Date() }
+            : cal
+        )
+      );
+    } catch (error) {
+      console.error('Error refreshing ICS calendar:', error);
+      setError('Failed to refresh ICS calendar');
       throw error;
     }
   };
@@ -254,7 +353,12 @@ export function useCalendars(encryptionKey: string | null) {
       const calendarData = {
         name: name,
         color: color,
-        isVisible: currentCalendar.isVisible // Preserve the current visibility
+        isVisible: currentCalendar.isVisible, // Preserve the current visibility
+        type: currentCalendar.type, // Preserve the calendar type
+        ...(currentCalendar.type === CalendarType.ICS && {
+          icsUrl: currentCalendar.icsUrl,
+          lastSync: currentCalendar.lastSync?.toISOString()
+        })
       };
       
       const encryptedData = encryptData(calendarData, derivedKey, iv);
@@ -320,7 +424,12 @@ export function useCalendars(encryptionKey: string | null) {
       const calendarData = {
         name: calendar.name,
         color: calendar.color,
-        isVisible: calendar.isVisible
+        isVisible: calendar.isVisible,
+        type: calendar.type, // Preserve the calendar type
+        ...(calendar.type === CalendarType.ICS && {
+          icsUrl: calendar.icsUrl,
+          lastSync: calendar.lastSync?.toISOString()
+        })
       };
       
       const encryptedData = encryptData(calendarData, derivedKey, iv);
@@ -361,7 +470,12 @@ export function useCalendars(encryptionKey: string | null) {
       const calendarData = {
         name: targetCalendar.name,
         color: targetCalendar.color,
-        isVisible: targetCalendar.isVisible
+        isVisible: targetCalendar.isVisible,
+        type: targetCalendar.type, // Preserve the calendar type
+        ...(targetCalendar.type === CalendarType.ICS && {
+          icsUrl: targetCalendar.icsUrl,
+          lastSync: targetCalendar.lastSync?.toISOString()
+        })
       };
       
       const encryptedData = encryptData(calendarData, derivedKey, iv);
@@ -395,6 +509,8 @@ export function useCalendars(encryptionKey: string | null) {
     loadCalendarsAndSetState,
     handleCalendarToggle,
     handleCalendarCreate,
+    handleICSCalendarCreate,
+    handleICSCalendarRefresh,
     handleCalendarEdit,
     handleCalendarDelete,
     updateCalendarInDatabase,

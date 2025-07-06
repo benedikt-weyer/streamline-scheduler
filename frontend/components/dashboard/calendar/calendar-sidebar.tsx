@@ -1,17 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Edit, Trash, Settings, Star } from 'lucide-react';
+import { Plus, Edit, Trash, Settings, Star, RefreshCw, Link, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Calendar } from '@/utils/calendar/calendar-types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar, CalendarType } from '@/utils/calendar/calendar-types';
 
 interface CalendarSidebarProps {
   calendars: Calendar[];
   onCalendarToggle: (calendarId: string, isVisible: boolean) => void;
   onCalendarCreate: (name: string, color: string) => void;
+  onICSCalendarCreate: (name: string, color: string, icsUrl: string) => void;
+  onICSCalendarRefresh: (calendarId: string) => void;
   onCalendarEdit: (calendarId: string, name: string, color: string) => void;
   onCalendarDelete: (calendarId: string) => void;
   onSetDefaultCalendar: (calendarId: string) => void; // New prop for setting default calendar
@@ -21,6 +24,8 @@ export function CalendarSidebar({
   calendars,
   onCalendarToggle,
   onCalendarCreate,
+  onICSCalendarCreate,
+  onICSCalendarRefresh,
   onCalendarEdit,
   onCalendarDelete,
   onSetDefaultCalendar
@@ -29,6 +34,7 @@ export function CalendarSidebar({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newCalendarName, setNewCalendarName] = useState('');
   const [newCalendarColor, setNewCalendarColor] = useState('#4f46e5'); // Default indigo color
+  const [newCalendarICSUrl, setNewCalendarICSUrl] = useState('');
   const [selectedCalendar, setSelectedCalendar] = useState<Calendar | null>(null);
 
   // Predefined color options
@@ -53,10 +59,25 @@ export function CalendarSidebar({
     }
   };
 
+  const handleCreateICSCalendar = () => {
+    if (newCalendarName.trim() && newCalendarICSUrl.trim()) {
+      onICSCalendarCreate(newCalendarName.trim(), newCalendarColor, newCalendarICSUrl.trim());
+      setNewCalendarName('');
+      setNewCalendarColor('#4f46e5');
+      setNewCalendarICSUrl('');
+      setIsCreateDialogOpen(false);
+    }
+  };
+
+  const handleRefreshICSCalendar = (calendarId: string) => {
+    onICSCalendarRefresh(calendarId);
+  };
+
   const openEditDialog = (calendar: Calendar) => {
     setSelectedCalendar(calendar);
     setNewCalendarName(calendar.name);
     setNewCalendarColor(calendar.color);
+    setNewCalendarICSUrl(calendar.icsUrl || ''); // Set ICS URL if it exists
     setIsEditDialogOpen(true);
   };
 
@@ -66,6 +87,7 @@ export function CalendarSidebar({
       setSelectedCalendar(null);
       setNewCalendarName('');
       setNewCalendarColor('#4f46e5');
+      setNewCalendarICSUrl('');
       setIsEditDialogOpen(false);
     }
   };
@@ -74,6 +96,9 @@ export function CalendarSidebar({
     if (selectedCalendar) {
       onCalendarDelete(selectedCalendar.id);
       setSelectedCalendar(null);
+      setNewCalendarName('');
+      setNewCalendarColor('#4f46e5');
+      setNewCalendarICSUrl('');
       setIsEditDialogOpen(false);
     }
   };
@@ -122,69 +147,165 @@ export function CalendarSidebar({
                 ></div>
               </button>
               <div className="min-w-0 flex-1">
-                <span className={`${calendar.isVisible ? 'text-foreground' : 'text-gray-500'} truncate block`}>
-                  {calendar.name}
-                </span>
+                <div className="flex items-center gap-1">
+                  <span className={`${calendar.isVisible ? 'text-foreground' : 'text-gray-500'} truncate block`}>
+                    {calendar.name}
+                  </span>
+                  {calendar.type === CalendarType.ICS && (
+                    <Link className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </div>
               </div>
             </div>
-            <Button
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent triggering the container's onClick
-                openEditDialog(calendar);
-              }}
-              size="icon"
-              variant="ghost"
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-1"
-              title="Edit Calendar"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {calendar.type === CalendarType.ICS && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRefreshICSCalendar(calendar.id);
+                        }}
+                        size="icon"
+                        variant="ghost"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-8 w-8"
+                        title="Refresh Calendar"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Refresh ICS Calendar</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent triggering the container's onClick
+                  openEditDialog(calendar);
+                }}
+                size="icon"
+                variant="ghost"
+                className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-8 w-8"
+                title="Edit Calendar"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>
 
       {/* Create Calendar Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Create New Calendar</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="calendarName" className="text-sm font-medium">Calendar Name</label>
-              <Input
-                id="calendarName"
-                value={newCalendarName}
-                onChange={(e) => setNewCalendarName(e.target.value)}
-                placeholder="My Calendar"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Color</label>
-              <div className="flex flex-wrap gap-2">
-                {colorOptions.map((color) => (
-                  <button
-                    key={color.value}
-                    className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500 ${
-                      newCalendarColor === color.value ? 'ring-2 ring-offset-2 ring-offset-gray-100 ring-blue-500' : ''
-                    }`}
-                    style={{ backgroundColor: color.value }}
-                    onClick={() => setNewCalendarColor(color.value)}
-                    title={color.name}
-                  ></button>
-                ))}
+          <Tabs defaultValue="regular" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="regular" className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4" />
+                Regular
+              </TabsTrigger>
+              <TabsTrigger value="ics" className="flex items-center gap-2">
+                <Link className="h-4 w-4" />
+                ICS URL
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="regular" className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="calendarName" className="text-sm font-medium">Calendar Name</label>
+                <Input
+                  id="calendarName"
+                  value={newCalendarName}
+                  onChange={(e) => setNewCalendarName(e.target.value)}
+                  placeholder="My Calendar"
+                />
               </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateCalendar}>Create</Button>
-          </DialogFooter>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Color</label>
+                <div className="flex flex-wrap gap-2">
+                  {colorOptions.map((color) => (
+                    <button
+                      key={color.value}
+                      className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500 ${
+                        newCalendarColor === color.value ? 'ring-2 ring-offset-2 ring-offset-gray-100 ring-blue-500' : ''
+                      }`}
+                      style={{ backgroundColor: color.value }}
+                      onClick={() => setNewCalendarColor(color.value)}
+                      title={color.name}
+                    ></button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateCalendar}>Create</Button>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="ics" className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="icsCalendarName" className="text-sm font-medium">Calendar Name</label>
+                <Input
+                  id="icsCalendarName"
+                  value={newCalendarName}
+                  onChange={(e) => setNewCalendarName(e.target.value)}
+                  placeholder="External Calendar"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="icsUrl" className="text-sm font-medium">ICS URL</label>
+                <Input
+                  id="icsUrl"
+                  value={newCalendarICSUrl}
+                  onChange={(e) => setNewCalendarICSUrl(e.target.value)}
+                  placeholder="https://calendar.example.com/calendar.ics"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the URL of an ICS calendar file. Events from this calendar will be read-only.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Color</label>
+                <div className="flex flex-wrap gap-2">
+                  {colorOptions.map((color) => (
+                    <button
+                      key={color.value}
+                      className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500 ${
+                        newCalendarColor === color.value ? 'ring-2 ring-offset-2 ring-offset-gray-100 ring-blue-500' : ''
+                      }`}
+                      style={{ backgroundColor: color.value }}
+                      onClick={() => setNewCalendarColor(color.value)}
+                      title={color.name}
+                    ></button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateICSCalendar}>Create</Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
       {/* Edit Calendar Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          // Clear state when dialog is closed
+          setSelectedCalendar(null);
+          setNewCalendarName('');
+          setNewCalendarColor('#4f46e5');
+          setNewCalendarICSUrl('');
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Calendar</DialogTitle>
@@ -205,6 +326,24 @@ export function CalendarSidebar({
                   placeholder="My Calendar"
                 />
               </div>
+              
+              {/* Show ICS URL field if this is an ICS calendar */}
+              {selectedCalendar.type === CalendarType.ICS && (
+                <div className="space-y-2">
+                  <label htmlFor="editIcsUrl" className="text-sm font-medium">ICS URL</label>
+                  <Input
+                    id="editIcsUrl"
+                    value={newCalendarICSUrl}
+                    onChange={(e) => setNewCalendarICSUrl(e.target.value)}
+                    placeholder="https://calendar.example.com/calendar.ics"
+                    disabled
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    ICS URL cannot be changed after calendar creation. To use a different URL, create a new ICS calendar.
+                  </p>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <label className="text-sm font-medium">Color</label>
                 <div className="flex flex-wrap gap-2">
@@ -261,7 +400,13 @@ export function CalendarSidebar({
               )}
             </div>
             <div className="flex space-x-2">
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => {
+                setSelectedCalendar(null);
+                setNewCalendarName('');
+                setNewCalendarColor('#4f46e5');
+                setNewCalendarICSUrl('');
+                setIsEditDialogOpen(false);
+              }}>Cancel</Button>
               <Button onClick={handleEditCalendar}>Save</Button>
             </div>
           </DialogFooter>

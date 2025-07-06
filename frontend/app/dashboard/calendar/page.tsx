@@ -19,6 +19,7 @@ import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 import { useCalendars } from '../../../hooks/calendar/useCalendars';
 import { useCalendarEvents } from '../../../hooks/calendar/useCalendarEvents';
 import { useCalendarSubscriptions } from '../../../hooks/calendar/useCalendarSubscriptions';
+import { useICSEvents } from '../../../hooks/calendar/useICSEvents';
 import { getDaysOfWeek, getEventsInWeek } from '../../../utils/calendar/calendarHelpers';
 
 function CalendarContent() {
@@ -37,6 +38,8 @@ function CalendarContent() {
     calendars, 
     handleCalendarToggle, 
     handleCalendarCreate, 
+    handleICSCalendarCreate,
+    handleICSCalendarRefresh,
     handleCalendarEdit, 
     handleCalendarDelete,
     setCalendarAsDefault,
@@ -69,6 +72,15 @@ function CalendarContent() {
     handleDeleteThisOccurrence,
     handleDeleteThisAndFuture
   } = useCalendarEvents(encryptionKey, calendars, skipNextEventReload);
+
+  // ICS events hook
+  const {
+    icsEvents,
+    isLoading: isLoadingICSEvents,
+    refreshICSCalendar,
+    isICSEvent,
+    isReadOnlyCalendar
+  } = useICSEvents(calendars);
   
   // Store loadEvents in ref for subscription hook
   loadEventsRef.current = loadEvents;
@@ -78,12 +90,15 @@ function CalendarContent() {
     getDaysOfWeek(currentWeek), [currentWeek]
   );
   
+  // Combine regular events and ICS events
+  const allEvents = useMemo(() => [...events, ...icsEvents], [events, icsEvents]);
+
   // First filter events by visible calendars, then get events for current week
   const visibleEvents = useMemo(() => 
-    events.filter(event => 
+    allEvents.filter(event => 
       // Only include events from visible calendars
       calendars.find(cal => cal.id === event.calendarId)?.isVisible ?? false
-    ), [events, calendars]
+    ), [allEvents, calendars]
   );
   
   const eventsInCurrentWeek = useMemo(() => 
@@ -144,14 +159,32 @@ function CalendarContent() {
     }
   }, [handleCalendarDelete, moveEventToCalendar, events, setError]);
 
+  // Handle ICS calendar refresh
+  const handleICSCalendarRefreshWrapper = useCallback(async (calendarId: string) => {
+    try {
+      await handleICSCalendarRefresh(calendarId);
+      await refreshICSCalendar(calendarId);
+    } catch (error) {
+      console.error('Error refreshing ICS calendar:', error);
+      setError('Failed to refresh ICS calendar');
+    }
+  }, [handleICSCalendarRefresh, refreshICSCalendar, setError]);
+
   // Open dialog for editing an event
   const openEditDialog = useCallback((event: CalendarEvent) => {
+    // Allow viewing ICS events in read-only mode
     setSelectedEvent(event);
     setIsDialogOpen(true);
   }, []);
 
   // Open dialog for creating a new event
   const openNewEventDialog = useCallback((day?: Date, calendarId?: string) => {
+    // If a specific calendar is provided, check if it's read-only
+    if (calendarId && isReadOnlyCalendar(calendarId)) {
+      setError('Cannot create events in ICS calendars');
+      return;
+    }
+    
     setSelectedEvent(null);
     
     // If a day is provided, set the start time to the clicked time
@@ -178,25 +211,40 @@ function CalendarContent() {
     }
     
     setIsDialogOpen(true);
-  }, [fallbackCalendarId]);
+  }, [fallbackCalendarId, isReadOnlyCalendar, setError]);
 
   // Handle submit event and close dialog
   const onSubmitEvent = useCallback(async (values: EventFormValues) => {
+    // Prevent editing ICS events
+    if (values.id && isICSEvent({ id: values.id } as CalendarEvent)) {
+      setError('Events from ICS calendars cannot be edited');
+      return;
+    }
+    // Prevent creating events in ICS calendars
+    if (isReadOnlyCalendar(values.calendarId)) {
+      setError('Cannot create events in ICS calendars');
+      return;
+    }
     const success = await handleSubmitEvent(values);
     if (success) {
       setSelectedEvent(null);
       setIsDialogOpen(false);
     }
-  }, [handleSubmitEvent]);
+  }, [handleSubmitEvent, isICSEvent, isReadOnlyCalendar, setError]);
 
   // Handle delete event and close dialog
   const onDeleteEvent = useCallback(async (id: string) => {
+    // Prevent deleting ICS events
+    if (isICSEvent({ id } as CalendarEvent)) {
+      setError('Events from ICS calendars cannot be deleted');
+      return;
+    }
     const success = await handleDeleteEvent(id);
     if (success && selectedEvent?.id === id) {
       setSelectedEvent(null);
       setIsDialogOpen(false);
     }
-  }, [handleDeleteEvent, selectedEvent?.id]);
+  }, [handleDeleteEvent, selectedEvent?.id, isICSEvent, setError]);
 
   // Callback for deleting a single occurrence
   const onDeleteThisOccurrenceHandler = useCallback(async (event: CalendarEvent) => {
@@ -276,6 +324,8 @@ function CalendarContent() {
             calendars={calendars}
             onCalendarToggle={handleCalendarToggle}
             onCalendarCreate={handleCalendarCreate}
+            onICSCalendarCreate={handleICSCalendarCreate}
+            onICSCalendarRefresh={handleICSCalendarRefreshWrapper}
             onCalendarEdit={handleCalendarEdit}
             onCalendarDelete={handleCalendarDeleteWithEvents}
             onSetDefaultCalendar={setCalendarAsDefault}
@@ -315,6 +365,8 @@ function CalendarContent() {
           calendars={calendars}
           onCalendarToggle={handleCalendarToggle}
           onCalendarCreate={handleCalendarCreate}
+          onICSCalendarCreate={handleICSCalendarCreate}
+          onICSCalendarRefresh={handleICSCalendarRefreshWrapper}
           onCalendarEdit={handleCalendarEdit}
           onCalendarDelete={handleCalendarDeleteWithEvents}
           onSetDefaultCalendar={setCalendarAsDefault}

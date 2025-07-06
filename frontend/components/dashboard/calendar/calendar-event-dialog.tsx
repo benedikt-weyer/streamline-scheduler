@@ -129,6 +129,11 @@ export function CalendarEventDialog({
     (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id ?? calendars[0].id : '');
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  
+  // Check if this is an ICS event (read-only)
+  const isICSEvent = selectedEvent?.id?.startsWith('ics-') ?? false;
+  const selectedCalendar = calendars.find(cal => cal.id === selectedEvent?.calendarId);
+  const isReadOnly = isICSEvent;
 
   // Initialize form with react-hook-form and zod validation
   const form = useForm({
@@ -256,8 +261,15 @@ export function CalendarEventDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent onInteractOutside={handleMainDialogInteractOutside}>
         <DialogHeader>
-          <DialogTitle>{selectedEvent ? 'Edit Event' : 'Add New Event'}</DialogTitle>
-          {selectedEvent?.isRecurrenceInstance && (
+          <DialogTitle>
+            {isReadOnly ? 'View Event' : (selectedEvent ? 'Edit Event' : 'Add New Event')}
+          </DialogTitle>
+          {isReadOnly && (
+            <div className="mt-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-md">
+              <p>This event is from an ICS calendar and cannot be edited.</p>
+            </div>
+          )}
+          {selectedEvent?.isRecurrenceInstance && !isReadOnly && (
             <div className="mt-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
               <p>This is a recurring event instance. Changes will affect the entire series.</p>
             </div>
@@ -273,7 +285,7 @@ export function CalendarEventDialog({
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Event title" {...field} />
+                    <Input placeholder="Event title" {...field} disabled={isReadOnly} />
                   </FormControl>
                 </FormItem>
               )}
@@ -286,7 +298,7 @@ export function CalendarEventDialog({
                 <FormItem>
                   <FormLabel>Description (optional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Event description" {...field} />
+                    <Textarea placeholder="Event description" {...field} disabled={isReadOnly} />
                   </FormControl>
                 </FormItem>
               )}
@@ -303,6 +315,7 @@ export function CalendarEventDialog({
                     onValueChange={field.onChange} 
                     defaultValue={field.value}
                     value={field.value}
+                    disabled={isReadOnly}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -336,7 +349,7 @@ export function CalendarEventDialog({
                   <FormItem>
                     <FormLabel>Start Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} disabled={isReadOnly} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -352,6 +365,7 @@ export function CalendarEventDialog({
                       <TimeInput 
                         {...field} 
                         quickTimeOptions={startTimeOptions} 
+                        disabled={isReadOnly}
                         onChange={(value) => {
                           field.onChange(value);
                           // Force re-render of end time options when start time changes
@@ -373,7 +387,7 @@ export function CalendarEventDialog({
                   <FormItem>
                     <FormLabel>End Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} disabled={isReadOnly} />
                     </FormControl>
                   </FormItem>
                 )}
@@ -389,6 +403,7 @@ export function CalendarEventDialog({
                       <TimeInput 
                         {...field} 
                         quickTimeOptions={endTimeOptions}
+                        disabled={isReadOnly}
                       />
                     </FormControl>
                   </FormItem>
@@ -407,6 +422,7 @@ export function CalendarEventDialog({
                     <FormControl>
                       <Select
                         {...field}
+                        disabled={isReadOnly}
                         onValueChange={(value) => {
                           field.onChange(value);
                           // Reset recurrence end date if frequency is changed to none
@@ -439,7 +455,7 @@ export function CalendarEventDialog({
                       <FormItem>
                         <FormLabel>Interval</FormLabel>
                         <FormControl>
-                          <Input type="number" min={1} {...field} />
+                          <Input type="number" min={1} {...field} disabled={isReadOnly} />
                         </FormControl>
                       </FormItem>
                     )}
@@ -452,7 +468,7 @@ export function CalendarEventDialog({
                       <FormItem>
                         <FormLabel>Recurrence End Date</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input type="date" {...field} disabled={isReadOnly} />
                         </FormControl>
                       </FormItem>
                     )}
@@ -467,9 +483,9 @@ export function CalendarEventDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                {isReadOnly ? 'Close' : 'Cancel'}
               </Button>
-              {selectedEvent && (
+              {selectedEvent && !isReadOnly && (
                 <>
                   {selectedEvent.recurrencePattern && selectedEvent.recurrencePattern.frequency !== RecurrenceFrequency.None ? (
                     // This event is part of a recurrence series (either master or an instance view of master)
@@ -498,9 +514,11 @@ export function CalendarEventDialog({
                   )}
                 </>
               )}
-              <Button type="submit">
-                {selectedEvent ? 'Update' : 'Add'} Event
-              </Button>
+              {!isReadOnly && (
+                <Button type="submit">
+                  {selectedEvent ? 'Update' : 'Add'} Event
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </Form>

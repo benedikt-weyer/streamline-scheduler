@@ -223,6 +223,8 @@ export async function addCalendar(
   }
 }
 
+
+
 // Update an existing encrypted calendar
 export async function updateCalendar(
   id: string,
@@ -251,14 +253,16 @@ export async function updateCalendar(
         .neq('id', id); // Don't update the current calendar
     }
     
+    const updateData: any = {
+      encrypted_data: encryptedData,
+      iv,
+      salt,
+      is_default: isDefault,
+    };
+    
     const { data, error } = await supabase
       .from('calendars')
-      .update({
-        encrypted_data: encryptedData,
-        iv,
-        salt,
-        is_default: isDefault,
-      })
+      .update(updateData)
       .eq('id', id)
       .eq('user_id', user.id) // Ensure the calendar belongs to the authenticated user
       .select()
@@ -275,6 +279,8 @@ export async function updateCalendar(
     throw error;
   }
 }
+
+
 
 // Delete a calendar and optionally move its events to another calendar
 export async function deleteCalendar(id: string, moveToCalendarId?: string): Promise<void> {

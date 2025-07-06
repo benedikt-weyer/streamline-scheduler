@@ -8,12 +8,21 @@ export enum RecurrenceFrequency {
   Yearly = 'yearly'
 }
 
+// Define calendar types
+export enum CalendarType {
+  Regular = 'regular',
+  ICS = 'ics'
+}
+
 export interface Calendar {
   id: string;
   name: string;
   color: string;
   isVisible: boolean;
   isDefault: boolean;
+  type: CalendarType;
+  icsUrl?: string; // Optional ICS URL for ICS calendars
+  lastSync?: Date; // Last sync time for ICS calendars
   createdAt: Date;
   updatedAt?: Date;
 }
