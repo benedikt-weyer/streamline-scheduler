@@ -150,9 +150,6 @@ export function CalendarGridMobile({
       {/* Week Overview Bar */}
       <div className="flex gap-1 mb-4 overflow-x-auto pb-2" ref={scrollRef}>
         {days.map((day, index) => {
-          const dayHasEvents = events.some(event => 
-            isSameDay(event.startTime, day) || isSameDay(event.endTime, day)
-          );
           const isSelected = index === selectedDayIndex;
           const isToday = isSameDay(day, new Date());
           
@@ -183,7 +180,7 @@ export function CalendarGridMobile({
               }`}>
                 {format(day, 'd')}
               </div>
-              {dayHasEvents && (
+              {isToday && (
                 <div className="w-1 h-1 rounded-full bg-current mt-1" />
               )}
             </button>
