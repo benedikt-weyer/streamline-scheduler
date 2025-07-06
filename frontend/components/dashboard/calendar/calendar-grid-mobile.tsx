@@ -111,6 +111,50 @@ export function CalendarGridMobile({
     return calendar?.color || '#4f46e5';
   };
 
+  // Check if two events overlap
+  const eventsOverlap = (event1: CalendarEvent, event2: CalendarEvent): boolean => {
+    const start1 = new Date(event1.startTime);
+    const end1 = new Date(event1.endTime);
+    const start2 = new Date(event2.startTime);
+    const end2 = new Date(event2.endTime);
+    
+    return start1 < end2 && start2 < end1;
+  };
+
+  // Group overlapping events
+  const groupOverlappingEvents = (events: CalendarEvent[]): CalendarEvent[][] => {
+    const groups: CalendarEvent[][] = [];
+    const processed = new Set<string>();
+
+    for (const event of events) {
+      if (processed.has(event.id)) continue;
+
+      const group = [event];
+      processed.add(event.id);
+
+      // Find all events that overlap with any event in the current group
+      let hasNewOverlap = true;
+      while (hasNewOverlap) {
+        hasNewOverlap = false;
+        for (const otherEvent of events) {
+          if (processed.has(otherEvent.id)) continue;
+
+          // Check if this event overlaps with any event in the group
+          const overlapsWithGroup = group.some(groupEvent => eventsOverlap(groupEvent, otherEvent));
+          if (overlapsWithGroup) {
+            group.push(otherEvent);
+            processed.add(otherEvent.id);
+            hasNewOverlap = true;
+          }
+        }
+      }
+
+      groups.push(group);
+    }
+
+    return groups;
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Day Navigation Header */}
@@ -207,41 +251,88 @@ export function CalendarGridMobile({
           
           {/* Events overlay */}
           <div className="absolute inset-0 ml-16 pointer-events-none">
-            {dayEvents.map((event) => {
-              const style = getEventStyle(event);
-              const color = getEventColor(event);
+            {groupOverlappingEvents(dayEvents).flatMap(group => {
+              // For non-overlapping events (group of 1), render normally
+              if (group.length === 1) {
+                const event = group[0];
+                const style = getEventStyle(event);
+                const color = getEventColor(event);
+                
+                return (
+                  <div
+                    key={event.id}
+                    className="absolute left-1 right-1 rounded-md p-2 text-xs cursor-pointer pointer-events-auto shadow-sm border-l-4"
+                    style={{
+                      top: style.top,
+                      height: style.height,
+                      backgroundColor: color,
+                      borderLeftColor: color,
+                      minHeight: '2rem'
+                    }}
+                    onClick={() => handleEventClick(event)}
+                  >
+                    <div className="font-medium text-white line-clamp-1">
+                      {event.title}
+                    </div>
+                    <div className="text-white text-xs opacity-90">
+                      {format(event.startTime, 'HH:mm')} - {format(event.endTime, 'HH:mm')}
+                    </div>
+                    {event.location && (
+                      <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
+                        📍 {event.location}
+                      </div>
+                    )}
+                    {event.description && (
+                      <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
+                        {event.description}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
               
-              return (
-                <div
-                  key={event.id}
-                  className="absolute left-1 right-1 rounded-md p-2 text-xs cursor-pointer pointer-events-auto shadow-sm border-l-4"
-                  style={{
-                    top: style.top,
-                    height: style.height,
-                    backgroundColor: color,
-                    borderLeftColor: color,
-                    minHeight: '2rem'
-                  }}
-                  onClick={() => handleEventClick(event)}
-                >
-                  <div className="font-medium text-white line-clamp-1">
-                    {event.title}
-                  </div>
-                  <div className="text-white text-xs opacity-90">
-                    {format(event.startTime, 'HH:mm')} - {format(event.endTime, 'HH:mm')}
-                  </div>
-                  {event.location && (
-                    <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
-                      📍 {event.location}
+              // For overlapping events, render each in its own column
+              return group.map((event, columnIndex) => {
+                const style = getEventStyle(event);
+                const color = getEventColor(event);
+                const totalColumns = group.length;
+                const columnWidth = 100 / totalColumns;
+                const leftPosition = columnWidth * columnIndex;
+                
+                return (
+                  <div
+                    key={event.id}
+                    className="absolute rounded-md p-2 text-xs cursor-pointer pointer-events-auto shadow-sm border-l-4"
+                    style={{
+                      top: style.top,
+                      height: style.height,
+                      backgroundColor: color,
+                      borderLeftColor: color,
+                      minHeight: '2rem',
+                      width: `calc(${columnWidth}% - 4px)`,
+                      left: `calc(${leftPosition}% + 4px)`
+                    }}
+                    onClick={() => handleEventClick(event)}
+                  >
+                    <div className="font-medium text-white line-clamp-1">
+                      {event.title}
                     </div>
-                  )}
-                  {event.description && (
-                    <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
-                      {event.description}
+                    <div className="text-white text-xs opacity-90">
+                      {format(event.startTime, 'HH:mm')} - {format(event.endTime, 'HH:mm')}
                     </div>
-                  )}
-                </div>
-              );
+                    {event.location && (
+                      <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
+                        📍 {event.location}
+                      </div>
+                    )}
+                    {event.description && (
+                      <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
+                        {event.description}
+                      </div>
+                    )}
+                  </div>
+                );
+              });
             })}
           </div>
         </div>
