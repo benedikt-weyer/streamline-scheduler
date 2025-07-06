@@ -16,6 +16,8 @@ export function useCalendar(encryptionKey: string | null) {
     calendars, 
     handleCalendarToggle, 
     handleCalendarCreate, 
+    handleICSCalendarCreate,
+    handleICSCalendarRefresh,
     handleCalendarEdit, 
     handleCalendarDelete,
     setCalendarAsDefault,
@@ -101,6 +103,8 @@ export function useCalendar(encryptionKey: string | null) {
     // Calendar handlers
     handleCalendarToggle,
     handleCalendarCreate,
+    handleICSCalendarCreate,
+    handleICSCalendarRefresh,
     handleCalendarEdit,
     handleCalendarDelete: handleCalendarDeleteWithEvents,
     handleSetDefaultCalendar

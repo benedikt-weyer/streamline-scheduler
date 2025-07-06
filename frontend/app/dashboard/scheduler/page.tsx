@@ -65,6 +65,8 @@ function SchedulerPageContent() {
     moveEventToCalendar,
     handleCalendarToggle,
     handleCalendarCreate,
+    handleICSCalendarCreate,
+    handleICSCalendarRefresh,
     handleCalendarEdit,
     handleCalendarDelete,
     handleSetDefaultCalendar,
@@ -421,6 +423,8 @@ function SchedulerPageContent() {
               onEventUpdate={onEventUpdate}
               onCalendarToggle={handleCalendarToggle}
               onCalendarCreate={handleCalendarCreate}
+              onICSCalendarCreate={handleICSCalendarCreate}
+              onICSCalendarRefresh={handleICSCalendarRefresh}
               onCalendarEdit={handleCalendarEdit}
               onCalendarDelete={handleCalendarDelete}
               onSetDefaultCalendar={handleSetDefaultCalendar}

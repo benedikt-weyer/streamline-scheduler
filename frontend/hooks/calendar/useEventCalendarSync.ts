@@ -26,6 +26,9 @@ export const useEventCalendarSync = (
             color: foundCalendar.color,
             isVisible: foundCalendar.isVisible,
             isDefault: foundCalendar.isDefault ?? false,
+            type: foundCalendar.type,
+            icsUrl: foundCalendar.icsUrl,
+            lastSync: foundCalendar.lastSync,
             createdAt: foundCalendar.createdAt,
             updatedAt: foundCalendar.updatedAt
           };
@@ -37,6 +40,9 @@ export const useEventCalendarSync = (
             color: event.calendar.color,
             isVisible: event.calendar.isVisible,
             isDefault: event.calendar.isDefault ?? false,
+            type: event.calendar.type,
+            icsUrl: event.calendar.icsUrl,
+            lastSync: event.calendar.lastSync,
             createdAt: event.calendar.createdAt,
             updatedAt: event.calendar.updatedAt
           } : undefined;
@@ -46,7 +52,10 @@ export const useEventCalendarSync = (
               normalizedEventCalendar.name !== normalizedCorrespondingCalendar.name ||
               normalizedEventCalendar.color !== normalizedCorrespondingCalendar.color ||
               normalizedEventCalendar.isVisible !== normalizedCorrespondingCalendar.isVisible ||
-              normalizedEventCalendar.isDefault !== normalizedCorrespondingCalendar.isDefault
+              normalizedEventCalendar.isDefault !== normalizedCorrespondingCalendar.isDefault ||
+              normalizedEventCalendar.type !== normalizedCorrespondingCalendar.type ||
+              normalizedEventCalendar.icsUrl !== normalizedCorrespondingCalendar.icsUrl ||
+              normalizedEventCalendar.lastSync?.getTime() !== normalizedCorrespondingCalendar.lastSync?.getTime()
              ) {
             hasChanges = true;
             return { ...event, calendar: normalizedCorrespondingCalendar }; 

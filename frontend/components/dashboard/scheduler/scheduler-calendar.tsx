@@ -16,6 +16,8 @@ interface SchedulerCalendarProps {
   readonly onEventUpdate: (updatedEvent: CalendarEvent) => void;
   readonly onCalendarToggle: (calendarId: string, isVisible: boolean) => void;
   readonly onCalendarCreate: (name: string, color: string) => void;
+  readonly onICSCalendarCreate: (name: string, color: string, icsUrl: string) => void;
+  readonly onICSCalendarRefresh: (calendarId: string) => void;
   readonly onCalendarEdit: (calendarId: string, name: string, color: string) => void;
   readonly onCalendarDelete: (calendarId: string) => Promise<string | undefined>;
   readonly onSetDefaultCalendar: (calendarId: string) => void;
@@ -28,6 +30,8 @@ export function SchedulerCalendar({
   onEventUpdate,
   onCalendarToggle,
   onCalendarCreate,
+  onICSCalendarCreate,
+  onICSCalendarRefresh,
   onCalendarEdit,
   onCalendarDelete,
   onSetDefaultCalendar,
@@ -149,6 +153,8 @@ export function SchedulerCalendar({
         calendars={calendars}
         onCalendarToggle={onCalendarToggle}
         onCalendarCreate={onCalendarCreate}
+        onICSCalendarCreate={onICSCalendarCreate}
+        onICSCalendarRefresh={onICSCalendarRefresh}
         onCalendarEdit={onCalendarEdit}
         onCalendarDelete={handleCalendarDeleteWithEvents}
         onSetDefaultCalendar={onSetDefaultCalendar}

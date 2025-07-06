@@ -18,7 +18,7 @@ import {
   differenceInYears,
   getDay
 } from 'date-fns';
-import { CalendarEvent, RecurrenceFrequency, RecurrencePattern } from './calendar-types';
+import { CalendarEvent, Calendar, RecurrenceFrequency, RecurrencePattern } from './calendar-types';
 
 // Generate time slots for the calendar (hourly intervals)
 export const generateTimeSlots = (startHour = 0, endHour = 24) => {
@@ -232,7 +232,7 @@ export const validateTimeRange = (startTime: string, endTime: string): boolean =
 // Ensure all events have calendar properties properly set
 export const ensureCalendarPropertiesOnEvents = (
   events: CalendarEvent[], 
-  calendars: { id: string; color: string; name: string; isVisible: boolean }[]
+  calendars: Calendar[]
 ): CalendarEvent[] => {
   if (!events.length || !calendars.length) return events;
   
@@ -251,9 +251,12 @@ export const ensureCalendarPropertiesOnEvents = (
           name: calendar.name,
           color: calendar.color,
           isVisible: calendar.isVisible,
-          isDefault: 'isDefault' in calendar ? (calendar as any).isDefault : false,
-          createdAt: 'createdAt' in calendar ? (calendar as any).createdAt : new Date(),
-          updatedAt: 'updatedAt' in calendar ? (calendar as any).updatedAt : undefined
+          isDefault: calendar.isDefault,
+          type: calendar.type,
+          icsUrl: calendar.icsUrl,
+          lastSync: calendar.lastSync,
+          createdAt: calendar.createdAt,
+          updatedAt: calendar.updatedAt
         }
       };
     }
