@@ -22,6 +22,7 @@ interface SchedulerCalendarProps {
   readonly onCalendarDelete: (calendarId: string) => Promise<string | undefined>;
   readonly onSetDefaultCalendar: (calendarId: string) => void;
   readonly isLoading: boolean;
+  readonly activeTask?: { id: string; content: string; estimatedDuration?: number } | null;
 }
 
 export function SchedulerCalendar({
@@ -35,7 +36,8 @@ export function SchedulerCalendar({
   onCalendarEdit,
   onCalendarDelete,
   onSetDefaultCalendar,
-  isLoading
+  isLoading,
+  activeTask
 }: SchedulerCalendarProps) {
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
@@ -178,6 +180,7 @@ export function SchedulerCalendar({
             openEditDialog={openEditDialog}
             openNewEventDialog={openNewEventDialog}
             onEventUpdate={onEventUpdate}
+            activeTask={activeTask}
           />
         </div>
       </div>

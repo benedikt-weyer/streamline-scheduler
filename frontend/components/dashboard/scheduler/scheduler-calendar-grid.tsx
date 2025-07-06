@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { format, isSameDay, differenceInMinutes } from 'date-fns';
+import { format, isSameDay, differenceInMinutes, addMinutes } from 'date-fns';
 import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { generateTimeSlots } from '@/utils/calendar/calendar';
 import { calculateCalendarDimensions, calculateEventRendering, groupOverlappingEvents } from '@/utils/calendar/calendar-render';
@@ -14,6 +14,7 @@ interface SchedulerCalendarGridProps {
   readonly openEditDialog: (event: CalendarEvent) => void;
   readonly openNewEventDialog: (day: Date) => void;
   readonly onEventUpdate?: (updatedEvent: CalendarEvent) => void;
+  readonly activeTask?: { id: string; content: string; estimatedDuration?: number } | null;
 }
 
 export function SchedulerCalendarGrid({ 
@@ -22,7 +23,8 @@ export function SchedulerCalendarGrid({
   calendars,
   openEditDialog, 
   openNewEventDialog,
-  onEventUpdate 
+  onEventUpdate,
+  activeTask
 }: SchedulerCalendarGridProps) {
   const timeSlots = generateTimeSlots();
   const [slotHeight, setSlotHeight] = useState(35);
@@ -77,35 +79,55 @@ export function SchedulerCalendarGrid({
     openEditDialog(event);
   };
 
-  // Time slot drop zone component
-  const TimeSlotDropZone = ({ day, slotIndex }: { day: Date; slotIndex: number }) => {
+  // Task-duration-sized drop zone component
+  const TaskDurationDropZone = ({ day, startHour, quarterIndex }: { day: Date; startHour: number; quarterIndex: number }) => {
+    // Only show drop zones when there's an active task being dragged
+    if (!activeTask) return null;
+    
+    const minutes = quarterIndex * 15; // 0, 15, 30, 45
     const slotTime = new Date(day);
-    slotTime.setHours(slotIndex, 0, 0, 0);
+    slotTime.setHours(startHour, minutes, 0, 0);
+    
+    // Calculate drop zone height based on task duration
+    const taskDuration = activeTask.estimatedDuration || 60; // Default 1 hour
+    const dropZoneHeightPixels = (taskDuration / 60) * slotHeight; // Convert minutes to pixels
+    
+    // Calculate if this drop zone would extend beyond the day's end
+    const dayEndTime = new Date(day);
+    dayEndTime.setHours(23, 59, 59, 999);
+    const dropZoneEndTime = addMinutes(slotTime, taskDuration);
+    
+    // Skip drop zones that would extend beyond the current day
+    if (dropZoneEndTime > dayEndTime) {
+      return null;
+    }
     
     const { isOver, setNodeRef } = useDroppable({
-      id: `time-slot-${format(day, 'yyyy-MM-dd')}-${slotIndex}`,
+      id: `quarter-${format(day, 'yyyy-MM-dd')}-${startHour}-${quarterIndex}`,
       data: {
         date: day,
-        time: slotTime,
-        slotIndex
+        time: slotTime
       }
     });
 
     return (
       <div
         ref={setNodeRef}
-        className={`absolute w-full transition-colors duration-200 ${
-          isOver ? 'bg-primary/20 border-2 border-primary border-dashed' : 'hover:bg-accent/30'
+        className={`absolute transition-colors duration-200 ${
+          isOver ? 'bg-primary/20 border-2 border-primary border-dashed' : 'hover:bg-accent/5'
         }`}
         style={{
-          top: `${slotIndex * slotHeight}px`,
-          height: `${slotHeight}px`,
+          top: `${(startHour * slotHeight) + (quarterIndex * slotHeight / 4)}px`,
+          height: `${dropZoneHeightPixels}px`,
+          left: '2px',
+          right: '2px',
           zIndex: 5
         }}
       >
         {isOver && (
-          <div className="flex items-center justify-center h-full text-primary font-medium text-sm">
-            Drop task here
+          <div className="flex flex-col items-center justify-center h-full text-primary font-medium text-xs bg-primary/10 rounded">
+            <div>{format(slotTime, 'HH:mm')}</div>
+            <div className="text-xs opacity-75">{taskDuration}min</div>
           </div>
         )}
       </div>
@@ -259,14 +281,35 @@ export function SchedulerCalendarGrid({
                 />
               ))}
               
-              {/* Drop zones for each hour slot */}
-              {timeSlots.map((slot, i) => (
-                <TimeSlotDropZone 
-                  key={`drop-${day.toISOString()}-${i}`}
-                  day={day} 
-                  slotIndex={i} 
-                />
-              ))}
+              {/* Task-duration-sized drop zones for 15-minute intervals */}
+              {(() => {
+                // Calculate optimal spacing based on task duration to avoid overlap
+                const taskDuration = activeTask?.estimatedDuration || 60;
+                const dropZoneHeightHours = taskDuration / 60;
+                
+                // Use quarter-hour spacing for short tasks, half-hour for medium, hourly for long
+                const spacingMinutes = taskDuration <= 30 ? 15 : taskDuration <= 90 ? 30 : 60;
+                const spacingQuarters = spacingMinutes / 15;
+                
+                const dropZones: React.ReactNode[] = [];
+                
+                for (let hourIndex = 0; hourIndex < timeSlots.length; hourIndex++) {
+                  for (let quarterIndex = 0; quarterIndex < 4; quarterIndex += spacingQuarters) {
+                    if (quarterIndex >= 4) break; // Don't exceed 4 quarters per hour
+                    
+                    dropZones.push(
+                      <TaskDurationDropZone 
+                        key={`drop-${day.toISOString()}-${hourIndex}-${quarterIndex}`}
+                        day={day} 
+                        startHour={hourIndex}
+                        quarterIndex={quarterIndex}
+                      />
+                    );
+                  }
+                }
+                
+                return dropZones;
+              })()}
               
               {/* Current time indicator */}
               {renderCurrentTimeLine(day)}

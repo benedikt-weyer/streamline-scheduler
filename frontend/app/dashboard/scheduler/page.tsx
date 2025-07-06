@@ -15,6 +15,7 @@ import { addMinutes, format } from 'date-fns';
 import { List } from 'lucide-react';
 import TaskListItem from '@/components/dashboard/can-do-list/task-list-item';
 
+
 function SchedulerPageContent() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
   const { setError } = useError();
@@ -80,6 +81,8 @@ function SchedulerPageContent() {
   // Project selection state for desktop view
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
+
+
 
   // Load tasks and projects when encryption key becomes available
   useEffect(() => {
@@ -249,11 +252,11 @@ function SchedulerPageContent() {
     
     if (!over || !activeTask || !defaultCalendar) return;
 
-    // Check if dropped on a time slot
-    if (over.id.toString().startsWith('time-slot-') && over.data?.current?.time) {
+    // Check if dropped on a quarter-hour time slot
+    if (over.id.toString().startsWith('quarter-') && over.data?.current?.time) {
       const dropTime = over.data.current.time as Date;
       
-      // Create calendar event from task
+      // Create calendar event from task directly
       const startTime = new Date(dropTime);
       const duration = activeTask.estimatedDuration || 60; // Default 1 hour in minutes
       const endTime = addMinutes(startTime, duration);
@@ -429,11 +432,12 @@ function SchedulerPageContent() {
               onCalendarDelete={handleCalendarDelete}
               onSetDefaultCalendar={handleSetDefaultCalendar}
               isLoading={isLoadingCalendar}
+              activeTask={activeTask}
             />
           </div>
 
           {/* Drag Overlay */}
-          <DragOverlay>
+          <DragOverlay style={{ opacity: 0.5 }}>
             {activeTask ? (
               <SchedulerTaskItem
                 task={activeTask}
@@ -445,6 +449,8 @@ function SchedulerPageContent() {
               />
             ) : null}
           </DragOverlay>
+
+
         </div>
       </DndContext>
     </div>

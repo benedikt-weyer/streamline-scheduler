@@ -104,9 +104,9 @@ export function SchedulerTaskItem({
         } ${
           isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
         } ${
-          isDragging || isDragOverlay ? 'opacity-50 shadow-lg' : ''
+          isDragging ? 'opacity-30' : ''
         } ${
-          isDragOverlay ? 'rotate-3 scale-105' : ''
+          isDragOverlay ? 'shadow-lg rotate-2 scale-105' : ''
         }`}
       >
         <div 
