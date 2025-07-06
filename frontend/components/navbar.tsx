@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/ui/navigation';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
+import Image from 'next/image'
 
 interface MobileNavbarProps {
   themeSwitcher: React.ReactNode;
   authComponent: React.ReactNode;
 }
 
-export function MobileNavbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
+export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => {
@@ -27,7 +28,8 @@ export function MobileNavbar({ themeSwitcher, authComponent }: MobileNavbarProps
       {/* Desktop and Mobile Header */}
       <div className="flex justify-between items-center h-16 px-4 md:px-6 lg:px-10">
         {/* Left side - Brand */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-4">
+          <Image src="/icon.png" alt="Streamline Scheduler" width={25} height={25} />
           <Link href="/" className="font-bold text-xl md:text-2xl">
             Streamline Scheduler
           </Link>

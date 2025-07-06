@@ -7,7 +7,7 @@ import { ThemeProvider } from "next-themes";
 import Link from "next/link";
 import "./globals.css";
 import { Button } from "@/components/ui/button";
-import { MobileNavbar } from "@/components/ui/mobile-navbar";
+import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 
 const defaultUrl = process.env.VERCEL_URL
@@ -32,22 +32,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={geistSans.className} suppressHydrationWarning>
-      <body className="bg-background text-foreground">
+      <body className="bg-background text-foreground min-h-screen flex flex-col items-center">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <main className="min-h-screen flex flex-col items-center">
-            <MobileNavbar 
+            <Navbar 
               themeSwitcher={<ThemeSwitcher />}
               authComponent={!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
             />
             <main className="flex flex-col gap-20 w-full items-center">
               {children}
             </main>
-          </main>
           <Toaster />
         </ThemeProvider>
       </body>
