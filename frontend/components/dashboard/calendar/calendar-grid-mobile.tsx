@@ -233,6 +233,11 @@ export function CalendarGridMobile({
                   <div className="text-muted-foreground text-xs">
                     {format(event.startTime, 'HH:mm')} - {format(event.endTime, 'HH:mm')}
                   </div>
+                  {event.location && (
+                    <div className="text-muted-foreground text-xs line-clamp-1 mt-1">
+                      📍 {event.location}
+                    </div>
+                  )}
                   {event.description && (
                     <div className="text-muted-foreground text-xs line-clamp-1 mt-1">
                       {event.description}

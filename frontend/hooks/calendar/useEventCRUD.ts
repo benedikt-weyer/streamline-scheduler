@@ -36,23 +36,24 @@ export const useEventCRUD = (
         }
         await updateCalendarEvent(values.id, encryptedData, iv, salt);
         
-        eventActions.setEvents(prevEvents => 
-          prevEvents.map(event => 
-            event.id === values.id 
-              ? {
-                  ...event,
-                  title: values.title.trim(),
-                  description: values.description?.trim() ?? '',
-                  calendarId: values.calendarId,
-                  calendar: calendar,
-                  startTime: startDateTime,
-                  endTime: endDateTime,
-                  recurrencePattern,
-                  updatedAt: new Date()
-                } 
-              : event
-          )
-        );
+                  eventActions.setEvents(prevEvents => 
+            prevEvents.map(event => 
+              event.id === values.id 
+                ? {
+                    ...event,
+                    title: values.title.trim(),
+                    description: values.description?.trim() ?? '',
+                    location: values.location?.trim() ?? '',
+                    calendarId: values.calendarId,
+                    calendar: calendar,
+                    startTime: startDateTime,
+                    endTime: endDateTime,
+                    recurrencePattern,
+                    updatedAt: new Date()
+                  } 
+                : event
+            )
+          );
       } else {
         // Create new event
         if (skipNextEventReload) {
@@ -63,6 +64,7 @@ export const useEventCRUD = (
           id: newEventRecord.id,
           title: values.title.trim(),
           description: values.description?.trim() ?? '',
+          location: values.location?.trim() ?? '',
           calendarId: values.calendarId,
           calendar: calendar,
           startTime: startDateTime,
@@ -119,6 +121,7 @@ export const useEventCRUD = (
       const eventData = {
         title: event.title,
         description: event.description ?? '',
+        location: event.location ?? '',
         calendarId: targetCalendarId,
         startTime: event.startTime.toISOString(),
         endTime: event.endTime.toISOString(),

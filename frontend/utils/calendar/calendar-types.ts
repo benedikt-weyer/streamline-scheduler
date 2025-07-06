@@ -49,6 +49,7 @@ export interface CalendarEvent {
   id: string;
   title: string;
   description?: string;
+  location?: string;
   startTime: Date;
   endTime: Date;
   calendarId: string; // Reference to the calendar
@@ -74,6 +75,7 @@ export interface EventFormValues {
   id?: string;
   title: string;
   description?: string;
+  location?: string;
   startDate: string;
   startTime: string;
   endDate: string;

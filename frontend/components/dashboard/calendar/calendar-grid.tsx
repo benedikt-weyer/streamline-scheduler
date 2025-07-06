@@ -438,6 +438,11 @@ export function CalendarGrid({
         <div className="text-xs truncate">
           {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
         </div>
+        {event.location && (
+          <div className="text-xs truncate opacity-90">
+            📍 {event.location}
+          </div>
+        )}
         
         {/* Bottom resize handle - only visible on hover */}
         {onEventUpdate && (

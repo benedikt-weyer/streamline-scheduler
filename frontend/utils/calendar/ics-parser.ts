@@ -3,6 +3,7 @@ import { CalendarEvent } from './calendar-types';
 interface ICSEvent {
   summary: string;
   description?: string;
+  location?: string;
   dtstart: string;
   dtend: string;
   uid: string;
@@ -53,6 +54,9 @@ export function parseICSData(icsData: string, calendarId: string): CalendarEvent
             case 'description':
               currentEvent.description = value;
               break;
+            case 'location':
+              currentEvent.location = value;
+              break;
             case 'dtstart':
             case 'dtstart;value=date':
               currentEvent.dtstart = value;
@@ -60,14 +64,6 @@ export function parseICSData(icsData: string, calendarId: string): CalendarEvent
             case 'dtend':
             case 'dtend;value=date':
               currentEvent.dtend = value;
-              break;
-            default:
-              // Handle DTSTART and DTEND with timezone info
-              if (key.startsWith('dtstart')) {
-                currentEvent.dtstart = value;
-              } else if (key.startsWith('dtend')) {
-                currentEvent.dtend = value;
-              }
               break;
             case 'uid':
               currentEvent.uid = value;
@@ -77,6 +73,14 @@ export function parseICSData(icsData: string, calendarId: string): CalendarEvent
               break;
             case 'last-modified':
               currentEvent['last-modified'] = value;
+              break;
+            default:
+              // Handle DTSTART and DTEND with timezone info
+              if (key.startsWith('dtstart')) {
+                currentEvent.dtstart = value;
+              } else if (key.startsWith('dtend')) {
+                currentEvent.dtend = value;
+              }
               break;
           }
         }
@@ -105,6 +109,7 @@ function convertICSEventToCalendarEvent(icsEvent: ICSEvent, calendarId: string):
       id: `ics-${calendarId}-${icsEvent.uid}`, // Prefix with 'ics-' and calendar ID
       title: icsEvent.summary || 'Untitled Event',
       description: icsEvent.description || undefined,
+      location: icsEvent.location || undefined,
       startTime,
       endTime,
       calendarId,

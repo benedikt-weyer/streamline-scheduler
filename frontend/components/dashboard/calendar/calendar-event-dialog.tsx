@@ -25,6 +25,7 @@ export const eventFormSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(1, { message: "Title is required" }),
   description: z.string().optional(),
+  location: z.string().optional(),
   calendarId: z.string().min(1, { message: "Calendar is required" }),
   startDate: z.string().refine(value => {
     if (!value) return false;
@@ -142,6 +143,7 @@ export function CalendarEventDialog({
       id: selectedEvent?.id,
       title: selectedEvent?.title ?? '',
       description: selectedEvent?.description ?? '',
+      location: selectedEvent?.location ?? '',
       calendarId: initialCalendarId,
       startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
@@ -164,6 +166,7 @@ export function CalendarEventDialog({
       id: selectedEvent?.id,
       title: selectedEvent?.title ?? '',
       description: selectedEvent?.description ?? '',
+      location: selectedEvent?.location ?? '',
       calendarId,
       startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
@@ -299,6 +302,19 @@ export function CalendarEventDialog({
                   <FormLabel>Description (optional)</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Event description" {...field} disabled={isReadOnly} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location (optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Event location" {...field} disabled={isReadOnly} />
                   </FormControl>
                 </FormItem>
               )}

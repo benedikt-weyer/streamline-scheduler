@@ -21,6 +21,7 @@ export const processEventData = (values: any, calendars: Calendar[]) => {
   const eventData = {
     title: values.title.trim(),
     description: values.description?.trim() ?? '',
+    location: values.location?.trim() ?? '',
     calendarId: values.calendarId,
     startTime: startDateTime.toISOString(),
     endTime: endDateTime.toISOString(),
@@ -72,6 +73,7 @@ export const processDecryptedEvent = (
     id: rawEvent.id,
     title: decryptedData.title,
     description: decryptedData.description,
+    location: decryptedData.location,
     calendarId: decryptedData.calendarId,
     calendar: calendar,
     startTime,

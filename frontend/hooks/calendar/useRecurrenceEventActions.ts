@@ -276,6 +276,7 @@ export const useRecurrenceEventActions = (
       const eventData = {
         title: eventToDelete.title,
         description: eventToDelete.description,
+        location: eventToDelete.location,
         calendarId: eventToDelete.calendarId,
         startTime: eventToDelete.startTime.toISOString(),
         endTime: eventToDelete.endTime.toISOString(),
@@ -380,6 +381,7 @@ export const useRecurrenceEventActions = (
         const offsetEventData = {
           title: updatedEvent.title,
           description: updatedEvent.description ?? '',
+          location: updatedEvent.location ?? '',
           calendarId: originalEvent.calendarId,
           startTime: newMasterStartTime.toISOString(),
           endTime: newMasterEndTime.toISOString(),
@@ -412,6 +414,7 @@ export const useRecurrenceEventActions = (
         const eventData = {
           title: updatedEvent.title,
           description: updatedEvent.description ?? '',
+          location: updatedEvent.location ?? '',
           calendarId: originalEvent.calendarId,
           startTime: updatedEvent.startTime.toISOString(),
           endTime: updatedEvent.endTime.toISOString(),
