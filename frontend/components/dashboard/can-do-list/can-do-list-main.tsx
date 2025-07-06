@@ -222,16 +222,16 @@ export default function CanDoListMain() {
   const taskCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     
-    // Count inbox tasks (tasks without project)
-    counts['inbox'] = tasks.filter(task => !task.projectId).length;
+    // Count inbox tasks (tasks without project) - only active tasks
+    counts['inbox'] = tasks.filter(task => !task.projectId && !task.completed).length;
     
-    // Count tasks per project
+    // Count active tasks per project
     projects.forEach(project => {
-      counts[project.id] = tasks.filter(task => task.projectId === project.id).length;
+      counts[project.id] = tasks.filter(task => task.projectId === project.id && !task.completed).length;
     });
     
-    // Count all tasks
-    counts['all'] = tasks.length;
+    // Count all active tasks
+    counts['all'] = tasks.filter(task => !task.completed).length;
     
     return counts;
   }, [tasks, projects]);

@@ -106,15 +106,15 @@ function SchedulerPageContent() {
   const taskCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     
-    // Count inbox tasks (tasks without project)
+    // Count inbox tasks (tasks without project) - only active tasks
     counts['inbox'] = tasks.filter(task => !task.projectId && !task.completed).length;
     
-    // Count tasks per project
+    // Count active tasks per project
     projects.forEach(project => {
       counts[project.id] = tasks.filter(task => task.projectId === project.id && !task.completed).length;
     });
     
-    // Count all tasks
+    // Count all active tasks
     counts['all'] = tasks.filter(task => !task.completed).length;
     
     return counts;
