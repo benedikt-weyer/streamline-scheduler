@@ -405,11 +405,7 @@ export function CalendarGrid({
           backgroundColor: bgColor,
           borderWidth: '1px',
           borderStyle: 'solid',
-          borderColor: borderColor,
-          // Add a repeating pattern indicator for recurring events
-          backgroundImage: isRecurring || isRecurrenceInstance ? 
-            'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 10px)' : 
-            'none'
+          borderColor: borderColor
         }}
         onClick={(e) => handleEventClick(e, event)}
         onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.Move)}
