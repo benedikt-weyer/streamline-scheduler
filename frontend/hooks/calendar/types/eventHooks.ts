@@ -25,6 +25,9 @@ export interface RecurrenceEventActionsHook {
   handleDeleteThisOccurrence: (eventToDelete: CalendarEvent) => Promise<boolean>;
   handleDeleteThisAndFuture: (eventToDelete: CalendarEvent) => Promise<boolean>;
   handleEventUpdate: (updatedEvent: CalendarEvent) => Promise<boolean>;
+  handleModifyThisOccurrence: (eventToModify: CalendarEvent, modifiedEventData: any) => Promise<boolean>;
+  handleModifyThisAndFuture: (eventToModify: CalendarEvent, modifiedEventData: any) => Promise<boolean>;
+  handleModifyAllInSeries: (eventToModify: CalendarEvent, modifiedEventData: any) => Promise<boolean>;
 }
 
 export interface EventCalendarSyncHook {

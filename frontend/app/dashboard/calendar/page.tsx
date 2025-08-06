@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { CalendarHeader } from '@/components/dashboard/calendar/calendar-header';
 import { CalendarGrid } from '@/components/dashboard/calendar/calendar-grid';
 import { CalendarEventDialog, EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
+import { RecurringEventModificationDialog } from '@/components/dashboard/calendar/recurring-event-modification-dialog';
 import { CalendarSidebar } from '@/components/dashboard/calendar/calendar-sidebar';
 import { CalendarHeaderMobile } from '@/components/dashboard/calendar/calendar-header-mobile';
 import { CalendarGridMobile } from '@/components/dashboard/calendar/calendar-grid-mobile';
 
-import { CalendarEvent } from '@/utils/calendar/calendar-types';
+import { CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 
@@ -70,7 +71,10 @@ function CalendarContent() {
     handleEventUpdate,
     moveEventToCalendar,
     handleDeleteThisOccurrence,
-    handleDeleteThisAndFuture
+    handleDeleteThisAndFuture,
+    handleModifyThisOccurrence,
+    handleModifyThisAndFuture,
+    handleModifyAllInSeries
   } = useCalendarEvents(encryptionKey, calendars, skipNextEventReload);
 
   // ICS events hook
@@ -276,6 +280,102 @@ function CalendarContent() {
     }
   }, [handleDeleteEvent, setIsDialogOpen, setSelectedEvent]);
 
+  // Callbacks for modifying recurring events
+  const onModifyThisOccurrenceHandler = useCallback(async (event: CalendarEvent, modifiedData: any) => {
+    if (!handleModifyThisOccurrence) return;
+    const success = await handleModifyThisOccurrence(event, modifiedData);
+    if (success) {
+      setSelectedEvent(null);
+      setIsDialogOpen(false);
+    }
+  }, [handleModifyThisOccurrence, setIsDialogOpen, setSelectedEvent]);
+
+  const onModifyThisAndFutureHandler = useCallback(async (event: CalendarEvent, modifiedData: any) => {
+    if (!handleModifyThisAndFuture) return;
+    const success = await handleModifyThisAndFuture(event, modifiedData);
+    if (success) {
+      setSelectedEvent(null);
+      setIsDialogOpen(false);
+    }
+  }, [handleModifyThisAndFuture, setIsDialogOpen, setSelectedEvent]);
+
+  const onModifyAllInSeriesHandler = useCallback(async (event: CalendarEvent, modifiedData: any) => {
+    if (!handleModifyAllInSeries) return;
+    const success = await handleModifyAllInSeries(event, modifiedData);
+    if (success) {
+      setSelectedEvent(null);
+      setIsDialogOpen(false);
+    }
+  }, [handleModifyAllInSeries, setIsDialogOpen, setSelectedEvent]);
+
+  // State for drag/resize modification modal
+  const [isDragModificationModalOpen, setIsDragModificationModalOpen] = useState(false);
+  const [pendingDraggedEvent, setPendingDraggedEvent] = useState<CalendarEvent | null>(null);
+
+  // Handler for drag/resize operations that checks for recurring events
+  const handleEventUpdateWithRecurrenceCheck = useCallback(async (updatedEvent: CalendarEvent) => {
+    // Check if this is a recurring event
+    const isRecurringEvent = updatedEvent.recurrencePattern && 
+      updatedEvent.recurrencePattern.frequency !== RecurrenceFrequency.None;
+
+    if (isRecurringEvent) {
+      // Store the updated event and show the modification choice modal
+      setPendingDraggedEvent(updatedEvent);
+      setIsDragModificationModalOpen(true);
+      return;
+    }
+
+    // For non-recurring events, update directly
+    await handleEventUpdate(updatedEvent);
+  }, [handleEventUpdate, handleModifyAllInSeries, handleModifyThisAndFuture, handleModifyThisOccurrence]);
+
+  // Handlers for drag/resize modification choices
+  const handleDragModifyThisOccurrence = useCallback(async (event: CalendarEvent) => {
+    if (pendingDraggedEvent && handleModifyThisOccurrence) {
+      const modifiedData = {
+        title: pendingDraggedEvent.title,
+        description: pendingDraggedEvent.description,
+        location: pendingDraggedEvent.location,
+        startTime: pendingDraggedEvent.startTime,
+        endTime: pendingDraggedEvent.endTime
+      };
+      await handleModifyThisOccurrence(event, modifiedData);
+      setPendingDraggedEvent(null);
+    }
+  }, [pendingDraggedEvent, handleModifyThisOccurrence]);
+
+  const handleDragModifyThisAndFuture = useCallback(async (event: CalendarEvent) => {
+    if (pendingDraggedEvent && handleModifyThisAndFuture) {
+      const modifiedData = {
+        title: pendingDraggedEvent.title,
+        description: pendingDraggedEvent.description,
+        location: pendingDraggedEvent.location,
+        startTime: pendingDraggedEvent.startTime,
+        endTime: pendingDraggedEvent.endTime
+      };
+      await handleModifyThisAndFuture(event, modifiedData);
+      setPendingDraggedEvent(null);
+    }
+  }, [pendingDraggedEvent, handleModifyThisAndFuture]);
+
+  const handleDragModifyAllInSeries = useCallback(async (event: CalendarEvent) => {
+    if (pendingDraggedEvent && handleModifyAllInSeries) {
+      const modifiedData = {
+        title: pendingDraggedEvent.title,
+        description: pendingDraggedEvent.description,
+        location: pendingDraggedEvent.location,
+        startTime: pendingDraggedEvent.startTime,
+        endTime: pendingDraggedEvent.endTime
+      };
+      await handleModifyAllInSeries(event, modifiedData);
+      setPendingDraggedEvent(null);
+    }
+  }, [pendingDraggedEvent, handleModifyAllInSeries]);
+
+  const handleDragModificationConfirmed = () => {
+    setPendingDraggedEvent(null);
+  };
+
   // Memoized handlers for JSX props to prevent unnecessary re-renders
   const openNewEventDialogHandler = useCallback(() => {
     openNewEventDialog();
@@ -351,7 +451,7 @@ function CalendarContent() {
               calendars={calendars}
               openEditDialog={openEditDialog}
               openNewEventDialog={openNewEventDialogWithDayHandler}
-              onEventUpdate={handleEventUpdate}
+              onEventUpdate={handleEventUpdateWithRecurrenceCheck}
               shouldSelectToday={shouldSelectToday}
             />
           )}
@@ -396,7 +496,7 @@ function CalendarContent() {
                 calendars={calendars}
                 openEditDialog={openEditDialog}
                 openNewEventDialog={openNewEventDialogWithDayHandler}
-                onEventUpdate={handleEventUpdate}
+                onEventUpdate={handleEventUpdateWithRecurrenceCheck}
               />
           )}
         </div>
@@ -414,7 +514,23 @@ function CalendarContent() {
         onDeleteThisOccurrence={onDeleteThisOccurrenceHandler}
         onDeleteThisAndFuture={onDeleteThisAndFutureHandler}
         onDeleteAllInSeries={onDeleteAllInSeriesHandler}
+        onModifyThisOccurrence={onModifyThisOccurrenceHandler}
+        onModifyThisAndFuture={onModifyThisAndFutureHandler}
+        onModifyAllInSeries={onModifyAllInSeriesHandler}
       />
+
+      {/* Drag/Resize Modification Dialog */}
+      {pendingDraggedEvent && (
+        <RecurringEventModificationDialog
+          isOpen={isDragModificationModalOpen}
+          onOpenChange={setIsDragModificationModalOpen}
+          selectedEvent={pendingDraggedEvent}
+          onModifyThisOccurrence={handleDragModifyThisOccurrence}
+          onModifyThisAndFuture={handleDragModifyThisAndFuture}
+          onModifyAllInSeries={handleDragModifyAllInSeries}
+          onModificationConfirmed={handleDragModificationConfirmed}
+        />
+      )}
     </div>
   );
 }

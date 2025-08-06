@@ -19,6 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
+import { RecurringEventModificationDialog } from './recurring-event-modification-dialog';
 
 // Define schema for event validation
 export const eventFormSchema = z.object({
@@ -97,6 +98,9 @@ interface CalendarEventDialogProps {
   readonly onDeleteAllInSeries?: (event: CalendarEvent) => Promise<void>;
   readonly onDeleteThisAndFuture?: (event: CalendarEvent) => Promise<void>;
   readonly onDeleteThisOccurrence?: (event: CalendarEvent) => Promise<void>;
+  readonly onModifyAllInSeries?: (event: CalendarEvent, modifiedData: any) => Promise<void>;
+  readonly onModifyThisAndFuture?: (event: CalendarEvent, modifiedData: any) => Promise<void>;
+  readonly onModifyThisOccurrence?: (event: CalendarEvent, modifiedData: any) => Promise<void>;
 }
 
 // Helper function to combine date and time into a single Date object
@@ -123,13 +127,18 @@ export function CalendarEventDialog({
   onDelete, 
   onDeleteAllInSeries, 
   onDeleteThisAndFuture, 
-  onDeleteThisOccurrence 
+  onDeleteThisOccurrence,
+  onModifyAllInSeries,
+  onModifyThisAndFuture,
+  onModifyThisOccurrence
 }: CalendarEventDialogProps) {
   // Determine which calendar ID to use
   const initialCalendarId = selectedEvent?.calendarId ?? defaultCalendarId ?? 
     (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id ?? calendars[0].id : '');
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isModificationConfirmOpen, setIsModificationConfirmOpen] = useState(false);
+  const [pendingModificationData, setPendingModificationData] = useState<EventFormValues | null>(null);
   
   // Check if this is an ICS event (read-only)
   const isICSEvent = selectedEvent?.id?.startsWith('ics-') ?? false;
@@ -200,8 +209,21 @@ export function CalendarEventDialog({
       if (values.recurrenceFrequency === RecurrenceFrequency.None || !values.recurrenceEndDate) {
         values.recurrenceEndDate = undefined;
       }
+
+      // Check if this is a modification of a recurring event
+      const isRecurringEvent = selectedEvent?.recurrencePattern && 
+        selectedEvent.recurrencePattern.frequency !== RecurrenceFrequency.None;
+      const isEditingExistingEvent = selectedEvent && selectedEvent.id && selectedEvent.id !== 'new';
+
+      if (isEditingExistingEvent && isRecurringEvent && 
+          (onModifyAllInSeries || onModifyThisAndFuture || onModifyThisOccurrence)) {
+        // Store the modification data and show the modification choice modal
+        setPendingModificationData(values);
+        setIsModificationConfirmOpen(true);
+        return;
+      }
       
-      // Call the onSubmit callback with the validated form values
+      // Call the onSubmit callback with the validated form values for non-recurring events
       await onSubmit(values);
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -249,6 +271,54 @@ export function CalendarEventDialog({
 
   // Get the end time options
   const endTimeOptions = getEndTimeOptions();
+
+  // Handlers for recurring event modification
+  const handleModifyThisOccurrenceConfirmed = async (event: CalendarEvent) => {
+    if (pendingModificationData && onModifyThisOccurrence) {
+      const modifiedData = {
+        title: pendingModificationData.title,
+        description: pendingModificationData.description,
+        location: pendingModificationData.location,
+        calendarId: pendingModificationData.calendarId,
+        startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime),
+        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime)
+      };
+      await onModifyThisOccurrence(event, modifiedData);
+    }
+  };
+
+  const handleModifyThisAndFutureConfirmed = async (event: CalendarEvent) => {
+    if (pendingModificationData && onModifyThisAndFuture) {
+      const modifiedData = {
+        title: pendingModificationData.title,
+        description: pendingModificationData.description,
+        location: pendingModificationData.location,
+        calendarId: pendingModificationData.calendarId,
+        startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime),
+        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime)
+      };
+      await onModifyThisAndFuture(event, modifiedData);
+    }
+  };
+
+  const handleModifyAllInSeriesConfirmed = async (event: CalendarEvent) => {
+    if (pendingModificationData && onModifyAllInSeries) {
+      const modifiedData = {
+        title: pendingModificationData.title,
+        description: pendingModificationData.description,
+        location: pendingModificationData.location,
+        calendarId: pendingModificationData.calendarId,
+        startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime),
+        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime)
+      };
+      await onModifyAllInSeries(event, modifiedData);
+    }
+  };
+
+  const handleModificationConfirmed = () => {
+    setPendingModificationData(null);
+    onOpenChange(false);
+  };
 
   const handleDeleteConfirmedAndCloseMainDialog = () => {
     onOpenChange(false);
@@ -548,6 +618,17 @@ export function CalendarEventDialog({
           onDeleteThisAndFuture={onDeleteThisAndFuture}
           onDeleteAllInSeries={onDeleteAllInSeries}
           onDeleteConfirmedAndMainDialogClose={handleDeleteConfirmedAndCloseMainDialog}
+        />
+      )}
+      {selectedEvent && onModifyAllInSeries && onModifyThisAndFuture && onModifyThisOccurrence && (
+        <RecurringEventModificationDialog
+          isOpen={isModificationConfirmOpen}
+          onOpenChange={setIsModificationConfirmOpen}
+          selectedEvent={selectedEvent}
+          onModifyThisOccurrence={handleModifyThisOccurrenceConfirmed}
+          onModifyThisAndFuture={handleModifyThisAndFutureConfirmed}
+          onModifyAllInSeries={handleModifyAllInSeriesConfirmed}
+          onModificationConfirmed={handleModificationConfirmed}
         />
       )}
     </Dialog>

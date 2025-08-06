@@ -32,7 +32,10 @@ export function useCalendarEvents(
   const { 
     handleDeleteThisOccurrence, 
     handleDeleteThisAndFuture, 
-    handleEventUpdate 
+    handleEventUpdate,
+    handleModifyThisOccurrence,
+    handleModifyThisAndFuture,
+    handleModifyAllInSeries
   } = useRecurrenceEventActions(
     events, 
     eventActions, 
@@ -53,6 +56,9 @@ export function useCalendarEvents(
     handleDeleteThisOccurrence,
     handleDeleteThisAndFuture,
     handleEventUpdate,
-    moveEventToCalendar
+    moveEventToCalendar,
+    handleModifyThisOccurrence,
+    handleModifyThisAndFuture,
+    handleModifyAllInSeries
   };
 }

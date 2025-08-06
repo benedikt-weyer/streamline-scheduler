@@ -108,13 +108,25 @@ export const useRecurrenceEventActions = (
       return { success: true }; // No new event needed
     }
 
-    const eventDuration = eventToDelete.endTime.getTime() - eventToDelete.startTime.getTime();
-    if (eventDuration <= 0) {
+    // Use the original master event's duration and time, not the modified occurrence's time
+    const originalEventDuration = eventToDelete.endTime.getTime() - eventToDelete.startTime.getTime();
+    if (originalEventDuration <= 0) {
       return { success: false, error: "Cannot process delete: master event duration invalid." };
     }
 
-    const newSeriesStartTime = nextOccurrenceStartTime; 
-    const newSeriesEndTime = new Date(newSeriesStartTime.getTime() + eventDuration);
+    // Create the new series start time using the original event's time of day
+    const originalStartTime = new Date(eventToDelete.startTime);
+    const newSeriesStartTime = new Date(
+      nextOccurrenceStartTime.getFullYear(),
+      nextOccurrenceStartTime.getMonth(),
+      nextOccurrenceStartTime.getDate(),
+      originalStartTime.getHours(),
+      originalStartTime.getMinutes(),
+      originalStartTime.getSeconds(),
+      originalStartTime.getMilliseconds()
+    );
+    
+    const newSeriesEndTime = new Date(newSeriesStartTime.getTime() + originalEventDuration);
 
     if (!isValid(newSeriesEndTime)) { 
       return { success: false, error: "Cannot process delete: date calculation error for new series end time." };
@@ -475,9 +487,375 @@ export const useRecurrenceEventActions = (
     }
   };
 
+  /**
+   * Handles modifying only a specific occurrence of a recurring event
+   * Creates a single event and splits the recurring series
+   */
+  const handleModifyThisOccurrence = async (
+    eventToModify: CalendarEvent,
+    modifiedEventData: any
+  ): Promise<boolean> => {
+    if (skipNextEventReload) {
+      skipNextEventReload();
+    }
+
+    // If this is a recurrence instance, find the master event
+    let masterEvent = eventToModify;
+    if (eventToModify.isRecurrenceInstance && eventToModify.id.includes('-recurrence-')) {
+      const masterEventId = eventToModify.id.split('-recurrence-')[0];
+      const foundMasterEvent = events.find(e => e.id === masterEventId);
+      if (foundMasterEvent) {
+        masterEvent = foundMasterEvent;
+        // Set the clicked occurrence date for proper handling
+        masterEvent.clickedOccurrenceDate = eventToModify.startTime;
+      } else {
+        setError('Could not find the master recurring event');
+        return false;
+      }
+    }
+
+    // Validate event data
+    const validation = validateEventForOccurrenceDeletion(masterEvent);
+    if (!validation.isValid) {
+      setError(validation.error ?? 'Validation failed');
+      return false;
+    }
+
+    const occurrenceStartTime = validation.occurrenceStartTime!;
+    const originalRecurrenceEndDate = masterEvent.recurrencePattern!.endDate;
+
+    try {
+      // Step 1: Update the original event to end before this occurrence
+      const updateResult = await updateOriginalEventEndDate(masterEvent, occurrenceStartTime);
+      if (!updateResult.success) {
+        setError(updateResult.error ?? 'Failed to update original event');
+        return false;
+      }
+
+      // Step 2: Create new recurring event starting from next occurrence (if needed)
+      const createResult = await createNewRecurringEvent(masterEvent, occurrenceStartTime, originalRecurrenceEndDate);
+      if (!createResult.success) {
+        setError(createResult.error ?? 'Failed to create new recurring event');
+        return false;
+      }
+
+      // Step 3: Create the modified single event
+      const singleEventData = {
+        title: modifiedEventData.title,
+        description: modifiedEventData.description ?? '',
+        location: modifiedEventData.location ?? '',
+        calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
+        startTime: modifiedEventData.startTime.toISOString(),
+        endTime: modifiedEventData.endTime.toISOString(),
+        recurrenceFrequency: 'none', // This is a single event
+        recurrenceEndDate: undefined,
+        recurrenceInterval: undefined,
+        daysOfWeek: undefined
+      };
+
+      const { encryptedData: encryptedSingleEventData, salt: singleSalt, iv: singleIv } = encryptEventData(singleEventData, encryptionKey!);
+      const rawSingleEventRecord = await addCalendarEvent(encryptedSingleEventData, singleIv, singleSalt);
+
+      let singleEventRecord: any;
+      if (Array.isArray(rawSingleEventRecord) && rawSingleEventRecord.length > 0) {
+        singleEventRecord = rawSingleEventRecord[0];
+      } else if (rawSingleEventRecord && typeof rawSingleEventRecord === 'object' && !Array.isArray(rawSingleEventRecord)) {
+        singleEventRecord = rawSingleEventRecord;
+      } else {
+        setError("Failed to process single event creation: invalid response from server.");
+        return false;
+      }
+
+      if (!singleEventRecord || typeof singleEventRecord.id === 'undefined') {
+        setError("Failed to process single event creation: essential data missing from server response.");
+        return false;
+      }
+
+      // Update state with all changes
+      eventActions.setEvents(prevEvents => {
+        let updatedEvents = prevEvents.map(event => {
+          if (event.id === masterEvent.id) {
+            // Update original event with new end date
+            return {
+              ...event,
+              recurrencePattern: {
+                ...event.recurrencePattern!,
+                endDate: updateResult.newEndDate
+              },
+              updatedAt: new Date()
+            };
+          }
+          return event;
+        });
+
+        // Add the single modified event
+        const newSingleEvent: CalendarEvent = {
+          id: singleEventRecord.id,
+          title: modifiedEventData.title,
+          description: modifiedEventData.description ?? '',
+          location: modifiedEventData.location ?? '',
+          startTime: modifiedEventData.startTime,
+          endTime: modifiedEventData.endTime,
+          calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
+          calendar: masterEvent.calendar,
+          createdAt: new Date(singleEventRecord.created_at),
+          updatedAt: undefined
+        };
+        updatedEvents.push(newSingleEvent);
+
+        // Add the new recurring event if it was created
+        if (createResult.newEvent) {
+          const newRecurringEvent: CalendarEvent = {
+            id: createResult.newEvent.record.id,
+            title: masterEvent.title,
+            description: masterEvent.description ?? '',
+            location: masterEvent.location ?? '',
+            startTime: createResult.newEvent.startTime,
+            endTime: createResult.newEvent.endTime,
+            calendarId: masterEvent.calendarId,
+            calendar: masterEvent.calendar,
+            recurrencePattern: masterEvent.recurrencePattern,
+            createdAt: new Date(createResult.newEvent.record.created_at),
+            updatedAt: undefined
+          };
+          updatedEvents.push(newRecurringEvent);
+        }
+
+        return updatedEvents.filter(event => isValid(event.startTime));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Failed to modify this occurrence:', error);
+      setError('Failed to modify this occurrence');
+      return false;
+    }
+  };
+
+  /**
+   * Handles modifying this and future occurrences of a recurring event
+   * Splits the recurring series and updates the second part
+   */
+  const handleModifyThisAndFuture = async (
+    eventToModify: CalendarEvent,
+    modifiedEventData: any
+  ): Promise<boolean> => {
+    if (skipNextEventReload) {
+      skipNextEventReload();
+    }
+
+    // If this is a recurrence instance, find the master event
+    let masterEvent = eventToModify;
+    if (eventToModify.isRecurrenceInstance && eventToModify.id.includes('-recurrence-')) {
+      const masterEventId = eventToModify.id.split('-recurrence-')[0];
+      const foundMasterEvent = events.find(e => e.id === masterEventId);
+      if (foundMasterEvent) {
+        masterEvent = foundMasterEvent;
+        // Set the clicked occurrence date for proper handling
+        masterEvent.clickedOccurrenceDate = eventToModify.startTime;
+      } else {
+        setError('Could not find the master recurring event');
+        return false;
+      }
+    }
+
+    // Validate event data
+    const validation = validateEventForOccurrenceDeletion(masterEvent);
+    if (!validation.isValid) {
+      setError(validation.error ?? 'Validation failed');
+      return false;
+    }
+
+    const occurrenceStartTime = validation.occurrenceStartTime!;
+    const originalRecurrenceEndDate = masterEvent.recurrencePattern!.endDate;
+
+    try {
+      // Step 1: Update the original event to end before this occurrence
+      const updateResult = await updateOriginalEventEndDate(masterEvent, occurrenceStartTime);
+      if (!updateResult.success) {
+        setError(updateResult.error ?? 'Failed to update original event');
+        return false;
+      }
+
+      // Step 2: Create new recurring event with modified data starting from this occurrence
+      const eventDuration = masterEvent.endTime.getTime() - masterEvent.startTime.getTime();
+      const newSeriesStartTime = modifiedEventData.startTime;
+      const newSeriesEndTime = modifiedEventData.endTime;
+
+      const newRecurringEventData = {
+        title: modifiedEventData.title,
+        description: modifiedEventData.description ?? '',
+        location: modifiedEventData.location ?? '',
+        calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
+        startTime: newSeriesStartTime.toISOString(),
+        endTime: newSeriesEndTime.toISOString(),
+        recurrenceFrequency: masterEvent.recurrencePattern!.frequency,
+        recurrenceInterval: masterEvent.recurrencePattern!.interval,
+        recurrenceEndDate: originalRecurrenceEndDate ? originalRecurrenceEndDate.toISOString() : undefined,
+        daysOfWeek: masterEvent.recurrencePattern!.daysOfWeek,
+      };
+
+      const { encryptedData: encryptedNewEventData, salt: newSalt, iv: newIv } = encryptEventData(newRecurringEventData, encryptionKey!);
+      const rawNewEventRecord = await addCalendarEvent(encryptedNewEventData, newIv, newSalt);
+
+      let newEventRecord: any;
+      if (Array.isArray(rawNewEventRecord) && rawNewEventRecord.length > 0) {
+        newEventRecord = rawNewEventRecord[0];
+      } else if (rawNewEventRecord && typeof rawNewEventRecord === 'object' && !Array.isArray(rawNewEventRecord)) {
+        newEventRecord = rawNewEventRecord;
+      } else {
+        setError("Failed to process event creation: invalid response from server.");
+        return false;
+      }
+
+      if (!newEventRecord || typeof newEventRecord.id === 'undefined') {
+        setError("Failed to process event creation: essential data missing from server response.");
+        return false;
+      }
+
+      // Update state with all changes
+      eventActions.setEvents(prevEvents => {
+        let updatedEvents = prevEvents.map(event => {
+          if (event.id === masterEvent.id) {
+            // Update original event with new end date
+            return {
+              ...event,
+              recurrencePattern: {
+                ...event.recurrencePattern!,
+                endDate: updateResult.newEndDate
+              },
+              updatedAt: new Date()
+            };
+          }
+          return event;
+        });
+
+        // Add the new modified recurring event
+        const newRecurringEvent: CalendarEvent = {
+          id: newEventRecord.id,
+          title: modifiedEventData.title,
+          description: modifiedEventData.description ?? '',
+          location: modifiedEventData.location ?? '',
+          startTime: newSeriesStartTime,
+          endTime: newSeriesEndTime,
+          calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
+          calendar: masterEvent.calendar,
+          recurrencePattern: masterEvent.recurrencePattern,
+          createdAt: new Date(newEventRecord.created_at),
+          updatedAt: undefined
+        };
+        updatedEvents.push(newRecurringEvent);
+
+        return updatedEvents.filter(event => isValid(event.startTime));
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Failed to modify this and future occurrences:', error);
+      setError('Failed to modify this and future occurrences');
+      return false;
+    }
+  };
+
+  /**
+   * Handles modifying all occurrences in the series
+   * Simply updates the master recurring event
+   */
+  const handleModifyAllInSeries = async (
+    eventToModify: CalendarEvent,
+    modifiedEventData: any
+  ): Promise<boolean> => {
+    if (!encryptionKey) {
+      setError('Missing encryption key');
+      return false;
+    }
+
+    // If this is a recurrence instance, find the master event
+    let masterEvent = eventToModify;
+    if (eventToModify.isRecurrenceInstance && eventToModify.id.includes('-recurrence-')) {
+      const masterEventId = eventToModify.id.split('-recurrence-')[0];
+      const foundMasterEvent = events.find(e => e.id === masterEventId);
+      if (foundMasterEvent) {
+        masterEvent = foundMasterEvent;
+      } else {
+        setError('Could not find the master recurring event');
+        return false;
+      }
+    }
+
+    try {
+      if (skipNextEventReload) {
+        skipNextEventReload();
+      }
+
+      // For "modify all in series", preserve the original start date but update the time
+      const originalStartDate = new Date(masterEvent.startTime);
+      const newStartTime = new Date(modifiedEventData.startTime);
+      const newEndTime = new Date(modifiedEventData.endTime);
+      
+      // Calculate the time difference to apply to the master event
+      const timeDifference = newEndTime.getTime() - newStartTime.getTime();
+      
+      // Create the new start time with original date but new time
+      const updatedStartTime = new Date(
+        originalStartDate.getFullYear(),
+        originalStartDate.getMonth(),
+        originalStartDate.getDate(),
+        newStartTime.getHours(),
+        newStartTime.getMinutes(),
+        newStartTime.getSeconds(),
+        newStartTime.getMilliseconds()
+      );
+      
+      // Create the new end time maintaining the duration
+      const updatedEndTime = new Date(updatedStartTime.getTime() + timeDifference);
+
+      const eventData = {
+        title: modifiedEventData.title,
+        description: modifiedEventData.description ?? '',
+        location: modifiedEventData.location ?? '',
+        calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
+        startTime: updatedStartTime.toISOString(),
+        endTime: updatedEndTime.toISOString(),
+        recurrenceFrequency: masterEvent.recurrencePattern?.frequency,
+        recurrenceEndDate: masterEvent.recurrencePattern?.endDate?.toISOString(),
+        recurrenceInterval: masterEvent.recurrencePattern?.interval,
+        daysOfWeek: masterEvent.recurrencePattern?.daysOfWeek
+      };
+
+      const { encryptedData, salt, iv } = encryptEventData(eventData, encryptionKey);
+      await updateCalendarEvent(masterEvent.id, encryptedData, iv, salt);
+
+      // Update state
+      eventActions.setEvents(prevEvents =>
+        prevEvents.map(event =>
+          event.id === masterEvent.id ? {
+            ...event,
+            title: modifiedEventData.title,
+            description: modifiedEventData.description ?? '',
+            location: modifiedEventData.location ?? '',
+            calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
+            startTime: updatedStartTime,
+            endTime: updatedEndTime,
+            updatedAt: new Date()
+          } : event
+        )
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Failed to modify all in series:', error);
+      setError('Failed to modify all events in series');
+      return false;
+    }
+  };
+
   return {
     handleDeleteThisOccurrence,
     handleDeleteThisAndFuture,
-    handleEventUpdate
+    handleEventUpdate,
+    handleModifyThisOccurrence,
+    handleModifyThisAndFuture,
+    handleModifyAllInSeries
   };
 };
