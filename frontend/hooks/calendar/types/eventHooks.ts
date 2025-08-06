@@ -18,6 +18,7 @@ export interface EventLoaderHook {
 export interface EventCRUDHook {
   handleSubmitEvent: (values: EventFormValues) => Promise<boolean>;
   handleDeleteEvent: (id: string) => Promise<boolean>;
+  handleCloneEvent: (event: CalendarEvent) => Promise<boolean>;
   moveEventToCalendar: (eventId: string, targetCalendarId: string) => Promise<void>;
 }
 
@@ -37,5 +38,6 @@ export interface EventCalendarSyncHook {
 export interface CalendarEventsHook extends EventState, EventCRUDHook, RecurrenceEventActionsHook {
   loadEvents: (key: string) => Promise<CalendarEvent[]>;
   loadEventsWithCalendars: (key: string, encryptedEvents?: any[]) => Promise<CalendarEvent[]>;
+  handleCloneEvent: (event: CalendarEvent) => Promise<boolean>;
   moveEventToCalendar: (eventId: string, targetCalendarId: string) => Promise<void>;
 }

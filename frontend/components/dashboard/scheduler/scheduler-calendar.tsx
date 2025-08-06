@@ -21,6 +21,7 @@ interface SchedulerCalendarProps {
   readonly onCalendarEdit: (calendarId: string, name: string, color: string) => void;
   readonly onCalendarDelete: (calendarId: string) => Promise<string | undefined>;
   readonly onSetDefaultCalendar: (calendarId: string) => void;
+  readonly onClone?: (event: CalendarEvent) => Promise<boolean>;
   readonly isLoading: boolean;
   readonly activeTask?: { id: string; content: string; estimatedDuration?: number } | null;
 }
@@ -36,6 +37,7 @@ export function SchedulerCalendar({
   onCalendarEdit,
   onCalendarDelete,
   onSetDefaultCalendar,
+  onClone,
   isLoading,
   activeTask
 }: SchedulerCalendarProps) {
@@ -121,10 +123,14 @@ export function SchedulerCalendar({
   }, []);
 
   const handleDeleteEvent = useCallback(async (id: string) => {
-    // This would normally delete the event, but for now we'll just close the dialog
-    setIsDialogOpen(false);
-    setSelectedEvent(null);
+    console.log('Deleting event:', id);
   }, []);
+
+  const handleCloneEvent = useCallback(async (event: CalendarEvent) => {
+    if (onClone) {
+      await onClone(event);
+    }
+  }, [onClone]);
 
   const handleCalendarDeleteWithEvents = useCallback(async (calendarId: string) => {
     try {
@@ -194,6 +200,7 @@ export function SchedulerCalendar({
         defaultCalendarId={fallbackCalendarId}
         onSubmit={handleSubmitEvent}
         onDelete={handleDeleteEvent}
+        onClone={handleCloneEvent}
       />
     </div>
   );

@@ -46,6 +46,7 @@ export function useCalendar(encryptionKey: string | null) {
     loadEvents,
     handleSubmitEvent,
     handleDeleteEvent,
+    handleCloneEvent,
     handleEventUpdate,
     moveEventToCalendar,
     handleDeleteThisOccurrence,
@@ -95,6 +96,7 @@ export function useCalendar(encryptionKey: string | null) {
     // Event handlers
     handleSubmitEvent,
     handleDeleteEvent,
+    handleCloneEvent,
     handleDeleteThisOccurrence,
     handleDeleteThisAndFuture,
     onEventUpdate,

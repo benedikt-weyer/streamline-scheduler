@@ -82,6 +82,7 @@ function SchedulerPageContent() {
     isLoading: isLoadingCalendar,
     handleSubmitEvent,
     handleDeleteEvent,
+    handleCloneEvent,
     moveEventToCalendar,
     handleCalendarToggle,
     handleCalendarCreate,
@@ -364,6 +365,7 @@ function SchedulerPageContent() {
           onEventUpdate={onEventUpdate}
           onSubmitEvent={handleSubmitEventWrapper}
           onDeleteEvent={handleDeleteEventWrapper}
+          onClone={handleCloneEvent}
           isLoading={isLoadingTasks || isLoadingProjects || isLoadingCalendar}
         />
       </div>
@@ -471,6 +473,7 @@ function SchedulerPageContent() {
               onCalendarEdit={handleCalendarEdit}
               onCalendarDelete={handleCalendarDelete}
               onSetDefaultCalendar={handleSetDefaultCalendar}
+              onClone={handleCloneEvent}
               isLoading={isLoadingCalendar}
               activeTask={activeTask}
             />

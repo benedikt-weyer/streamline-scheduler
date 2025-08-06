@@ -70,6 +70,7 @@ function CalendarContent() {
     loadEvents,
     handleSubmitEvent,
     handleDeleteEvent,
+    handleCloneEvent,
     handleEventUpdate,
     moveEventToCalendar,
     handleDeleteThisOccurrence,
@@ -250,7 +251,22 @@ function CalendarContent() {
       setSelectedEvent(null);
       setIsDialogOpen(false);
     }
-  }, [handleDeleteEvent, selectedEvent?.id, isICSEvent, setError]);
+  }, [handleDeleteEvent, selectedEvent, isICSEvent, setError]);
+
+  // Handle clone event and open edit dialog with cloned event
+  const onCloneEvent = useCallback(async (eventToClone: CalendarEvent) => {
+    // Prevent cloning ICS events
+    if (isICSEvent(eventToClone)) {
+      setError('Events from ICS calendars cannot be cloned');
+      return;
+    }
+    const success = await handleCloneEvent(eventToClone);
+    if (success) {
+      // Close the current dialog since the event has been cloned
+      setSelectedEvent(null);
+      setIsDialogOpen(false);
+    }
+  }, [handleCloneEvent, isICSEvent, setError]);
 
   // Callback for deleting a single occurrence
   const onDeleteThisOccurrenceHandler = useCallback(async (event: CalendarEvent) => {
@@ -543,6 +559,7 @@ function CalendarContent() {
         defaultCalendarId={defaultCalendarId}
         onSubmit={onSubmitEvent}
         onDelete={onDeleteEvent}
+        onClone={onCloneEvent}
         onDeleteThisOccurrence={onDeleteThisOccurrenceHandler}
         onDeleteThisAndFuture={onDeleteThisAndFutureHandler}
         onDeleteAllInSeries={onDeleteAllInSeriesHandler}

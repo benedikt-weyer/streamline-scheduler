@@ -107,6 +107,7 @@ interface CalendarEventDialogProps {
   readonly defaultCalendarId?: string;
   readonly onSubmit: (values: EventFormValues) => Promise<void>;
   readonly onDelete: (id: string) => Promise<void>;
+  readonly onClone?: (event: CalendarEvent) => void;
   readonly onDeleteAllInSeries?: (event: CalendarEvent) => Promise<void>;
   readonly onDeleteThisAndFuture?: (event: CalendarEvent) => Promise<void>;
   readonly onDeleteThisOccurrence?: (event: CalendarEvent) => Promise<void>;
@@ -137,6 +138,7 @@ export function CalendarEventDialog({
   defaultCalendarId,
   onSubmit, 
   onDelete, 
+  onClone,
   onDeleteAllInSeries, 
   onDeleteThisAndFuture, 
   onDeleteThisOccurrence,
@@ -629,6 +631,19 @@ export function CalendarEventDialog({
               >
                 {isReadOnly ? 'Close' : 'Cancel'}
               </Button>
+              {selectedEvent && onClone && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClone(selectedEvent);
+                    onOpenChange(false);
+                  }}
+                >
+                  Clone
+                </Button>
+              )}
               {selectedEvent && !isReadOnly && (
                 <>
                   {selectedEvent.recurrencePattern && selectedEvent.recurrencePattern.frequency !== RecurrenceFrequency.None ? (

@@ -21,7 +21,7 @@ export function useCalendarEvents(
   // Initialize specialized hooks
   const { loadEvents, loadEventsWithCalendars } = useEventLoader(calendars, eventActions);
   
-  const { handleSubmitEvent, handleDeleteEvent, moveEventToCalendar } = useEventCRUD(
+  const { handleSubmitEvent, handleDeleteEvent, handleCloneEvent, moveEventToCalendar } = useEventCRUD(
     events, 
     calendars, 
     eventActions, 
@@ -53,6 +53,7 @@ export function useCalendarEvents(
     loadEventsWithCalendars,
     handleSubmitEvent,
     handleDeleteEvent,
+    handleCloneEvent,
     handleDeleteThisOccurrence,
     handleDeleteThisAndFuture,
     handleEventUpdate,

@@ -22,6 +22,7 @@ interface SchedulerMobileProps {
   readonly onEventUpdate: (updatedEvent: CalendarEvent) => void;
   readonly onSubmitEvent: (eventData: any) => Promise<void>;
   readonly onDeleteEvent: (id: string) => Promise<void>;
+  readonly onClone?: (event: CalendarEvent) => Promise<boolean>;
   readonly isLoading: boolean;
 }
 
@@ -37,6 +38,7 @@ export function SchedulerMobile({
   onEventUpdate,
   onSubmitEvent,
   onDeleteEvent,
+  onClone,
   isLoading
 }: SchedulerMobileProps) {
   const [activeTab, setActiveTab] = useState<'tasks' | 'calendar'>('tasks');
@@ -159,6 +161,14 @@ export function SchedulerMobile({
       console.error('Error deleting event:', error);
     }
   }, [onDeleteEvent]);
+
+  const handleCloneEvent = useCallback(async (event: CalendarEvent) => {
+    if (onClone) {
+      await onClone(event);
+      setIsEventDialogOpen(false);
+      setSelectedEvent(null);
+    }
+  }, [onClone]);
 
   // Open event for editing
   const openEditEvent = useCallback((event: CalendarEvent) => {
@@ -359,6 +369,7 @@ export function SchedulerMobile({
         defaultCalendarId={defaultCalendar?.id || ''}
         onSubmit={handleSubmitEvent}
         onDelete={handleDeleteEvent}
+        onClone={handleCloneEvent}
       />
     </div>
   );

@@ -106,6 +106,67 @@ export const useEventCRUD = (
     }
   };
 
+  const handleCloneEvent = async (eventToClone: CalendarEvent): Promise<boolean> => {
+    if (!encryptionKey) return false;
+    
+    try {
+      // Create a new event based on the original, but without the ID
+      const clonedEventData = {
+        title: `${eventToClone.title} (Copy)`,
+        description: eventToClone.description || '',
+        location: eventToClone.location || '',
+        calendarId: eventToClone.calendarId,
+        isAllDay: eventToClone.isAllDay || false,
+        startTime: eventToClone.startTime.toISOString(),
+        endTime: eventToClone.endTime.toISOString(),
+        // Don't clone recurrence patterns to avoid confusion
+        recurrenceFrequency: 'none' as const,
+        recurrenceInterval: 1,
+        recurrenceEndDate: undefined,
+        daysOfWeek: undefined
+      };
+
+      // Find the calendar for the event
+      const calendar = calendars.find(cal => cal.id === eventToClone.calendarId);
+      if (!calendar) {
+        setError('Calendar not found for cloned event');
+        return false;
+      }
+
+      // Encrypt and save the cloned event
+      const { encryptedData, salt, iv } = encryptEventData(clonedEventData, encryptionKey);
+      
+      if (skipNextEventReload) {
+        skipNextEventReload();
+      }
+      
+      const newEventRecord = await addCalendarEvent(encryptedData, iv, salt);
+      
+      // Create the new event object
+      const newEvent: CalendarEvent = {
+        id: newEventRecord.id,
+        title: clonedEventData.title,
+        description: clonedEventData.description,
+        location: clonedEventData.location,
+        calendarId: clonedEventData.calendarId,
+        calendar: calendar,
+        isAllDay: clonedEventData.isAllDay,
+        startTime: eventToClone.startTime,
+        endTime: eventToClone.endTime,
+        createdAt: new Date(newEventRecord.created_at),
+        updatedAt: newEventRecord.updated_at ? new Date(newEventRecord.updated_at) : undefined
+      };
+      
+      // Add the new event to the events list
+      eventActions.setEvents(prevEvents => [...prevEvents, newEvent]);
+      return true;
+    } catch (error) {
+      console.error('Error cloning event:', error);
+      setError('Failed to clone event');
+      return false;
+    }
+  };
+
   const moveEventToCalendar = async (eventId: string, targetCalendarId: string): Promise<void> => {
     if (!encryptionKey) return;
     
@@ -159,6 +220,7 @@ export const useEventCRUD = (
   return {
     handleSubmitEvent,
     handleDeleteEvent,
+    handleCloneEvent,
     moveEventToCalendar
   };
 };
