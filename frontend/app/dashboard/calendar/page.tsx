@@ -22,11 +22,13 @@ import { useCalendarEvents } from '../../../hooks/calendar/useCalendarEvents';
 import { useCalendarSubscriptions } from '../../../hooks/calendar/useCalendarSubscriptions';
 import { useICSEvents } from '../../../hooks/calendar/useICSEvents';
 import { getDaysOfWeek, getEventsInWeek } from '../../../utils/calendar/calendarHelpers';
+import { startOfWeek } from 'date-fns';
 
 function CalendarContent() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
   const { error, setError } = useError();
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [shouldSelectToday, setShouldSelectToday] = useState<boolean>(false);
@@ -392,6 +394,32 @@ function CalendarContent() {
     setTimeout(() => setShouldSelectToday(false), 100);
   }, []);
 
+  // Handle date selection from month overview
+  const handleDateSelect = useCallback((date: Date) => {
+    setSelectedDate(date);
+    // Navigate to the week containing the selected date (Monday as start of week)
+    const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+    setCurrentWeek(weekStart);
+  }, []);
+
+  // Update selected date when current week changes (from header navigation)
+  useEffect(() => {
+    // Only update if the selected date is not in the current week
+    const currentWeekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
+    const selectedDateWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    
+    if (currentWeekStart.getTime() !== selectedDateWeekStart.getTime()) {
+      // Set selected date to the first day of the current week
+      setSelectedDate(currentWeekStart);
+    }
+  }, [currentWeek, selectedDate]);
+
+  // Handle month change from month overview
+  const handleMonthChange = useCallback((date: Date) => {
+    // Optional: You could navigate to the first week of the month
+    // For now, just keep the current week unless it's outside the new month
+  }, []);
+
   // Show loading or auth required message
   if (isLoadingKey) {
     return <div className="text-center py-8">Loading...</div>;
@@ -470,6 +498,10 @@ function CalendarContent() {
           onCalendarEdit={handleCalendarEdit}
           onCalendarDelete={handleCalendarDeleteWithEvents}
           onSetDefaultCalendar={setCalendarAsDefault}
+          selectedDate={selectedDate}
+          currentWeek={currentWeek}
+          onDateSelect={handleDateSelect}
+          onMonthChange={handleMonthChange}
         />
         
         {/* Main Calendar Content */}

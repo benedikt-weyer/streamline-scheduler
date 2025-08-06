@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, CalendarType } from '@/utils/calendar/calendar-types';
+import { MonthOverview } from './month-overview';
 
 interface CalendarSidebarProps {
   calendars: Calendar[];
@@ -18,6 +19,10 @@ interface CalendarSidebarProps {
   onCalendarEdit: (calendarId: string, name: string, color: string) => void;
   onCalendarDelete: (calendarId: string) => void;
   onSetDefaultCalendar: (calendarId: string) => void; // New prop for setting default calendar
+  selectedDate?: Date;
+  currentWeek?: Date;
+  onDateSelect?: (date: Date) => void;
+  onMonthChange?: (date: Date) => void;
 }
 
 export function CalendarSidebar({
@@ -28,7 +33,11 @@ export function CalendarSidebar({
   onICSCalendarRefresh,
   onCalendarEdit,
   onCalendarDelete,
-  onSetDefaultCalendar
+  onSetDefaultCalendar,
+  selectedDate,
+  currentWeek,
+  onDateSelect,
+  onMonthChange
 }: CalendarSidebarProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -112,6 +121,16 @@ export function CalendarSidebar({
 
   return (
     <div className="w-60 border-r p-2 h-full">
+      {/* Month Overview */}
+      <div className="mb-6">
+        <MonthOverview
+          selectedDate={selectedDate}
+          currentWeek={currentWeek}
+          onDateSelect={onDateSelect}
+          onMonthChange={onMonthChange}
+        />
+      </div>
+
       <div className="flex justify-between items-center mb-4">
         <h2 className="font-semibold text-lg">My Calendars</h2>
         <Button
