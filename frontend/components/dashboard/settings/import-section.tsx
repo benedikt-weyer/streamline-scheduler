@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useError } from '@/utils/context/ErrorContext';
-import { importUserData, type ExportedData } from '@/app/dashboard/settings/actions';
+import { importUserData, importDecryptedUserData, type ExportedData, type DecryptedExportData } from '@/app/dashboard/settings/actions';
 import { decryptData, deriveKeyFromPassword } from '@/utils/cryptography/encryption';
-import { Upload, Eye, AlertTriangle, CheckCircle, Lock, Unlock } from 'lucide-react';
+import { Upload, Eye, AlertTriangle, CheckCircle, Lock, Unlock, FileText } from 'lucide-react';
 // Remove unused import
 
 interface ImportSectionProps {
@@ -17,10 +17,11 @@ interface ImportSectionProps {
 
 interface ImportPreview {
   isValid: boolean;
-  data?: ExportedData;
+  data?: ExportedData | DecryptedExportData;
   summary: string;
   warnings: string[];
   errors: string[];
+  isDecrypted: boolean;
 }
 
 export function ImportSection({ encryptionKey }: ImportSectionProps) {
@@ -31,6 +32,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
   const [importData, setImportData] = useState<string>('');
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [isPasswordProtected, setIsPasswordProtected] = useState(false);
+  const [isDecryptedFormat, setIsDecryptedFormat] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setError } = useError();
 
@@ -42,19 +44,34 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
       reader.onload = (e) => {
         const content = e.target?.result as string;
         setImportData(content);
-        // Try to detect if it's password protected
+        // Try to detect the format
         try {
           const parsed = JSON.parse(content);
-          setIsPasswordProtected(parsed.encrypted_data && parsed.salt && parsed.iv);
+          const isPasswordProtected = parsed.encrypted_data && parsed.salt && parsed.iv;
+          let isDecrypted = false;
+          
+          if (isPasswordProtected) {
+            // For password protected data, check if it was originally decrypted format
+            isDecrypted = parsed.original_format === 'decrypted';
+          } else {
+            // For non-password protected data, check if it's decrypted format
+            isDecrypted = parsed.data && parsed.data.tasks && 
+              Array.isArray(parsed.data.tasks) && parsed.data.tasks.length > 0 && 
+              typeof parsed.data.tasks[0].content === 'string'; // Decrypted tasks have direct content field
+          }
+          
+          setIsPasswordProtected(isPasswordProtected);
+          setIsDecryptedFormat(isDecrypted);
         } catch {
           setIsPasswordProtected(false);
+          setIsDecryptedFormat(false);
         }
       };
       reader.readAsText(file);
     }
   };
 
-  const decryptImportData = (rawData: string, password?: string): ExportedData | null => {
+  const decryptImportData = (rawData: string, password?: string): ExportedData | DecryptedExportData | null => {
     try {
       const parsed = JSON.parse(rawData);
       
@@ -71,7 +88,12 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
           throw new Error('Failed to decrypt data - check password');
         }
         
-        return decrypted as ExportedData;
+        // Check if this was originally a decrypted format that was password protected
+        if (parsed.original_format === 'decrypted') {
+          return decrypted as DecryptedExportData;
+        } else {
+          return decrypted as ExportedData;
+        }
       } else {
         // Plain JSON format
         return parsed as ExportedData;
@@ -82,7 +104,24 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
     }
   };
 
-  const validateImportData = (data: ExportedData): ImportPreview => {
+  const parseDecryptedData = (rawData: string): DecryptedExportData | null => {
+    try {
+      const parsed = JSON.parse(rawData);
+      
+      // Validate it's a decrypted format
+      if (parsed.data && parsed.data.tasks && Array.isArray(parsed.data.tasks) && 
+          parsed.data.tasks.length > 0 && typeof parsed.data.tasks[0].content === 'string') {
+        return parsed as DecryptedExportData;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Failed to parse decrypted data:', error);
+      return null;
+    }
+  };
+
+  const validateImportData = (data: ExportedData | DecryptedExportData, isDecrypted: boolean): ImportPreview => {
     const warnings: string[] = [];
     const errors: string[] = [];
 
@@ -96,7 +135,8 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
         isValid: false,
         summary: 'Invalid import file structure',
         warnings,
-        errors
+        errors,
+        isDecrypted
       };
     }
 
@@ -123,52 +163,84 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
     if (tasks && tasks.length > 0) {
       warnings.push(`Processing ${tasks.length} tasks - duplicates will be automatically skipped`);
       
-      // Check if tasks have required fields
-      const invalidTasks = tasks.filter(task => !task.encrypted_data || !task.iv || !task.salt);
-      if (invalidTasks.length > 0) {
-        errors.push(`${invalidTasks.length} tasks are missing required encryption fields`);
+      if (isDecrypted) {
+        // Check if decrypted tasks have required fields
+        const invalidTasks = tasks.filter((task: any) => !task.content);
+        if (invalidTasks.length > 0) {
+          errors.push(`${invalidTasks.length} tasks are missing required content field`);
+        }
+      } else {
+        // Check if encrypted tasks have required fields
+        const invalidTasks = tasks.filter((task: any) => !task.encrypted_data || !task.iv || !task.salt);
+        if (invalidTasks.length > 0) {
+          errors.push(`${invalidTasks.length} tasks are missing required encryption fields`);
+        }
       }
       
       // Check for tasks with project references
-      const tasksWithProjects = tasks.filter(task => task.project_id);
+      const tasksWithProjects = tasks.filter((task: any) => isDecrypted ? task.projectId : task.project_id);
       if (tasksWithProjects.length > 0) {
-        warnings.push(`${tasksWithProjects.length} tasks reference projects - these relationships will be lost during import`);
+        warnings.push(`${tasksWithProjects.length} tasks reference projects - these relationships will be preserved if projects are also imported`);
       }
     }
     
     if (projects && projects.length > 0) {
       warnings.push(`Processing ${projects.length} projects - duplicates will be automatically skipped`);
       
-      // Check if projects have required fields
-      const invalidProjects = projects.filter(project => !project.encrypted_data || !project.iv || !project.salt);
-      if (invalidProjects.length > 0) {
-        errors.push(`${invalidProjects.length} projects are missing required encryption fields`);
+      if (isDecrypted) {
+        // Check if decrypted projects have required fields
+        const invalidProjects = projects.filter((project: any) => !project.name);
+        if (invalidProjects.length > 0) {
+          errors.push(`${invalidProjects.length} projects are missing required name field`);
+        }
+      } else {
+        // Check if encrypted projects have required fields
+        const invalidProjects = projects.filter((project: any) => !project.encrypted_data || !project.iv || !project.salt);
+        if (invalidProjects.length > 0) {
+          errors.push(`${invalidProjects.length} projects are missing required encryption fields`);
+        }
       }
       
       // Check for nested projects
-      const nestedProjects = projects.filter(project => project.parent_id);
+      const nestedProjects = projects.filter((project: any) => isDecrypted ? project.parentId : project.parent_id);
       if (nestedProjects.length > 0) {
-        warnings.push(`${nestedProjects.length} projects have parent relationships - these relationships will be lost during import`);
+        warnings.push(`${nestedProjects.length} projects have parent relationships - these relationships will be preserved`);
       }
     }
 
     if (calendars && calendars.length > 0) {
       warnings.push(`Processing ${calendars.length} calendars - duplicates will be automatically skipped`);
       
-      // Check if calendars have required fields
-      const invalidCalendars = calendars.filter(calendar => !calendar.encrypted_data || !calendar.iv || !calendar.salt);
-      if (invalidCalendars.length > 0) {
-        errors.push(`${invalidCalendars.length} calendars are missing required encryption fields`);
+      if (isDecrypted) {
+        // Check if decrypted calendars have required fields
+        const invalidCalendars = calendars.filter((calendar: any) => !calendar.name);
+        if (invalidCalendars.length > 0) {
+          errors.push(`${invalidCalendars.length} calendars are missing required name field`);
+        }
+      } else {
+        // Check if encrypted calendars have required fields
+        const invalidCalendars = calendars.filter((calendar: any) => !calendar.encrypted_data || !calendar.iv || !calendar.salt);
+        if (invalidCalendars.length > 0) {
+          errors.push(`${invalidCalendars.length} calendars are missing required encryption fields`);
+        }
       }
     }
 
     if (calendarEvents && calendarEvents.length > 0) {
       warnings.push(`Processing ${calendarEvents.length} calendar events - duplicates will be automatically skipped`);
       
-      // Check if events have required fields
-      const invalidEvents = calendarEvents.filter(event => !event.encrypted_data || !event.iv || !event.salt);
-      if (invalidEvents.length > 0) {
-        errors.push(`${invalidEvents.length} calendar events are missing required encryption fields`);
+      if (isDecrypted) {
+        // Check if decrypted events have required fields
+        const invalidEvents = calendarEvents.filter((event: any) => !event.title);
+        if (invalidEvents.length > 0) {
+          errors.push(`${invalidEvents.length} calendar events are missing required title field`);
+        }
+      } else {
+        // Check if encrypted events have required fields
+        const invalidEvents = calendarEvents.filter((event: any) => !event.encrypted_data || !event.iv || !event.salt);
+        if (invalidEvents.length > 0) {
+          errors.push(`${invalidEvents.length} calendar events are missing required encryption fields`);
+        }
       }
     }
 
@@ -183,7 +255,8 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
       data,
       summary,
       warnings,
-      errors
+      errors,
+      isDecrypted
     };
   };
 
@@ -200,13 +273,33 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
 
     setIsDryRun(true);
     try {
-      const decrypted = decryptImportData(importData, password);
-      if (!decrypted) {
+      let parsedData: ExportedData | DecryptedExportData | null = null;
+      let isDecrypted = false;
+
+      if (isPasswordProtected) {
+        // Handle password-protected data (could be originally encrypted or decrypted)
+        parsedData = decryptImportData(importData, password);
+        if (parsedData) {
+          // Check if the decrypted data is in decrypted format
+          isDecrypted = parsedData.data.tasks && Array.isArray(parsedData.data.tasks) && 
+            parsedData.data.tasks.length > 0 && typeof parsedData.data.tasks[0].content === 'string';
+        }
+      } else if (isDecryptedFormat) {
+        // Handle plain decrypted data
+        parsedData = parseDecryptedData(importData);
+        isDecrypted = true;
+      } else {
+        // Handle plain encrypted data
+        parsedData = decryptImportData(importData);
+        isDecrypted = false;
+      }
+
+      if (!parsedData) {
         setError('Failed to decrypt or parse import data');
         return;
       }
 
-      const preview = validateImportData(decrypted);
+      const preview = validateImportData(parsedData, isDecrypted);
       setPreview(preview);
     } catch (error) {
       console.error('Dry run failed:', error);
@@ -225,19 +318,27 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
     setIsImporting(true);
     try {
       console.log('Starting import process...');
-      await importUserData(preview.data);
+      
+      if (preview.isDecrypted) {
+        await importDecryptedUserData(preview.data as DecryptedExportData, encryptionKey);
+      } else {
+        await importUserData(preview.data as ExportedData);
+      }
+      
       setError(''); // Clear any previous errors
       
       // Success feedback with more detail
-      const summary = `Processed for import: ${preview.data.data.tasks.length} tasks, ${preview.data.data.projects.length} projects, ${preview.data.data.calendars.length} calendars, ${preview.data.data.calendarEvents.length} events`;
+      const formatType = preview.isDecrypted ? 'decrypted' : 'encrypted';
+      const summary = `Processed for import (${formatType} format): ${preview.data.data.tasks.length} tasks, ${preview.data.data.projects.length} projects, ${preview.data.data.calendars.length} calendars, ${preview.data.data.calendarEvents.length} events`;
       
-      alert(`Data import completed!\n\n${summary}\n\nNote: Duplicate items (same encrypted data) were automatically skipped. Some relationships between items may need to be re-established manually. Please refresh the page to see your imported data.`);
+      alert(`Data import completed!\n\n${summary}\n\nNote: Duplicate items were automatically skipped. Please refresh the page to see your imported data.`);
       
       // Reset form
       setImportData('');
       setImportFile(null);
       setPassword('');
       setPreview(null);
+      setIsDecryptedFormat(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -255,7 +356,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
       <div>
         <h2 className="text-xl font-semibold mb-2">Import Your Data</h2>
         <p className="text-sm text-muted-foreground">
-          Import data from a previous export. Run a dry run first to preview what will be imported.
+          Import data from a previous export. Supports both encrypted and decrypted formats. Run a dry run first to preview what will be imported.
         </p>
       </div>
 
@@ -281,9 +382,33 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
             </Button>
           </div>
           {importFile && (
-            <p className="text-sm text-muted-foreground">
-              Selected: {importFile.name} ({(importFile.size / 1024).toFixed(1)}KB)
-            </p>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Selected: {importFile.name} ({(importFile.size / 1024).toFixed(1)}KB)
+              </p>
+              {(isPasswordProtected || isDecryptedFormat) && (
+                <div className="flex items-center gap-2 text-xs">
+                  {isPasswordProtected ? (
+                    <>
+                      <Lock className="h-3 w-3" />
+                      <span className="text-amber-600">
+                        Password Protected Format Detected {isDecryptedFormat ? '(Originally Decrypted)' : '(Originally Encrypted)'}
+                      </span>
+                    </>
+                  ) : isDecryptedFormat ? (
+                    <>
+                      <FileText className="h-3 w-3" />
+                      <span className="text-blue-600">Decrypted Format Detected</span>
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="h-3 w-3" />
+                      <span className="text-gray-600">Plain JSON (Encrypted) Format</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
 
@@ -310,7 +435,31 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
           <Textarea
             id="import-data"
             value={importData}
-            onChange={(e) => setImportData(e.target.value)}
+            onChange={(e) => {
+              setImportData(e.target.value);
+              // Re-detect format when data changes
+              try {
+                const parsed = JSON.parse(e.target.value);
+                const isPasswordProtected = parsed.encrypted_data && parsed.salt && parsed.iv;
+                let isDecrypted = false;
+                
+                if (isPasswordProtected) {
+                  // For password protected data, check if it was originally decrypted format
+                  isDecrypted = parsed.original_format === 'decrypted';
+                } else {
+                  // For non-password protected data, check if it's decrypted format
+                  isDecrypted = parsed.data && parsed.data.tasks && 
+                    Array.isArray(parsed.data.tasks) && parsed.data.tasks.length > 0 && 
+                    typeof parsed.data.tasks[0].content === 'string';
+                }
+                
+                setIsPasswordProtected(isPasswordProtected);
+                setIsDecryptedFormat(isDecrypted);
+              } catch {
+                setIsPasswordProtected(false);
+                setIsDecryptedFormat(false);
+              }
+            }}
             placeholder="Paste your exported JSON data here..."
             className="h-32 text-xs font-mono"
           />
@@ -377,10 +526,15 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
                     <Lock className="h-3 w-3" />
                     Password Protected
                   </>
+                ) : preview.isDecrypted ? (
+                  <>
+                    <FileText className="h-3 w-3" />
+                    Decrypted
+                  </>
                 ) : (
                   <>
                     <Unlock className="h-3 w-3" />
-                    Plain JSON
+                    Plain JSON (Encrypted)
                   </>
                 )}
               </span>

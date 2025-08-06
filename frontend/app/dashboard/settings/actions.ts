@@ -345,4 +345,296 @@ export async function importUserData(data: ExportedData): Promise<void> {
     console.error('Error importing user data:', error);
     throw new Error(`Failed to import user data: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+// Export decrypted data (requires encryption key on client side)
+export interface DecryptedExportData {
+  version: string;
+  timestamp: string;
+  userId: string;
+  data: {
+    tasks: DecryptedTask[];
+    projects: DecryptedProject[];
+    calendars: DecryptedCalendar[];
+    calendarEvents: DecryptedCalendarEvent[];
+    profile?: any;
+  };
+}
+
+export interface DecryptedTask {
+  content: string;
+  completed: boolean;
+  estimatedDuration?: number;
+  impact?: number;
+  urgency?: number;
+  dueDate?: string;
+  blockedBy?: string[];
+  projectId?: string;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface DecryptedProject {
+  name: string;
+  color: string;
+  parentId?: string;
+  displayOrder: number;
+  isCollapsed: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface DecryptedCalendar {
+  name: string;
+  color: string;
+  isVisible: boolean;
+  isDefault: boolean;
+  type: string;
+  icsUrl?: string;
+  lastSync?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface DecryptedCalendarEvent {
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  isAllDay: boolean;
+  recurrence?: any;
+  calendarId: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// Import decrypted data and convert it back to encrypted format for storage
+export async function importDecryptedUserData(
+  decryptedData: DecryptedExportData, 
+  encryptionKey: string
+): Promise<void> {
+  const supabase = await createClientServer();
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  console.log('Starting decrypted import for user:', user.id);
+  console.log('Decrypted data to import:', {
+    projects: decryptedData.data.projects.length,
+    calendars: decryptedData.data.calendars.length,
+    tasks: decryptedData.data.tasks.length,
+    calendarEvents: decryptedData.data.calendarEvents.length,
+    hasProfile: !!decryptedData.data.profile
+  });
+
+  try {
+    // Import the crypto functions on the server side
+    const crypto = await import('@/utils/cryptography/encryption');
+    const { generateSalt, generateIV, deriveKeyFromPassword, encryptData } = crypto;
+
+    // Helper function to encrypt and prepare data for insertion
+    const encryptForInsert = (items: any[], encryptionKey: string) => {
+      return items.map(item => {
+        const salt = generateSalt();
+        const iv = generateIV();
+        const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+        const encryptedData = encryptData(item, derivedKey, iv);
+        
+        return {
+          encrypted_data: encryptedData,
+          salt,
+          iv,
+          user_id: user.id
+        };
+      });
+    };
+
+    // Helper function to find duplicates by comparing encrypted data
+    const findNewEntries = (newItems: any[], existingItems: any[]) => {
+      return newItems.filter(newItem => {
+        const isDuplicate = existingItems.some(existing => 
+          existing.encrypted_data === newItem.encrypted_data &&
+          existing.iv === newItem.iv &&
+          existing.salt === newItem.salt
+        );
+        return !isDuplicate;
+      });
+    };
+
+    // Fetch existing data to check for duplicates
+    console.log('Fetching existing data to check for duplicates...');
+    const [existingTasks, existingProjects, existingCalendars, existingEvents] = await Promise.all([
+      supabase.from('can_do_list').select('encrypted_data, iv, salt').eq('user_id', user.id),
+      supabase.from('projects').select('encrypted_data, iv, salt').eq('user_id', user.id),
+      supabase.from('calendars').select('encrypted_data, iv, salt').eq('user_id', user.id),
+      supabase.from('calendar_events').select('encrypted_data, iv, salt').eq('user_id', user.id)
+    ]);
+
+    // Import data in correct order to handle foreign key constraints
+
+    // 1. Import projects first
+    if (decryptedData.data.projects && decryptedData.data.projects.length > 0) {
+      console.log('Processing decrypted projects for import...');
+      const projectsToInsert = encryptForInsert(
+        decryptedData.data.projects.map(project => ({
+          name: project.name,
+          color: project.color
+        })), 
+        encryptionKey
+      ).map((project, index) => ({
+        ...project,
+        parent_id: decryptedData.data.projects[index].parentId || null,
+        display_order: decryptedData.data.projects[index].displayOrder,
+        is_collapsed: decryptedData.data.projects[index].isCollapsed
+      }));
+      
+      const newProjects = findNewEntries(projectsToInsert, existingProjects.data || []);
+      const skippedProjectsCount = projectsToInsert.length - newProjects.length;
+      
+      if (skippedProjectsCount > 0) {
+        console.log(`Skipping ${skippedProjectsCount} duplicate projects`);
+      }
+      
+      if (newProjects.length > 0) {
+        console.log(`Inserting ${newProjects.length} new projects...`);
+        const { error: projectError } = await supabase
+          .from('projects')
+          .insert(newProjects);
+        
+        if (projectError) {
+          console.error('Project insert error:', projectError);
+          throw new Error(`Failed to import projects: ${projectError.message}`);
+        }
+        console.log('Projects imported successfully');
+      }
+    }
+
+    // 2. Import calendars
+    if (decryptedData.data.calendars && decryptedData.data.calendars.length > 0) {
+      console.log('Processing decrypted calendars for import...');
+      const calendarsToInsert = encryptForInsert(
+        decryptedData.data.calendars.map(calendar => ({
+          name: calendar.name,
+          color: calendar.color,
+          isVisible: calendar.isVisible,
+          type: calendar.type,
+          icsUrl: calendar.icsUrl,
+          lastSync: calendar.lastSync
+        })), 
+        encryptionKey
+      ).map((calendar, index) => ({
+        ...calendar,
+        is_default: decryptedData.data.calendars[index].isDefault
+      }));
+      
+      const newCalendars = findNewEntries(calendarsToInsert, existingCalendars.data || []);
+      const skippedCalendarsCount = calendarsToInsert.length - newCalendars.length;
+      
+      if (skippedCalendarsCount > 0) {
+        console.log(`Skipping ${skippedCalendarsCount} duplicate calendars`);
+      }
+      
+      if (newCalendars.length > 0) {
+        console.log(`Inserting ${newCalendars.length} new calendars...`);
+        const { error: calendarError } = await supabase
+          .from('calendars')
+          .insert(newCalendars);
+        
+        if (calendarError) {
+          console.error('Calendar insert error:', calendarError);
+          throw new Error(`Failed to import calendars: ${calendarError.message}`);
+        }
+        console.log('Calendars imported successfully');
+      }
+    }
+
+    // 3. Import tasks
+    if (decryptedData.data.tasks && decryptedData.data.tasks.length > 0) {
+      console.log('Processing decrypted tasks for import...');
+      const tasksToInsert = encryptForInsert(
+        decryptedData.data.tasks.map(task => ({
+          content: task.content,
+          completed: task.completed,
+          estimatedDuration: task.estimatedDuration,
+          impact: task.impact,
+          urgency: task.urgency,
+          dueDate: task.dueDate,
+          blockedBy: task.blockedBy
+        })), 
+        encryptionKey
+      ).map((task, index) => ({
+        ...task,
+        project_id: decryptedData.data.tasks[index].projectId || null,
+        display_order: decryptedData.data.tasks[index].displayOrder
+      }));
+      
+      const newTasks = findNewEntries(tasksToInsert, existingTasks.data || []);
+      const skippedTasksCount = tasksToInsert.length - newTasks.length;
+      
+      if (skippedTasksCount > 0) {
+        console.log(`Skipping ${skippedTasksCount} duplicate tasks`);
+      }
+      
+      if (newTasks.length > 0) {
+        console.log(`Inserting ${newTasks.length} new tasks...`);
+        const { error: taskError } = await supabase
+          .from('can_do_list')
+          .insert(newTasks);
+        
+        if (taskError) {
+          console.error('Task insert error:', taskError);
+          throw new Error(`Failed to import tasks: ${taskError.message}`);
+        }
+        console.log('Tasks imported successfully');
+      }
+    }
+
+    // 4. Import calendar events
+    if (decryptedData.data.calendarEvents && decryptedData.data.calendarEvents.length > 0) {
+      console.log('Processing decrypted calendar events for import...');
+      const eventsToInsert = encryptForInsert(
+        decryptedData.data.calendarEvents.map(event => ({
+          title: event.title,
+          description: event.description,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          isAllDay: event.isAllDay,
+          recurrence: event.recurrence
+        })), 
+        encryptionKey
+      ).map((event, index) => ({
+        ...event,
+        calendar_id: decryptedData.data.calendarEvents[index].calendarId
+      }));
+      
+      const newEvents = findNewEntries(eventsToInsert, existingEvents.data || []);
+      const skippedEventsCount = eventsToInsert.length - newEvents.length;
+      
+      if (skippedEventsCount > 0) {
+        console.log(`Skipping ${skippedEventsCount} duplicate events`);
+      }
+      
+      if (newEvents.length > 0) {
+        console.log(`Inserting ${newEvents.length} new events...`);
+        const { error: eventError } = await supabase
+          .from('calendar_events')
+          .insert(newEvents);
+        
+        if (eventError) {
+          console.error('Event insert error:', eventError);
+          throw new Error(`Failed to import events: ${eventError.message}`);
+        }
+        console.log('Calendar events imported successfully');
+      }
+    }
+    
+    console.log('Decrypted import completed successfully');
+    revalidatePath('/dashboard');
+  } catch (error) {
+    console.error('Error importing decrypted user data:', error);
+    throw new Error(`Failed to import decrypted user data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 } 
