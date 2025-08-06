@@ -35,13 +35,13 @@ export const eventFormSchema = z.object({
     const parsed = parse(value, 'yyyy-MM-dd', new Date());
     return isValid(parsed);
   }, { message: "Valid start date is required" }),
-  startTime: z.string().optional(),
+  startTime: z.string(),
   endDate: z.string().refine(value => {
     if (!value) return false;
     const parsed = parse(value, 'yyyy-MM-dd', new Date());
     return isValid(parsed);
   }, { message: "Valid end date is required" }),
-  endTime: z.string().optional(),
+  endTime: z.string(),
   // Recurrence fields
   recurrenceFrequency: z.nativeEnum(RecurrenceFrequency).default(RecurrenceFrequency.None),
   recurrenceEndDate: z.string().optional(),
