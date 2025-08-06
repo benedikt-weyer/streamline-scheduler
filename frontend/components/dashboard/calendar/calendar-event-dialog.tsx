@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { TimeInput, type QuickTimeOption } from '@/components/ui/time-input';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -28,31 +29,42 @@ export const eventFormSchema = z.object({
   description: z.string().optional(),
   location: z.string().optional(),
   calendarId: z.string().min(1, { message: "Calendar is required" }),
+  isAllDay: z.boolean().default(false),
   startDate: z.string().refine(value => {
     if (!value) return false;
     const parsed = parse(value, 'yyyy-MM-dd', new Date());
     return isValid(parsed);
   }, { message: "Valid start date is required" }),
-  startTime: z.string().refine(value => {
-    if (!value) return false;
-    const parsed = parse(value, 'HH:mm', new Date());
-    return isValid(parsed);
-  }, { message: "Valid start time is required" }),
+  startTime: z.string().optional(),
   endDate: z.string().refine(value => {
     if (!value) return false;
     const parsed = parse(value, 'yyyy-MM-dd', new Date());
     return isValid(parsed);
   }, { message: "Valid end date is required" }),
-  endTime: z.string().refine(value => {
-    if (!value) return false;
-    const parsed = parse(value, 'HH:mm', new Date());
-    return isValid(parsed);
-  }, { message: "Valid end time is required" }),
+  endTime: z.string().optional(),
   // Recurrence fields
   recurrenceFrequency: z.nativeEnum(RecurrenceFrequency).default(RecurrenceFrequency.None),
   recurrenceEndDate: z.string().optional(),
   recurrenceInterval: z.coerce.number().min(1).default(1)
 }).refine(data => {
+  // For all-day events, we don't need time validation
+  if (data.isAllDay) {
+    // For all-day events, just validate that end date is not before start date
+    const startDate = parse(data.startDate, 'yyyy-MM-dd', new Date());
+    const endDate = parse(data.endDate, 'yyyy-MM-dd', new Date());
+    
+    if (!isValid(startDate) || !isValid(endDate)) {
+      return false;
+    }
+    
+    return endDate >= startDate;
+  }
+  
+  // For timed events, validate both date and time
+  if (!data.startTime || !data.endTime) {
+    return false;
+  }
+  
   // Combine date and time to create complete datetime for validation
   const startDate = parse(data.startDate, 'yyyy-MM-dd', new Date());
   const startTime = parse(data.startTime, 'HH:mm', new Date());
@@ -154,6 +166,7 @@ export function CalendarEventDialog({
       description: selectedEvent?.description ?? '',
       location: selectedEvent?.location ?? '',
       calendarId: initialCalendarId,
+      isAllDay: selectedEvent?.isAllDay ?? false,
       startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
       endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
@@ -177,6 +190,7 @@ export function CalendarEventDialog({
       description: selectedEvent?.description ?? '',
       location: selectedEvent?.location ?? '',
       calendarId,
+      isAllDay: selectedEvent?.isAllDay ?? false,
       startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
       endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
@@ -195,14 +209,31 @@ export function CalendarEventDialog({
       // console.log("Form values:", values); // Comment out or remove this log
       
       // Ensure we have valid strings before proceeding
-      if (!values.startDate || !values.startTime || !values.endDate || !values.endTime) {
-        console.error("Missing date/time values:", {
+      if (!values.startDate || !values.endDate) {
+        console.error("Missing date values:", {
           startDate: values.startDate,
-          startTime: values.startTime,
-          endDate: values.endDate,
-          endTime: values.endTime
+          endDate: values.endDate
         });
         return;
+      }
+
+      // For all-day events, ensure we have time values
+      if (values.isAllDay) {
+        if (!values.startTime) {
+          values.startTime = '00:00';
+        }
+        if (!values.endTime) {
+          values.endTime = '23:59';
+        }
+      } else {
+        // For non all-day events, ensure we have time values
+        if (!values.startTime || !values.endTime) {
+          console.error("Missing time values for timed event:", {
+            startTime: values.startTime,
+            endTime: values.endTime
+          });
+          return;
+        }
       }
       
       // Replace empty recurrenceEndDate with undefined to avoid parsing errors
@@ -280,8 +311,8 @@ export function CalendarEventDialog({
         description: pendingModificationData.description,
         location: pendingModificationData.location,
         calendarId: pendingModificationData.calendarId,
-        startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime),
-        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime)
+        startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime || '00:00'),
+        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59')
       };
       await onModifyThisOccurrence(event, modifiedData);
     }
@@ -294,8 +325,8 @@ export function CalendarEventDialog({
         description: pendingModificationData.description,
         location: pendingModificationData.location,
         calendarId: pendingModificationData.calendarId,
-        startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime),
-        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime)
+        startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime || '00:00'),
+        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59')
       };
       await onModifyThisAndFuture(event, modifiedData);
     }
@@ -308,8 +339,8 @@ export function CalendarEventDialog({
         description: pendingModificationData.description,
         location: pendingModificationData.location,
         calendarId: pendingModificationData.calendarId,
-        startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime),
-        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime)
+        startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime || '00:00'),
+        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59')
       };
       await onModifyAllInSeries(event, modifiedData);
     }
@@ -426,8 +457,30 @@ export function CalendarEventDialog({
               )}
             />
             
+            {/* All-Day Toggle */}
+            <FormField
+              control={form.control}
+              name="isAllDay"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between w-full rounded-lg border bg-card p-3 shadow-sm">
+                  <FormLabel 
+                    htmlFor="isAllDay"
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    All Day
+                  </FormLabel>
+                  <Checkbox
+                    id="isAllDay"
+                    onCheckedChange={field.onChange}
+                    checked={field.value}
+                    disabled={isReadOnly}
+                  />
+                </FormItem>
+              )}
+            />
+
             {/* Start Date and Time */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${form.watch('isAllDay') ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               <FormField
                 control={form.control}
                 name="startDate"
@@ -441,31 +494,33 @@ export function CalendarEventDialog({
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time</FormLabel>
-                    <FormControl>
-                      <TimeInput 
-                        {...field} 
-                        quickTimeOptions={startTimeOptions} 
-                        disabled={isReadOnly}
-                        onChange={(value) => {
-                          field.onChange(value);
-                          // Force re-render of end time options when start time changes
-                          form.trigger('endTime');
-                        }}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              {!form.watch('isAllDay') && (
+                <FormField
+                  control={form.control}
+                  name="startTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Time</FormLabel>
+                      <FormControl>
+                        <TimeInput 
+                          {...field} 
+                          quickTimeOptions={startTimeOptions} 
+                          disabled={isReadOnly}
+                          onChange={(value) => {
+                            field.onChange(value);
+                            // Force re-render of end time options when start time changes
+                            form.trigger('endTime');
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
             
             {/* End Date and Time */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${form.watch('isAllDay') ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
               <FormField
                 control={form.control}
                 name="endDate"
@@ -479,22 +534,24 @@ export function CalendarEventDialog({
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Time</FormLabel>
-                    <FormControl>
-                      <TimeInput 
-                        {...field} 
-                        quickTimeOptions={endTimeOptions}
-                        disabled={isReadOnly}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              {!form.watch('isAllDay') && (
+                <FormField
+                  control={form.control}
+                  name="endTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>End Time</FormLabel>
+                      <FormControl>
+                        <TimeInput 
+                          {...field} 
+                          quickTimeOptions={endTimeOptions}
+                          disabled={isReadOnly}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             {/* Recurrence Settings */}

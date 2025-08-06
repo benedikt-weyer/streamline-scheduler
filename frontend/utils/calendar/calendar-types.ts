@@ -52,6 +52,7 @@ export interface CalendarEvent {
   location?: string;
   startTime: Date;
   endTime: Date;
+  isAllDay?: boolean; // New property for all-day events
   calendarId: string; // Reference to the calendar
   calendar?: Calendar; // Optional calendar object
   createdAt: Date;
@@ -80,6 +81,7 @@ export interface EventFormValues {
   startTime: string;
   endDate: string;
   endTime: string;
+  isAllDay?: boolean; // New property for all-day events
   calendarId: string;
   recurrenceFrequency?: RecurrenceFrequency;
   recurrenceEndDate?: string;

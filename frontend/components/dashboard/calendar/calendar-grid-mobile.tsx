@@ -56,6 +56,10 @@ export function CalendarGridMobile({
     isSameDay(event.startTime, selectedDay) || isSameDay(event.endTime, selectedDay)
   );
 
+  // Separate all-day and timed events
+  const allDayEvents = dayEvents.filter(event => event.isAllDay);
+  const timedEvents = dayEvents.filter(event => !event.isAllDay);
+
   // Navigate to previous day
   const goToPreviousDay = () => {
     if (selectedDayIndex > 0) {
@@ -198,6 +202,43 @@ export function CalendarGridMobile({
         })}
       </div>
 
+      {/* All-day events section */}
+      {allDayEvents.length > 0 && (
+        <div className="mb-4 bg-muted/30 rounded-lg p-3">
+          <div className="text-xs font-medium text-muted-foreground mb-2">All Day</div>
+          <div className="space-y-2">
+            {allDayEvents.map(event => {
+              const color = getEventColor(event);
+              return (
+                <div
+                  key={event.id}
+                  className="text-xs px-3 py-2 rounded cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ 
+                    backgroundColor: color,
+                    color: 'white'
+                  }}
+                  onClick={() => handleEventClick(event)}
+                >
+                  <div className="font-medium">
+                    {event.title}
+                  </div>
+                  {event.location && (
+                    <div className="text-xs opacity-90 mt-1">
+                      📍 {event.location}
+                    </div>
+                  )}
+                  {event.description && (
+                    <div className="text-xs opacity-90 mt-1 line-clamp-2">
+                      {event.description}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Time Slots and Events */}
       <div className="flex-1 relative overflow-y-auto">
         <div className="relative">
@@ -217,7 +258,7 @@ export function CalendarGridMobile({
           
           {/* Events overlay */}
           <div className="absolute inset-0 ml-16 pointer-events-none">
-            {groupOverlappingEvents(dayEvents).flatMap(group => {
+            {groupOverlappingEvents(timedEvents).flatMap(group => {
               // For non-overlapping events (group of 1), render normally
               if (group.length === 1) {
                 const event = group[0];

@@ -9,6 +9,7 @@ interface ICSEvent {
   uid: string;
   created?: string;
   'last-modified'?: string;
+  isAllDay?: boolean; // Track if this is an all-day event
 }
 
 /**
@@ -58,12 +59,18 @@ export function parseICSData(icsData: string, calendarId: string): CalendarEvent
               currentEvent.location = value;
               break;
             case 'dtstart':
-            case 'dtstart;value=date':
               currentEvent.dtstart = value;
               break;
+            case 'dtstart;value=date':
+              currentEvent.dtstart = value;
+              currentEvent.isAllDay = true;
+              break;
             case 'dtend':
+              currentEvent.dtend = value;
+              break;
             case 'dtend;value=date':
               currentEvent.dtend = value;
+              currentEvent.isAllDay = true;
               break;
             case 'uid':
               currentEvent.uid = value;
@@ -78,8 +85,16 @@ export function parseICSData(icsData: string, calendarId: string): CalendarEvent
               // Handle DTSTART and DTEND with timezone info
               if (key.startsWith('dtstart')) {
                 currentEvent.dtstart = value;
+                // Check if it's a date-only format (VALUE=DATE)
+                if (key.includes('value=date')) {
+                  currentEvent.isAllDay = true;
+                }
               } else if (key.startsWith('dtend')) {
                 currentEvent.dtend = value;
+                // Check if it's a date-only format (VALUE=DATE)
+                if (key.includes('value=date')) {
+                  currentEvent.isAllDay = true;
+                }
               }
               break;
           }
@@ -105,6 +120,9 @@ function convertICSEventToCalendarEvent(icsEvent: ICSEvent, calendarId: string):
       return null;
     }
     
+    // Detect if this is an all-day event
+    const isAllDay = icsEvent.isAllDay || isDateOnlyFormat(icsEvent.dtstart);
+    
     const event: CalendarEvent = {
       id: `ics-${calendarId}-${icsEvent.uid}`, // Prefix with 'ics-' and calendar ID
       title: icsEvent.summary || 'Untitled Event',
@@ -112,6 +130,7 @@ function convertICSEventToCalendarEvent(icsEvent: ICSEvent, calendarId: string):
       location: icsEvent.location || undefined,
       startTime,
       endTime,
+      isAllDay,
       calendarId,
       createdAt: icsEvent.created ? parseICSDateTime(icsEvent.created) || new Date() : new Date(),
       updatedAt: icsEvent['last-modified'] ? parseICSDateTime(icsEvent['last-modified']) || undefined : undefined
@@ -154,6 +173,14 @@ function parseICSDateTime(dateTimeString: string): Date | null {
     console.error('Error parsing ICS datetime:', dateTimeString, error);
     return null;
   }
+}
+
+/**
+ * Check if a date string is in a date-only format (YYYYMMDD without time)
+ */
+function isDateOnlyFormat(dateTimeString: string): boolean {
+  // Check if it's exactly 8 digits (YYYYMMDD) without time component
+  return /^\d{8}$/.test(dateTimeString);
 }
 
 /**

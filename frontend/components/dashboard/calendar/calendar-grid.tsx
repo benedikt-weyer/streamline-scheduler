@@ -458,8 +458,9 @@ export function CalendarGrid({
 
   // Render events in the calendar grid
   const renderEvents = (day: Date, dayIndex: number) => {
+    // Only render timed events in the main grid
     const dayEvents = events.filter(event => 
-      isSameDay(event.startTime, day) || isSameDay(event.endTime, day)
+      (isSameDay(event.startTime, day) || isSameDay(event.endTime, day)) && !event.isAllDay
     );
     
     if (!dayEvents.length) return null;
@@ -476,6 +477,53 @@ export function CalendarGrid({
       // For overlapping events, render each in its own column
       return group.map((event, columnIndex) => 
         renderSingleEvent(event, day, dayIndex, 10, 100, columnIndex, group.length)
+      );
+    });
+  };
+
+  // Render all-day events for a specific day
+  const renderAllDayEvents = (day: Date) => {
+    const allDayEvents = events.filter(event => {
+      if (!event.isAllDay) return false;
+      
+      // Check if this day falls within the event's date range
+      const eventStart = new Date(event.startTime);
+      eventStart.setHours(0, 0, 0, 0);
+      const eventEnd = new Date(event.endTime);
+      eventEnd.setHours(23, 59, 59, 999);
+      const dayStart = new Date(day);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(day);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      return dayStart <= eventEnd && dayEnd >= eventStart;
+    });
+
+    if (!allDayEvents.length) return null;
+
+    return allDayEvents.map(event => {
+      const calendar = calendars?.find(cal => cal.id === event.calendarId);
+      const eventColor = calendar?.color || '#3B82F6';
+      
+      return (
+        <div
+          key={event.id}
+          className="text-xs px-2 py-1 mb-1 rounded cursor-pointer hover:opacity-80 transition-opacity truncate"
+          style={{ 
+            backgroundColor: eventColor,
+            color: 'white'
+          }}
+          onClick={() => openEditDialog(event)}
+        >
+          <div className="font-medium truncate">
+            {event.title}
+          </div>
+          {event.location && (
+            <div className="text-xs opacity-90 truncate">
+              📍 {event.location}
+            </div>
+          )}
+        </div>
       );
     });
   };
@@ -581,6 +629,26 @@ export function CalendarGrid({
               <div className={`text-lg ${isSameDay(day, new Date()) ? 'bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center' : ''}`}>
                 {format(day, "d")}
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* All-day events section */}
+      <div className="grid grid-cols-[60px_1fr] border-b bg-muted/30">
+        {/* Label for all-day section */}
+        <div className="border-r px-2 py-2 text-xs text-muted-foreground text-right">
+          All Day
+        </div>
+        
+        {/* All-day events for each day */}
+        <div className="grid grid-cols-7">
+          {days.map(day => (
+            <div 
+              key={`allday-${day.toString()}`}
+              className="px-2 py-2 border-r last:border-r-0 min-h-[40px]"
+            >
+              {renderAllDayEvents(day)}
             </div>
           ))}
         </div>

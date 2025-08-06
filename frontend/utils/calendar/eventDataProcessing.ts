@@ -6,8 +6,8 @@ import { combineDateAndTime, createRecurrencePattern } from './recurrenceHelpers
  * Processes and validates event data before encryption
  */
 export const processEventData = (values: any, calendars: Calendar[]) => {
-  const startDateTime = combineDateAndTime(values.startDate, values.startTime);
-  const endDateTime = combineDateAndTime(values.endDate, values.endTime);
+  const startDateTime = combineDateAndTime(values.startDate, values.startTime || '00:00');
+  const endDateTime = combineDateAndTime(values.endDate, values.endTime || '23:59');
   
   const recurrencePattern = createRecurrencePattern(
     values.recurrenceFrequency,
@@ -23,6 +23,7 @@ export const processEventData = (values: any, calendars: Calendar[]) => {
     description: values.description?.trim() ?? '',
     location: values.location?.trim() ?? '',
     calendarId: values.calendarId,
+    isAllDay: values.isAllDay ?? false,
     startTime: startDateTime.toISOString(),
     endTime: endDateTime.toISOString(),
     recurrenceFrequency: values.recurrenceFrequency,
@@ -76,6 +77,7 @@ export const processDecryptedEvent = (
     location: decryptedData.location,
     calendarId: decryptedData.calendarId,
     calendar: calendar,
+    isAllDay: decryptedData.isAllDay ?? false,
     startTime,
     endTime,
     recurrencePattern,
