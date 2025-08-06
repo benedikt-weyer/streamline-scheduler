@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Project, Task, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
-import { ChevronDown, Folder, Star, List } from 'lucide-react';
+import { ChevronDown, Folder, Star, List, Sun } from 'lucide-react';
 
 interface ProjectSelectorMobileProps {
   readonly projects: Project[];
@@ -19,9 +19,11 @@ interface ProjectSelectorMobileProps {
   readonly onProjectSelect: (projectId?: string) => void;
   readonly onRecommendedSelect?: () => void;
   readonly onAllTasksSelect?: () => void;
+  readonly onMyDaySelect?: () => void;
   readonly taskCounts: Record<string, number>;
   readonly isRecommendedSelected?: boolean;
   readonly isAllTasksSelected?: boolean;
+  readonly isMyDaySelected?: boolean;
 }
 
 interface FlattenedProject extends Project {
@@ -35,9 +37,11 @@ export default function ProjectSelectorMobile({
   onProjectSelect,
   onRecommendedSelect,
   onAllTasksSelect,
+  onMyDaySelect,
   taskCounts,
   isRecommendedSelected = false,
-  isAllTasksSelected = false
+  isAllTasksSelected = false,
+  isMyDaySelected = false
 }: ProjectSelectorMobileProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -53,6 +57,11 @@ export default function ProjectSelectorMobile({
 
   const handleAllTasksSelect = () => {
     onAllTasksSelect?.();
+    setIsOpen(false);
+  };
+
+  const handleMyDaySelect = () => {
+    onMyDaySelect?.();
     setIsOpen(false);
   };
 
@@ -82,30 +91,39 @@ export default function ProjectSelectorMobile({
   // Calculate recommended tasks count
       const recommendedCount = tasks.filter(task => !task.completed && (task.impact || task.urgency || task.dueDate)).length;
 
+  // Calculate My Day tasks count
+  const myDayCount = tasks.filter(task => !task.completed && task.myDay).length;
+
   // Get current project name and task count
   const currentProject = selectedProjectId 
     ? projects.find(p => p.id === selectedProjectId)
     : null;
   
-  const currentProjectName = isRecommendedSelected 
-    ? 'Recommended'
-    : isAllTasksSelected
-      ? 'All Tasks'
-      : currentProject?.name ?? DEFAULT_PROJECT_NAME;
-  const currentTaskCount = isRecommendedSelected
-    ? recommendedCount
-    : isAllTasksSelected
-      ? taskCounts['all'] || 0
-      : selectedProjectId 
-        ? taskCounts[selectedProjectId] || 0
-        : taskCounts['inbox'] || 0;
+  const currentProjectName = isMyDaySelected
+    ? 'My Day'
+    : isRecommendedSelected 
+      ? 'Recommended'
+      : isAllTasksSelected
+        ? 'All Tasks'
+        : currentProject?.name ?? DEFAULT_PROJECT_NAME;
+  const currentTaskCount = isMyDaySelected
+    ? myDayCount
+    : isRecommendedSelected
+      ? recommendedCount
+      : isAllTasksSelected
+        ? taskCounts['all'] || 0
+        : selectedProjectId 
+          ? taskCounts[selectedProjectId] || 0
+          : taskCounts['inbox'] || 0;
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="flex items-center gap-2">
           <div className="flex items-center gap-2">
-            {isRecommendedSelected ? (
+            {isMyDaySelected ? (
+              <Sun className="w-3 h-3 text-amber-500" />
+            ) : isRecommendedSelected ? (
               <Star className="w-3 h-3 text-amber-500" />
             ) : isAllTasksSelected ? (
               <List className="w-3 h-3" />
@@ -137,6 +155,26 @@ export default function ProjectSelectorMobile({
           overflowX: 'hidden'
         }}
       >
+        {/* My Day */}
+        {onMyDaySelect && (
+          <DropdownMenuItem
+            onClick={handleMyDaySelect}
+            className={`flex items-center justify-between ${
+              isMyDaySelected ? 'bg-accent' : ''
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Sun className="h-4 w-4 text-amber-500" />
+              <span>My Day</span>
+            </div>
+            {myDayCount > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {myDayCount}
+              </Badge>
+            )}
+          </DropdownMenuItem>
+        )}
+
         {/* Recommended Tasks */}
         {recommendedCount > 0 && onRecommendedSelect && (
           <DropdownMenuItem
@@ -177,7 +215,7 @@ export default function ProjectSelectorMobile({
         <DropdownMenuItem
           onClick={() => handleProjectSelect(undefined)}
           className={`flex items-center justify-between ${
-            selectedProjectId === undefined && !isRecommendedSelected && !isAllTasksSelected ? 'bg-accent' : ''
+            selectedProjectId === undefined && !isRecommendedSelected && !isAllTasksSelected && !isMyDaySelected ? 'bg-accent' : ''
           }`}
         >
           <div className="flex items-center gap-2">

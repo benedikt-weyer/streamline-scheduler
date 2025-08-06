@@ -54,7 +54,8 @@ const editTaskSchema = z.object({
   impact: z.number().int().min(0).max(10).optional(),
   urgency: z.number().int().min(0).max(10).optional(),
   dueDate: z.string().optional(),
-  blockedBy: z.string().optional()
+  blockedBy: z.string().optional(),
+  myDay: z.boolean().optional()
 });
 
 type EditTaskFormValues = z.infer<typeof editTaskSchema>;
@@ -63,7 +64,7 @@ interface EditTaskDialogProps {
   readonly task: Task | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
+  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
   readonly isLoading?: boolean;
   readonly projects?: Project[];
   readonly tasks?: Task[];
@@ -85,7 +86,8 @@ export default function EditTaskDialog({
     defaultValues: {
       content: '',
       estimatedDuration: '',
-      blockedBy: ''
+      blockedBy: '',
+      myDay: false
     }
   });
 
@@ -99,7 +101,8 @@ export default function EditTaskDialog({
         impact: task.impact ?? 0,
         urgency: task.urgency ?? 0,
         dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : '',
-        blockedBy: task.blockedBy ?? ''
+        blockedBy: task.blockedBy ?? '',
+        myDay: task.myDay ?? false
       });
     }
   }, [task, isOpen, form]);
@@ -119,12 +122,13 @@ export default function EditTaskDialog({
       impact === task.impact &&
       urgency === task.urgency &&
       dueDate?.getTime() === task.dueDate?.getTime() &&
-      blockedBy === task.blockedBy
+      blockedBy === task.blockedBy &&
+      values.myDay === task.myDay
     ) {
       onClose();
       return;
     }
-    await onSave(task.id, values.content, duration, values.projectId, impact, urgency, dueDate, blockedBy);
+    await onSave(task.id, values.content, duration, values.projectId, impact, urgency, dueDate, blockedBy, values.myDay);
     onClose();
   };
 
@@ -326,6 +330,20 @@ export default function EditTaskDialog({
                 {form.formState.errors.blockedBy.message}
               </p>
             )}
+          </div>
+
+          {/* My Day Section */}
+          <div className="flex items-center space-x-2">
+            <input
+              id="myDay"
+              type="checkbox"
+              disabled={isLoading}
+              {...form.register('myDay')}
+              className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+            />
+            <Label htmlFor="myDay" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              Add to My Day
+            </Label>
           </div>
 
           {/* Priority Section */}

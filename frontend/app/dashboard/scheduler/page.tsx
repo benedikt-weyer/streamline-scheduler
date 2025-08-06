@@ -52,8 +52,27 @@ function SchedulerPageContent() {
     await deleteTask(id);
   };
 
-  const handleUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string): Promise<void> => {
-    await updateTask(id, content, estimatedDuration, projectId);
+  const handleUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean): Promise<void> => {
+    await updateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay);
+  };
+
+  // Handle toggling My Day status for a task
+  const handleToggleMyDay = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    
+    const newMyDayStatus = !task.myDay;
+    await updateTask(
+      id, 
+      task.content, 
+      task.estimatedDuration, 
+      task.projectId, 
+      task.impact, 
+      task.urgency, 
+      task.dueDate, 
+      task.blockedBy, 
+      newMyDayStatus
+    );
   };
 
   // Calendar hooks
@@ -81,6 +100,7 @@ function SchedulerPageContent() {
   // Project selection state for desktop view
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
+  const [isMyDaySelected, setIsMyDaySelected] = useState(false);
 
 
 
@@ -99,12 +119,21 @@ function SchedulerPageContent() {
   const handleProjectSelect = (projectId?: string) => {
     setSelectedProjectId(projectId);
     setIsAllTasksSelected(false);
+    setIsMyDaySelected(false);
   };
 
   // Handle all tasks selection for desktop view
   const handleAllTasksSelect = () => {
     setIsAllTasksSelected(true);
     setSelectedProjectId(undefined);
+    setIsMyDaySelected(false);
+  };
+
+  // Handle My Day selection for desktop view
+  const handleMyDaySelect = () => {
+    setIsMyDaySelected(true);
+    setSelectedProjectId(undefined);
+    setIsAllTasksSelected(false);
   };
 
   // Calculate task counts per project for sidebar
@@ -122,12 +151,17 @@ function SchedulerPageContent() {
     // Count all active tasks
     counts['all'] = tasks.filter(task => !task.completed).length;
     
+    // Count My Day tasks
+    counts['myDay'] = tasks.filter(task => task.myDay && !task.completed).length;
+    
     return counts;
   }, [tasks, projects]);
 
   // Filter tasks based on selected project for desktop view
   const filteredTasks = useMemo(() => {
-    if (isAllTasksSelected) {
+    if (isMyDaySelected) {
+      return tasks.filter(task => task.myDay && !task.completed);
+    } else if (isAllTasksSelected) {
       return tasks.filter(task => !task.completed);
     } else if (selectedProjectId) {
       return tasks.filter(task => task.projectId === selectedProjectId && !task.completed);
@@ -135,7 +169,7 @@ function SchedulerPageContent() {
       // Show tasks without project (inbox)
       return tasks.filter(task => !task.projectId && !task.completed);
     }
-  }, [tasks, selectedProjectId, isAllTasksSelected]);
+  }, [tasks, selectedProjectId, isAllTasksSelected, isMyDaySelected]);
 
   // Group tasks by project when in "All Tasks" mode for scheduler
   const groupedTasksScheduler = useMemo(() => {
@@ -326,6 +360,7 @@ function SchedulerPageContent() {
           onToggleComplete={handleToggleComplete}
           onDeleteTask={handleDeleteTask}
           onUpdateTask={handleUpdateTask}
+          onToggleMyDay={handleToggleMyDay}
           onEventUpdate={onEventUpdate}
           onSubmitEvent={handleSubmitEventWrapper}
           onDeleteEvent={handleDeleteEventWrapper}
@@ -340,10 +375,12 @@ function SchedulerPageContent() {
           <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-1/6'}`}>
             <ProjectSidebarDynamic
               projects={projects}
+              tasks={tasks}
               selectedProjectId={selectedProjectId}
               onProjectSelect={handleProjectSelect}
               onRecommendedSelect={() => {}} // No-op for scheduler - recommended tasks not implemented
               onAllTasksSelect={handleAllTasksSelect}
+              onMyDaySelect={handleMyDaySelect}
               onAddProject={handleAddProject}
               onUpdateProject={handleUpdateProject}
               onDeleteProject={handleDeleteProject}
@@ -353,6 +390,7 @@ function SchedulerPageContent() {
               itemCounts={taskCounts}
               isCollapsed={isTaskbarCollapsed}
               isAllTasksSelected={isAllTasksSelected}
+              isMyDaySelected={isMyDaySelected}
             />
           </div>
 
@@ -394,6 +432,7 @@ function SchedulerPageContent() {
                               onToggleComplete={handleToggleComplete}
                               onDeleteTask={handleDeleteTask}
                               onUpdateTask={handleUpdateTask}
+                              onToggleMyDay={handleToggleMyDay}
                               projects={projects}
                             />
                           </div>
@@ -411,6 +450,7 @@ function SchedulerPageContent() {
                 onToggleComplete={handleToggleComplete}
                 onDeleteTask={handleDeleteTask}
                 onUpdateTask={handleUpdateTask}
+                onToggleMyDay={handleToggleMyDay}
                 projects={projects}
                 isCollapsed={isTaskbarCollapsed}
                 isLoading={isLoadingTasks || isLoadingProjects}

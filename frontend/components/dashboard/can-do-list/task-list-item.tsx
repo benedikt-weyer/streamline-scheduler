@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 import { useState } from 'react';
-import { Edit, Trash2, Clock, Zap, Calendar, Copy, Shield, AlertCircle, Lock } from 'lucide-react';
+import { Edit, Trash2, Clock, Zap, Calendar, Copy, Shield, AlertCircle, Lock, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 import EditTaskDialog from './edit-task-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -18,12 +18,13 @@ interface TaskListItemProps {
   readonly task: Task;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
+  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
+  readonly onToggleMyDay?: (id: string) => Promise<void>;
   readonly projects?: Project[];
   readonly tasks?: Task[];
 }
 
-export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, projects = [], tasks = [] }: TaskListItemProps) {
+export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, onToggleMyDay, projects = [], tasks = [] }: TaskListItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -61,10 +62,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     setIsEditDialogOpen(true);
   };
 
-  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => {
+  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => {
     setIsUpdating(true);
     try {
-      await onUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy);
+      await onUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay);
     } finally {
       setIsUpdating(false);
     }
@@ -304,6 +305,19 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           </div>
           
           {/* Action buttons */}
+          {onToggleMyDay && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onToggleMyDay(task.id)}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={`p-2 ${task.myDay ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'}`}
+              title={task.myDay ? 'Remove from My Day' : 'Add to My Day'}
+            >
+              <Sun className="h-4 w-4" />
+              <span className="sr-only">{task.myDay ? 'Remove from My Day' : 'Add to My Day'}</span>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

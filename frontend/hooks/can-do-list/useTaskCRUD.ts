@@ -72,7 +72,7 @@ export const useTaskCRUD = (
     }
   }, [encryptionKey, taskActions, setError, skipNextTaskReload]);
 
-  const handleUpdateTask = useCallback(async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string): Promise<boolean> => {
+  const handleUpdateTask = useCallback(async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean): Promise<boolean> => {
     if (!encryptionKey) return false;
     try {
       if (skipNextTaskReload) {
@@ -93,7 +93,8 @@ export const useTaskCRUD = (
         impact: impact,
         urgency: urgency,
         dueDate: dueDate,
-        blockedBy: blockedBy
+        blockedBy: blockedBy,
+        myDay: myDay
       };
       const encryptedData = encryptData(taskData, derivedKey, iv);
       await updateTask(id, encryptedData, iv, salt, projectId);
@@ -111,6 +112,7 @@ export const useTaskCRUD = (
                 urgency: urgency,
                 dueDate: dueDate,
                 blockedBy: blockedBy,
+                myDay: myDay,
                 updatedAt: new Date() 
               }
             : task

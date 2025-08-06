@@ -43,6 +43,7 @@ export default function CanDoListMain() {
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [isRecommendedSelected, setIsRecommendedSelected] = useState(false);
   const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
+  const [isMyDaySelected, setIsMyDaySelected] = useState(false);
 
   // Use the main can-do list hook
   const {
@@ -100,6 +101,7 @@ export default function CanDoListMain() {
     setSelectedProjectId(projectId);
     setIsRecommendedSelected(false);
     setIsAllTasksSelected(false);
+    setIsMyDaySelected(false);
   };
 
   // Handle recommended tasks selection
@@ -107,6 +109,7 @@ export default function CanDoListMain() {
     setIsRecommendedSelected(true);
     setSelectedProjectId(undefined);
     setIsAllTasksSelected(false);
+    setIsMyDaySelected(false);
     setActiveTab('active'); // Recommended tasks are always active
   };
 
@@ -115,12 +118,44 @@ export default function CanDoListMain() {
     setIsAllTasksSelected(true);
     setSelectedProjectId(undefined);
     setIsRecommendedSelected(false);
+    setIsMyDaySelected(false);
+  };
+
+  // Handle My Day selection
+  const handleMyDaySelect = () => {
+    setIsMyDaySelected(true);
+    setSelectedProjectId(undefined);
+    setIsRecommendedSelected(false);
+    setIsAllTasksSelected(false);
+    setActiveTab('active'); // My Day tasks are always active
+  };
+
+  // Handle toggling My Day status for a task
+  const handleToggleMyDay = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    
+    const newMyDayStatus = !task.myDay;
+    await handleUpdateTask(
+      id, 
+      task.content, 
+      task.estimatedDuration, 
+      task.projectId, 
+      task.impact, 
+      task.urgency, 
+      task.dueDate, 
+      task.blockedBy, 
+      newMyDayStatus
+    );
   };
 
   // Filter tasks based on selected project and tab
   const filteredTasks = useMemo(() => {
     let baseTasks;
-    if (isAllTasksSelected) {
+    if (isMyDaySelected) {
+      // Show only My Day tasks
+      baseTasks = tasks.filter(task => task.myDay);
+    } else if (isAllTasksSelected) {
       // Show all tasks regardless of project
       baseTasks = tasks;
     } else if (selectedProjectId) {
@@ -138,7 +173,7 @@ export default function CanDoListMain() {
         return task.completed;
       }
     });
-  }, [tasks, selectedProjectId, activeTab, isAllTasksSelected]);
+  }, [tasks, selectedProjectId, activeTab, isAllTasksSelected, isMyDaySelected]);
 
   // Group tasks by project when in "All Tasks" mode
   const groupedTasks = useMemo(() => {
@@ -259,8 +294,8 @@ export default function CanDoListMain() {
   };
 
   // Handle update action
-  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => {
-    await handleUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy);
+  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => {
+    await handleUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay);
   };
 
   // Handle toggle complete action
@@ -298,13 +333,15 @@ export default function CanDoListMain() {
             {/* Mobile Header */}
             <div className="border-b p-4 flex items-center justify-between">
               <h1 className="text-xl font-bold">
-                {isRecommendedSelected 
-                  ? 'Recommended Tasks'
-                  : isAllTasksSelected
-                    ? 'All Tasks'
-                    : selectedProjectId 
-                      ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
-                      : 'Inbox'
+                {isMyDaySelected
+                  ? 'My Day'
+                  : isRecommendedSelected 
+                    ? 'Recommended Tasks'
+                    : isAllTasksSelected
+                      ? 'All Tasks'
+                      : selectedProjectId 
+                        ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
+                        : 'Inbox'
                 }
               </h1>
               <ProjectSelectorMobile
@@ -314,9 +351,11 @@ export default function CanDoListMain() {
                 onProjectSelect={handleProjectSelect}
                 onRecommendedSelect={handleRecommendedSelect}
                 onAllTasksSelect={handleAllTasksSelect}
+                onMyDaySelect={handleMyDaySelect}
                 taskCounts={taskCounts}
                 isRecommendedSelected={isRecommendedSelected}
                 isAllTasksSelected={isAllTasksSelected}
+                isMyDaySelected={isMyDaySelected}
               />
             </div>
 
@@ -391,6 +430,7 @@ export default function CanDoListMain() {
                                   onToggleComplete={onToggleComplete}
                                   onDeleteTask={onDeleteTask}
                                   onUpdateTask={onUpdateTask}
+                                  onToggleMyDay={handleToggleMyDay}
                                   projects={projects}
                                   tasks={tasks}
                                 />
@@ -407,6 +447,7 @@ export default function CanDoListMain() {
                         onToggleComplete={onToggleComplete}
                         onDeleteTask={onDeleteTask}
                         onUpdateTask={onUpdateTask}
+                        onToggleMyDay={handleToggleMyDay}
                         onReorderTasks={handleReorderTasks}
                         projects={projects}
                         currentProjectId={selectedProjectId}
@@ -460,6 +501,7 @@ export default function CanDoListMain() {
                                   onToggleComplete={onToggleComplete}
                                   onDeleteTask={onDeleteTask}
                                   onUpdateTask={onUpdateTask}
+                                  onToggleMyDay={handleToggleMyDay}
                                   projects={projects}
                                   tasks={tasks}
                                 />
@@ -498,6 +540,7 @@ export default function CanDoListMain() {
                 onProjectSelect={handleProjectSelect}
                 onRecommendedSelect={handleRecommendedSelect}
                 onAllTasksSelect={handleAllTasksSelect}
+                onMyDaySelect={handleMyDaySelect}
                 onAddProject={handleAddProject}
                 onUpdateProject={handleUpdateProject}
                 onDeleteProject={handleDeleteProject}
@@ -507,19 +550,22 @@ export default function CanDoListMain() {
                 itemCounts={taskCounts}
                 isRecommendedSelected={isRecommendedSelected}
                 isAllTasksSelected={isAllTasksSelected}
+                isMyDaySelected={isMyDaySelected}
               />
             </div>
 
             <div className="flex-1 overflow-hidden">
               <div className="p-6 h-full overflow-y-auto">
                 <h1 className="text-2xl font-bold mb-2">
-                  {isRecommendedSelected 
-                    ? 'Recommended Tasks'
-                    : isAllTasksSelected
-                      ? 'All Tasks'
-                      : selectedProjectId 
-                        ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
-                        : 'Inbox'
+                  {isMyDaySelected
+                    ? 'My Day'
+                    : isRecommendedSelected 
+                      ? 'Recommended Tasks'
+                      : isAllTasksSelected
+                        ? 'All Tasks'
+                        : selectedProjectId 
+                          ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
+                          : 'Inbox'
                   }
                 </h1>
                 <ErrorDisplay error={error} />
@@ -584,12 +630,13 @@ export default function CanDoListMain() {
                           } else {
                             const task = item.data as Task;
                             return (
-                              <div key={`task-${task.id}`} className="ml-4">
+                                                            <div key={`task-${task.id}`} className="ml-4">
                                 <TaskListItem
                                   task={task}
                                   onToggleComplete={onToggleComplete}
                                   onDeleteTask={onDeleteTask}
                                   onUpdateTask={onUpdateTask}
+                                  onToggleMyDay={handleToggleMyDay}
                                   projects={projects}
                                   tasks={tasks}
                                 />
@@ -606,13 +653,14 @@ export default function CanDoListMain() {
                         onToggleComplete={onToggleComplete}
                         onDeleteTask={onDeleteTask}
                         onUpdateTask={onUpdateTask}
+                        onToggleMyDay={handleToggleMyDay}
                         onReorderTasks={handleReorderTasks}
                         projects={projects}
                         currentProjectId={selectedProjectId}
                       />
                     )}
                   </TabsContent>
-
+                  
                   <TabsContent value="completed" className="mt-0">
                     <div className="mb-4 flex justify-between items-center">
                       <p className="text-sm text-muted-foreground">
@@ -659,6 +707,7 @@ export default function CanDoListMain() {
                                   onToggleComplete={onToggleComplete}
                                   onDeleteTask={onDeleteTask}
                                   onUpdateTask={onUpdateTask}
+                                  onToggleMyDay={handleToggleMyDay}
                                   projects={projects}
                                   tasks={tasks}
                                 />

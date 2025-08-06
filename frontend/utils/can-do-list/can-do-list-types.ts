@@ -11,6 +11,7 @@ export interface Task {
   urgency?: number; // 1-10, how urgent the task is
   dueDate?: Date; // when the task is due
   blockedBy?: string; // Reference to task that blocks this task
+  myDay?: boolean; // whether the task is added to My Day
 }
 
 export interface EncryptedTask {

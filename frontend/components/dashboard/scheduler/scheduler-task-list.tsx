@@ -15,7 +15,8 @@ interface SchedulerTaskListProps {
   readonly selectedProjectId?: string; // For desktop view
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<void>;
+  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
+  readonly onToggleMyDay?: (id: string) => Promise<void>;
   readonly projects: Project[];
   readonly isCollapsed: boolean;
   readonly isLoading: boolean;
@@ -28,6 +29,7 @@ export function SchedulerTaskList({
   onToggleComplete,
   onDeleteTask,
   onUpdateTask,
+  onToggleMyDay,
   projects,
   isCollapsed,
   isLoading
@@ -252,6 +254,7 @@ export function SchedulerTaskList({
                           onToggleComplete={onToggleComplete}
                           onDeleteTask={onDeleteTask}
                           onUpdateTask={onUpdateTask}
+                          onToggleMyDay={onToggleMyDay}
                           projects={projects}
                         />
                       ))
@@ -273,6 +276,7 @@ export function SchedulerTaskList({
                           onToggleComplete={onToggleComplete}
                           onDeleteTask={onDeleteTask}
                           onUpdateTask={onUpdateTask}
+                          onToggleMyDay={onToggleMyDay}
                           projects={projects}
                         />
                       ))

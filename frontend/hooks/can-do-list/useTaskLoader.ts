@@ -37,7 +37,8 @@ export const useTaskLoader = (
             impact: decryptedData.impact,
             urgency: decryptedData.urgency,
             dueDate: decryptedData.dueDate ? new Date(decryptedData.dueDate) : undefined,
-            blockedBy: decryptedData.blockedBy
+            blockedBy: decryptedData.blockedBy,
+            myDay: decryptedData.myDay
           };
         } catch (error) {
           console.error('Failed to decrypt task:', error);

@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckSquare, Calendar as CalendarIcon, Plus, Clock } from 'lucide-react';
+import { CheckSquare, Calendar as CalendarIcon, Plus, Clock, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format, addMinutes } from 'date-fns';
@@ -17,7 +17,8 @@ interface SchedulerMobileProps {
   readonly calendars: Calendar[];
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string) => Promise<void>;
+  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
+  readonly onToggleMyDay?: (id: string) => Promise<void>;
   readonly onEventUpdate: (updatedEvent: CalendarEvent) => void;
   readonly onSubmitEvent: (eventData: any) => Promise<void>;
   readonly onDeleteEvent: (id: string) => Promise<void>;
@@ -32,6 +33,7 @@ export function SchedulerMobile({
   onToggleComplete,
   onDeleteTask,
   onUpdateTask,
+  onToggleMyDay,
   onEventUpdate,
   onSubmitEvent,
   onDeleteEvent,
@@ -255,15 +257,29 @@ export function SchedulerMobile({
                           )}
                         </div>
 
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleScheduleTask(task)}
-                          className="flex-shrink-0 h-8 px-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                          <span className="sr-only">Schedule task</span>
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {onToggleMyDay && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => onToggleMyDay(task.id)}
+                              className={`flex-shrink-0 h-8 px-2 ${task.myDay ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'}`}
+                              title={task.myDay ? 'Remove from My Day' : 'Add to My Day'}
+                            >
+                              <Sun className="h-4 w-4" />
+                              <span className="sr-only">{task.myDay ? 'Remove from My Day' : 'Add to My Day'}</span>
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleScheduleTask(task)}
+                            className="flex-shrink-0 h-8 px-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            <span className="sr-only">Schedule task</span>
+                          </Button>
+                        </div>
                       </div>
                     );
                   }

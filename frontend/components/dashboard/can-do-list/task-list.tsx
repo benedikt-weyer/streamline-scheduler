@@ -28,7 +28,8 @@ interface TaskListProps {
   isLoading: boolean;
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
-  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
+  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
+  onToggleMyDay?: (id: string) => Promise<void>;
   onReorderTasks: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
   projects?: Project[];
   currentProjectId?: string;
@@ -41,6 +42,7 @@ export default function TaskList({
   onToggleComplete, 
   onDeleteTask, 
   onUpdateTask, 
+  onToggleMyDay,
   onReorderTasks,
   projects = [],
   currentProjectId
@@ -140,6 +142,7 @@ export default function TaskList({
                   onToggleComplete={onToggleComplete}
                   onDeleteTask={onDeleteTask}
                   onUpdateTask={onUpdateTask}
+                  onToggleMyDay={onToggleMyDay}
                   projects={projects}
                   tasks={allTasks ?? tasks}
                 />

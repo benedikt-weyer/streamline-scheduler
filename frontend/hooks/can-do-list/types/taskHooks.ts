@@ -16,7 +16,7 @@ export interface TaskLoaderHook {
 
 export interface TaskCRUDHook {
   handleAddTask: (content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<boolean>;
-  handleUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<boolean>;
+  handleUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<boolean>;
   handleToggleComplete: (id: string, completed: boolean) => Promise<boolean>;
   handleDeleteTask: (id: string) => Promise<boolean>;
   handleMoveTaskToProject: (id: string, projectId?: string) => Promise<boolean>;

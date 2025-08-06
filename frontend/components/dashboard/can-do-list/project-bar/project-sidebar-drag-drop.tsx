@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Project, Task, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
-import { Plus, Folder, FolderOpen, Star, List } from 'lucide-react';
+import { Plus, Folder, FolderOpen, Star, List, Sun } from 'lucide-react';
 import AddProjectDialog from '../add-project-dialog';
 import EditProjectDialog from '../edit-project-dialog';
 import { SortableTree, TreeItems } from 'dnd-kit-sortable-tree';
@@ -17,6 +17,7 @@ interface ProjectSidebarProps {
   readonly onProjectSelect: (projectId?: string) => void;
   readonly onRecommendedSelect: () => void;
   readonly onAllTasksSelect: () => void;
+  readonly onMyDaySelect: () => void;
   readonly onAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onDeleteProject: (id: string) => Promise<boolean>;
@@ -27,6 +28,7 @@ interface ProjectSidebarProps {
   readonly isCollapsed?: boolean;
   readonly isRecommendedSelected?: boolean;
   readonly isAllTasksSelected?: boolean;
+  readonly isMyDaySelected?: boolean;
 }
 
 interface TreeItemData {
@@ -48,6 +50,7 @@ export default function ProjectSidebarWithDragDrop({
   onProjectSelect,
   onRecommendedSelect,
   onAllTasksSelect,
+  onMyDaySelect,
   onAddProject,
   onUpdateProject,
   onDeleteProject,
@@ -57,7 +60,8 @@ export default function ProjectSidebarWithDragDrop({
   itemCounts = {},
   isCollapsed = false,
   isRecommendedSelected = false,
-  isAllTasksSelected = false
+  isAllTasksSelected = false,
+  isMyDaySelected = false
 }: ProjectSidebarProps) {
   console.log('[ProjectSidebarWithDragDrop] Rendering with projects:', projects.length, projects.map(p => p.name));
   
@@ -206,6 +210,9 @@ export default function ProjectSidebarWithDragDrop({
   // Calculate recommended tasks count
       const recommendedCount = tasks.filter(task => !task.completed && (task.impact || task.urgency || task.dueDate)).length;
 
+  // Calculate My Day tasks count
+  const myDayCount = tasks.filter(task => !task.completed && task.myDay).length;
+
   // Calculate all tasks count
   const allTasksCount = itemCounts['all'] || 0;
 
@@ -230,6 +237,26 @@ export default function ProjectSidebarWithDragDrop({
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-2">
+          {/* My Day */}
+          <button
+            onClick={onMyDaySelect}
+            className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-2 ${
+              isMyDaySelected
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-muted/50'
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Sun className="h-4 w-4 flex-shrink-0 text-amber-500" />
+              <span className="truncate font-medium">My Day</span>
+            </div>
+            {myDayCount > 0 && (
+              <Badge variant="secondary" className="text-xs">
+                {myDayCount}
+              </Badge>
+            )}
+          </button>
+
           {/* Recommended Tasks */}
           {recommendedCount > 0 && (
             <button
@@ -254,13 +281,13 @@ export default function ProjectSidebarWithDragDrop({
           <button
             onClick={() => onProjectSelect(undefined)}
             className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-2 ${
-              selectedProjectId === undefined && !isRecommendedSelected && !isAllTasksSelected
+              selectedProjectId === undefined && !isRecommendedSelected && !isAllTasksSelected && !isMyDaySelected
                 ? 'bg-primary text-primary-foreground'
                 : 'hover:bg-muted/50'
             }`}
           >
             <div className="flex items-center gap-2 min-w-0">
-              {selectedProjectId === undefined && !isRecommendedSelected && !isAllTasksSelected ? (
+              {selectedProjectId === undefined && !isRecommendedSelected && !isAllTasksSelected && !isMyDaySelected ? (
                 <FolderOpen className="h-4 w-4 flex-shrink-0" />
               ) : (
                 <Folder className="h-4 w-4 flex-shrink-0" />
