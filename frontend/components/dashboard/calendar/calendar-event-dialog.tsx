@@ -525,6 +525,7 @@ export function CalendarEventDialog({
                           <SelectItem value={RecurrenceFrequency.Daily}>Daily</SelectItem>
                           <SelectItem value={RecurrenceFrequency.Weekly}>Weekly</SelectItem>
                           <SelectItem value={RecurrenceFrequency.Monthly}>Monthly</SelectItem>
+                          <SelectItem value={RecurrenceFrequency.Yearly}>Yearly</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
