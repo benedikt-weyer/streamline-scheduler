@@ -511,7 +511,7 @@ export default function CanDoListMain() {
             </div>
 
             <div className="flex-1 overflow-hidden">
-              <div className="max-w-3xl mx-auto p-6 h-full overflow-y-auto">
+              <div className="p-6 h-full overflow-y-auto">
                 <h1 className="text-2xl font-bold mb-2">
                   {isRecommendedSelected 
                     ? 'Recommended Tasks'
