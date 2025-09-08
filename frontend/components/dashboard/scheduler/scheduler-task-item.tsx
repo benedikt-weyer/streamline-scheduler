@@ -106,7 +106,7 @@ export function SchedulerTaskItem({
         } ${
           isDragging ? 'opacity-30' : ''
         } ${
-          isDragOverlay ? 'shadow-lg rotate-2 scale-105' : ''
+          isDragOverlay ? 'shadow-lg rotate-2 scale-105 max-w-[200px] w-[200px]' : ''
         }`}
       >
         <div 
@@ -126,32 +126,36 @@ export function SchedulerTaskItem({
             <span
               className={`block truncate cursor-pointer ${
                 task.completed ? 'line-through text-muted-foreground' : ''
+              } ${
+                isDragOverlay ? 'text-sm font-medium' : ''
               }`}
               aria-label={`Mark "${task.content}" as ${task.completed ? 'incomplete' : 'complete'}`}
             >
               {task.content}
             </span>
-            <div className="flex items-center gap-2 mt-1">
-              {task.estimatedDuration && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>{formatDuration(task.estimatedDuration)}</span>
-                </div>
-              )}
-              {(() => {
-                const priority = calculatePriority(task.impact, task.urgency);
-                const priorityText = getPriorityDisplayText(priority);
-                if (priorityText) {
-                  return (
-                    <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${getUrgencyColorClass(task.urgency)}`}>
-                      <Zap className="h-3 w-3" />
-                      <span>{priorityText}</span>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-            </div>
+            {!isDragOverlay && (
+              <div className="flex items-center gap-2 mt-1">
+                {task.estimatedDuration && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    <span>{formatDuration(task.estimatedDuration)}</span>
+                  </div>
+                )}
+                {(() => {
+                  const priority = calculatePriority(task.impact, task.urgency);
+                  const priorityText = getPriorityDisplayText(priority);
+                  if (priorityText) {
+                    return (
+                      <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${getUrgencyColorClass(task.urgency)}`}>
+                        <Zap className="h-3 w-3" />
+                        <span>{priorityText}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
           </div>
         </div>
 

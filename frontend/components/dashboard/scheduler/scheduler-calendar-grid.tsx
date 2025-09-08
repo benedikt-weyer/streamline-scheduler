@@ -6,6 +6,12 @@ import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { generateTimeSlots } from '@/utils/calendar/calendar';
 import { calculateCalendarDimensions, calculateEventRendering, groupOverlappingEvents } from '@/utils/calendar/calendar-render';
 import { useDroppable } from '@dnd-kit/core';
+import { 
+  DraggedEvent, 
+  DragPosition, 
+  calculateDraggingEventDateTime,
+  DragMode 
+} from '@/utils/calendar/calendar-drag';
 
 interface SchedulerCalendarGridProps {
   readonly days: Date[];
@@ -31,6 +37,12 @@ export function SchedulerCalendarGrid({
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Add drag state for events
+  const [activeEvent, setActiveEvent] = useState<DraggedEvent | null>(null);
+  const [dragPosition, setDragPosition] = useState<DragPosition | null>(null);
+  const isDraggingRef = useRef(false);
+  const lastDragUpdateRef = useRef<number>(0);
+
   // Update current time every minute
   useEffect(() => {
     setCurrentTime(new Date());
@@ -52,17 +64,192 @@ export function SchedulerCalendarGrid({
     return () => window.removeEventListener('resize', calculateCalendarHeightAndSlotSize);
   }, [timeSlots.length]);
 
+  // Helper function to find day column at mouse position
+  const findDayColumnAtPosition = (clientX: number): Element | null => {
+    if (!containerRef.current) return null;
+    
+    // Get all day columns
+    const dayColumns = containerRef.current.querySelectorAll('.day-column');
+    
+    // Find the column that contains the mouse X position with a small tolerance
+    for (const column of dayColumns) {
+      const rect = column.getBoundingClientRect();
+      // Add 2px tolerance on each side to prevent jittery behavior
+      if (clientX >= (rect.left - 2) && clientX <= (rect.right + 2)) {
+        return column;
+      }
+    }
+    
+    return null;
+  };
+
+  // Helper function to get date from column
+  const getDateFromColumn = (column: Element): Date | null => {
+    const dateString = column.getAttribute('data-date');
+    if (!dateString) return null;
+    return new Date(dateString);
+  };
+
+  // Add global mouse handlers for drag operations
+  useEffect(() => {
+    if (!activeEvent || !onEventUpdate) return;    
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // We're in a drag operation if the mouse moves significantly
+      const dx = Math.abs(e.clientX - activeEvent.initialPosition.x);
+      const dy = Math.abs(e.clientY - activeEvent.initialPosition.y);
+      
+      if (dx > 5 || dy > 5) {
+        isDraggingRef.current = true;
+      }
+      
+      // Update the visual position of the event being dragged
+      if (isDraggingRef.current && containerRef.current) {
+        updateDragPosition(e);
+      }
+    };
+    
+    // Extract position calculation logic to reduce complexity
+    const updateDragPosition = (e: MouseEvent) => {
+      // Throttle updates to prevent excessive recalculation (max 60fps)
+      const now = Date.now();
+      if (now - lastDragUpdateRef.current < 16) return;
+      lastDragUpdateRef.current = now;
+      
+      // Find which day column we're over
+      const columnMouseIsCurrentlyOver = findDayColumnAtPosition(e.clientX);
+      if (!columnMouseIsCurrentlyOver) return;
+
+      const targetDay = getDateFromColumn(columnMouseIsCurrentlyOver);
+      if (!targetDay) return;
+
+      // Calculate new position
+      const columnMouseOverRect = columnMouseIsCurrentlyOver.getBoundingClientRect();
+      
+      // Calculate the new drag position using the utility function
+      const result = calculateDraggingEventDateTime(
+        e.clientY,
+        columnMouseOverRect, 
+        activeEvent, 
+        slotHeight,
+        targetDay
+      );
+      
+      // Update the visual position state
+      setDragPosition(result);
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      // Only process the drag if we actually moved (isDragging)
+      if (isDraggingRef.current && containerRef.current) {
+        processDragEnd(e);
+      }
+      
+      // Reset drag state after a short delay to prevent unwanted clicks
+      setTimeout(() => {
+        isDraggingRef.current = false;
+      }, 50);
+      
+      cleanupDrag();
+    };
+    
+    // Extract the drag end processing logic
+    const processDragEnd = (e: MouseEvent) => {
+      // Find which day column we're over
+      const columnMouseIsCurrentlyOver = findDayColumnAtPosition(e.clientX);
+      if (!columnMouseIsCurrentlyOver) return;
+
+      const targetDay = getDateFromColumn(columnMouseIsCurrentlyOver);
+      if (!targetDay) return;
+
+      // Calculate new position
+      const columnMouseOverRect = columnMouseIsCurrentlyOver.getBoundingClientRect();
+      
+      // Calculate the new drag position using the utility function
+      const result = calculateDraggingEventDateTime(
+        e.clientY,
+        columnMouseOverRect, 
+        activeEvent, 
+        slotHeight,
+        targetDay
+      );
+      
+      // Create updated event
+      const updatedEvent: CalendarEvent = {
+        ...activeEvent.event,
+        startTime: result.startTime,
+        endTime: result.endTime,
+        updatedAt: new Date()
+      };
+      
+      // Update the event
+      onEventUpdate(updatedEvent);
+    };
+
+    // Clean up function
+    const cleanupDrag = () => {
+      setActiveEvent(null);
+      setDragPosition(null);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    // Add event listeners
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    // Clean up on unmount or when activeEvent changes
+    return cleanupDrag;
+  }, [activeEvent, days, onEventUpdate, slotHeight]);
+
+  // Handle the mouse down event on an event div
+  const handleEventMouseDown = (
+    e: React.MouseEvent, 
+    event: CalendarEvent, 
+    dayIndex: number,
+    mode: DragMode = DragMode.Move
+  ) => {
+    // Only enable drag if we can update
+    if (!onEventUpdate) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Get the position of the click within the event element
+    const eventRect = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - eventRect.top;
+    
+    // Set the active event with the offset position
+    setActiveEvent({
+      event,
+      initialPosition: { x: e.clientX, y: e.clientY },
+      offsetY,
+      mode
+    });
+  };
+
   // Handle click on a day cell
   const handleDayClick = (day: Date, e: React.MouseEvent) => {
+    // Don't open dialog if we're in a drag operation
+    if (isDraggingRef.current || activeEvent) return;
+    
     if (containerRef.current) {
       const dayColumnElement = e.currentTarget as HTMLElement;
       const rect = dayColumnElement.getBoundingClientRect();
       const relativeY = e.clientY - rect.top;
       
-      const totalMinutes = (relativeY / slotHeight) * 60;
+      // Ensure the click is within bounds
+      const clampedY = Math.max(0, Math.min(relativeY, rect.height));
+      
+      // Calculate total minutes from top of day
+      const totalMinutes = (clampedY / slotHeight) * 60;
+      
+      // Round to nearest 15-minute interval for better usability
       const snappedMinutes = Math.round(totalMinutes / 15) * 15;
-      const hours = Math.floor(snappedMinutes / 60);
-      const minutes = snappedMinutes % 60;
+      
+      // Calculate hours and minutes components (ensure within day bounds)
+      const hours = Math.min(23, Math.floor(snappedMinutes / 60));
+      const minutes = Math.min(59, snappedMinutes % 60);
       
       const clickedDateTime = new Date(day);
       clickedDateTime.setHours(hours, minutes, 0, 0);
@@ -73,24 +260,31 @@ export function SchedulerCalendarGrid({
     }
   };
 
-  // Handle click on an event
+  // Handle click on an event - only if we're not dragging
   const handleEventClick = (e: React.MouseEvent, event: CalendarEvent) => {
     e.stopPropagation();
+    
+    // Don't open the edit dialog if we're in a drag operation
+    if (isDraggingRef.current) return;
+    
     openEditDialog(event);
   };
 
   // Task-duration-sized drop zone component
   const TaskDurationDropZone = ({ day, startHour, quarterIndex }: { day: Date; startHour: number; quarterIndex: number }) => {
-    // Only show drop zones when there's an active task being dragged
-    if (!activeTask) return null;
+    // Only show drop zones when there's an active task being dragged AND no event is being dragged
+    if (!activeTask || activeEvent) return null;
     
     const minutes = quarterIndex * 15; // 0, 15, 30, 45
     const slotTime = new Date(day);
     slotTime.setHours(startHour, minutes, 0, 0);
     
-    // Calculate drop zone height based on task duration
+    // Get task duration for end time calculation and display
     const taskDuration = activeTask.estimatedDuration || 60; // Default 1 hour
-    const dropZoneHeightPixels = (taskDuration / 60) * slotHeight; // Convert minutes to pixels
+    
+    // Calculate drop zone height - limit to 30 minutes to prevent overlap
+    const maxDropZoneMinutes = 30;
+    const dropZoneHeightPixels = (maxDropZoneMinutes / 60) * slotHeight; // Always 30 minutes = 0.5 * slotHeight
     
     // Calculate if this drop zone would extend beyond the day's end
     const dayEndTime = new Date(day);
@@ -106,28 +300,45 @@ export function SchedulerCalendarGrid({
       id: `quarter-${format(day, 'yyyy-MM-dd')}-${startHour}-${quarterIndex}`,
       data: {
         date: day,
-        time: slotTime
+        time: slotTime,
+        dayString: format(day, 'yyyy-MM-dd'),
+        hourMinute: `${startHour}:${minutes.toString().padStart(2, '0')}`
       }
     });
 
     return (
       <div
         ref={setNodeRef}
-        className={`absolute transition-colors duration-200 ${
-          isOver ? 'bg-primary/20 border-2 border-primary border-dashed' : 'hover:bg-accent/5'
-        }`}
+        className="absolute transition-colors duration-200 hover:bg-accent/5"
         style={{
           top: `${(startHour * slotHeight) + (quarterIndex * slotHeight / 4)}px`,
-          height: `${dropZoneHeightPixels}px`,
-          left: '2px',
-          right: '2px',
-          zIndex: 5
+          height: `${dropZoneHeightPixels - 2}px`, // Subtract 2px for gap
+          left: '1px',
+          right: '1px',
+          zIndex: 5,
+          pointerEvents: 'auto',
+          marginBottom: '2px' // Add small gap between drop zones
         }}
+        data-day={format(day, 'yyyy-MM-dd')}
+        data-hour={startHour}
+        data-quarter={quarterIndex}
       >
+        {/* Single drop indicator - only show when dragging over */}
         {isOver && (
-          <div className="flex flex-col items-center justify-center h-full text-primary font-medium text-xs bg-primary/10 rounded">
+          <div 
+            className="absolute flex flex-col items-center justify-center text-primary font-medium text-xs bg-primary/20 rounded border-2 border-primary border-dashed"
+            style={{
+              top: '0',
+              left: '0',
+              right: '0',
+              height: `${(taskDuration / 60) * slotHeight}px`, // Show full task duration height
+              minHeight: `${dropZoneHeightPixels}px`, // But at least as tall as the drop zone
+              zIndex: 10
+            }}
+          >
             <div>{format(slotTime, 'HH:mm')}</div>
             <div className="text-xs opacity-75">{taskDuration}min</div>
+            <div className="text-xs opacity-50">{format(day, 'MMM d')}</div>
           </div>
         )}
       </div>
@@ -135,7 +346,7 @@ export function SchedulerCalendarGrid({
   };
 
   // Render a single event
-  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number) => {
+  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex = 10, opacity = 100) => {
     const startTime = new Date(event.startTime);
     const endTime = new Date(event.endTime);
     
@@ -154,22 +365,40 @@ export function SchedulerCalendarGrid({
     return (
       <div
         key={event.id}
-        className="absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+        className="absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white shadow-sm cursor-pointer hover:shadow-md transition-shadow group"
         style={{
           top: `${top}px`,
           height: `${height}px`,
           left: '4px',
           right: '4px',
           backgroundColor: bgColor,
-          zIndex: 10
+          zIndex: zIndex,
+          opacity: opacity / 100
         }}
         onClick={(e) => handleEventClick(e, event)}
+        onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex)}
       >
         <div className="font-medium truncate">{event.title}</div>
         {height > 25 && (
           <div className="text-xs truncate">
             {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
           </div>
+        )}
+        
+        {/* Resize handles - only show on hover if we can update */}
+        {onEventUpdate && height > 40 && (
+          <>
+            {/* Top resize handle */}
+            <div 
+              className="absolute top-0 left-0 right-0 h-2 cursor-n-resize opacity-0 group-hover:opacity-100 transition-opacity"
+              onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeTop)}
+            />
+            {/* Bottom resize handle */}
+            <div 
+              className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize opacity-0 group-hover:opacity-100 transition-opacity"
+              onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex, DragMode.ResizeBottom)}
+            />
+          </>
         )}
       </div>
     );
@@ -183,7 +412,57 @@ export function SchedulerCalendarGrid({
     
     if (!dayEvents.length) return null;
     
-    return dayEvents.map(event => renderSingleEvent(event, day, dayIndex));
+    return dayEvents.map(event => {
+      // Don't render the original event if it's being dragged
+      if (activeEvent && activeEvent.event.id === event.id) {
+        return null;
+      }
+      return renderSingleEvent(event, day, dayIndex);
+    });
+  };
+
+  // Helper function to check if dates overlap
+  const areDatesOverlapping = (start1: Date, end1: Date, start2: Date, end2: Date): boolean => {
+    return start1 < end2 && end1 > start2;
+  };
+
+  // Helper function to get end of day
+  const getEndOfDay = (day: Date): Date => {
+    const endOfDay = new Date(day);
+    endOfDay.setHours(23, 59, 59, 999);
+    return endOfDay;
+  };
+
+  // Render drag helper for visual feedback during dragging
+  const renderDragHelper = (dayIndex: number, day: Date, dragPosition: DragPosition | null): React.ReactNode => {
+    // Only render the drag helper for the day where dragging is active
+    if (!activeEvent || !dragPosition) {
+      return null;
+    }
+
+    // Only render drag helper if this day overlaps with the drag position date range   
+    if (!areDatesOverlapping(
+      dragPosition.startTime,
+      dragPosition.endTime,
+      day,
+      getEndOfDay(day)
+    )) {
+      return null;
+    }
+    
+    // Create a temporary event with the dragged position data
+    const draggedEvent: CalendarEvent = {
+      ...activeEvent.event,
+      startTime: dragPosition.startTime,
+      endTime: dragPosition.endTime
+    };
+    
+    // Use a wrapper div to apply the opacity and prevent pointer events
+    return (
+      <div key={`drag-helper-${activeEvent.event.id}`} style={{ pointerEvents: 'none' }}>
+        {renderSingleEvent(draggedEvent, day, dayIndex, 1000, 80)}
+      </div>
+    );
   };
 
   // Calculate current time indicator position
@@ -281,31 +560,40 @@ export function SchedulerCalendarGrid({
                 />
               ))}
               
-              {/* Task-duration-sized drop zones for 15-minute intervals */}
+              {/* Task-duration-sized drop zones for 30-minute intervals */}
               {(() => {
-                // Calculate optimal spacing based on task duration to avoid overlap
-                const taskDuration = activeTask?.estimatedDuration || 60;
-                const dropZoneHeightHours = taskDuration / 60;
+                // Only generate drop zones when there's an active task being dragged
+                if (!activeTask || activeEvent) return null;
                 
-                // Use quarter-hour spacing for short tasks, half-hour for medium, hourly for long
-                const spacingMinutes = taskDuration <= 30 ? 15 : taskDuration <= 90 ? 30 : 60;
-                const spacingQuarters = spacingMinutes / 15;
+                const taskDuration = activeTask.estimatedDuration || 60;
+                
+                // Always use 30-minute spacing
+                const spacingMinutes = 30;
                 
                 const dropZones: React.ReactNode[] = [];
                 
-                for (let hourIndex = 0; hourIndex < timeSlots.length; hourIndex++) {
-                  for (let quarterIndex = 0; quarterIndex < 4; quarterIndex += spacingQuarters) {
-                    if (quarterIndex >= 4) break; // Don't exceed 4 quarters per hour
-                    
-                    dropZones.push(
-                      <TaskDurationDropZone 
-                        key={`drop-${day.toISOString()}-${hourIndex}-${quarterIndex}`}
-                        day={day} 
-                        startHour={hourIndex}
-                        quarterIndex={quarterIndex}
-                      />
-                    );
-                  }
+                // Generate drop zones at 30-minute intervals throughout the day
+                // Start from 0 minutes and increment by 30 minutes
+                for (let totalMinutes = 0; totalMinutes < 24 * 60; totalMinutes += spacingMinutes) {
+                  const hourIndex = Math.floor(totalMinutes / 60);
+                  const minutesInHour = totalMinutes % 60;
+                  const quarterIndex = minutesInHour / 15; // Will be 0 (0:00) or 2 (0:30)
+                  
+                  // Skip if we exceed the time slots length
+                  if (hourIndex >= timeSlots.length) break;
+                  
+                  // Check if this drop zone would extend beyond the day's end
+                  const dropZoneEndMinutes = totalMinutes + taskDuration;
+                  if (dropZoneEndMinutes > 24 * 60) break;
+                  
+                  dropZones.push(
+                    <TaskDurationDropZone 
+                      key={`drop-${format(day, 'yyyy-MM-dd')}-${hourIndex}-${quarterIndex}`}
+                      day={day} 
+                      startHour={hourIndex}
+                      quarterIndex={quarterIndex}
+                    />
+                  );
                 }
                 
                 return dropZones;
@@ -316,6 +604,9 @@ export function SchedulerCalendarGrid({
               
               {/* Events for this day */}
               {renderEvents(day, dayIndex)}
+              
+              {/* Drag helper for visual feedback during dragging */}
+              {renderDragHelper(dayIndex, day, dragPosition)}
             </div>
           ))}
         </div>
