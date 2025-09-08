@@ -8,6 +8,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { ChevronRight, List } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TaskSearchWithFilter } from '@/components/dashboard/shared/task-search-input';
 
 interface SchedulerTaskListProps {
   readonly organizedTasks: Array<{ type: 'project' | 'task'; data: Project | Task }>;
@@ -20,6 +21,8 @@ interface SchedulerTaskListProps {
   readonly projects: Project[];
   readonly isCollapsed: boolean;
   readonly isLoading: boolean;
+  readonly baseTasks?: Task[]; // For search functionality
+  readonly onFilteredTasksChange?: (tasks: Task[], isSearchActive: boolean) => void; // For search functionality
 }
 
 export function SchedulerTaskList({
@@ -32,7 +35,9 @@ export function SchedulerTaskList({
   onToggleMyDay,
   projects,
   isCollapsed,
-  isLoading
+  isLoading,
+  baseTasks = [],
+  onFilteredTasksChange
 }: SchedulerTaskListProps) {
   const { setNodeRef } = useDroppable({
     id: 'task-drop-zone',
@@ -163,11 +168,21 @@ export function SchedulerTaskList({
       <div ref={setNodeRef} className="flex flex-col h-full">
         {/* Header */}
         <div className="border-b p-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <List className="h-4 w-4" />
-            <span>{filteredTasks ? projectName : 'Tasks'}</span>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <List className="h-4 w-4" />
+              <span>{filteredTasks ? projectName : 'Tasks'}</span>
+            </div>
+            {onFilteredTasksChange && baseTasks.length > 0 && (
+              <TaskSearchWithFilter
+                tasks={baseTasks}
+                projects={projects}
+                className="w-48"
+                onFilteredTasksChange={onFilteredTasksChange}
+              />
+            )}
           </div>
-          <div className="text-xs text-muted-foreground mt-1">
+          <div className="text-xs text-muted-foreground">
             Drag tasks to calendar to schedule them
           </div>
         </div>

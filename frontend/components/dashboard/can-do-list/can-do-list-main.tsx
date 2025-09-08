@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Trash2, Search, X } from 'lucide-react';
+import { TaskSearchInput } from '@/components/dashboard/shared/task-search-input';
 import { ScrollToTopButton } from '@/components/ui/scroll-to-top-button';
 import Fuse from 'fuse.js';
 
@@ -643,23 +644,10 @@ export default function CanDoListMain() {
                   </div>
 
                   {/* Search input */}
-                  <div className="relative flex-shrink-0 w-64">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search tasks..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-8 pr-8 h-8 text-sm"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery('')}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
+                  <TaskSearchInput
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                  />
                 </div>
                 <ErrorDisplay error={error} />
                 

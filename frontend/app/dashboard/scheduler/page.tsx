@@ -14,6 +14,7 @@ import ProjectSidebarDynamic from '@/components/dashboard/can-do-list/project-ba
 import { addMinutes, format } from 'date-fns';
 import { List } from 'lucide-react';
 import TaskListItem from '@/components/dashboard/can-do-list/task-list-item';
+import { TaskSearchInput, TaskSearchWithFilter } from '@/components/dashboard/shared/task-search-input';
 
 
 function SchedulerPageContent() {
@@ -102,6 +103,16 @@ function SchedulerPageContent() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
   const [isMyDaySelected, setIsMyDaySelected] = useState(false);
+  
+  // Search state - for the filtered tasks from search component
+  const [searchFilteredTasks, setSearchFilteredTasks] = useState<Task[]>([]);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+
+  // Handle filtered tasks change from search component
+  const handleFilteredTasksChange = (filteredTasks: Task[], searchActive: boolean) => {
+    setSearchFilteredTasks(filteredTasks);
+    setIsSearchActive(searchActive);
+  };
 
 
 
@@ -158,8 +169,8 @@ function SchedulerPageContent() {
     return counts;
   }, [tasks, projects]);
 
-  // Filter tasks based on selected project for desktop view
-  const filteredTasks = useMemo(() => {
+  // Base tasks filtering (without search) - search will be handled by TaskSearchWithFilter component
+  const baseTasks = useMemo(() => {
     if (isMyDaySelected) {
       return tasks.filter(task => task.myDay && !task.completed);
     } else if (isAllTasksSelected) {
@@ -171,6 +182,16 @@ function SchedulerPageContent() {
       return tasks.filter(task => !task.projectId && !task.completed);
     }
   }, [tasks, selectedProjectId, isAllTasksSelected, isMyDaySelected]);
+
+  // Final filtered tasks (base tasks + search filter)
+  const filteredTasks = useMemo(() => {
+    if (isSearchActive) {
+      // When search is active, show search results (even if empty)
+      return searchFilteredTasks;
+    }
+    // When no search is active, show base tasks
+    return baseTasks;
+  }, [searchFilteredTasks, baseTasks, isSearchActive]);
 
   // Group tasks by project when in "All Tasks" mode for scheduler
   const groupedTasksScheduler = useMemo(() => {
@@ -430,11 +451,19 @@ function SchedulerPageContent() {
             {isAllTasksSelected && groupedTasksScheduler ? (
               <div className="flex flex-col h-full">
                 <div className="border-b p-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <List className="h-4 w-4" />
-                    <span>All Tasks</span>
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <List className="h-4 w-4" />
+                      <span>All Tasks</span>
+                    </div>
+                    <TaskSearchWithFilter
+                      tasks={baseTasks}
+                      projects={projects}
+                      className="w-48"
+                      onFilteredTasksChange={handleFilteredTasksChange}
+                    />
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">
+                  <div className="text-xs text-muted-foreground">
                     Drag tasks to calendar to schedule them
                   </div>
                 </div>
@@ -485,6 +514,8 @@ function SchedulerPageContent() {
                 projects={projects}
                 isCollapsed={isTaskbarCollapsed}
                 isLoading={isLoadingTasks || isLoadingProjects}
+                baseTasks={baseTasks}
+                onFilteredTasksChange={handleFilteredTasksChange}
               />
             )}
           </div>

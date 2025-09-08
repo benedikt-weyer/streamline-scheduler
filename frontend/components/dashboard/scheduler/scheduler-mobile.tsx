@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format, addMinutes } from 'date-fns';
 import { CalendarEventDialog, EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
+import { TaskSearchWithFilter } from '@/components/dashboard/shared/task-search-input';
 
 interface SchedulerMobileProps {
   readonly tasks: Task[];
@@ -44,17 +45,35 @@ export function SchedulerMobile({
   const [activeTab, setActiveTab] = useState<'tasks' | 'calendar'>('tasks');
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [searchFilteredTasks, setSearchFilteredTasks] = useState<Task[]>([]);
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [taskToSchedule, setTaskToSchedule] = useState<Task | null>(null);
+
+  // Handle filtered tasks change from search component
+  const handleFilteredTasksChange = (filteredTasks: Task[], searchActive: boolean) => {
+    setSearchFilteredTasks(filteredTasks);
+    setIsSearchActive(searchActive);
+  };
 
   // Get active tasks only
   const activeTasks = useMemo(() => 
     tasks.filter(task => !task.completed), [tasks]
   );
 
+  // Use search filtered tasks if search is active, otherwise use all active tasks
+  const finalFilteredTasks = useMemo(() => {
+    if (isSearchActive) {
+      // When search is active, show search results (even if empty)
+      return searchFilteredTasks;
+    }
+    // When no search is active, show all active tasks
+    return activeTasks;
+  }, [searchFilteredTasks, activeTasks, isSearchActive]);
+
   // Organize tasks by project
   const organizedTasks = useMemo(() => {
     const tasksByProject = new Map<string | undefined, Task[]>();
-    activeTasks.forEach(task => {
+    finalFilteredTasks.forEach(task => {
       const projectId = task.projectId;
       if (!tasksByProject.has(projectId)) {
         tasksByProject.set(projectId, []);
@@ -81,7 +100,7 @@ export function SchedulerMobile({
       });
 
     return organized;
-  }, [activeTasks, projects]);
+  }, [finalFilteredTasks, projects]);
 
   // Get default calendar
   const defaultCalendar = useMemo(() => 
@@ -217,6 +236,16 @@ export function SchedulerMobile({
 
         {/* Tasks Tab */}
         <TabsContent value="tasks" className="flex-1 flex flex-col mt-0">
+          {/* Search Input */}
+          <div className="p-4 border-b bg-background">
+            <TaskSearchWithFilter
+              tasks={activeTasks}
+              projects={projects}
+              className="w-full"
+              onFilteredTasksChange={handleFilteredTasksChange}
+            />
+          </div>
+          
           <div className="flex-1 overflow-y-auto">
             {organizedTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">
