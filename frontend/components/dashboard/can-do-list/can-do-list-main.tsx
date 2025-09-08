@@ -4,7 +4,7 @@ import { useCanDoList } from '@/hooks/can-do-list/useCanDoList';
 import { useProjects } from '@/hooks/can-do-list/can-do-projects/useProjects';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { useError } from '@/utils/context/ErrorContext';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +14,7 @@ import { parseDueDateFromContent } from '@/utils/can-do-list/due-date-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
+import { ScrollToTopButton } from '@/components/ui/scroll-to-top-button';
 
 import ErrorDisplay from './error-display';
 import AddTaskForm from './add-task-form';
@@ -44,6 +45,10 @@ export default function CanDoListMain() {
   const [isRecommendedSelected, setIsRecommendedSelected] = useState(false);
   const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
   const [isMyDaySelected, setIsMyDaySelected] = useState(false);
+  
+  // Refs for scroll containers
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const desktopScrollRef = useRef<HTMLDivElement>(null);
 
   // Use the main can-do list hook
   const {
@@ -420,9 +425,20 @@ export default function CanDoListMain() {
               </div>
 
               {/* Scrollable Content Area */}
-              <div className="flex-1 overflow-y-auto p-4 relative">
+              <div 
+                ref={mobileScrollRef}
+                className="flex-1 overflow-y-auto p-4 relative"
+              >
                 {/* Top gradient shadow - fixed to the scrollable container */}
                 <div className="sticky top-0 left-0 right-0 h-2 bg-gradient-to-b from-background to-transparent pointer-events-none z-30" />
+                
+                {/* Scroll to top button for mobile */}
+                <ScrollToTopButton 
+                  scrollContainerRef={mobileScrollRef}
+                  size="sm"
+                  className="md:hidden"
+                />
+                
                 <div className="relative">
                 {isRecommendedSelected ? (
                   // Show recommended tasks view on mobile
@@ -646,9 +662,13 @@ export default function CanDoListMain() {
               </div>
 
               {/* Scrollable Content Area */}
-              <div className="flex-1 overflow-y-auto px-6 pb-6 relative">
+              <div 
+                ref={desktopScrollRef}
+                className="flex-1 overflow-y-auto px-6 pb-6 relative"
+              >
                 {/* Top gradient shadow - fixed to the scrollable container */}
                 <div className="sticky top-0 left-0 right-0 h-3 bg-gradient-to-b from-background to-transparent pointer-events-none z-30" />
+                
                 <div className="relative">
                 {isRecommendedSelected ? (
                   // Show recommended tasks view
@@ -773,6 +793,13 @@ export default function CanDoListMain() {
                 )}
                 </div>
               </div>
+              
+              {/* Scroll to top button for desktop - positioned outside scrollable area */}
+              <ScrollToTopButton 
+                scrollContainerRef={desktopScrollRef}
+                size="lg"
+                className="hidden md:block"
+              />
             </div>
           </div>
         </div>
