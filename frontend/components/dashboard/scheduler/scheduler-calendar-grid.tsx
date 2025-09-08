@@ -318,9 +318,9 @@ export function SchedulerCalendarGrid({
     // Get task duration for end time calculation and display
     const taskDuration = activeTask.estimatedDuration || 60; // Default 1 hour
     
-    // Calculate drop zone height - limit to 30 minutes to prevent overlap
-    const maxDropZoneMinutes = 30;
-    const dropZoneHeightPixels = (maxDropZoneMinutes / 60) * slotHeight; // Always 30 minutes = 0.5 * slotHeight
+    // Calculate drop zone height - limit to 15 minutes to prevent overlap
+    const maxDropZoneMinutes = 15;
+    const dropZoneHeightPixels = (maxDropZoneMinutes / 60) * slotHeight; // Always 15 minutes = 0.25 * slotHeight
     
     // Calculate if this drop zone would extend beyond the day's end
     const dayEndTime = new Date(day);
@@ -348,12 +348,11 @@ export function SchedulerCalendarGrid({
         className="absolute transition-colors duration-200 hover:bg-accent/5"
         style={{
           top: `${(startHour * slotHeight) + (quarterIndex * slotHeight / 4)}px`,
-          height: `${dropZoneHeightPixels - 2}px`, // Subtract 2px for gap
+          height: `${dropZoneHeightPixels}px`, // Full height without gap
           left: '1px',
           right: '1px',
           zIndex: 5,
-          pointerEvents: 'auto',
-          marginBottom: '2px' // Add small gap between drop zones
+          pointerEvents: 'auto'
         }}
         data-day={format(day, 'yyyy-MM-dd')}
         data-hour={startHour}
@@ -596,24 +595,24 @@ export function SchedulerCalendarGrid({
                 />
               ))}
               
-              {/* Task-duration-sized drop zones for 30-minute intervals */}
+              {/* Task-duration-sized drop zones for 15-minute intervals */}
               {(() => {
                 // Only generate drop zones when there's an active task being dragged
                 if (!activeTask || activeEvent) return null;
                 
                 const taskDuration = activeTask.estimatedDuration || 60;
                 
-                // Always use 30-minute spacing
-                const spacingMinutes = 30;
+                // Use 15-minute spacing for more granular drop zones
+                const spacingMinutes = 15;
                 
                 const dropZones: React.ReactNode[] = [];
                 
-                // Generate drop zones at 30-minute intervals throughout the day
-                // Start from 0 minutes and increment by 30 minutes
+                // Generate drop zones at 15-minute intervals throughout the day
+                // Start from 0 minutes and increment by 15 minutes
                 for (let totalMinutes = 0; totalMinutes < 24 * 60; totalMinutes += spacingMinutes) {
                   const hourIndex = Math.floor(totalMinutes / 60);
                   const minutesInHour = totalMinutes % 60;
-                  const quarterIndex = minutesInHour / 15; // Will be 0 (0:00) or 2 (0:30)
+                  const quarterIndex = minutesInHour / 15; // Will be 0, 1, 2, or 3 for :00, :15, :30, :45
                   
                   // Skip if we exceed the time slots length
                   if (hourIndex >= timeSlots.length) break;
