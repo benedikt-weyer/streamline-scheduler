@@ -11,7 +11,7 @@ interface CalendarGridMobileProps {
   readonly events: CalendarEvent[];
   readonly calendars?: { id: string; color: string; name: string; isVisible: boolean }[];
   readonly openEditDialog: (event: CalendarEvent) => void;
-  readonly openNewEventDialog: (day: Date) => void;
+  readonly openNewEventDialog: (day: Date, isAllDay?: boolean) => void;
   readonly onEventUpdate?: (updatedEvent: CalendarEvent) => void;
   readonly shouldSelectToday?: boolean;
 }
@@ -84,7 +84,21 @@ export function CalendarGridMobile({
     const [hour] = timeSlot.split(':').map(Number);
     const clickTime = new Date(selectedDay);
     clickTime.setHours(hour, 0, 0, 0);
-    openNewEventDialog(clickTime);
+    openNewEventDialog(clickTime, false);
+  };
+
+  // Handle all-day section click
+  const handleAllDayClick = (e: React.MouseEvent) => {
+    // Check if click was on an existing event
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-event-id]')) {
+      return; // Don't create new event if clicking on existing one
+    }
+    
+    // Create a new all-day event for the selected day
+    const allDayDate = new Date(selectedDay);
+    allDayDate.setHours(0, 0, 0, 0);
+    openNewEventDialog(allDayDate, true);
   };
 
   // Calculate event position and height
@@ -203,9 +217,10 @@ export function CalendarGridMobile({
       </div>
 
       {/* All-day events section */}
-      {allDayEvents.length > 0 && (
-        <div className="mb-4 bg-muted/30 rounded-lg p-3">
-          <div className="text-xs font-medium text-muted-foreground mb-2">All Day</div>
+      <div className="mb-4 bg-muted/30 rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors" 
+           onClick={(e) => handleAllDayClick(e)}>
+        <div className="text-xs font-medium text-muted-foreground mb-2">All Day</div>
+        {allDayEvents.length > 0 ? (
           <div className="space-y-2">
             {allDayEvents.map(event => {
               const color = getEventColor(event);
@@ -217,7 +232,11 @@ export function CalendarGridMobile({
                     backgroundColor: color,
                     color: 'white'
                   }}
-                  onClick={() => handleEventClick(event)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEventClick(event);
+                  }}
+                  data-event-id={event.id}
                 >
                   <div className="font-medium">
                     {event.title}
@@ -236,8 +255,12 @@ export function CalendarGridMobile({
               );
             })}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="text-xs text-muted-foreground italic">
+            Tap to add all-day event
+          </div>
+        )}
+      </div>
 
       {/* Time Slots and Events */}
       <div className="flex-1 relative overflow-y-auto">
@@ -349,7 +372,7 @@ export function CalendarGridMobile({
       <div className="fixed bottom-6 right-6 md:hidden">
         <Button
           className="rounded-full h-14 w-14 shadow-lg flex items-center justify-center p-0 min-w-0"
-          onClick={() => openNewEventDialog(selectedDay)}
+          onClick={() => openNewEventDialog(selectedDay, false)}
         >
           <span className="text-2xl">+</span>
         </Button>

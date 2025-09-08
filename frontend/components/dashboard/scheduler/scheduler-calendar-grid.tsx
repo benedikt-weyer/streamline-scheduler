@@ -18,7 +18,7 @@ interface SchedulerCalendarGridProps {
   readonly events: CalendarEvent[];
   readonly calendars?: { id: string; color: string; name: string; isVisible: boolean }[];
   readonly openEditDialog: (event: CalendarEvent) => void;
-  readonly openNewEventDialog: (day: Date) => void;
+  readonly openNewEventDialog: (day: Date, isAllDay?: boolean) => void;
   readonly onEventUpdate?: (updatedEvent: CalendarEvent) => void;
   readonly activeTask?: { id: string; content: string; estimatedDuration?: number } | null;
 }
@@ -290,9 +290,9 @@ export function SchedulerCalendarGrid({
       const clickedDateTime = new Date(day);
       clickedDateTime.setHours(hours, minutes, 0, 0);
       
-      openNewEventDialog(clickedDateTime);
+      openNewEventDialog(clickedDateTime, false);
     } else {
-      openNewEventDialog(day);
+      openNewEventDialog(day, false);
     }
   };
 

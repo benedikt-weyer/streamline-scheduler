@@ -185,7 +185,7 @@ function CalendarContent() {
   }, []);
 
   // Open dialog for creating a new event
-  const openNewEventDialog = useCallback((day?: Date, calendarId?: string) => {
+  const openNewEventDialog = useCallback((day?: Date, isAllDay?: boolean, calendarId?: string) => {
     // If a specific calendar is provided, check if it's read-only
     if (calendarId && isReadOnlyCalendar(calendarId)) {
       setError('Cannot create events in ICS calendars');
@@ -198,9 +198,17 @@ function CalendarContent() {
     if (day) {
       const startTime = new Date(day);
       
-      // Set end time to be 1 hour after start time
+      // For all-day events, set to start of day and end at end of day
+      // For timed events, set end time to be 1 hour after start time
       const endTime = new Date(startTime);
-      endTime.setHours(endTime.getHours() + 1);
+      if (isAllDay) {
+        // For all-day events, set start to beginning of day and end to end of day
+        startTime.setHours(0, 0, 0, 0);
+        endTime.setDate(endTime.getDate());
+        endTime.setHours(23, 59, 59, 999);
+      } else {
+        endTime.setHours(endTime.getHours() + 1);
+      }
       
       // Create a temporary "dummy" event to pass to the form
       const dummyEvent: CalendarEvent = {
@@ -210,6 +218,7 @@ function CalendarContent() {
         calendarId: calendarId ?? fallbackCalendarId,
         startTime: startTime,
         endTime: endTime,
+        isAllDay: isAllDay ?? false,
         createdAt: new Date()
       };
       
@@ -399,8 +408,8 @@ function CalendarContent() {
     openNewEventDialog();
   }, [openNewEventDialog]);
 
-  const openNewEventDialogWithDayHandler = useCallback((day: Date) => {
-    openNewEventDialog(day);
+  const openNewEventDialogWithDayHandler = useCallback((day: Date, isAllDay?: boolean) => {
+    openNewEventDialog(day, isAllDay);
   }, [openNewEventDialog]);
 
   // Handle today selection from mobile header

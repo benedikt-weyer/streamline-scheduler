@@ -87,7 +87,7 @@ export function SchedulerCalendar({
   }, []);
 
   // Open dialog for creating a new event
-  const openNewEventDialog = useCallback((day?: Date, calendarId?: string) => {
+  const openNewEventDialog = useCallback((day?: Date, isAllDay?: boolean, calendarId?: string) => {
     setSelectedEvent(null);
     
     // If a day is provided, set the start time to the clicked time

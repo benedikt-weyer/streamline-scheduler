@@ -19,7 +19,7 @@ interface CalendarGridProps {
   readonly events: CalendarEvent[];
   readonly calendars?: { id: string; color: string; name: string; isVisible: boolean }[]; // Add calendars as an optional prop
   readonly openEditDialog: (event: CalendarEvent) => void;
-  readonly openNewEventDialog: (day: Date) => void;
+  readonly openNewEventDialog: (day: Date, isAllDay?: boolean) => void;
   readonly onEventUpdate?: (updatedEvent: CalendarEvent) => void;
 }
 
@@ -270,11 +270,30 @@ export function CalendarGrid({
       clickedDateTime.setHours(hours, minutes, 0, 0);
       
       // Open dialog with the clicked time
-      openNewEventDialog(clickedDateTime);
+      openNewEventDialog(clickedDateTime, false);
     } else {
       // Fallback to just the day if container ref isn't available
-      openNewEventDialog(day);
+      openNewEventDialog(day, false);
     }
+  };
+
+  // Handle click on all-day section - creates an all-day event
+  const handleAllDayClick = (day: Date, e: React.MouseEvent) => {
+    // Don't open dialog if we're in a drag operation
+    if (isDraggingRef.current || activeEvent) return;
+    
+    // Check if click was on an existing event (event propagation should handle this, but double-check)
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-event-id]')) {
+      return; // Don't create new event if clicking on existing one
+    }
+    
+    // Create a new all-day event for this day
+    // Set time to start of day for all-day events
+    const allDayDate = new Date(day);
+    allDayDate.setHours(0, 0, 0, 0);
+    
+    openNewEventDialog(allDayDate, true);
   };
 
   // Handle click on an event - only if we're not dragging
@@ -509,7 +528,11 @@ export function CalendarGrid({
             backgroundColor: eventColor,
             color: 'white'
           }}
-          onClick={() => openEditDialog(event)}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent triggering the all-day section click
+            openEditDialog(event);
+          }}
+          data-event-id={event.id}
         >
           <div className="font-medium truncate">
             {event.title}
@@ -642,7 +665,8 @@ export function CalendarGrid({
           {days.map(day => (
             <div 
               key={`allday-${day.toString()}`}
-              className="px-2 py-2 border-r last:border-r-0 min-h-[40px]"
+              className="px-2 py-2 border-r last:border-r-0 min-h-[40px] cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={(e) => handleAllDayClick(day, e)}
             >
               {renderAllDayEvents(day)}
             </div>
