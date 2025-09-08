@@ -68,7 +68,21 @@ export const calculateNextOccurrence = (
  */
 export const calculatePreviousOccurrence = (
   startDate: Date,
+  frequency: RecurrenceFrequency,
   interval: number = 1
 ): Date => {
-  return subDays(startDate, interval);
+  switch (frequency) {
+    case RecurrenceFrequency.Daily:
+      return subDays(startDate, interval);
+    case RecurrenceFrequency.Weekly:
+      return addWeeks(startDate, -interval);
+    case RecurrenceFrequency.BiWeekly:
+      return addWeeks(startDate, -2 * interval);
+    case RecurrenceFrequency.Monthly:
+      return addMonths(startDate, -interval);
+    case RecurrenceFrequency.Yearly:
+      return addYears(startDate, -interval);
+    default:
+      throw new Error(`Unknown recurrence frequency: ${frequency}`);
+  }
 };

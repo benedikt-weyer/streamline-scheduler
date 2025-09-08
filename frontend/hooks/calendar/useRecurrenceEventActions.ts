@@ -57,7 +57,11 @@ export const useRecurrenceEventActions = (
     eventToDelete: CalendarEvent, 
     occurrenceStartTime: Date
   ): Promise<{ success: boolean; newEndDate?: Date; error?: string }> => {
-    const newEndOfOriginalEvent = calculatePreviousOccurrence(occurrenceStartTime);
+    const newEndOfOriginalEvent = calculatePreviousOccurrence(
+      occurrenceStartTime,
+      eventToDelete.recurrencePattern!.frequency,
+      eventToDelete.recurrencePattern!.interval
+    );
 
     if (!isValid(newEndOfOriginalEvent)) {
       return { success: false, error: "Cannot process delete: date calculation error." };
@@ -182,19 +186,34 @@ export const useRecurrenceEventActions = (
       skipNextEventReload(); 
     }
 
+    // If this is a recurrence instance, find the master event
+    let masterEvent = eventToDelete;
+    if (eventToDelete.isRecurrenceInstance && eventToDelete.id.includes('-recurrence-')) {
+      const masterEventId = eventToDelete.id.split('-recurrence-')[0];
+      const foundMasterEvent = events.find(e => e.id === masterEventId);
+      if (foundMasterEvent) {
+        masterEvent = foundMasterEvent;
+        // Set the clicked occurrence date for proper handling
+        masterEvent.clickedOccurrenceDate = eventToDelete.startTime;
+      } else {
+        setError('Could not find the master recurring event');
+        return false;
+      }
+    }
+
     // Validate event data
-    const validation = validateEventForOccurrenceDeletion(eventToDelete);
+    const validation = validateEventForOccurrenceDeletion(masterEvent);
     if (!validation.isValid) {
       setError(validation.error ?? 'Validation failed');
       return false;
     }
 
     const occurrenceStartTime = validation.occurrenceStartTime!;
-    const originalRecurrenceEndDate = eventToDelete.recurrencePattern!.endDate;
+    const originalRecurrenceEndDate = masterEvent.recurrencePattern!.endDate;
 
     try {
       // Update the original event to end before this occurrence
-      const updateResult = await updateOriginalEventEndDate(eventToDelete, occurrenceStartTime);
+      const updateResult = await updateOriginalEventEndDate(masterEvent, occurrenceStartTime);
       if (!updateResult.success) {
         setError(updateResult.error ?? 'Failed to update original event');
         return false;
@@ -203,7 +222,7 @@ export const useRecurrenceEventActions = (
       const newEndOfOriginalEvent = updateResult.newEndDate!;
 
       // Create new recurring event starting from next occurrence
-      const createResult = await createNewRecurringEvent(eventToDelete, occurrenceStartTime, originalRecurrenceEndDate);
+      const createResult = await createNewRecurringEvent(masterEvent, occurrenceStartTime, originalRecurrenceEndDate);
       if (!createResult.success) {
         setError(createResult.error ?? 'Failed to create new recurring event');
         return false;
@@ -212,17 +231,17 @@ export const useRecurrenceEventActions = (
       // Update state
       eventActions.setEvents(prevEvents => {
         const modifiedOriginalEvent: CalendarEvent = {
-          ...eventToDelete,
-          id: eventToDelete.id,
+          ...masterEvent,
+          id: masterEvent.id,
           recurrencePattern: {
-            ...eventToDelete.recurrencePattern!,
+            ...masterEvent.recurrencePattern!,
             endDate: endOfDay(newEndOfOriginalEvent),
           },
           updatedAt: new Date(),
         };
 
         let updatedEventsList = prevEvents.map(e =>
-          e.id === eventToDelete.id ? modifiedOriginalEvent : e
+          e.id === masterEvent.id ? modifiedOriginalEvent : e
         );
 
         // Add new event if created
@@ -264,8 +283,23 @@ export const useRecurrenceEventActions = (
   const handleDeleteThisAndFuture = async (eventToDelete: CalendarEvent): Promise<boolean> => {
     if (!encryptionKey || !eventToDelete.recurrencePattern) return false;
 
-    const eventId = eventToDelete.id;
-    const occurrenceDateForFutureDelete = eventToDelete.clickedOccurrenceDate ?? eventToDelete.startTime;
+    // If this is a recurrence instance, find the master event
+    let masterEvent = eventToDelete;
+    let masterEventId = eventToDelete.id;
+    if (eventToDelete.isRecurrenceInstance && eventToDelete.id.includes('-recurrence-')) {
+      masterEventId = eventToDelete.id.split('-recurrence-')[0];
+      const foundMasterEvent = events.find(e => e.id === masterEventId);
+      if (foundMasterEvent) {
+        masterEvent = foundMasterEvent;
+        // Set the clicked occurrence date for proper handling
+        masterEvent.clickedOccurrenceDate = eventToDelete.startTime;
+      } else {
+        setError('Could not find the master recurring event');
+        return false;
+      }
+    }
+
+    const occurrenceDateForFutureDelete = masterEvent.clickedOccurrenceDate ?? masterEvent.startTime;
 
     if (!isValid(occurrenceDateForFutureDelete)) {
       setError("Cannot process delete: invalid event date.");
@@ -279,31 +313,31 @@ export const useRecurrenceEventActions = (
       return false;
     }
 
-    if (isSameDay(eventToDelete.startTime, occurrenceDateForFutureDelete)) {
+    if (isSameDay(masterEvent.startTime, occurrenceDateForFutureDelete)) {
       // If deleting from the start, delete the entire series
-      return await handleDeleteEvent(eventId);
+      return await handleDeleteEvent(masterEventId);
     }
 
     try {
       const eventData = {
-        title: eventToDelete.title,
-        description: eventToDelete.description,
-        location: eventToDelete.location,
-        calendarId: eventToDelete.calendarId,
-        startTime: eventToDelete.startTime.toISOString(),
-        endTime: eventToDelete.endTime.toISOString(),
-        recurrenceFrequency: eventToDelete.recurrencePattern.frequency,
-        recurrenceInterval: eventToDelete.recurrencePattern.interval,
+        title: masterEvent.title,
+        description: masterEvent.description,
+        location: masterEvent.location,
+        calendarId: masterEvent.calendarId,
+        startTime: masterEvent.startTime.toISOString(),
+        endTime: masterEvent.endTime.toISOString(),
+        recurrenceFrequency: masterEvent.recurrencePattern!.frequency,
+        recurrenceInterval: masterEvent.recurrencePattern!.interval,
         recurrenceEndDate: endOfDay(newEndDate).toISOString(),
-        daysOfWeek: eventToDelete.recurrencePattern.daysOfWeek,
+        daysOfWeek: masterEvent.recurrencePattern!.daysOfWeek,
       };
       
       const { encryptedData, salt, iv } = encryptEventData(eventData, encryptionKey);
-      await updateCalendarEvent(eventId, encryptedData, iv, salt);
+      await updateCalendarEvent(masterEventId, encryptedData, iv, salt);
 
       eventActions.setEvents(prevEvents =>
         prevEvents.map(e =>
-          e.id === eventId
+          e.id === masterEventId
             ? {
                 ...e,
                 recurrencePattern: {
