@@ -25,7 +25,7 @@ export function CalendarHeader({ currentWeek, setCurrentWeek, openNewEventDialog
   };
 
   return (
-    <div className="flex justify-between items-center my-1">
+    <div className="flex justify-between items-center my-2">
       <div className="flex items-center space-x-2">
         <div className="flex items-center border rounded-md overflow-hidden mr-4">
           <Button onClick={goToCurrentWeek} size="sm" variant="outline" className="flex items-center gap-1 rounded-r-none border-0">

@@ -173,7 +173,7 @@ export function SchedulerCalendar({
       />
 
       {/* Main Calendar Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden px-4">
         {/* Calendar Header */}
         <CalendarHeader
           currentWeek={currentWeek}
@@ -182,7 +182,7 @@ export function SchedulerCalendar({
         />
 
         {/* Calendar Grid */}
-        <div className="flex-1 overflow-hidden p-4">
+        
           <SchedulerCalendarGrid
             days={daysOfWeek}
             events={eventsInCurrentWeek}
@@ -192,7 +192,7 @@ export function SchedulerCalendar({
             onEventUpdate={onEventUpdate}
             activeTask={activeTask}
           />
-        </div>
+        
       </div>
 
       {/* Event Dialog */}
