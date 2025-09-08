@@ -36,9 +36,15 @@ export function MonthOverview({
   // Update current month when selected date changes
   useEffect(() => {
     if (selectedDate) {
-      setCurrentMonth(selectedDate);
+      // Only update if the month/year actually changed to prevent infinite loops
+      const selectedMonth = startOfMonth(selectedDate);
+      const currentMonthStart = startOfMonth(currentMonth);
+      
+      if (selectedMonth.getTime() !== currentMonthStart.getTime()) {
+        setCurrentMonth(selectedDate);
+      }
     }
-  }, [selectedDate]);
+  }, [selectedDate, currentMonth]);
 
   // Generate calendar days for the current month view
   const monthStart = startOfMonth(currentMonth);

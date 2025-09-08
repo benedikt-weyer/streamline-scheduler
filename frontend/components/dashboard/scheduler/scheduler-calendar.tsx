@@ -166,6 +166,10 @@ export function SchedulerCalendar({
         onCalendarEdit={onCalendarEdit}
         onCalendarDelete={handleCalendarDeleteWithEvents}
         onSetDefaultCalendar={onSetDefaultCalendar}
+        selectedDate={currentWeek}
+        currentWeek={currentWeek}
+        onDateSelect={(date) => setCurrentWeek(date)}
+        onMonthChange={(date) => setCurrentWeek(date)}
       />
 
       {/* Main Calendar Area */}
