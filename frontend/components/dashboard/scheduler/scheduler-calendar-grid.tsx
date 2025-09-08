@@ -36,12 +36,48 @@ export function SchedulerCalendarGrid({
   const [slotHeight, setSlotHeight] = useState(35);
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [layoutKey, setLayoutKey] = useState(0); // Force re-render when layout changes
 
   // Add drag state for events
   const [activeEvent, setActiveEvent] = useState<DraggedEvent | null>(null);
   const [dragPosition, setDragPosition] = useState<DragPosition | null>(null);
   const isDraggingRef = useRef(false);
   const lastDragUpdateRef = useRef<number>(0);
+
+  // Force layout recalculation when activeTask changes (taskbar collapse/expand)
+  useEffect(() => {
+    if (activeTask) {
+      // Small delay to let the taskbar collapse animation complete
+      const timer = setTimeout(() => {
+        setLayoutKey(prev => prev + 1);
+      }, 350); // Match the CSS transition duration
+      return () => clearTimeout(timer);
+    }
+  }, [activeTask]);
+
+  // Watch for container resize and force dropzone recalculation
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    let resizeTimer: NodeJS.Timeout;
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Clear the previous timer
+      clearTimeout(resizeTimer);
+      
+      // Only update after resize has been stable for 400ms (after animation completes)
+      resizeTimer = setTimeout(() => {
+        setLayoutKey(prev => prev + 1);
+      }, 400);
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      clearTimeout(resizeTimer);
+    };
+  }, []);
 
   // Update current time every minute
   useEffect(() => {
@@ -588,7 +624,7 @@ export function SchedulerCalendarGrid({
                   
                   dropZones.push(
                     <TaskDurationDropZone 
-                      key={`drop-${format(day, 'yyyy-MM-dd')}-${hourIndex}-${quarterIndex}`}
+                      key={`drop-${format(day, 'yyyy-MM-dd')}-${hourIndex}-${quarterIndex}-${layoutKey}`}
                       day={day} 
                       startHour={hourIndex}
                       quarterIndex={quarterIndex}
