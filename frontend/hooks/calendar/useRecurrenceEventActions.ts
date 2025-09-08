@@ -56,7 +56,7 @@ export const useRecurrenceEventActions = (
   const updateOriginalEventEndDate = async (
     eventToDelete: CalendarEvent, 
     occurrenceStartTime: Date
-  ): Promise<{ success: boolean; newEndDate?: Date; error?: string }> => {
+  ): Promise<{ success: boolean; newEndDate?: Date; error?: string; deletedOriginal?: boolean }> => {
     const newEndOfOriginalEvent = calculatePreviousOccurrence(
       occurrenceStartTime,
       eventToDelete.recurrencePattern!.frequency,
@@ -65,6 +65,20 @@ export const useRecurrenceEventActions = (
 
     if (!isValid(newEndOfOriginalEvent)) {
       return { success: false, error: "Cannot process delete: date calculation error." };
+    }
+
+    // If the calculated end date is before the original start date, 
+    // it means we're trying to delete the first occurrence
+    if (newEndOfOriginalEvent < eventToDelete.startTime) {
+      // In this case, we should delete the entire original event instead of updating it
+      const { deleteCalendarEvent } = await import('../../app/dashboard/calendar/actions');
+      try {
+        await deleteCalendarEvent(eventToDelete.id);
+        return { success: true, newEndDate: newEndOfOriginalEvent, deletedOriginal: true };
+      } catch (error) {
+        console.error('Failed to delete original event:', error);
+        return { success: false, error: "Failed to delete original event in database." };
+      }
     }
 
     const updatedOriginalEventData = {
@@ -230,19 +244,27 @@ export const useRecurrenceEventActions = (
 
       // Update state
       eventActions.setEvents(prevEvents => {
-        const modifiedOriginalEvent: CalendarEvent = {
-          ...masterEvent,
-          id: masterEvent.id,
-          recurrencePattern: {
-            ...masterEvent.recurrencePattern!,
-            endDate: endOfDay(newEndOfOriginalEvent),
-          },
-          updatedAt: new Date(),
-        };
+        let updatedEventsList = prevEvents;
 
-        let updatedEventsList = prevEvents.map(e =>
-          e.id === masterEvent.id ? modifiedOriginalEvent : e
-        );
+        // If the original event was deleted, remove it from the list
+        if (updateResult.deletedOriginal) {
+          updatedEventsList = prevEvents.filter(e => e.id !== masterEvent.id);
+        } else {
+          // Otherwise, update it with the new end date
+          const modifiedOriginalEvent: CalendarEvent = {
+            ...masterEvent,
+            id: masterEvent.id,
+            recurrencePattern: {
+              ...masterEvent.recurrencePattern!,
+              endDate: endOfDay(newEndOfOriginalEvent),
+            },
+            updatedAt: new Date(),
+          };
+
+          updatedEventsList = prevEvents.map(e =>
+            e.id === masterEvent.id ? modifiedOriginalEvent : e
+          );
+        }
 
         // Add new event if created
         if (createResult.newEvent) {
