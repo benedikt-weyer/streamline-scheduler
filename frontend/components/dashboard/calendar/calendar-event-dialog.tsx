@@ -464,19 +464,28 @@ export function CalendarEventDialog({
               control={form.control}
               name="isAllDay"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between w-full rounded-lg border bg-card p-3 shadow-sm">
-                  <FormLabel 
-                    htmlFor="isAllDay"
-                    className="text-sm font-medium cursor-pointer"
+                <FormItem>
+                  <div 
+                    className="flex flex-row items-center justify-between w-full rounded-lg border bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => {
+                      if (!isReadOnly) {
+                        field.onChange(!field.value);
+                      }
+                    }}
                   >
-                    All Day
-                  </FormLabel>
-                  <Checkbox
-                    id="isAllDay"
-                    onCheckedChange={field.onChange}
-                    checked={field.value}
-                    disabled={isReadOnly}
-                  />
+                    <FormLabel 
+                      className="text-sm font-medium cursor-pointer select-none"
+                    >
+                      All Day
+                    </FormLabel>
+                    <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+                      <Checkbox
+                        onCheckedChange={field.onChange}
+                        checked={field.value}
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                  </div>
                 </FormItem>
               )}
             />
