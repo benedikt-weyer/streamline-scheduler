@@ -360,10 +360,70 @@ export default function CanDoListMain() {
             </div>
 
             {/* Mobile Task List */}
-            <div className="flex-1 overflow-hidden">
-              <div className="h-full overflow-y-auto p-4">
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+              <div className="p-4 border-b bg-background relative z-10">
                 <ErrorDisplay error={error} />
                 
+                {!isRecommendedSelected && (
+                  // Show tabs for regular project/inbox view
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                      <TabsTrigger value="active" className="flex items-center gap-2">
+                        Active
+                        {activeCount > 0 && (
+                          <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                            {activeCount}
+                          </span>
+                        )}
+                      </TabsTrigger>
+                      <TabsTrigger value="completed" className="flex items-center gap-2">
+                        Completed
+                        {completedCount > 0 && (
+                          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                            {completedCount}
+                          </span>
+                        )}
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Add Task Form for Active Tab */}
+                    {activeTab === 'active' && (
+                      <AddTaskForm 
+                        form={form} 
+                        onSubmit={onSubmit} 
+                        isLoading={isLoading} 
+                      />
+                    )}
+
+                    {/* Bulk Delete Section for Completed Tab */}
+                    {activeTab === 'completed' && (
+                      <div className="mb-4 flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground">
+                          {completedCount} completed {completedCount === 1 ? 'task' : 'tasks'}
+                        </p>
+                        {completedCount > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleBulkDelete}
+                            disabled={isLoading}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete All
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </Tabs>
+                )}
+              </div>
+
+              {/* Scrollable Content Area */}
+              <div className="flex-1 overflow-y-auto p-4 relative">
+                {/* Top gradient shadow - fixed to the scrollable container */}
+                <div className="sticky top-0 left-0 right-0 h-2 bg-gradient-to-b from-background to-transparent pointer-events-none z-30" />
+                <div className="relative">
                 {isRecommendedSelected ? (
                   // Show recommended tasks view on mobile
                   <RecommendedTaskList
@@ -377,155 +437,115 @@ export default function CanDoListMain() {
                 ) : (
                   // Show regular project/inbox view on mobile
                   <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="active" className="flex items-center gap-2">
-                      Active
-                      {activeCount > 0 && (
-                        <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
-                          {activeCount}
-                        </span>
-                      )}
-                    </TabsTrigger>
-                    <TabsTrigger value="completed" className="flex items-center gap-2">
-                      Completed
-                      {completedCount > 0 && (
-                        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                          {completedCount}
-                        </span>
-                      )}
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="active" className="mt-0">
-                    <AddTaskForm 
-                      form={form} 
-                      onSubmit={onSubmit} 
-                      isLoading={isLoading} 
-                    />
-                    <LoadingState isLoading={isLoading} />
-                    <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
-                    
-                    {isAllTasksSelected && groupedTasks ? (
-                      <div className="space-y-4">
-                        {groupedTasks.map((item, index) => {
-                          if (item.type === 'project-header') {
-                            const project = item.data as Project;
-                            return (
-                              <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
-                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: project.color }}
-                                  />
-                                  <span>{project.name}</span>
+                    <TabsContent value="active" className="mt-0">
+                      <LoadingState isLoading={isLoading} />
+                      <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
+                      
+                      {isAllTasksSelected && groupedTasks ? (
+                        <div className="space-y-4">
+                          {groupedTasks.map((item, index) => {
+                            if (item.type === 'project-header') {
+                              const project = item.data as Project;
+                              return (
+                                <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
+                                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                                    <div
+                                      className="w-3 h-3 rounded-full"
+                                      style={{ backgroundColor: project.color }}
+                                    />
+                                    <span>{project.name}</span>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          } else {
-                            const task = item.data as Task;
-                            return (
-                              <div key={`task-${task.id}`} className="ml-4">
-                                <TaskListItem
-                                  task={task}
-                                  onToggleComplete={onToggleComplete}
-                                  onDeleteTask={onDeleteTask}
-                                  onUpdateTask={onUpdateTask}
-                                  onToggleMyDay={handleToggleMyDay}
-                                  projects={projects}
-                                  tasks={tasks}
-                                />
-                              </div>
-                            );
-                          }
-                        })}
-                      </div>
-                    ) : (
-                      <TaskList 
-                        tasks={filteredTasks}
-                        allTasks={tasks}
-                        isLoading={isLoading}
-                        onToggleComplete={onToggleComplete}
-                        onDeleteTask={onDeleteTask}
-                        onUpdateTask={onUpdateTask}
-                        onToggleMyDay={handleToggleMyDay}
-                        onReorderTasks={handleReorderTasks}
-                        projects={projects}
-                        currentProjectId={selectedProjectId}
-                      />
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="completed" className="mt-0">
-                    <div className="mb-4 flex justify-between items-center">
-                      <p className="text-sm text-muted-foreground">
-                        {completedCount} completed {completedCount === 1 ? 'task' : 'tasks'}
-                      </p>
-                      {completedCount > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleBulkDelete}
-                          disabled={isLoading}
-                          className="text-destructive hover:text-destructive/80"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete All
-                        </Button>
-                      )}
-                    </div>
-                    <LoadingState isLoading={isLoading} />
-                    <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
-                    
-                    {isAllTasksSelected && groupedTasks ? (
-                      <div className="space-y-4">
-                        {groupedTasks.map((item, index) => {
-                          if (item.type === 'project-header') {
-                            const project = item.data as Project;
-                            return (
-                              <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
-                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: project.color }}
+                              );
+                            } else {
+                              const task = item.data as Task;
+                              return (
+                                <div key={`task-${task.id}`} className="ml-4">
+                                  <TaskListItem
+                                    task={task}
+                                    onToggleComplete={onToggleComplete}
+                                    onDeleteTask={onDeleteTask}
+                                    onUpdateTask={onUpdateTask}
+                                    onToggleMyDay={handleToggleMyDay}
+                                    projects={projects}
+                                    tasks={tasks}
                                   />
-                                  <span>{project.name}</span>
                                 </div>
-                              </div>
-                            );
-                          } else {
-                            const task = item.data as Task;
-                            return (
-                              <div key={`task-${task.id}`} className="ml-4">
-                                <TaskListItem
-                                  task={task}
-                                  onToggleComplete={onToggleComplete}
-                                  onDeleteTask={onDeleteTask}
-                                  onUpdateTask={onUpdateTask}
-                                  onToggleMyDay={handleToggleMyDay}
-                                  projects={projects}
-                                  tasks={tasks}
-                                />
-                              </div>
-                            );
-                          }
-                        })}
-                      </div>
-                    ) : (
-                      <TaskList 
-                        tasks={filteredTasks}
-                        allTasks={tasks}
-                        isLoading={isLoading}
-                        onToggleComplete={onToggleComplete}
-                        onDeleteTask={onDeleteTask}
-                        onUpdateTask={onUpdateTask}
-                        onReorderTasks={handleReorderTasks}
-                        projects={projects}
-                        currentProjectId={selectedProjectId}
-                      />
-                    )}
-                  </TabsContent>
-                </Tabs>
+                              );
+                            }
+                          })}
+                        </div>
+                      ) : (
+                        <TaskList 
+                          tasks={filteredTasks}
+                          allTasks={tasks}
+                          isLoading={isLoading}
+                          onToggleComplete={onToggleComplete}
+                          onDeleteTask={onDeleteTask}
+                          onUpdateTask={onUpdateTask}
+                          onToggleMyDay={handleToggleMyDay}
+                          onReorderTasks={handleReorderTasks}
+                          projects={projects}
+                          currentProjectId={selectedProjectId}
+                        />
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="completed" className="mt-0">
+                      <LoadingState isLoading={isLoading} />
+                      <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
+                      
+                      {isAllTasksSelected && groupedTasks ? (
+                        <div className="space-y-4">
+                          {groupedTasks.map((item, index) => {
+                            if (item.type === 'project-header') {
+                              const project = item.data as Project;
+                              return (
+                                <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
+                                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                                    <div
+                                      className="w-3 h-3 rounded-full"
+                                      style={{ backgroundColor: project.color }}
+                                    />
+                                    <span>{project.name}</span>
+                                  </div>
+                                </div>
+                              );
+                            } else {
+                              const task = item.data as Task;
+                              return (
+                                <div key={`task-${task.id}`} className="ml-4">
+                                  <TaskListItem
+                                    task={task}
+                                    onToggleComplete={onToggleComplete}
+                                    onDeleteTask={onDeleteTask}
+                                    onUpdateTask={onUpdateTask}
+                                    onToggleMyDay={handleToggleMyDay}
+                                    projects={projects}
+                                    tasks={tasks}
+                                  />
+                                </div>
+                              );
+                            }
+                          })}
+                        </div>
+                      ) : (
+                        <TaskList 
+                          tasks={filteredTasks}
+                          allTasks={tasks}
+                          isLoading={isLoading}
+                          onToggleComplete={onToggleComplete}
+                          onDeleteTask={onDeleteTask}
+                          onUpdateTask={onUpdateTask}
+                          onReorderTasks={handleReorderTasks}
+                          projects={projects}
+                          currentProjectId={selectedProjectId}
+                        />
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 )}
+                </div>
               </div>
             </div>
           </div>
@@ -554,8 +574,8 @@ export default function CanDoListMain() {
               />
             </div>
 
-            <div className="flex-1 overflow-hidden">
-              <div className="p-6 h-full overflow-y-auto">
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+              <div className="p-6 pb-0 bg-background relative z-10">
                 <h1 className="text-2xl font-bold mb-2">
                   {isMyDaySelected
                     ? 'My Day'
@@ -570,6 +590,66 @@ export default function CanDoListMain() {
                 </h1>
                 <ErrorDisplay error={error} />
                 
+                {!isRecommendedSelected && (
+                  // Show tabs for regular project/inbox view
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                      <TabsTrigger value="active" className="flex items-center gap-2">
+                        Active
+                        {activeCount > 0 && (
+                          <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                            {activeCount}
+                          </span>
+                        )}
+                      </TabsTrigger>
+                      <TabsTrigger value="completed" className="flex items-center gap-2">
+                        Completed
+                        {completedCount > 0 && (
+                          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+                            {completedCount}
+                          </span>
+                        )}
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Add Task Form for Active Tab */}
+                    {activeTab === 'active' && (
+                      <AddTaskForm 
+                        form={form} 
+                        onSubmit={onSubmit} 
+                        isLoading={isLoading} 
+                      />
+                    )}
+
+                    {/* Bulk Delete Section for Completed Tab */}
+                    {activeTab === 'completed' && (
+                      <div className="mb-4 flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground">
+                          {completedCount} completed {completedCount === 1 ? 'task' : 'tasks'}
+                        </p>
+                        {completedCount > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleBulkDelete}
+                            disabled={isLoading}
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete All
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </Tabs>
+                )}
+              </div>
+
+              {/* Scrollable Content Area */}
+              <div className="flex-1 overflow-y-auto px-6 pb-6 relative">
+                {/* Top gradient shadow - fixed to the scrollable container */}
+                <div className="sticky top-0 left-0 right-0 h-3 bg-gradient-to-b from-background to-transparent pointer-events-none z-30" />
+                <div className="relative">
                 {isRecommendedSelected ? (
                   // Show recommended tasks view
                   <RecommendedTaskList
@@ -583,155 +663,115 @@ export default function CanDoListMain() {
                 ) : (
                   // Show regular project/inbox view
                   <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'completed')} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="active" className="flex items-center gap-2">
-                      Active
-                      {activeCount > 0 && (
-                        <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
-                          {activeCount}
-                        </span>
-                      )}
-                    </TabsTrigger>
-                    <TabsTrigger value="completed" className="flex items-center gap-2">
-                      Completed
-                      {completedCount > 0 && (
-                        <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
-                          {completedCount}
-                        </span>
-                      )}
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="active" className="mt-0">
-                    <AddTaskForm 
-                      form={form} 
-                      onSubmit={onSubmit} 
-                      isLoading={isLoading} 
-                    />
-                    <LoadingState isLoading={isLoading} />
-                    <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
-                    
-                    {isAllTasksSelected && groupedTasks ? (
-                      <div className="space-y-4">
-                        {groupedTasks.map((item, index) => {
-                          if (item.type === 'project-header') {
-                            const project = item.data as Project;
-                            return (
-                              <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
-                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: project.color }}
-                                  />
-                                  <span>{project.name}</span>
+                    <TabsContent value="active" className="mt-0">
+                      <LoadingState isLoading={isLoading} />
+                      <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
+                      
+                      {isAllTasksSelected && groupedTasks ? (
+                        <div className="space-y-4">
+                          {groupedTasks.map((item, index) => {
+                            if (item.type === 'project-header') {
+                              const project = item.data as Project;
+                              return (
+                                <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
+                                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                                    <div
+                                      className="w-3 h-3 rounded-full"
+                                      style={{ backgroundColor: project.color }}
+                                    />
+                                    <span>{project.name}</span>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          } else {
-                            const task = item.data as Task;
-                            return (
-                                                            <div key={`task-${task.id}`} className="ml-4">
-                                <TaskListItem
-                                  task={task}
-                                  onToggleComplete={onToggleComplete}
-                                  onDeleteTask={onDeleteTask}
-                                  onUpdateTask={onUpdateTask}
-                                  onToggleMyDay={handleToggleMyDay}
-                                  projects={projects}
-                                  tasks={tasks}
-                                />
-                              </div>
-                            );
-                          }
-                        })}
-                      </div>
-                    ) : (
-                      <TaskList 
-                        tasks={filteredTasks}
-                        allTasks={tasks}
-                        isLoading={isLoading}
-                        onToggleComplete={onToggleComplete}
-                        onDeleteTask={onDeleteTask}
-                        onUpdateTask={onUpdateTask}
-                        onToggleMyDay={handleToggleMyDay}
-                        onReorderTasks={handleReorderTasks}
-                        projects={projects}
-                        currentProjectId={selectedProjectId}
-                      />
-                    )}
-                  </TabsContent>
-                  
-                  <TabsContent value="completed" className="mt-0">
-                    <div className="mb-4 flex justify-between items-center">
-                      <p className="text-sm text-muted-foreground">
-                        {completedCount} completed {completedCount === 1 ? 'task' : 'tasks'}
-                      </p>
-                      {completedCount > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleBulkDelete}
-                          disabled={isLoading}
-                          className="text-destructive hover:text-destructive/80"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete All
-                        </Button>
-                      )}
-                    </div>
-                    <LoadingState isLoading={isLoading} />
-                    <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
-                    
-                    {isAllTasksSelected && groupedTasks ? (
-                      <div className="space-y-4">
-                        {groupedTasks.map((item, index) => {
-                          if (item.type === 'project-header') {
-                            const project = item.data as Project;
-                            return (
-                              <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
-                                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: project.color }}
+                              );
+                            } else {
+                              const task = item.data as Task;
+                              return (
+                                <div key={`task-${task.id}`} className="ml-4">
+                                  <TaskListItem
+                                    task={task}
+                                    onToggleComplete={onToggleComplete}
+                                    onDeleteTask={onDeleteTask}
+                                    onUpdateTask={onUpdateTask}
+                                    onToggleMyDay={handleToggleMyDay}
+                                    projects={projects}
+                                    tasks={tasks}
                                   />
-                                  <span>{project.name}</span>
                                 </div>
-                              </div>
-                            );
-                          } else {
-                            const task = item.data as Task;
-                            return (
-                              <div key={`task-${task.id}`} className="ml-4">
-                                <TaskListItem
-                                  task={task}
-                                  onToggleComplete={onToggleComplete}
-                                  onDeleteTask={onDeleteTask}
-                                  onUpdateTask={onUpdateTask}
-                                  onToggleMyDay={handleToggleMyDay}
-                                  projects={projects}
-                                  tasks={tasks}
-                                />
-                              </div>
-                            );
-                          }
-                        })}
-                      </div>
-                    ) : (
-                      <TaskList 
-                        tasks={filteredTasks}
-                        allTasks={tasks}
-                        isLoading={isLoading}
-                        onToggleComplete={onToggleComplete}
-                        onDeleteTask={onDeleteTask}
-                        onUpdateTask={onUpdateTask}
-                        onReorderTasks={handleReorderTasks}
-                        projects={projects}
-                        currentProjectId={selectedProjectId}
-                      />
-                    )}
-                  </TabsContent>
-                </Tabs>
+                              );
+                            }
+                          })}
+                        </div>
+                      ) : (
+                        <TaskList 
+                          tasks={filteredTasks}
+                          allTasks={tasks}
+                          isLoading={isLoading}
+                          onToggleComplete={onToggleComplete}
+                          onDeleteTask={onDeleteTask}
+                          onUpdateTask={onUpdateTask}
+                          onToggleMyDay={handleToggleMyDay}
+                          onReorderTasks={handleReorderTasks}
+                          projects={projects}
+                          currentProjectId={selectedProjectId}
+                        />
+                      )}
+                    </TabsContent>
+                    
+                    <TabsContent value="completed" className="mt-0">
+                      <LoadingState isLoading={isLoading} />
+                      <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
+                      
+                      {isAllTasksSelected && groupedTasks ? (
+                        <div className="space-y-4">
+                          {groupedTasks.map((item, index) => {
+                            if (item.type === 'project-header') {
+                              const project = item.data as Project;
+                              return (
+                                <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
+                                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
+                                    <div
+                                      className="w-3 h-3 rounded-full"
+                                      style={{ backgroundColor: project.color }}
+                                    />
+                                    <span>{project.name}</span>
+                                  </div>
+                                </div>
+                              );
+                            } else {
+                              const task = item.data as Task;
+                              return (
+                                <div key={`task-${task.id}`} className="ml-4">
+                                  <TaskListItem
+                                    task={task}
+                                    onToggleComplete={onToggleComplete}
+                                    onDeleteTask={onDeleteTask}
+                                    onUpdateTask={onUpdateTask}
+                                    onToggleMyDay={handleToggleMyDay}
+                                    projects={projects}
+                                    tasks={tasks}
+                                  />
+                                </div>
+                              );
+                            }
+                          })}
+                        </div>
+                      ) : (
+                        <TaskList 
+                          tasks={filteredTasks}
+                          allTasks={tasks}
+                          isLoading={isLoading}
+                          onToggleComplete={onToggleComplete}
+                          onDeleteTask={onDeleteTask}
+                          onUpdateTask={onUpdateTask}
+                          onReorderTasks={handleReorderTasks}
+                          projects={projects}
+                          currentProjectId={selectedProjectId}
+                        />
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 )}
+                </div>
               </div>
             </div>
           </div>
