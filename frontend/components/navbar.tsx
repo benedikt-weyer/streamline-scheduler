@@ -24,9 +24,9 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
   };
 
   return (
-    <nav className="w-full border-b border-b-foreground/10">
+    <nav className="w-full">
       {/* Desktop and Mobile Header */}
-      <div className="flex justify-between items-center h-16 px-4 md:px-6 lg:px-10">
+      <div className="flex justify-between items-center h-16 px-4 md:px-6 lg:px-10 border-b border-b-foreground/10">
         {/* Left side - Brand */}
         <div className="flex items-center gap-4">
           <Image src="/icon.png" alt="Streamline Scheduler" width={25} height={25} />
