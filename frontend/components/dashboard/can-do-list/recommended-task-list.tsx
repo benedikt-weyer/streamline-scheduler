@@ -7,11 +7,14 @@ import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from 
 import { Clock, Calendar, Zap, AlertTriangle, Star } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
 import TaskListItem from './task-list-item';
+import Fuse from 'fuse.js';
+import { useMemo } from 'react';
 
 interface RecommendedTaskListProps {
   tasks: Task[];
   projects: Project[];
   isLoading?: boolean;
+  searchQuery?: string;
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
   onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
@@ -21,11 +24,48 @@ export default function RecommendedTaskList({
   tasks,
   projects,
   isLoading = false,
+  searchQuery = '',
   onToggleComplete,
   onDeleteTask,
   onUpdateTask
 }: RecommendedTaskListProps) {
-  const recommendedTasks = getRecommendedTasks(tasks, 20);
+  // Configure Fuse.js for fuzzy search
+  const fuseOptions = {
+    keys: [
+      { name: 'content', weight: 0.7 },
+      { name: 'projectName', weight: 0.3 }
+    ],
+    threshold: 0.3,
+    includeScore: true,
+    minMatchCharLength: 1
+  };
+
+  // Get recommended tasks and apply search filter
+  const filteredRecommendedTasks = useMemo(() => {
+    const recommendedTasks = getRecommendedTasks(tasks, 20);
+    
+    // Apply search filter if search query exists
+    if (searchQuery.trim()) {
+      // Add project names and original index to tasks for search
+      const searchableTasks = recommendedTasks.map((task, originalIndex) => ({
+        ...task,
+        projectName: task.projectId 
+          ? projects.find(p => p.id === task.projectId)?.name || ''
+          : 'Inbox',
+        originalIndex: originalIndex // Preserve original ranking position
+      }));
+
+      const fuse = new Fuse(searchableTasks, fuseOptions);
+      const searchResults = fuse.search(searchQuery.trim());
+      return searchResults.map(result => result.item);
+    }
+
+    // If no search, add original index to all tasks
+    return recommendedTasks.map((task, originalIndex) => ({
+      ...task,
+      originalIndex: originalIndex
+    }));
+  }, [tasks, projects, searchQuery]);
   
   // Get project name for a task
   const getProjectName = (task: Task): string => {
@@ -53,15 +93,18 @@ export default function RecommendedTaskList({
     );
   }
 
-  if (recommendedTasks.length === 0) {
+  if (filteredRecommendedTasks.length === 0) {
     return (
       <div className="text-center py-12">
         <Star className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h3 className="text-lg font-medium text-muted-foreground mb-2">
-          No Recommended Tasks
+          {searchQuery.trim() ? 'No Matching Recommended Tasks' : 'No Recommended Tasks'}
         </h3>
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Add impact, urgency ratings, or due dates to your tasks to see personalized recommendations here.
+          {searchQuery.trim() 
+            ? 'No recommended tasks match your search criteria.'
+            : 'Add impact, urgency ratings, or due dates to your tasks to see personalized recommendations here.'
+          }
         </p>
       </div>
     );
@@ -74,7 +117,7 @@ export default function RecommendedTaskList({
         <Star className="h-5 w-5 text-amber-500" />
         <h2 className="text-lg font-semibold">Recommended Tasks</h2>
         <span className="text-sm text-muted-foreground">
-          ({recommendedTasks.length} tasks)
+          ({filteredRecommendedTasks.length} tasks)
         </span>
       </div>
       
@@ -84,9 +127,10 @@ export default function RecommendedTaskList({
 
       {/* Task List */}
       <div className="space-y-2">
-        {recommendedTasks.map((task, index) => {
+        {filteredRecommendedTasks.map((task: Task & { originalIndex?: number }, index: number) => {
           const score = calculateRecommendationScore(task, tasks);
           const reason = getRecommendationReason(task, tasks);
+          const rankNumber = (task.originalIndex ?? index) + 1; // Use original index if available
           
           return (
             <div key={task.id} className="relative">
@@ -104,12 +148,12 @@ export default function RecommendedTaskList({
                 <div className="absolute -top-1 -left-1 z-10">
                   <div className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                    index === 0 ? "bg-amber-500 text-white" :
-                    index === 1 ? "bg-gray-400 text-white" :
-                    index === 2 ? "bg-amber-600 text-white" :
+                    rankNumber === 1 ? "bg-amber-500 text-white" :
+                    rankNumber === 2 ? "bg-gray-400 text-white" :
+                    rankNumber === 3 ? "bg-amber-600 text-white" :
                     "bg-muted text-muted-foreground"
                   )}>
-                    {index + 1}
+                    {rankNumber}
                   </div>
                 </div>
                 
@@ -145,7 +189,7 @@ export default function RecommendedTaskList({
         })}
       </div>
       
-      {recommendedTasks.length === 20 && (
+      {filteredRecommendedTasks.length === 20 && (
         <div className="text-center pt-4">
           <p className="text-xs text-muted-foreground">
             Showing top 20 recommendations

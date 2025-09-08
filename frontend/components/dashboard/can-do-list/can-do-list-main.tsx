@@ -13,8 +13,10 @@ import { parsePriorityFromContent } from '@/utils/can-do-list/priority-utils';
 import { parseDueDateFromContent } from '@/utils/can-do-list/due-date-utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Trash2, Search, X } from 'lucide-react';
 import { ScrollToTopButton } from '@/components/ui/scroll-to-top-button';
+import Fuse from 'fuse.js';
 
 import ErrorDisplay from './error-display';
 import AddTaskForm from './add-task-form';
@@ -45,6 +47,7 @@ export default function CanDoListMain() {
   const [isRecommendedSelected, setIsRecommendedSelected] = useState(false);
   const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
   const [isMyDaySelected, setIsMyDaySelected] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Refs for scroll containers
   const mobileScrollRef = useRef<HTMLDivElement>(null);
@@ -154,7 +157,18 @@ export default function CanDoListMain() {
     );
   };
 
-  // Filter tasks based on selected project and tab
+  // Configure Fuse.js for fuzzy search
+  const fuseOptions = {
+    keys: [
+      { name: 'content', weight: 0.7 },
+      { name: 'projectName', weight: 0.3 }
+    ],
+    threshold: 0.3, // Lower = more strict, higher = more fuzzy
+    includeScore: true,
+    minMatchCharLength: 1
+  };
+
+  // Filter tasks based on selected project, tab, and search query
   const filteredTasks = useMemo(() => {
     let baseTasks;
     if (isMyDaySelected) {
@@ -171,14 +185,31 @@ export default function CanDoListMain() {
     }
     
     // Filter by tab
-    return baseTasks.filter(task => {
+    const tabFilteredTasks = baseTasks.filter(task => {
       if (activeTab === 'active') {
         return !task.completed;
       } else {
         return task.completed;
       }
     });
-  }, [tasks, selectedProjectId, activeTab, isAllTasksSelected, isMyDaySelected]);
+
+    // Apply search filter if search query exists
+    if (searchQuery.trim()) {
+      // Add project names to tasks for search
+      const searchableTasks = tabFilteredTasks.map(task => ({
+        ...task,
+        projectName: task.projectId 
+          ? projects.find(p => p.id === task.projectId)?.name || ''
+          : 'Inbox'
+      }));
+
+      const fuse = new Fuse(searchableTasks, fuseOptions);
+      const searchResults = fuse.search(searchQuery.trim());
+      return searchResults.map(result => result.item);
+    }
+
+    return tabFilteredTasks;
+  }, [tasks, selectedProjectId, activeTab, isAllTasksSelected, isMyDaySelected, searchQuery, projects, isRecommendedSelected]);
 
   // Group tasks by project when in "All Tasks" mode
   const groupedTasks = useMemo(() => {
@@ -446,6 +477,7 @@ export default function CanDoListMain() {
                     tasks={tasks}
                     projects={projects}
                     isLoading={isLoading}
+                    searchQuery={searchQuery}
                     onToggleComplete={onToggleComplete}
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
@@ -592,18 +624,43 @@ export default function CanDoListMain() {
 
             <div className="flex-1 flex flex-col overflow-hidden relative">
               <div className="p-6 pb-0 bg-background relative z-10">
-                <h1 className="text-2xl font-bold mb-2">
-                  {isMyDaySelected
-                    ? 'My Day'
-                    : isRecommendedSelected 
-                      ? 'Recommended Tasks'
-                      : isAllTasksSelected
-                        ? 'All Tasks'
-                        : selectedProjectId 
-                          ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
-                          : 'Inbox'
-                  }
-                </h1>
+                {/* Title row with search */}
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  {/* Title */}
+                  <div className="flex-1">
+                    <h1 className="text-2xl font-bold">
+                      {isMyDaySelected
+                        ? 'My Day'
+                        : isRecommendedSelected 
+                          ? 'Recommended Tasks'
+                          : isAllTasksSelected
+                            ? 'All Tasks'
+                            : selectedProjectId 
+                              ? projects.find(p => p.id === selectedProjectId)?.name ?? 'Project'
+                              : 'Inbox'
+                      }
+                    </h1>
+                  </div>
+
+                  {/* Search input */}
+                  <div className="relative flex-shrink-0 w-64">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search tasks..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-8 pr-8 h-8 text-sm"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <ErrorDisplay error={error} />
                 
                 {!isRecommendedSelected && (
@@ -676,6 +733,7 @@ export default function CanDoListMain() {
                     tasks={tasks}
                     projects={projects}
                     isLoading={isLoading}
+                    searchQuery={searchQuery}
                     onToggleComplete={onToggleComplete}
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
