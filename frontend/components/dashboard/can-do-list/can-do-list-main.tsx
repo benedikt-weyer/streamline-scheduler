@@ -327,7 +327,7 @@ export default function CanDoListMain() {
       />
       
       {(encryptionKey || isLoadingKey) && (
-        <div className="flex h-screen w-full">
+        <div className="fixed inset-0 top-16 flex w-full">
           {/* Mobile Layout */}
           <div className="md:hidden w-full flex flex-col">
             {/* Mobile Header */}
@@ -531,8 +531,8 @@ export default function CanDoListMain() {
           </div>
 
           {/* Desktop Layout */}
-          <div className="hidden md:flex h-screen w-full">
-            <div className="w-1/4 lg:w-1/5">
+          <div className="hidden md:flex w-full h-full">
+            <div className="w-1/4 lg:w-1/5 h-full">
               <ProjectSidebarDynamic
                 projects={projects}
                 tasks={tasks}
