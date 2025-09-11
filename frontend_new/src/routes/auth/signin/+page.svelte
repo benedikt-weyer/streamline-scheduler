@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { authStore } from '$lib/stores/auth';
-	import { hashPassword } from '$lib/crypto/encryption';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -22,8 +21,8 @@
 		error = '';
 
 		try {
-			const hashedPassword = hashPassword(password);
-			await authStore.signIn(email, hashedPassword);
+			// The auth store now handles deriving both auth hash and encryption key
+			await authStore.signIn(email, password);
 			goto('/dashboard');
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Sign in failed';

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { authStore } from '$lib/stores/auth';
-	import { hashPassword } from '$lib/crypto/encryption';
+	import { deriveAuthHash, deriveEncryptionKey } from '$lib/crypto/encryption';
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -33,8 +33,14 @@
 		error = '';
 
 		try {
-			const hashedPassword = hashPassword(password);
-			await authStore.signUp(email, hashedPassword);
+			// Derive authentication hash for server authentication
+			const authHash = deriveAuthHash(password, email);
+			
+			// Derive encryption key for client-side data encryption
+			const encryptionKey = deriveEncryptionKey(password, email);
+			
+			// Register with auth hash, then store encryption key locally
+			await authStore.signUp(email, authHash, encryptionKey);
 			goto('/dashboard');
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Sign up failed';

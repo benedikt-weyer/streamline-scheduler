@@ -59,7 +59,57 @@ export function decryptData(
   return decrypted.toString(CryptoJS.enc.Utf8);
 }
 
-// Hash a password for key derivation
+// Derive authentication hash from password (for server authentication)
+export function deriveAuthHash(password: string, email: string): string {
+  // Use email as salt for authentication hash to ensure uniqueness per user
+  const authSalt = `auth_${email}`;
+  return CryptoJS.PBKDF2(password, authSalt, {
+    keySize: 256 / 32,
+    iterations: 100000  // Higher iterations for auth hash
+  }).toString();
+}
+
+// Derive encryption key from password (for client-side encryption)
+export function deriveEncryptionKey(password: string, email: string): string {
+  // Use different salt for encryption key
+  const encryptionSalt = `encrypt_${email}`;
+  return CryptoJS.PBKDF2(password, encryptionSalt, {
+    keySize: 256 / 32,
+    iterations: 100000  // Same high iteration count for security
+  }).toString();
+}
+
+// Get the stored encryption key from localStorage
+export function getEncryptionKey(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('encryption_key');
+}
+
+// Enhanced encryption function that uses stored encryption key
+export function encryptDataWithStoredKey(plaintext: string): {
+  encrypted: string;
+  iv: string;
+  salt: string;
+} | null {
+  const encryptionKey = getEncryptionKey();
+  if (!encryptionKey) return null;
+  
+  return encryptData(plaintext, encryptionKey);
+}
+
+// Enhanced decryption function that uses stored encryption key
+export function decryptDataWithStoredKey(
+  encryptedData: string,
+  iv: string,
+  salt: string
+): string | null {
+  const encryptionKey = getEncryptionKey();
+  if (!encryptionKey) return null;
+  
+  return decryptData(encryptedData, encryptionKey, iv, salt);
+}
+
+// Legacy function - kept for backwards compatibility
 export function hashPassword(password: string): string {
   return CryptoJS.SHA256(password).toString();
 }

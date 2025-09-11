@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import type { User, Session } from '$lib/api/client';
 import { apiClient } from '$lib/api/client';
+import { deriveAuthHash, deriveEncryptionKey } from '$lib/crypto/encryption';
 
 export interface AuthState {
 	user: User | null;
@@ -52,7 +53,15 @@ function createAuthStore() {
 			update(state => ({ ...state, isLoading: true, error: null }));
 			
 			try {
-				const authResponse = await apiClient.signIn(email, password);
+				// Derive authentication hash for server authentication
+				const authHash = deriveAuthHash(password, email);
+				const authResponse = await apiClient.signIn(email, authHash);
+				
+				// Derive and store encryption key for client-side data encryption
+				const encryptionKey = deriveEncryptionKey(password, email);
+				if (typeof window !== 'undefined') {
+					localStorage.setItem('encryption_key', encryptionKey);
+				}
 				
 				const session: Session = {
 					access_token: authResponse.access_token,
@@ -80,17 +89,23 @@ function createAuthStore() {
 			}
 		},
 		
-		async signUp(email: string, password: string) {
+		async signUp(email: string, authHash: string, encryptionKey: string) {
 			update(state => ({ ...state, isLoading: true, error: null }));
 			
 			try {
-				const authResponse = await apiClient.signUp(email, password);
+				// Register with the authentication hash
+				const authResponse = await apiClient.signUp(email, authHash);
 				
 				const session: Session = {
 					access_token: authResponse.access_token,
 					expires_at: Date.now() + (authResponse.expires_in * 1000),
 					user: authResponse.user
 				};
+				
+				// Store the encryption key locally for data encryption/decryption
+				if (typeof window !== 'undefined') {
+					localStorage.setItem('encryption_key', encryptionKey);
+				}
 				
 				update(state => ({
 					...state,
@@ -114,6 +129,12 @@ function createAuthStore() {
 		
 		signOut() {
 			apiClient.signOut();
+			
+			// Clear the encryption key from local storage
+			if (typeof window !== 'undefined') {
+				localStorage.removeItem('encryption_key');
+			}
+			
 			set({
 				user: null,
 				session: null,
