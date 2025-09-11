@@ -8,7 +8,7 @@ use argon2::password_hash::{rand_core::OsRng, SaltString};
 
 use sea_orm::*;
 use crate::errors::{AppError, Result};
-use crate::models::user::{CreateUserRequest, LoginRequest, AuthResponse, UserResponse};
+use crate::models::user::{CreateUserRequest, LoginRequest, AuthResponse};
 use crate::db::Database;
 use crate::entities::{prelude::*, users};
 

@@ -20,11 +20,6 @@ pub enum AppError {
     #[error("Not found: {0}")]
     NotFound(String),
     
-    #[error("Forbidden: {0}")]
-    Forbidden(String),
-    
-    #[error("Encryption error: {0}")]
-    Encryption(String),
     
     #[error("JWT error: {0}")]
     Jwt(#[from] jsonwebtoken::errors::Error),
@@ -46,8 +41,6 @@ impl IntoResponse for AppError {
             AppError::Auth(_) => (StatusCode::UNAUTHORIZED, "Authentication failed"),
             AppError::Validation(_) => (StatusCode::BAD_REQUEST, "Validation failed"),
             AppError::NotFound(_) => (StatusCode::NOT_FOUND, "Resource not found"),
-            AppError::Forbidden(_) => (StatusCode::FORBIDDEN, "Access forbidden"),
-            AppError::Encryption(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Encryption error"),
             AppError::Jwt(_) => (StatusCode::UNAUTHORIZED, "Invalid token"),
             AppError::Serialization(_) => (StatusCode::BAD_REQUEST, "Invalid data format"),
             AppError::Internal(ref err) => {

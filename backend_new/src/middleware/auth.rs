@@ -1,6 +1,5 @@
 use axum::{
     extract::{Request, State},
-    http::StatusCode,
     middleware::Next,
     response::Response,
 };
@@ -10,7 +9,6 @@ use axum_extra::{
 };
 
 use crate::{
-    auth::AuthService,
     errors::AppError,
     entities::users,
 };

@@ -5,14 +5,14 @@ use axum::{
     },
     response::Response,
 };
-use futures_util::{sink::SinkExt, stream::{SplitSink, SplitStream, StreamExt}};
+use futures_util::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{broadcast, RwLock};
 use uuid::Uuid;
 
-use crate::{auth::AuthService, errors::Result};
+use crate::auth::AuthService;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebSocketMessage {
@@ -45,24 +45,6 @@ impl WebSocketState {
         connections.remove(user_id);
     }
 
-    pub async fn broadcast_to_user(&self, user_id: &Uuid, message: WebSocketMessage) {
-        let connections = self.connections.read().await;
-        if let Some(tx) = connections.get(user_id) {
-            let _ = tx.send(message);
-        }
-    }
-
-    pub async fn broadcast_change(&self, table: &str, user_id: Uuid, event_type: &str, record_id: Option<Uuid>, data: Option<serde_json::Value>) {
-        let message = WebSocketMessage {
-            event_type: event_type.to_string(),
-            table: table.to_string(),
-            user_id,
-            record_id,
-            data,
-        };
-        
-        self.broadcast_to_user(&user_id, message).await;
-    }
 }
 
 pub async fn websocket_handler(

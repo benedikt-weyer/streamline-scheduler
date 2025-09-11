@@ -10,7 +10,7 @@ mod state;
 mod websocket;
 
 use axum::{
-    routing::{delete, get, post, put},
+    routing::{get, post},
     Router,
 };
 use dotenvy::dotenv;
