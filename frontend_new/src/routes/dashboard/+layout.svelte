@@ -3,49 +3,60 @@
 	import { authStore } from '$lib/stores/auth';
 	import { dataStore } from '$lib/stores/data';
 	import { goto } from '$app/navigation';
-	import { hashPassword } from '$lib/crypto/encryption';
+	import { getEncryptionKey } from '$lib/crypto/encryption';
 	
 	let { children } = $props();
-	let encryptionKey = $state('');
-	let showEncryptionPrompt = $state(false);
 	let isLoadingData = $state(false);
+	let dataLoaded = $state(false);
 
 	onMount(async () => {
 		// Initialize auth
 		await authStore.initialize();
 		
-		// Check if user is authenticated
-		const unsubscribe = authStore.subscribe(state => {
+		// Check if user is authenticated and handle data loading
+		const unsubscribe = authStore.subscribe(async (state) => {
 			if (!state.isLoading && !state.user) {
 				goto('/auth/signin');
 				return;
 			}
 			
-			if (state.user && !encryptionKey) {
-				showEncryptionPrompt = true;
+			// If user is authenticated and we haven't loaded data yet
+			if (state.user && !dataLoaded) {
+				await initializeUserData();
 			}
 		});
 
 		return unsubscribe;
 	});
 
-	async function handleEncryptionKeySubmit(event: Event) {
-		event.preventDefault();
-		if (!encryptionKey) return;
+	async function initializeUserData() {
+		const storedEncryptionKey = getEncryptionKey();
 		
+		if (!storedEncryptionKey) {
+			// No encryption key found - this shouldn't happen with the new flow
+			// Redirect back to signin to regenerate keys
+			console.error('No encryption key found, redirecting to signin');
+			authStore.signOut();
+			goto('/auth/signin');
+			return;
+		}
+
 		isLoadingData = true;
 		try {
-			const hashedKey = hashPassword(encryptionKey);
-			dataStore.setEncryptionKey(hashedKey);
+			// Set the encryption key in the data store
+			dataStore.setEncryptionKey(storedEncryptionKey);
 			
 			// Load all data and connect WebSocket
 			await dataStore.loadAll();
 			dataStore.connectWebSocket();
 			
-			showEncryptionPrompt = false;
+			dataLoaded = true;
 		} catch (error) {
 			console.error('Failed to load data:', error);
-			alert('Failed to decrypt data. Please check your encryption key.');
+			// If data loading fails, show an error and sign out
+			alert('Failed to load your data. Please sign in again.');
+			authStore.signOut();
+			goto('/auth/signin');
 		} finally {
 			isLoadingData = false;
 		}
@@ -58,58 +69,18 @@
 	}
 </script>
 
-{#if showEncryptionPrompt}
+{#if isLoadingData}
 	<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
 		<div class="sm:mx-auto sm:w-full sm:max-w-md">
-			<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-				Enter Encryption Key
-			</h2>
-			<p class="mt-2 text-center text-sm text-gray-600">
-				Your master password is used to decrypt your data
-			</p>
-		</div>
-
-		<div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-			<div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-				<form class="space-y-6" onsubmit={handleEncryptionKeySubmit}>
-					<div>
-						<label for="encryptionKey" class="block text-sm font-medium text-gray-700">
-							Master Password
-						</label>
-						<div class="mt-1">
-							<input
-								id="encryptionKey"
-								name="encryptionKey"
-								type="password"
-								required
-								bind:value={encryptionKey}
-								class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-								placeholder="Enter your master password"
-							/>
-						</div>
-						<p class="mt-1 text-sm text-gray-500">
-							This is used to encrypt/decrypt your data locally
-						</p>
-					</div>
-
-					<div>
-						<button
-							type="submit"
-							disabled={isLoadingData || !encryptionKey}
-							class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							{#if isLoadingData}
-								<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-								</svg>
-								Loading...
-							{:else}
-								Unlock
-							{/if}
-						</button>
-					</div>
-				</form>
+			<div class="text-center">
+				<div class="inline-flex items-center justify-center">
+					<svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+					</svg>
+				</div>
+				<h2 class="mt-4 text-xl font-semibold text-gray-900">Loading your data...</h2>
+				<p class="mt-2 text-sm text-gray-600">Decrypting and setting up your workspace</p>
 			</div>
 		</div>
 	</div>
