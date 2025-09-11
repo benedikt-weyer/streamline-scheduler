@@ -116,7 +116,7 @@ class ApiClient {
 
 	// Authentication methods
 	async signUp(email: string, password: string): Promise<AuthResponse> {
-		const response = await this.request<AuthResponse>('/auth/register', {
+		const response = await this.request<AuthResponse>('/api/auth/register', {
 			method: 'POST',
 			body: JSON.stringify({ email, password }),
 		});
@@ -126,7 +126,7 @@ class ApiClient {
 	}
 
 	async signIn(email: string, password: string): Promise<AuthResponse> {
-		const response = await this.request<AuthResponse>('/auth/login', {
+		const response = await this.request<AuthResponse>('/api/auth/login', {
 			method: 'POST',
 			body: JSON.stringify({ email, password }),
 		});
@@ -139,7 +139,7 @@ class ApiClient {
 		if (!this.accessToken) return null;
 
 		try {
-			const response = await this.request<User>('/auth/me');
+			const response = await this.request<User>('/api/auth/me');
 			return response.data;
 		} catch (error) {
 			console.error('Error getting user:', error);
@@ -195,7 +195,7 @@ class ApiClient {
 	// Project methods
 	async getProjects(parentId?: string): Promise<Project[]> {
 		const params = parentId ? `?parent_id=${parentId}` : '';
-		const response = await this.request<Project[]>(`/projects${params}`);
+		const response = await this.request<Project[]>(`/api/projects${params}`);
 		return response.data;
 	}
 
@@ -207,7 +207,7 @@ class ApiClient {
 		display_order?: number;
 		is_collapsed?: boolean;
 	}): Promise<Project> {
-		const response = await this.request<Project>('/projects', {
+		const response = await this.request<Project>('/api/projects', {
 			method: 'POST',
 			body: JSON.stringify(data),
 		});
@@ -215,7 +215,7 @@ class ApiClient {
 	}
 
 	async updateProject(id: string, data: any): Promise<Project> {
-		const response = await this.request<Project>(`/projects/${id}`, {
+		const response = await this.request<Project>(`/api/projects/${id}`, {
 			method: 'PUT',
 			body: JSON.stringify(data),
 		});
@@ -223,7 +223,7 @@ class ApiClient {
 	}
 
 	async deleteProject(id: string): Promise<void> {
-		await this.request(`/projects/${id}`, {
+		await this.request(`/api/projects/${id}`, {
 			method: 'DELETE',
 		});
 	}
@@ -231,7 +231,7 @@ class ApiClient {
 	// Can-do list methods
 	async getCanDoItems(projectId?: string): Promise<CanDoItem[]> {
 		const params = projectId ? `?project_id=${projectId}` : '';
-		const response = await this.request<CanDoItem[]>(`/can-do-list${params}`);
+		const response = await this.request<CanDoItem[]>(`/api/can-do-list${params}`);
 		return response.data;
 	}
 
@@ -242,7 +242,7 @@ class ApiClient {
 		project_id?: string;
 		display_order?: number;
 	}): Promise<CanDoItem> {
-		const response = await this.request<CanDoItem>('/can-do-list', {
+		const response = await this.request<CanDoItem>('/api/can-do-list', {
 			method: 'POST',
 			body: JSON.stringify(data),
 		});
@@ -250,7 +250,7 @@ class ApiClient {
 	}
 
 	async updateCanDoItem(id: string, data: any): Promise<CanDoItem> {
-		const response = await this.request<CanDoItem>(`/can-do-list/${id}`, {
+		const response = await this.request<CanDoItem>(`/api/can-do-list/${id}`, {
 			method: 'PUT',
 			body: JSON.stringify(data),
 		});
@@ -258,14 +258,14 @@ class ApiClient {
 	}
 
 	async deleteCanDoItem(id: string): Promise<void> {
-		await this.request(`/can-do-list/${id}`, {
+		await this.request(`/api/can-do-list/${id}`, {
 			method: 'DELETE',
 		});
 	}
 
 	// Calendar methods
 	async getCalendars(): Promise<Calendar[]> {
-		const response = await this.request<Calendar[]>('/calendars');
+		const response = await this.request<Calendar[]>('/api/calendars');
 		return response.data;
 	}
 
@@ -274,7 +274,7 @@ class ApiClient {
 		iv: string;
 		salt: string;
 	}): Promise<Calendar> {
-		const response = await this.request<Calendar>('/calendars', {
+		const response = await this.request<Calendar>('/api/calendars', {
 			method: 'POST',
 			body: JSON.stringify(data),
 		});
@@ -282,7 +282,7 @@ class ApiClient {
 	}
 
 	async updateCalendar(id: string, data: any): Promise<Calendar> {
-		const response = await this.request<Calendar>(`/calendars/${id}`, {
+		const response = await this.request<Calendar>(`/api/calendars/${id}`, {
 			method: 'PUT',
 			body: JSON.stringify(data),
 		});
@@ -290,14 +290,14 @@ class ApiClient {
 	}
 
 	async deleteCalendar(id: string): Promise<void> {
-		await this.request(`/calendars/${id}`, {
+		await this.request(`/api/calendars/${id}`, {
 			method: 'DELETE',
 		});
 	}
 
 	// Calendar events methods
 	async getCalendarEvents(): Promise<CalendarEvent[]> {
-		const response = await this.request<CalendarEvent[]>('/calendar-events');
+		const response = await this.request<CalendarEvent[]>('/api/calendar-events');
 		return response.data;
 	}
 
@@ -306,7 +306,7 @@ class ApiClient {
 		iv: string;
 		salt: string;
 	}): Promise<CalendarEvent> {
-		const response = await this.request<CalendarEvent>('/calendar-events', {
+		const response = await this.request<CalendarEvent>('/api/calendar-events', {
 			method: 'POST',
 			body: JSON.stringify(data),
 		});
@@ -314,7 +314,7 @@ class ApiClient {
 	}
 
 	async updateCalendarEvent(id: string, data: any): Promise<CalendarEvent> {
-		const response = await this.request<CalendarEvent>(`/calendar-events/${id}`, {
+		const response = await this.request<CalendarEvent>(`/api/calendar-events/${id}`, {
 			method: 'PUT',
 			body: JSON.stringify(data),
 		});
@@ -322,7 +322,7 @@ class ApiClient {
 	}
 
 	async deleteCalendarEvent(id: string): Promise<void> {
-		await this.request(`/calendar-events/${id}`, {
+		await this.request(`/api/calendar-events/${id}`, {
 			method: 'DELETE',
 		});
 	}
