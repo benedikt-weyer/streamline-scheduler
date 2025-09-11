@@ -2,6 +2,10 @@
 	import { authStore } from '$lib/stores/auth';
 	import { hashPassword } from '$lib/crypto/encryption';
 	import { goto } from '$app/navigation';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 
 	let email = '';
 	let password = '';
@@ -64,14 +68,18 @@
 	</div>
 
 	<div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-		<div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-			<form class="space-y-6" on:submit|preventDefault={handleSignUp}>
-				<div>
-					<label for="email" class="block text-sm font-medium text-gray-700">
-						Email address
-					</label>
-					<div class="mt-1">
-						<input
+		<Card>
+			<CardHeader class="space-y-1">
+				<CardTitle class="text-2xl">Create account</CardTitle>
+				<CardDescription>
+					Enter your information to create a new account
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<form class="space-y-4" on:submit|preventDefault={handleSignUp}>
+					<div class="space-y-2">
+						<Label for="email">Email address</Label>
+						<Input
 							id="email"
 							name="email"
 							type="email"
@@ -79,18 +87,13 @@
 							required
 							bind:value={email}
 							on:keypress={handleKeyPress}
-							class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
 							placeholder="Enter your email"
 						/>
 					</div>
-				</div>
 
-				<div>
-					<label for="password" class="block text-sm font-medium text-gray-700">
-						Password
-					</label>
-					<div class="mt-1">
-						<input
+					<div class="space-y-2">
+						<Label for="password">Password</Label>
+						<Input
 							id="password"
 							name="password"
 							type="password"
@@ -98,19 +101,14 @@
 							required
 							bind:value={password}
 							on:keypress={handleKeyPress}
-							class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
 							placeholder="Enter your password"
 						/>
+						<p class="text-sm text-muted-foreground">Must be at least 8 characters long</p>
 					</div>
-					<p class="mt-1 text-sm text-gray-500">Must be at least 8 characters long</p>
-				</div>
 
-				<div>
-					<label for="confirmPassword" class="block text-sm font-medium text-gray-700">
-						Confirm Password
-					</label>
-					<div class="mt-1">
-						<input
+					<div class="space-y-2">
+						<Label for="confirmPassword">Confirm Password</Label>
+						<Input
 							id="confirmPassword"
 							name="confirmPassword"
 							type="password"
@@ -118,35 +116,32 @@
 							required
 							bind:value={confirmPassword}
 							on:keypress={handleKeyPress}
-							class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
 							placeholder="Confirm your password"
 						/>
 					</div>
-				</div>
 
-				{#if error}
-					<div class="bg-red-50 border border-red-200 rounded-md p-4">
-						<div class="flex">
-							<div class="flex-shrink-0">
-								<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-									<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-								</svg>
-							</div>
-							<div class="ml-3">
-								<p class="text-sm text-red-800">{error}</p>
+					{#if error}
+						<div class="bg-destructive/15 border border-destructive/50 rounded-md p-4">
+							<div class="flex">
+								<div class="flex-shrink-0">
+									<svg class="h-5 w-5 text-destructive" viewBox="0 0 20 20" fill="currentColor">
+										<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+									</svg>
+								</div>
+								<div class="ml-3">
+									<p class="text-sm text-destructive">{error}</p>
+								</div>
 							</div>
 						</div>
-					</div>
-				{/if}
+					{/if}
 
-				<div>
-					<button
+					<Button
 						type="submit"
 						disabled={isLoading}
-						class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+						class="w-full"
 					>
 						{#if isLoading}
-							<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+							<svg class="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
 								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 							</svg>
@@ -154,9 +149,9 @@
 						{:else}
 							Sign up
 						{/if}
-					</button>
-				</div>
-			</form>
-		</div>
+					</Button>
+				</form>
+			</CardContent>
+		</Card>
 	</div>
 </div>

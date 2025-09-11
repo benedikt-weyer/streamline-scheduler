@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
+	import { Button } from '$lib/components/ui/button';
+	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 
 	onMount(async () => {
 		await authStore.initialize();
@@ -37,23 +39,22 @@
 							Privacy-focused task management and calendar with end-to-end encryption. 
 							Your data stays encrypted and only you can decrypt it.
 						</p>
-						<div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
-							<div class="rounded-md shadow">
-								<a
-									href="/auth/signup"
-									class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10"
-								>
-									Get started
-								</a>
-							</div>
-							<div class="mt-3 sm:mt-0 sm:ml-3">
-								<a
-									href="/auth/signin"
-									class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 md:py-4 md:text-lg md:px-10"
-								>
-									Sign in
-								</a>
-							</div>
+						<div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start gap-3">
+							<Button 
+								href="/auth/signup" 
+								size="lg" 
+								class="w-full sm:w-auto"
+							>
+								Get started
+							</Button>
+							<Button 
+								href="/auth/signin" 
+								variant="outline" 
+								size="lg" 
+								class="w-full sm:w-auto"
+							>
+								Sign in
+							</Button>
 						</div>
 					</div>
 				</main>
@@ -82,68 +83,82 @@
 				</p>
 			</div>
 
-			<div class="mt-10">
-				<dl class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
-					<div class="relative">
-						<dt>
-							<div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+			<div class="mt-10 grid gap-6 md:grid-cols-2 lg:gap-8">
+				<Card>
+					<CardHeader>
+						<div class="flex items-center gap-4">
+							<div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary text-primary-foreground">
 								<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 								</svg>
 							</div>
-							<p class="ml-16 text-lg leading-6 font-medium text-gray-900">Task Management</p>
-						</dt>
-						<dd class="mt-2 ml-16 text-base text-gray-500">
+							<CardTitle>Task Management</CardTitle>
+						</div>
+					</CardHeader>
+					<CardContent>
+						<CardDescription>
 							Organize your tasks with projects, priorities, and due dates. 
 							Drag and drop to reorder and keep everything in sync.
-						</dd>
-					</div>
+						</CardDescription>
+					</CardContent>
+				</Card>
 
-					<div class="relative">
-						<dt>
-							<div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+				<Card>
+					<CardHeader>
+						<div class="flex items-center gap-4">
+							<div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary text-primary-foreground">
 								<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
 								</svg>
 							</div>
-							<p class="ml-16 text-lg leading-6 font-medium text-gray-900">Calendar Integration</p>
-						</dt>
-						<dd class="mt-2 ml-16 text-base text-gray-500">
+							<CardTitle>Calendar Integration</CardTitle>
+						</div>
+					</CardHeader>
+					<CardContent>
+						<CardDescription>
 							Schedule events, set reminders, and view your agenda. 
 							Everything seamlessly integrated with your task list.
-						</dd>
-					</div>
+						</CardDescription>
+					</CardContent>
+				</Card>
 
-					<div class="relative">
-						<dt>
-							<div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+				<Card>
+					<CardHeader>
+						<div class="flex items-center gap-4">
+							<div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary text-primary-foreground">
 								<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
 								</svg>
 							</div>
-							<p class="ml-16 text-lg leading-6 font-medium text-gray-900">End-to-End Encryption</p>
-						</dt>
-						<dd class="mt-2 ml-16 text-base text-gray-500">
+							<CardTitle>End-to-End Encryption</CardTitle>
+						</div>
+					</CardHeader>
+					<CardContent>
+						<CardDescription>
 							Your data is encrypted before it leaves your device. 
 							Even we can't read your tasks and calendar events.
-						</dd>
-					</div>
+						</CardDescription>
+					</CardContent>
+				</Card>
 
-					<div class="relative">
-						<dt>
-							<div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+				<Card>
+					<CardHeader>
+						<div class="flex items-center gap-4">
+							<div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary text-primary-foreground">
 								<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
 								</svg>
 							</div>
-							<p class="ml-16 text-lg leading-6 font-medium text-gray-900">Real-time Sync</p>
-						</dt>
-						<dd class="mt-2 ml-16 text-base text-gray-500">
+							<CardTitle>Real-time Sync</CardTitle>
+						</div>
+					</CardHeader>
+					<CardContent>
+						<CardDescription>
 							Changes sync instantly across all your devices while maintaining 
 							complete privacy and security.
-						</dd>
-					</div>
-				</dl>
+						</CardDescription>
+					</CardContent>
+				</Card>
 			</div>
 		</div>
 	</div>
