@@ -75,28 +75,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/projects", 
                get(crate::handlers::projects::list_projects)
                .post(crate::handlers::projects::create_project))
-        .route("/api/projects/:id", 
+        .route("/api/projects/{id}", 
                get(crate::handlers::projects::get_project)
                .put(crate::handlers::projects::update_project)
                .delete(crate::handlers::projects::delete_project))
         .route("/api/can-do-list", 
                get(crate::handlers::can_do_list::list_items)
                .post(crate::handlers::can_do_list::create_item))
-        .route("/api/can-do-list/:id", 
+        .route("/api/can-do-list/{id}", 
                get(crate::handlers::can_do_list::get_item)
                .put(crate::handlers::can_do_list::update_item)
                .delete(crate::handlers::can_do_list::delete_item))
         .route("/api/calendars", 
                get(crate::handlers::calendars::list_calendars)
                .post(crate::handlers::calendars::create_calendar))
-        .route("/api/calendars/:id", 
+        .route("/api/calendars/{id}", 
                get(crate::handlers::calendars::get_calendar)
                .put(crate::handlers::calendars::update_calendar)
                .delete(crate::handlers::calendars::delete_calendar))
         .route("/api/calendar-events", 
                get(crate::handlers::calendar_events::list_events)
                .post(crate::handlers::calendar_events::create_event))
-        .route("/api/calendar-events/:id", 
+        .route("/api/calendar-events/{id}", 
                get(crate::handlers::calendar_events::get_event)
                .put(crate::handlers::calendar_events::update_event)
                .delete(crate::handlers::calendar_events::delete_event))
