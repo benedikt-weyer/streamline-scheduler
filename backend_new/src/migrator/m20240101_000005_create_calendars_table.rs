@@ -91,7 +91,7 @@ impl MigrationTrait for Migration {
                     .col(Calendars::UserId)
                     .unique()
                     .if_not_exists()
-                    .partial_where(Expr::col(Calendars::IsDefault).eq(true))
+                    .and_where_option(Some(Expr::col(Calendars::IsDefault).eq(true)))
                     .to_owned(),
             )
             .await?;

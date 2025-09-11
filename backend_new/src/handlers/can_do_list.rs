@@ -7,14 +7,14 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
-    db::Database,
     entities::{prelude::*, can_do_list},
     errors::Result,
-    middleware::AuthUser,
+    middleware::auth::AuthUser,
     models::{
         can_do_list::{CreateCanDoItemRequest, UpdateCanDoItemRequest, CanDoItemResponse},
         ApiResponse,
     },
+    state::AppState,
 };
 
 #[derive(Debug, Deserialize)]
@@ -23,7 +23,7 @@ pub struct CanDoListQuery {
 }
 
 pub async fn list_items(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Query(query): Query<CanDoListQuery>,
 ) -> Result<Json<ApiResponse<Vec<CanDoItemResponse>>>> {
@@ -36,7 +36,7 @@ pub async fn list_items(
     let items = find
         .order_by_asc(can_do_list::Column::DisplayOrder)
         .order_by_asc(can_do_list::Column::CreatedAt)
-        .all(&db.connection)
+        .all(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
@@ -45,13 +45,13 @@ pub async fn list_items(
 }
 
 pub async fn get_item(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<CanDoItemResponse>>> {
     let item = CanDoList::find_by_id(id)
         .filter(can_do_list::Column::UserId.eq(auth_user.0.id))
-        .one(&db.connection)
+        .one(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?
         .ok_or_else(|| crate::errors::AppError::NotFound("Can-do item not found".to_string()))?;
@@ -60,7 +60,7 @@ pub async fn get_item(
 }
 
 pub async fn create_item(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Json(request): Json<CreateCanDoItemRequest>,
 ) -> Result<Json<ApiResponse<CanDoItemResponse>>> {
@@ -74,21 +74,21 @@ pub async fn create_item(
     item_active.salt = Set(request.salt);
     item_active.display_order = Set(display_order);
 
-    let item = item_active.insert(&db.connection).await
+    let item = item_active.insert(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
     Ok(Json(ApiResponse::with_message(item.into(), "Can-do item created successfully")))
 }
 
 pub async fn update_item(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
     Json(request): Json<UpdateCanDoItemRequest>,
 ) -> Result<Json<ApiResponse<CanDoItemResponse>>> {
     let item = CanDoList::find_by_id(id)
         .filter(can_do_list::Column::UserId.eq(auth_user.0.id))
-        .one(&db.connection)
+        .one(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?
         .ok_or_else(|| crate::errors::AppError::NotFound("Can-do item not found".to_string()))?;
@@ -111,20 +111,20 @@ pub async fn update_item(
         item_active.display_order = Set(display_order);
     }
 
-    let updated_item = item_active.update(&db.connection).await
+    let updated_item = item_active.update(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
     Ok(Json(ApiResponse::with_message(updated_item.into(), "Can-do item updated successfully")))
 }
 
 pub async fn delete_item(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<()>>> {
     let result = CanDoList::delete_by_id(id)
         .filter(can_do_list::Column::UserId.eq(auth_user.0.id))
-        .exec(&db.connection)
+        .exec(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 

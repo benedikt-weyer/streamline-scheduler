@@ -22,6 +22,7 @@ pub struct Claims {
     pub iss: String,  // Issuer - should match Supabase
 }
 
+#[derive(Clone)]
 pub struct AuthService {
     db: Database,
     jwt_secret: String,

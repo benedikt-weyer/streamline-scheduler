@@ -6,24 +6,24 @@ use sea_orm::*;
 use uuid::Uuid;
 
 use crate::{
-    db::Database,
     entities::{prelude::*, calendars},
     errors::Result,
-    middleware::AuthUser,
+    middleware::auth::AuthUser,
     models::{
         calendar::{CreateCalendarRequest, UpdateCalendarRequest, CalendarResponse},
         ApiResponse,
     },
+    state::AppState,
 };
 
 pub async fn list_calendars(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
 ) -> Result<Json<ApiResponse<Vec<CalendarResponse>>>> {
     let calendars = Calendars::find()
         .filter(calendars::Column::UserId.eq(auth_user.0.id))
         .order_by_asc(calendars::Column::CreatedAt)
-        .all(&db.connection)
+        .all(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
@@ -32,13 +32,13 @@ pub async fn list_calendars(
 }
 
 pub async fn get_calendar(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<CalendarResponse>>> {
     let calendar = Calendars::find_by_id(id)
         .filter(calendars::Column::UserId.eq(auth_user.0.id))
-        .one(&db.connection)
+        .one(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?
         .ok_or_else(|| crate::errors::AppError::NotFound("Calendar not found".to_string()))?;
@@ -47,7 +47,7 @@ pub async fn get_calendar(
 }
 
 pub async fn create_calendar(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Json(request): Json<CreateCalendarRequest>,
 ) -> Result<Json<ApiResponse<CalendarResponse>>> {
@@ -57,21 +57,21 @@ pub async fn create_calendar(
     calendar_active.iv = Set(request.iv);
     calendar_active.salt = Set(request.salt);
 
-    let calendar = calendar_active.insert(&db.connection).await
+    let calendar = calendar_active.insert(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
     Ok(Json(ApiResponse::with_message(calendar.into(), "Calendar created successfully")))
 }
 
 pub async fn update_calendar(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
     Json(request): Json<UpdateCalendarRequest>,
 ) -> Result<Json<ApiResponse<CalendarResponse>>> {
     let calendar = Calendars::find_by_id(id)
         .filter(calendars::Column::UserId.eq(auth_user.0.id))
-        .one(&db.connection)
+        .one(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?
         .ok_or_else(|| crate::errors::AppError::NotFound("Calendar not found".to_string()))?;
@@ -91,20 +91,20 @@ pub async fn update_calendar(
         calendar_active.is_default = Set(is_default);
     }
 
-    let updated_calendar = calendar_active.update(&db.connection).await
+    let updated_calendar = calendar_active.update(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
     Ok(Json(ApiResponse::with_message(updated_calendar.into(), "Calendar updated successfully")))
 }
 
 pub async fn delete_calendar(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<()>>> {
     let result = Calendars::delete_by_id(id)
         .filter(calendars::Column::UserId.eq(auth_user.0.id))
-        .exec(&db.connection)
+        .exec(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 

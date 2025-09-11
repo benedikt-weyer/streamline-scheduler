@@ -5,7 +5,7 @@ use axum::{
     },
     response::Response,
 };
-use futures::{sink::SinkExt, stream::StreamExt};
+use futures_util::{sink::SinkExt, stream::{SplitSink, SplitStream, StreamExt}};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -67,9 +67,10 @@ impl WebSocketState {
 
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
-    State(auth_service): State<AuthService>,
-    State(ws_state): State<WebSocketState>,
+    State(app_state): State<crate::state::AppState>,
 ) -> Response {
+    let auth_service = app_state.auth_service.clone();
+    let ws_state = app_state.ws_state.clone();
     ws.on_upgrade(move |socket| websocket_connection(socket, auth_service, ws_state))
 }
 
@@ -99,7 +100,7 @@ async fn websocket_connection(
                             "user_id": user.id
                         });
                         
-                        if sender.send(Message::Text(auth_response.to_string())).await.is_err() {
+                        if sender.send(Message::Text(auth_response.to_string().into())).await.is_err() {
                             return;
                         }
                     }
@@ -115,7 +116,7 @@ async fn websocket_connection(
             "message": "Authentication failed"
         });
         
-        let _ = sender.send(Message::Text(auth_error.to_string())).await;
+        let _ = sender.send(Message::Text(auth_error.to_string().into())).await;
         return;
     }
     
@@ -125,7 +126,7 @@ async fn websocket_connection(
     let mut send_task = tokio::spawn(async move {
         while let Ok(msg) = rx.recv().await {
             if let Ok(json) = serde_json::to_string(&msg) {
-                if sender.send(Message::Text(json)).await.is_err() {
+                if sender.send(Message::Text(json.into())).await.is_err() {
                     break;
                 }
             }

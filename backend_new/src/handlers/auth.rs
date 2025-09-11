@@ -1,38 +1,38 @@
 use axum::{
     extract::State,
-    http::StatusCode,
     response::Json,
 };
 
 use crate::{
-    auth::AuthService,
     errors::Result,
     models::{
-        user::{CreateUserRequest, LoginRequest, AuthResponse},
+        user::{CreateUserRequest, LoginRequest, AuthResponse, UserResponse},
         ApiResponse,
     },
-    middleware::AuthUser,
+    middleware::auth::AuthUser,
+    state::AppState,
 };
 
 pub async fn register(
-    State(auth_service): State<AuthService>,
+    State(app_state): State<AppState>,
     Json(request): Json<CreateUserRequest>,
 ) -> Result<Json<ApiResponse<AuthResponse>>> {
-    let response = auth_service.register(request).await?;
+    let response = app_state.auth_service.register(request).await?;
     Ok(Json(ApiResponse::with_message(response, "User registered successfully")))
 }
 
 pub async fn login(
-    State(auth_service): State<AuthService>,
+    State(app_state): State<AppState>,
     Json(request): Json<LoginRequest>,
 ) -> Result<Json<ApiResponse<AuthResponse>>> {
-    let response = auth_service.login(request).await?;
+    let response = app_state.auth_service.login(request).await?;
     Ok(Json(ApiResponse::with_message(response, "Login successful")))
 }
 
 pub async fn me(
+    State(_app_state): State<AppState>,
     auth_user: AuthUser,
-) -> Result<Json<ApiResponse<crate::models::user::UserResponse>>> {
+) -> Result<Json<ApiResponse<UserResponse>>> {
     let user_response = auth_user.0.into();
     Ok(Json(ApiResponse::new(user_response)))
 }

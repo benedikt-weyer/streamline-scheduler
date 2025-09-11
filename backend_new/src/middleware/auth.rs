@@ -15,17 +15,18 @@ use crate::{
     entities::users,
 };
 
+#[derive(Clone)]
 pub struct AuthUser(pub users::Model);
 
 pub async fn auth_middleware(
-    State(auth_service): State<AuthService>,
+    State(app_state): State<crate::state::AppState>,
     TypedHeader(authorization): TypedHeader<Authorization<Bearer>>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, AppError> {
     let token = authorization.token();
     
-    let user = auth_service.get_user_from_token(token).await?;
+    let user = app_state.auth_service.get_user_from_token(token).await?;
     
     // Insert the user into request extensions
     req.extensions_mut().insert(AuthUser(user));
@@ -34,12 +35,12 @@ pub async fn auth_middleware(
 }
 
 // Helper to extract user from request extensions
-impl axum::extract::FromRequestParts<()> for AuthUser {
+impl axum::extract::FromRequestParts<crate::state::AppState> for AuthUser {
     type Rejection = AppError;
 
     async fn from_request_parts(
         parts: &mut axum::http::request::Parts,
-        _state: &(),
+        _state: &crate::state::AppState,
     ) -> Result<Self, Self::Rejection> {
         parts
             .extensions

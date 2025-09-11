@@ -22,12 +22,20 @@ pkgs.mkShell {
     docker
     docker-compose
 
+    # System dependencies for Rust compilation
+    pkg-config
+    openssl
+    openssl.dev
+    
+    # Additional build tools
+    gcc
+    libiconv
+    
     # Useful development tools
     curl
     jq
     git
     wget
-    openssl
   ];
 
   shellHook = ''
@@ -329,5 +337,9 @@ pkgs.mkShell {
   env = {
     RUST_LOG = "debug";
     DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/postgres";
+    PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig:${pkgs.postgresql_15}/lib/pkgconfig";
+    OPENSSL_DIR = "${pkgs.openssl.dev}";
+    OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
+    OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
   };
 }

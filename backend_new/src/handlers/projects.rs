@@ -7,14 +7,14 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
-    db::Database,
     entities::{prelude::*, projects},
     errors::Result,
-    middleware::AuthUser,
+    middleware::auth::AuthUser,
     models::{
         project::{CreateProjectRequest, UpdateProjectRequest, ProjectResponse},
         ApiResponse,
     },
+    state::AppState,
 };
 
 #[derive(Debug, Deserialize)]
@@ -23,7 +23,7 @@ pub struct ProjectQuery {
 }
 
 pub async fn list_projects(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Query(query): Query<ProjectQuery>,
 ) -> Result<Json<ApiResponse<Vec<ProjectResponse>>>> {
@@ -41,7 +41,7 @@ pub async fn list_projects(
     let projects = find
         .order_by_asc(projects::Column::DisplayOrder)
         .order_by_asc(projects::Column::CreatedAt)
-        .all(&db.connection)
+        .all(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
@@ -50,13 +50,13 @@ pub async fn list_projects(
 }
 
 pub async fn get_project(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<ProjectResponse>>> {
     let project = Projects::find_by_id(id)
         .filter(projects::Column::UserId.eq(auth_user.0.id))
-        .one(&db.connection)
+        .one(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?
         .ok_or_else(|| crate::errors::AppError::NotFound("Project not found".to_string()))?;
@@ -65,7 +65,7 @@ pub async fn get_project(
 }
 
 pub async fn create_project(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Json(request): Json<CreateProjectRequest>,
 ) -> Result<Json<ApiResponse<ProjectResponse>>> {
@@ -81,21 +81,21 @@ pub async fn create_project(
     project_active.display_order = Set(display_order);
     project_active.is_collapsed = Set(is_collapsed);
 
-    let project = project_active.insert(&db.connection).await
+    let project = project_active.insert(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
     Ok(Json(ApiResponse::with_message(project.into(), "Project created successfully")))
 }
 
 pub async fn update_project(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
     Json(request): Json<UpdateProjectRequest>,
 ) -> Result<Json<ApiResponse<ProjectResponse>>> {
     let project = Projects::find_by_id(id)
         .filter(projects::Column::UserId.eq(auth_user.0.id))
-        .one(&db.connection)
+        .one(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?
         .ok_or_else(|| crate::errors::AppError::NotFound("Project not found".to_string()))?;
@@ -124,20 +124,20 @@ pub async fn update_project(
         project_active.is_collapsed = Set(is_collapsed);
     }
 
-    let updated_project = project_active.update(&db.connection).await
+    let updated_project = project_active.update(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
     Ok(Json(ApiResponse::with_message(updated_project.into(), "Project updated successfully")))
 }
 
 pub async fn delete_project(
-    State(db): State<Database>,
+    State(app_state): State<AppState>,
     auth_user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<()>>> {
     let result = Projects::delete_by_id(id)
         .filter(projects::Column::UserId.eq(auth_user.0.id))
-        .exec(&db.connection)
+        .exec(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 

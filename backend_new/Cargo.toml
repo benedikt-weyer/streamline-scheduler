@@ -42,6 +42,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # WebSocket support
 axum-extra = { version = "0.10.1", features = ["typed-header"] }
+futures-util = "0.3"
+async-trait = "0.1"
 
 # HTTP client (for external services if needed)
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }

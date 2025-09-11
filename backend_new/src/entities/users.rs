@@ -1,4 +1,4 @@
-use sea_orm::entity::prelude::*;
+use sea_orm::{entity::prelude::*, Set};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
@@ -55,6 +55,7 @@ impl Related<super::calendar_events::Entity> for Entity {
     }
 }
 
+#[async_trait::async_trait]
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
         Self {
@@ -68,11 +69,13 @@ impl ActiveModelBehavior for ActiveModel {
         }
     }
 
-    fn before_save<C>(mut self, _db: &C, _insert: bool) -> Result<Self, DbErr>
+    async fn before_save<C>(mut self, _db: &C, insert: bool) -> Result<Self, DbErr>
     where
         C: ConnectionTrait,
     {
-        self.updated_at = Set(chrono::Utc::now().into());
+        if !insert {
+            self.updated_at = Set(chrono::Utc::now().into());
+        }
         Ok(self)
     }
 }

@@ -137,7 +137,7 @@ impl MigrationTrait for Migration {
                     .col(Projects::UserId)
                     .unique()
                     .if_not_exists()
-                    .partial_where(Expr::col(Projects::IsDefault).eq(true))
+                    .and_where_option(Some(Expr::col(Projects::IsDefault).eq(true)))
                     .to_owned(),
             )
             .await?;
