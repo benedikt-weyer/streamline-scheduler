@@ -20,6 +20,26 @@ services:
     networks:
       - app-network
 
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: streamline-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@streamline.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-your-super-secret-pgadmin-password}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+
   # Rust backend
   backend:
     build:
@@ -95,6 +115,7 @@ services:
 
 volumes:
   pg-db-data:
+  pgadmin-data:
 
 networks:
   app-network:

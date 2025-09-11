@@ -92,17 +92,21 @@ pkgs.mkShell {
         # Generate secure passwords and JWT secret
         POSTGRES_PASSWORD=$(openssl rand -hex 32)
         JWT_SECRET=$(openssl rand -hex 32)
+        PGADMIN_PASSWORD=$(openssl rand -hex 16)
         
         # Replace placeholders with generated values
         sed -i "s/your-super-secret-and-long-postgres-password/$POSTGRES_PASSWORD/" .env
         sed -i "s/your-super-secret-jwt-token-with-at-least-32-characters-long/$JWT_SECRET/" .env
+        sed -i "s/your-super-secret-pgadmin-password/$PGADMIN_PASSWORD/" .env
         
         echo "🔐 Generated secure POSTGRES_PASSWORD: $POSTGRES_PASSWORD"
         echo "🔐 Generated secure JWT_SECRET: $JWT_SECRET"
+        echo "🔐 Generated secure PGADMIN_PASSWORD: $PGADMIN_PASSWORD"
       fi
       
-      docker-compose up -d db
+      docker-compose up -d db pgadmin
       echo "Database started on localhost:5432"
+      echo "pgAdmin started on localhost:5050"
       
       # Wait for database to be ready
       echo "Waiting for database to be ready..."
@@ -181,10 +185,10 @@ pkgs.mkShell {
 
     # Define function to stop database
     stop_database() {
-      echo "🛑 Stopping PostgreSQL database..."
+      echo "🛑 Stopping PostgreSQL database and pgAdmin..."
       cd "$PROJECT_DIR"
-      docker-compose stop db
-      echo "✅ Database stopped"
+      docker-compose stop db pgadmin
+      echo "✅ Database and pgAdmin stopped"
     }
 
     # Define function to stop backend
@@ -361,6 +365,7 @@ pkgs.mkShell {
     echo "  2. Visit http://localhost:5173 for the frontend"
     echo "  3. API is available at http://localhost:3001"
     echo "  4. Database is on localhost:5432"
+    echo "  5. pgAdmin is available at http://localhost:5050"
     echo ""
     echo "🔧 Individual services:"
     echo "  - 'start:db' for database only"
@@ -368,6 +373,10 @@ pkgs.mkShell {
     echo "  - 'start:fe' for frontend only"
     echo ""
     echo "📋 Use 'logs' to see all logs or 'logs:be'/'logs:fe'/'logs:db' for specific services"
+    echo ""
+    echo "🔑 pgAdmin credentials (generated in .env file):"
+    echo "  - Email: admin@streamline.local"
+    echo "  - Password: Check .env file for PGADMIN_PASSWORD"
   '';
 
   # Set environment variables
