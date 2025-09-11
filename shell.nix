@@ -11,6 +11,12 @@ pkgs.mkShell {
     # Supabase CLI
     supabase-cli
 
+    # Rust toolchain
+    rustc
+    cargo
+    rustfmt
+    clippy
+
     # Useful tools
     curl
     jq
