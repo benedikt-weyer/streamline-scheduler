@@ -11,7 +11,7 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - new-db-data:/var/lib/postgresql/data
+      - pg-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -94,8 +94,7 @@ services:
       - production
 
 volumes:
-  db-data:
-  new-db-data:
+  pg-db-data:
 
 networks:
   app-network:

@@ -83,6 +83,24 @@ pkgs.mkShell {
     start_database() {
       echo "🐘 Starting PostgreSQL database..."
       cd "$PROJECT_DIR"
+      
+      # Create .env file if it doesn't exist
+      if [ ! -f ".env" ]; then
+        cp env.example .env
+        echo "Created .env file from env.example"
+        
+        # Generate secure passwords and JWT secret
+        POSTGRES_PASSWORD=$(openssl rand -hex 32)
+        JWT_SECRET=$(openssl rand -hex 32)
+        
+        # Replace placeholders with generated values
+        sed -i "s/your-super-secret-and-long-postgres-password/$POSTGRES_PASSWORD/" .env
+        sed -i "s/your-super-secret-jwt-token-with-at-least-32-characters-long/$JWT_SECRET/" .env
+        
+        echo "🔐 Generated secure POSTGRES_PASSWORD: $POSTGRES_PASSWORD"
+        echo "🔐 Generated secure JWT_SECRET: $JWT_SECRET"
+      fi
+      
       docker-compose up -d db
       echo "Database started on localhost:5432"
       
@@ -100,23 +118,35 @@ pkgs.mkShell {
       echo "🦀 Starting Rust backend server..."
       cd "$PROJECT_DIR/backend_new"
       
-      # Create .env file if it doesn't exist
+      # Create backend .env file from main .env file
       if [ ! -f ".env" ]; then
         cp env.example .env
-        echo "Created .env file from env.example"
+        echo "Created backend .env file from env.example"
       fi
       
-      # Generate a new JWT_SECRET if the default one is still being used
-      if grep -q "your-super-secret-jwt-token-with-at-least-32-characters-long" .env; then
-        JWT_SECRET=$(openssl rand -hex 32)
-        sed -i "s/your-super-secret-jwt-token-with-at-least-32-characters-long/$JWT_SECRET/" .env
-        echo "🔐 Generated new JWT_SECRET: $JWT_SECRET"
+      # If main .env exists, use its values for backend configuration
+      if [ -f "$PROJECT_DIR/.env" ]; then
+        # Source the main .env file to get the generated values
+        set -a  # automatically export all variables
+        source "$PROJECT_DIR/.env"
+        set +a  # stop automatically exporting
+        
+        # Update backend .env with values from main .env
+        DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:$POSTGRES_PORT/$POSTGRES_DB"
+        sed -i "s|DATABASE_URL=.*|DATABASE_URL=$DATABASE_URL|" .env
+        sed -i "s/JWT_SECRET=.*/JWT_SECRET=$JWT_SECRET/" .env
+        sed -i "s/JWT_EXPIRY_HOURS=.*/JWT_EXPIRY_HOURS=$JWT_EXPIRY_HOURS/" .env
+        sed -i "s/PORT=.*/PORT=$BACKEND_PORT/" .env
+        sed -i "s/RUST_LOG=.*/RUST_LOG=$RUST_LOG/" .env
+        sed -i "s|ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=$ALLOWED_ORIGINS|" .env
+        
+        echo "🔗 Updated backend configuration from main .env"
       fi
       
       nohup cargo run > /tmp/backend.log 2>&1 &
       echo $! > "$TEMP_DIR/backend.pid"
       echo "Backend server started in background (logs at /tmp/backend.log)"
-      echo "🔗 API available at http://localhost:3001"
+      echo "🔗 API available at http://localhost:$BACKEND_PORT"
       cd "$PROJECT_DIR"
     }
 
