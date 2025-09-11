@@ -5,3 +5,5 @@ certs/
 
 docker-compose.override.yml
 docker-compose.override.yaml
+
+backend_new/target/
