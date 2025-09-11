@@ -1,29 +1,44 @@
 # Streamline Scheduler
 
-Streamline Scheduler is an open source self-hostable calendar-todolist combo, which provides fast and efficient streamlined scheduling of tasks and events. It can be used as a standalone todolist app and/or calendar app. The frontend is built with Next.js, shadcn/ui components, and Tailwind CSS. The backend uses Supabase for authentication and data storage. Privacy-focused and easy self-hosting first.
+Streamline Scheduler is an open source self-hostable calendar-todolist combo with end-to-end encryption, which provides fast and efficient streamlined scheduling of tasks and events. It can be used as a standalone todolist app and/or calendar app. The frontend is built with SvelteKit, Tailwind CSS, and features client-side encryption. The backend uses a custom Rust API with Axum framework and PostgreSQL. Privacy-focused and easy self-hosting first.
 
 ## Features
 
 - 📅 **Calendar Management** - Create, edit, and manage events with support for recurring patterns
 - ✅ **Todo List** - Efficient task management with priorities and due dates
 - 🔄 **Recurring Events & Tasks** - Set up repeating events and tasks with flexible patterns
-- 🔒 **Privacy-Focused** - Your data stays on your server
+- 🔒 **End-to-End Encryption** - All data is encrypted client-side before transmission
 - 🏠 **Easy Self-Hosting** - Simple deployment options for personal or team use
-- 🎨 **Modern UI** - Beautiful, responsive interface built with shadcn/ui
+- 🎨 **Modern UI** - Beautiful, responsive interface built with SvelteKit and Tailwind CSS
+- ⚡ **Real-time Sync** - WebSocket-based real-time updates across all devices
 - 🌙 **Dark Mode** - Full dark/light theme support
+- 🗂️ **Project Organization** - Hierarchical project structure with drag-and-drop reordering
+
+## Architecture
+
+### New Architecture (Current)
+- **Frontend**: SvelteKit with Tailwind CSS 4, crypto-js for E2E encryption
+- **Backend**: Rust with Axum framework, SeaORM, PostgreSQL
+- **Real-time**: WebSocket implementation for instant synchronization
+- **Security**: Client-side encryption with PBKDF2 key derivation
+- **Package Manager**: pnpm
+
+### Legacy Architecture (Deprecated)
+- **Frontend**: Next.js 14+, React, TypeScript, Tailwind CSS, shadcn/ui
+- **Backend**: Supabase (PostgreSQL, Auth, Real-time subscriptions)
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14+, React, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Supabase (PostgreSQL, Auth, Real-time subscriptions)
-- **Package Manager**: pnpm
-- **Development**: Nix shell environment, Supabase CLI
+- **Frontend**: SvelteKit 5, TypeScript, Tailwind CSS 4, crypto-js, dnd-kit-svelte
+- **Backend**: Rust, Axum, SeaORM, PostgreSQL, JWT authentication
+- **Development**: Nix shell environment, Docker, pnpm
+- **Security**: End-to-end encryption, client-side key derivation
 
 ## Self-Hosting
 
-Streamline Scheduler can be easily self-hosted on your own server or cloud provider. Here are several deployment options:
+Streamline Scheduler can be easily self-hosted on your own server or cloud provider using the new Rust backend architecture.
 
-### Option 1: Docker Compose Deployment (Recommended)
+### Quick Start with Docker Compose (Recommended)
 
 1. **Clone the repository**:
    ```bash
@@ -33,49 +48,79 @@ Streamline Scheduler can be easily self-hosted on your own server or cloud provi
 
 2. **Set up environment variables**:
    ```bash
-   # Create environment file
-   cp backend/.env.example backend/.env
+   # Create environment file for the backend
+   cp backend_new/env.example backend_new/.env
    
-   # Edit the environment file with your settings
-   # Set strong passwords, API keys, and domain configuration
+   # Create environment file for the frontend
+   cp frontend_new/env.example frontend_new/.env
+   
+   # Edit the environment files with your settings
+   # Set strong passwords, JWT secrets, and database configuration
    ```
 
 3. **Deploy with Docker Compose**:
    ```bash
-   cd backend
-   docker-compose -f docker-compose.yml up -d
-   
-   # Build and deploy frontend
-   cd ../frontend
-   docker build -t streamline-scheduler-frontend .
-   docker run -d -p 3000:3000 --name streamline-frontend streamline-scheduler-frontend
+   # Start all services (PostgreSQL, Rust backend, SvelteKit frontend)
+   docker-compose up -d
    ```
 
-### Option 2: Supabase Cloud + Vercel Deployment
+4. **Access the application**:
+   - Frontend: https://localhost:443 (with SSL) or http://localhost:3000
+   - Backend API: http://localhost:3001
 
-1. **Set up Supabase Cloud**:
-   - Create a new project at [supabase.com](https://supabase.com)
-   - Run migrations:
-     ```bash
-     cd backend
-     supabase link --project-ref your-project-ref
-     supabase db push
-     ```
+### Environment Variables
 
-2. **Deploy Frontend to Vercel**:
-   ```bash
-   cd frontend
-   # Set environment variables in Vercel dashboard
-   # Deploy using Vercel CLI or GitHub integration
-   vercel deploy --prod
-   ```
+Key environment variables to configure:
 
-### Option 3: Manual Server Deployment
+#### Backend (.env)
+```bash
+# Database
+DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+
+# Server
+PORT=3001
+```
+
+#### Frontend (.env)
+```bash
+# Backend API URL
+VITE_BACKEND_URL=http://localhost:3001
+```
+
+#### Docker Compose (.env)
+```bash
+# PostgreSQL Configuration
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=postgres
+POSTGRES_PORT=5432
+
+# Service Ports
+BACKEND_PORT=3001
+FRONTEND_PORT=3000
+
+# JWT Secret (should match backend)
+JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
+```
+
+### Security Features
+
+- **End-to-End Encryption**: All sensitive data is encrypted client-side using AES-CBC
+- **Master Password**: Users provide a master password for key derivation (never sent to server)
+- **PBKDF2 Key Derivation**: Strong key derivation with 10,000 iterations
+- **Zero Knowledge**: Server never has access to unencrypted user data
+- **JWT Authentication**: Secure token-based authentication
+- **Row Level Security**: Application-level data isolation
+
+### Manual Server Deployment
 
 1. **Server Requirements**:
    - Ubuntu 20.04+ or similar Linux distribution
    - Docker and Docker Compose
-   - Nginx (for reverse proxy)
+   - Nginx (for reverse proxy and SSL)
    - SSL certificate (Let's Encrypt recommended)
 
 2. **Install Dependencies**:
@@ -85,7 +130,7 @@ Streamline Scheduler can be easily self-hosted on your own server or cloud provi
    sudo sh get-docker.sh
    
    # Install Docker Compose
-   sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+   sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
    sudo chmod +x /usr/local/bin/docker-compose
    ```
 
@@ -96,76 +141,58 @@ Streamline Scheduler can be easily self-hosted on your own server or cloud provi
    cd streamline-scheduler
    
    # Set up production environment
-   cp backend/.env.example backend/.env.production
-   # Edit .env.production with production settings
+   cp backend_new/env.example backend_new/.env.production
+   cp frontend_new/env.example frontend_new/.env.production
+   # Edit .env.production files with production settings
    
    # Start services
-   cd backend
-   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+   docker-compose up -d
    ```
 
-4. **Configure Nginx**:
+4. **Configure Nginx** (example):
    ```nginx
    server {
-       listen 80;
+       listen 443 ssl http2;
        server_name your-domain.com;
+       
+       ssl_certificate /path/to/certificate.crt;
+       ssl_certificate_key /path/to/private.key;
        
        location / {
            proxy_pass http://localhost:3000;
            proxy_set_header Host $host;
            proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
        }
        
        location /api/ {
-           proxy_pass http://localhost:54321/;
+           proxy_pass http://localhost:3001/;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+       
+       location /ws {
+           proxy_pass http://localhost:3001/ws;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection "upgrade";
            proxy_set_header Host $host;
            proxy_set_header X-Real-IP $remote_addr;
        }
    }
    ```
 
-5. **Set up SSL with Let's Encrypt**:
-   ```bash
-   sudo apt install certbot python3-certbot-nginx
-   sudo certbot --nginx -d your-domain.com
-   ```
-
-### Environment Variables
-
-Key environment variables to configure for production:
-
-```bash
-# Supabase Configuration
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/streamline
-JWT_SECRET=your-jwt-secret
-
-# Frontend
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-
-# Optional: Analytics, Error Tracking
-NEXT_PUBLIC_ANALYTICS_ID=your-analytics-id
-```
-
-### Security Considerations
-
-- **Use strong passwords** for all database and service accounts
-- **Enable SSL/TLS** for all connections
-- **Configure firewall** to only allow necessary ports (80, 443, 22)
-- **Regular backups** of your database
-- **Keep services updated** with security patches
-- **Use environment variables** for all sensitive configuration
-
 ### Backup and Maintenance
 
 ```bash
 # Database backup
-docker exec supabase-db pg_dump -U postgres streamline > backup.sql
+docker exec streamline-db pg_dump -U postgres postgres > backup.sql
+
+# Restore database
+docker exec -i streamline-db psql -U postgres postgres < backup.sql
 
 # Update application
 git pull origin main
@@ -174,41 +201,28 @@ docker-compose pull
 docker-compose up -d
 
 # View logs
-docker-compose logs -f
+docker-compose logs -f backend_new
+docker-compose logs -f frontend
 ```
 
-## Deployment
-
-For production deployment, consider:
-
-1. **Cloud Providers**: AWS, Google Cloud, DigitalOcean, Hetzner
-2. **Container Orchestration**: Kubernetes, Docker Swarm
-3. **CDN**: CloudFlare, AWS CloudFront for static assets
-4. **Monitoring**: Set up monitoring and alerting for your deployment
-5. **Automated Backups**: Schedule regular database backups
-
-
-## Contributing
-
-We welcome contributions from the community! Here's how to set up the development environment.
+## Development
 
 ### Prerequisites
 
 - Node.js 20.x or later
 - pnpm
-- Supabase CLI
-- Docker and Docker Compose (for local Supabase development)
+- Rust (for backend development)
+- Docker and Docker Compose
+- Nix (optional, for complete environment)
 
 ### Development Setup
 
 #### Option 1: Using Nix (Recommended)
 
-The project includes a comprehensive `shell.nix` file that sets up a complete development environment with all necessary dependencies, including Node.js, pnpm, and Supabase CLI.
+The project includes a comprehensive `shell.nix` file that sets up a complete development environment with all necessary dependencies.
 
 1. **Install Nix**:
    - Follow the [official Nix installation guide](https://nixos.org/download.html)
-   - For single-user installation: `sh <(curl -L https://nixos.org/nix/install) --no-daemon`
-   - For multi-user installation: `sh <(curl -L https://nixos.org/nix/install) --daemon`
 
 2. **Enter the development environment**:
    ```bash
@@ -216,165 +230,120 @@ The project includes a comprehensive `shell.nix` file that sets up a complete de
    nix-shell
    ```
 
-3. **Use the provided commands**:
+3. **Start development servers**:
    ```bash
-   # Start both Supabase and Next.js dev servers
-   start
+   # Start PostgreSQL database
+   docker-compose up -d db
    
-   # Start only the Next.js frontend
-   start:fe
+   # Start Rust backend (in one terminal)
+   cd backend_new
+   cargo run
    
-   # Start only the Supabase backend
-   start:be
-   
-   # Stop all servers
-   stop
-   
-   # Restart servers
-   restart
-   
-   # Run tests
-   test
-   
-   # Run tests in watch mode
-   test:watch
-   
-   # Create a new Supabase migration
-   migrate <migration_name>
+   # Start SvelteKit frontend (in another terminal)
+   cd frontend_new
+   pnpm dev
    ```
 
-4. **Access the application**:
-   - Frontend: http://localhost:3000
-   - Supabase Studio: http://localhost:54323
-
-5. When you're done, simply type `exit` or press `Ctrl+D` to exit the Nix shell. All development servers will be automatically stopped.
-
-> **Note**: For direnv users, an `.envrc` file is included that will automatically load the Nix environment when you enter the project directory.
-
-#### Option 2: Manual Setup with Supabase CLI (Recommended for Advanced Users)
-
-This setup uses the Supabase CLI directly, which is ideal for database migrations and advanced development workflows.
+#### Option 2: Manual Setup
 
 1. **Install Prerequisites**:
    ```bash
-   # Install Node.js 20+ and pnpm
+   # Install Rust
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   
+   # Install Node.js and pnpm
    # Install Docker and Docker Compose
-   # Install Supabase CLI
-   npm install -g supabase
-   ```
-
-2. **Setup Frontend**:
-   ```bash
-   cd frontend
-   pnpm install
-   ```
-
-3. **Setup Backend**:
-   ```bash
-   cd backend
-   supabase start
-   ```
-   This will:
-   - Start Supabase services (PostgreSQL, Auth, Storage, etc.)
-   - Apply all migrations
-   - Set up the local development database
-
-4. **Start Development Servers**:
-   ```bash
-   # Terminal 1: Start frontend
-   cd frontend
-   pnpm dev
-   
-   # Terminal 2: Backend is already running from supabase start
-   ```
-
-5. **Useful Supabase CLI Commands**:
-   ```bash
-   # Create a new migration
-   cd backend
-   supabase migration new <migration_name>
-   
-   # Reset database (careful: destroys all data)
-   supabase db reset
-   
-   # View database diff
-   supabase db diff
-   
-   # Stop Supabase services
-   supabase stop
-   
-   # View logs
-   supabase logs
-   ```
-
-6. **Access the application**:
-   - Frontend: http://localhost:3000
-   - Supabase Studio: http://localhost:54323
-
-#### Option 3: Manual Setup with Docker Compose (Legacy)
-
-If you prefer using Docker Compose directly without the Supabase CLI:
-
-1. **Setup Frontend**:
-   ```bash
-   cd frontend
-   pnpm install
-   pnpm dev
    ```
 
 2. **Setup Backend**:
    ```bash
-   cd backend
-   docker-compose -f docker-compose.yml -f dev/docker-compose.dev.yml up -d
+   cd backend_new
+   
+   # Set up environment
+   cp env.example .env
+   
+   # Start database
+   docker-compose up -d db
+   
+   # Run migrations and start server
+   cargo run
    ```
 
-3. **Stop services**:
+3. **Setup Frontend**:
    ```bash
-   cd backend
-   docker-compose -f docker-compose.yml -f dev/docker-compose.dev.yml down
+   cd frontend_new
+   
+   # Install dependencies
+   pnpm install
+   
+   # Set up environment
+   cp env.example .env.local
+   
+   # Start development server
+   pnpm dev
    ```
 
-### Development Workflow
-
-1. **Fork and Clone**: Fork the repository and clone your fork
-2. **Create a Branch**: Create a new branch for your feature or bugfix
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. **Set Up Environment**: Use one of the development setup options above
-4. **Make Changes**: Implement your changes following the project conventions
-5. **Write Tests**: Add or update tests for your changes
-6. **Run Tests**: Ensure all tests pass
-   ```bash
-   test        # Run once
-   test:watch  # Run in watch mode
-   ```
-7. **Create Migrations**: If you changed the database schema
-   ```bash
-   migrate your_migration_name
-   ```
-8. **Commit and Push**: Commit your changes and push to your fork
-9. **Submit PR**: Submit a pull request with a clear description
+4. **Access the application**:
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:3001
+   - Database: localhost:5432
 
 ### Project Structure
 
 ```
 streamline-scheduler/
-├── frontend/                 # Next.js frontend application
-│   ├── app/                 # Next.js app router pages
-│   ├── components/          # Reusable UI components (shadcn/ui)
-│   ├── hooks/               # Custom React hooks
-│   ├── lib/                 # Utility libraries
-│   ├── utils/               # Helper functions
-│   └── test/                # Frontend tests
-├── backend/                 # Supabase backend configuration
-│   ├── supabase/           # Supabase project configuration
-│   │   ├── config.toml     # Supabase configuration
-│   │   ├── migrations/     # Database migrations
-│   │   └── seed.sql        # Initial data
-│   └── dev/                # Development configurations
+├── frontend_new/            # SvelteKit frontend application
+│   ├── src/
+│   │   ├── lib/            # Shared libraries
+│   │   │   ├── api/        # API client
+│   │   │   ├── crypto/     # Encryption utilities
+│   │   │   └── stores/     # Svelte stores
+│   │   └── routes/         # SvelteKit routes
+│   ├── Dockerfile          # Frontend container
+│   └── package.json
+├── backend_new/             # Rust backend application
+│   ├── src/
+│   │   ├── entities/       # Database entities (SeaORM)
+│   │   ├── handlers/       # API route handlers
+│   │   ├── migrator/       # Database migrations
+│   │   └── models/         # Request/response models
+│   ├── Cargo.toml
+│   └── Dockerfile          # Backend container
+├── docker-compose.yml       # Complete stack deployment
+├── nginx.conf              # Nginx configuration
 └── shell.nix               # Nix development environment
 ```
+
+### Development Workflow
+
+1. **Fork and Clone**: Fork the repository and clone your fork
+2. **Create a Branch**: Create a new branch for your feature or bugfix
+3. **Set Up Environment**: Use one of the development setup options above
+4. **Make Changes**: Implement your changes following the project conventions
+5. **Test**: Test your changes with both frontend and backend
+6. **Create Migrations**: If you changed the database schema, add SeaORM migrations
+7. **Commit and Push**: Commit your changes and push to your fork
+8. **Submit PR**: Submit a pull request with a clear description
+
+## Migration from Legacy Architecture
+
+If you're migrating from the old Supabase-based architecture:
+
+1. **Backup your data** from Supabase
+2. **Deploy the new stack** using the Docker Compose setup
+3. **Create an account** in the new system
+4. **Import your data** (migration scripts coming soon)
+
+The new architecture provides better privacy with E2E encryption and more control over your data.
+
+## Contributing
+
+We welcome contributions from the community! Please see the development setup above and feel free to:
+
+- Report bugs and issues
+- Suggest new features
+- Submit pull requests
+- Improve documentation
 
 ## License
 
@@ -382,7 +351,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
-- 📖 **Documentation**: Check the wiki for detailed guides
+- 📖 **Documentation**: Check the project wiki and README files
 - 🐛 **Bug Reports**: Open an issue on GitHub
 - 💡 **Feature Requests**: Open a discussion on GitHub
-- 💬 **Community**: Join our Discord server (if available)
+- 🔒 **Security Issues**: Report privately via email
