@@ -43,13 +43,14 @@
 
 		isLoadingData = true;
 		try {
-			// Set the encryption key in the data store
-			dataStore.setEncryptionKey(storedEncryptionKey);
+			console.log('Starting data load with encryption key available');
 			
 			// Load all data and connect WebSocket
+			// The data store will automatically use the stored encryption key
 			await dataStore.loadAll();
 			dataStore.connectWebSocket();
 			
+			console.log('Data loading completed successfully');
 			dataLoaded = true;
 		} catch (error) {
 			console.error('Failed to load data:', error);

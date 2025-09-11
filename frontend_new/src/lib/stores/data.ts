@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import type { Project, CanDoItem, Calendar, CalendarEvent } from '$lib/api/client';
 import { apiClient } from '$lib/api/client';
-import { decryptData } from '$lib/crypto/encryption';
+import { decryptDataWithStoredKey, getEncryptionKey } from '$lib/crypto/encryption';
 
 export interface AppState {
 	projects: Project[];
@@ -82,18 +82,33 @@ function createDataStore() {
 		item: { encrypted_data: string; iv: string; salt: string },
 		defaultValue: T
 	): T {
-		if (!currentEncryptionKey) return defaultValue;
+		// Use the stored encryption key from localStorage
+		const encryptionKey = getEncryptionKey();
+		if (!encryptionKey) {
+			console.warn('No encryption key available for decryption');
+			return defaultValue;
+		}
 		
 		try {
-			const decryptedJson = decryptData(
+			const decryptedJson = decryptDataWithStoredKey(
 				item.encrypted_data,
-				currentEncryptionKey,
 				item.iv,
 				item.salt
 			);
+			
+			if (!decryptedJson) {
+				console.error('Decryption returned null');
+				return defaultValue;
+			}
+			
 			return JSON.parse(decryptedJson);
 		} catch (error) {
-			console.error('Decryption failed:', error);
+			console.error('Decryption failed:', error, {
+				hasKey: !!encryptionKey,
+				dataLength: item.encrypted_data?.length,
+				ivLength: item.iv?.length,
+				saltLength: item.salt?.length
+			});
 			return defaultValue;
 		}
 	}
