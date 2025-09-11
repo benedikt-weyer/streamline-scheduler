@@ -375,7 +375,7 @@ pkgs.mkShell {
     echo "📋 Use 'logs' to see all logs or 'logs:be'/'logs:fe'/'logs:db' for specific services"
     echo ""
     echo "🔑 pgAdmin credentials (generated in .env file):"
-    echo "  - Email: admin@streamline.local"
+    echo "  - Email: admin@streamline.com"
     echo "  - Password: Check .env file for PGADMIN_PASSWORD"
   '';
 

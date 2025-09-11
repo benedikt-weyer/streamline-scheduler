@@ -26,7 +26,7 @@ services:
     container_name: streamline-pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@streamline.local}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@streamline.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-your-super-secret-pgadmin-password}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
