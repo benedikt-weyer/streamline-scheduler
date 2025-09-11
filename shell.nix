@@ -106,6 +106,13 @@ pkgs.mkShell {
         echo "Created .env file from env.example"
       fi
       
+      # Generate a new JWT_SECRET if the default one is still being used
+      if grep -q "your-super-secret-jwt-token-with-at-least-32-characters-long" .env; then
+        JWT_SECRET=$(openssl rand -hex 32)
+        sed -i "s/your-super-secret-jwt-token-with-at-least-32-characters-long/$JWT_SECRET/" .env
+        echo "🔐 Generated new JWT_SECRET: $JWT_SECRET"
+      fi
+      
       nohup cargo run > /tmp/backend.log 2>&1 &
       echo $! > "$TEMP_DIR/backend.pid"
       echo "Backend server started in background (logs at /tmp/backend.log)"
