@@ -1,17 +1,39 @@
+'use client';
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { getBackend } from "@/utils/api/backend-interface";
+import { AuthUser } from "@/utils/api/types";
 import SignOutButton from "./sign-out-button";
 
-export default async function AuthButton() {
-  let user = null;
-  
-  try {
-    const backend = getBackend();
-    const { data: { user: authUser } } = await backend.auth.getUser();
-    user = authUser;
-  } catch (error) {
-    console.warn('Backend not initialized in AuthButton:', error);
+export default function AuthButton() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const backend = getBackend();
+        const { data: { user: authUser } } = await backend.auth.getUser();
+        setUser(authUser);
+      } catch (error) {
+        console.warn('Backend not initialized in AuthButton:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    checkAuth();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-2">
+        <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
+        <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
+      </div>
+    );
   }
 
   return user ? (

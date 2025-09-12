@@ -1,10 +1,12 @@
+'use client';
+
 import { Calendar, CheckSquare, Shield, Home as HomeIcon, Palette, Moon, Repeat, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
-export default async function Home() {
+export default function Home() {
   return (
     <div className="h-screen w-full overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900">
       {/* Hero Section */}
