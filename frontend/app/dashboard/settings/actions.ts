@@ -14,12 +14,85 @@ export interface ExportedData {
   };
 }
 
+export interface DecryptedTask {
+  content: string;
+  completed: boolean;
+  estimatedDuration?: number;
+  impact?: string;
+  urgency?: string;
+  dueDate?: string;
+  blockedBy?: string[];
+  projectId?: string;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DecryptedProject {
+  name: string;
+  description?: string;
+  color?: string;
+  parentId?: string;
+  isCollapsed: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DecryptedCalendar {
+  name: string;
+  color: string;
+  isVisible?: boolean;
+  isDefault?: boolean;
+  type?: string;
+  icsUrl?: string;
+  lastSync?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DecryptedCalendarEvent {
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  isAllDay?: boolean;
+  calendarId?: string;
+  recurrenceRule?: string;
+  recurrencePattern?: {
+    frequency: string;
+    endDate?: string;
+    interval?: number;
+  };
+  recurrenceException?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DecryptedExportData {
+  version: string;
+  timestamp: string;
+  userId: string;
+  data: {
+    tasks: DecryptedTask[];
+    projects: DecryptedProject[];
+    calendars: DecryptedCalendar[];
+    calendarEvents: DecryptedCalendarEvent[];
+    profile?: any;
+  };
+}
+
 // Export all user data
 export async function exportUserData(): Promise<ExportedData> {
   try {
     const backend = getBackend();
     
-    // Get user info
+    // Use the backend's data management export method if available
+    if (backend.dataManagement?.exportUserData) {
+      return await backend.dataManagement.exportUserData();
+    }
+    
+    // Fallback to direct implementation
     const { data: { user } } = await backend.auth.getUser();
     if (!user) {
       throw new Error('User not authenticated');
@@ -27,10 +100,10 @@ export async function exportUserData(): Promise<ExportedData> {
 
     // Fetch all user data
     const [canDoListResult, projectsResult, calendarsResult, calendarEventsResult] = await Promise.all([
-      backend.canDoList.list(),
-      backend.projects.list(),
-      backend.calendars.list(),
-      backend.calendarEvents.list(),
+      backend.canDoList.getAll(),
+      backend.projects.getAll(),
+      backend.calendars.getAll(),
+      backend.calendarEvents.getAll(),
     ]);
 
     return {
@@ -38,10 +111,10 @@ export async function exportUserData(): Promise<ExportedData> {
       timestamp: new Date().toISOString(),
       userId: user.id,
       data: {
-        can_do_list: canDoListResult.data,
-        projects: projectsResult.data,
-        calendars: calendarsResult.data,
-        calendar_events: calendarEventsResult.data,
+        can_do_list: canDoListResult.data || [],
+        projects: projectsResult.data || [],
+        calendars: calendarsResult.data || [],
+        calendar_events: calendarEventsResult.data || [],
       },
     };
   } catch (error) {
@@ -55,48 +128,80 @@ export async function importUserData(data: ExportedData): Promise<void> {
   try {
     const backend = getBackend();
 
+    // Use the backend's data management import method if available
+    if (backend.dataManagement?.importUserData) {
+      return await backend.dataManagement.importUserData(data);
+    }
+
+    // Fallback to direct implementation
     // Import in the correct order (projects first, then tasks that reference them)
     
     // Import projects
-    for (const project of data.data.projects) {
-      await backend.projects.create({
-        encrypted_data: project.encrypted_data,
-        iv: project.iv,
-        salt: project.salt,
-        parent_id: project.parent_id,
-        display_order: project.display_order,
-        is_collapsed: project.is_collapsed,
-      });
+    if (data.data?.projects) {
+      for (const project of data.data.projects) {
+        await backend.projects.create({
+          name: project.name || 'Imported Project',
+          description: project.description,
+          color: project.color,
+          encrypted_data: project.encrypted_data,
+          iv: project.iv,
+          salt: project.salt,
+          parent_id: project.parent_id,
+          order: project.display_order || project.order || 0,
+          collapsed: project.is_collapsed || project.collapsed || false,
+        });
+      }
     }
 
     // Import can-do list items
-    for (const task of data.data.can_do_list) {
-      await backend.canDoList.create({
-        encrypted_data: task.encrypted_data,
-        iv: task.iv,
-        salt: task.salt,
-        project_id: task.project_id,
-        display_order: task.display_order,
-      });
+    if (data.data?.can_do_list) {
+      for (const task of data.data.can_do_list) {
+        await backend.canDoList.create({
+          content: task.content || 'Imported Task',
+          due_date: task.due_date || task.dueDate,
+          priority: task.priority || (task.urgency >= 8 ? 'high' : task.urgency >= 5 ? 'medium' : 'low'),
+          tags: task.tags,
+          duration_minutes: task.duration_minutes || task.estimatedDuration,
+          encrypted_data: task.encrypted_data,
+          iv: task.iv,
+          salt: task.salt,
+          project_id: task.project_id || task.projectId,
+          order: task.display_order || task.order || 0,
+        });
+      }
     }
 
     // Import calendars
-    for (const calendar of data.data.calendars) {
-      await backend.calendars.create({
-        encrypted_data: calendar.encrypted_data,
-        iv: calendar.iv,
-        salt: calendar.salt,
-        is_default: calendar.is_default,
-      });
+    if (data.data?.calendars) {
+      for (const calendar of data.data.calendars) {
+        await backend.calendars.create({
+          name: calendar.name || 'Imported Calendar',
+          color: calendar.color || '#3b82f6',
+          is_visible: calendar.is_visible !== false,
+          encrypted_data: calendar.encrypted_data,
+          iv: calendar.iv,
+          salt: calendar.salt,
+        });
+      }
     }
 
     // Import calendar events
-    for (const event of data.data.calendar_events) {
-      await backend.calendarEvents.create({
-        encrypted_data: event.encrypted_data,
-        iv: event.iv,
-        salt: event.salt,
-      });
+    if (data.data?.calendar_events) {
+      for (const event of data.data.calendar_events) {
+        await backend.calendarEvents.create({
+          title: event.title || 'Imported Event',
+          description: event.description,
+          start_time: event.start_time || new Date().toISOString(),
+          end_time: event.end_time || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          all_day: event.all_day || false,
+          calendar_id: event.calendar_id,
+          recurrence_rule: event.recurrence_rule,
+          recurrence_exception: event.recurrence_exception,
+          encrypted_data: event.encrypted_data,
+          iv: event.iv,
+          salt: event.salt,
+        });
+      }
     }
   } catch (error) {
     console.error('Failed to import user data:', error);
@@ -109,37 +214,158 @@ export async function clearAllUserData(): Promise<void> {
   try {
     const backend = getBackend();
 
+    // Use the backend's data management clear method if available
+    if (backend.dataManagement?.clearAllUserData) {
+      return await backend.dataManagement.clearAllUserData();
+    }
+
+    // Fallback to direct implementation
     // Get all data first
     const [canDoListResult, projectsResult, calendarsResult, calendarEventsResult] = await Promise.all([
-      backend.canDoList.list(),
-      backend.projects.list(),
-      backend.calendars.list(),
-      backend.calendarEvents.list(),
+      backend.canDoList.getAll(),
+      backend.projects.getAll(),
+      backend.calendars.getAll(),
+      backend.calendarEvents.getAll(),
     ]);
 
     // Delete in reverse order (children first, then parents)
     
     // Delete calendar events
-    for (const event of calendarEventsResult.data) {
-      await backend.calendarEvents.delete(event.id);
+    if (calendarEventsResult.data) {
+      for (const event of calendarEventsResult.data) {
+        await backend.calendarEvents.delete(event.id);
+      }
     }
 
     // Delete calendars
-    for (const calendar of calendarsResult.data) {
-      await backend.calendars.delete(calendar.id);
+    if (calendarsResult.data) {
+      for (const calendar of calendarsResult.data) {
+        await backend.calendars.delete(calendar.id);
+      }
     }
 
     // Delete can-do list items
-    for (const task of canDoListResult.data) {
-      await backend.canDoList.delete(task.id);
+    if (canDoListResult.data) {
+      for (const task of canDoListResult.data) {
+        await backend.canDoList.delete(task.id);
+      }
     }
 
     // Delete projects
-    for (const project of projectsResult.data) {
-      await backend.projects.delete(project.id);
+    if (projectsResult.data) {
+      for (const project of projectsResult.data) {
+        await backend.projects.delete(project.id);
+      }
     }
   } catch (error) {
     console.error('Failed to clear user data:', error);
+    throw error;
+  }
+}
+
+// Import decrypted user data (convert to encrypted format first)
+export async function importDecryptedUserData(data: DecryptedExportData, encryptionKey: string): Promise<void> {
+  try {
+    const backend = getBackend();
+
+    // Use the backend's data management import method if available
+    if (backend.dataManagement?.importUserData) {
+      // Convert decrypted data to the format expected by the backend
+      const convertedData = {
+        ...data,
+        data: {
+          can_do_list: data.data.tasks || [],
+          projects: data.data.projects || [],
+          calendars: data.data.calendars || [],
+          calendar_events: data.data.calendarEvents || [],
+        }
+      };
+      return await backend.dataManagement.importUserData(convertedData);
+    }
+
+    // Fallback to direct implementation with proper field mapping
+    // Import projects first
+    if (data.data?.projects) {
+      for (const project of data.data.projects) {
+        await backend.projects.create({
+          name: project.name || 'Imported Project',
+          description: project.description,
+          color: project.color,
+          parent_id: project.parentId,
+          order: project.displayOrder || 0,
+          collapsed: project.isCollapsed || false,
+        });
+      }
+    }
+
+    // Import can-do list items (tasks)
+    if (data.data?.tasks) {
+      for (const task of data.data.tasks) {
+        await backend.canDoList.create({
+          content: task.content || 'Imported Task',
+          due_date: task.dueDate,
+          priority: task.urgency ? (parseInt(task.urgency) >= 8 ? 'high' : parseInt(task.urgency) >= 5 ? 'medium' : 'low') : undefined,
+          tags: undefined, // Not available in DecryptedTask
+          duration_minutes: task.estimatedDuration,
+          project_id: task.projectId,
+          order: task.displayOrder || 0,
+        });
+      }
+    }
+
+    // Import calendars
+    if (data.data?.calendars) {
+      for (const calendar of data.data.calendars) {
+        // Note: ICS-specific fields (type, icsUrl, lastSync) will be lost
+        // as they're not supported by the current backend API
+        await backend.calendars.create({
+          name: calendar.name || 'Imported Calendar',
+          color: calendar.color || '#3b82f6',
+          is_visible: calendar.isVisible !== false, // Default to visible unless explicitly false
+        });
+      }
+    }
+
+    // Import calendar events
+    if (data.data?.calendarEvents) {
+      for (const event of data.data.calendarEvents) {
+        // Skip events without a calendar ID - they can't be imported
+        if (!event.calendarId) {
+          console.warn('Skipping calendar event without calendarId:', event.title);
+          continue;
+        }
+
+        // Convert recurrencePattern to recurrenceRule if needed
+        let recurrenceRule = event.recurrenceRule;
+        if (!recurrenceRule && event.recurrencePattern) {
+          // Basic conversion from recurrencePattern to RRULE format
+          const { frequency, interval, endDate } = event.recurrencePattern;
+          const freq = frequency.toUpperCase();
+          recurrenceRule = `FREQ=${freq}`;
+          if (interval && interval !== 1) {
+            recurrenceRule += `;INTERVAL=${interval}`;
+          }
+          if (endDate) {
+            // Convert endDate to UNTIL format (YYYYMMDDTHHMMSSZ)
+            const until = new Date(endDate).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+            recurrenceRule += `;UNTIL=${until}`;
+          }
+        }
+
+        await backend.calendarEvents.create({
+          title: event.title || 'Imported Event',
+          description: event.description,
+          start_time: event.startTime || new Date().toISOString(),
+          end_time: event.endTime || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          all_day: event.isAllDay || false,
+          calendar_id: event.calendarId,
+          recurrence_rule: recurrenceRule,
+          recurrence_exception: event.recurrenceException,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Failed to import decrypted user data:', error);
     throw error;
   }
 }
@@ -148,7 +374,7 @@ export async function clearAllUserData(): Promise<void> {
 export async function changePassword(newPassword: string): Promise<void> {
   try {
     const backend = getBackend();
-    await backend.auth.updatePassword(newPassword);
+    await backend.auth.updatePassword({ password: newPassword });
   } catch (error) {
     console.error('Failed to change password:', error);
     throw error;

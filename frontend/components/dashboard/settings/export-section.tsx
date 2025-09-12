@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useError } from '@/utils/context/ErrorContext';
-import { exportAllUserData, type ExportedData, type DecryptedExportData, type DecryptedTask, type DecryptedProject, type DecryptedCalendar, type DecryptedCalendarEvent } from '@/app/dashboard/settings/actions';
+import { exportUserData, type ExportedData, type DecryptedExportData, type DecryptedTask, type DecryptedProject, type DecryptedCalendar, type DecryptedCalendarEvent } from '@/app/dashboard/settings/actions';
 import { encryptData, generateIV, generateSalt, deriveKeyFromPassword, decryptData } from '@/utils/cryptography/encryption';
 import { Download, Lock, Unlock, Copy, FileText } from 'lucide-react';
 
@@ -143,11 +143,11 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
       timestamp: rawData.timestamp,
       userId: rawData.userId,
       data: {
-        tasks: decryptTasks(rawData.data.tasks),
+        tasks: decryptTasks(rawData.data.can_do_list),
         projects: decryptProjects(rawData.data.projects),
         calendars: decryptCalendars(rawData.data.calendars),
-        calendarEvents: decryptCalendarEvents(rawData.data.calendarEvents),
-        profile: rawData.data.profile
+        calendarEvents: decryptCalendarEvents(rawData.data.calendar_events),
+        profile: undefined
       }
     };
   };
@@ -160,7 +160,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
 
     setIsExporting(true);
     try {
-      const rawData = await exportAllUserData();
+      const rawData = await exportUserData();
       let dataToExport: ExportedData | DecryptedExportData;
       let filename: string;
       let formatLabel: string;
@@ -236,7 +236,13 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
   };
 
   const getDataSummary = (data: ExportedData | DecryptedExportData) => {
-    return `${data.data.tasks.length} tasks, ${data.data.projects.length} projects, ${data.data.calendars.length} calendars, ${data.data.calendarEvents.length} calendar events`;
+    if ('tasks' in data.data) {
+      // DecryptedExportData
+      return `${data.data.tasks.length} tasks, ${data.data.projects.length} projects, ${data.data.calendars.length} calendars, ${data.data.calendarEvents.length} calendar events`;
+    } else {
+      // ExportedData
+      return `${data.data.can_do_list.length} tasks, ${data.data.projects.length} projects, ${data.data.calendars.length} calendars, ${data.data.calendar_events.length} calendar events`;
+    }
   };
 
   const getFormatDescription = () => {

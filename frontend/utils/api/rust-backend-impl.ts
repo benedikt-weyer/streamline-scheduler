@@ -700,6 +700,149 @@ class RustBackendImpl implements BackendInterface {
       return this.subscribe('calendar_events', callback);
     }
   };
+
+  // Data management methods
+  dataManagement = {
+    exportUserData: async (): Promise<any> => {
+      // Get user info
+      const { data: { user } } = await this.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Fetch all user data
+      const [canDoListResult, projectsResult, calendarsResult, calendarEventsResult] = await Promise.all([
+        this.canDoList.getAll(),
+        this.projects.getAll(),
+        this.calendars.getAll(),
+        this.calendarEvents.getAll(),
+      ]);
+
+      return {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        userId: user.id,
+        data: {
+          can_do_list: canDoListResult.data || [],
+          projects: projectsResult.data || [],
+          calendars: calendarsResult.data || [],
+          calendar_events: calendarEventsResult.data || [],
+        },
+      };
+    },
+
+    importUserData: async (data: any): Promise<void> => {
+      // Import in the correct order (projects first, then tasks that reference them)
+      
+      // Import projects
+      if (data.data?.projects) {
+        for (const project of data.data.projects) {
+          await this.projects.create({
+            name: project.name || 'Imported Project',
+            description: project.description,
+            color: project.color,
+            encrypted_data: project.encrypted_data,
+            iv: project.iv,
+            salt: project.salt,
+            parent_id: project.parent_id,
+            order: project.display_order || project.order || 0,
+            collapsed: project.is_collapsed || project.collapsed || false,
+          });
+        }
+      }
+
+      // Import can-do list items
+      if (data.data?.can_do_list) {
+        for (const task of data.data.can_do_list) {
+          await this.canDoList.create({
+            content: task.content || 'Imported Task',
+            due_date: task.due_date,
+            priority: task.priority,
+            tags: task.tags,
+            duration_minutes: task.duration_minutes,
+            encrypted_data: task.encrypted_data,
+            iv: task.iv,
+            salt: task.salt,
+            project_id: task.project_id,
+            order: task.display_order || task.order || 0,
+          });
+        }
+      }
+
+      // Import calendars
+      if (data.data?.calendars) {
+        for (const calendar of data.data.calendars) {
+          await this.calendars.create({
+            name: calendar.name || 'Imported Calendar',
+            color: calendar.color || '#3b82f6',
+            is_visible: calendar.is_visible !== false,
+            encrypted_data: calendar.encrypted_data,
+            iv: calendar.iv,
+            salt: calendar.salt,
+          });
+        }
+      }
+
+      // Import calendar events
+      if (data.data?.calendar_events) {
+        for (const event of data.data.calendar_events) {
+          await this.calendarEvents.create({
+            title: event.title || 'Imported Event',
+            description: event.description,
+            start_time: event.start_time || new Date().toISOString(),
+            end_time: event.end_time || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+            all_day: event.all_day || false,
+            calendar_id: event.calendar_id,
+            recurrence_rule: event.recurrence_rule,
+            recurrence_exception: event.recurrence_exception,
+            encrypted_data: event.encrypted_data,
+            iv: event.iv,
+            salt: event.salt,
+          });
+        }
+      }
+    },
+
+    clearAllUserData: async (): Promise<void> => {
+      // Get all data first
+      const [canDoListResult, projectsResult, calendarsResult, calendarEventsResult] = await Promise.all([
+        this.canDoList.getAll(),
+        this.projects.getAll(),
+        this.calendars.getAll(),
+        this.calendarEvents.getAll(),
+      ]);
+
+      // Delete in reverse order (children first, then parents)
+      
+      // Delete calendar events
+      if (calendarEventsResult.data) {
+        for (const event of calendarEventsResult.data) {
+          await this.calendarEvents.delete(event.id);
+        }
+      }
+
+      // Delete calendars
+      if (calendarsResult.data) {
+        for (const calendar of calendarsResult.data) {
+          await this.calendars.delete(calendar.id);
+        }
+      }
+
+      // Delete can-do list items
+      if (canDoListResult.data) {
+        for (const task of canDoListResult.data) {
+          await this.canDoList.delete(task.id);
+        }
+      }
+
+      // Delete projects
+      if (projectsResult.data) {
+        for (const project of projectsResult.data) {
+          await this.projects.delete(project.id);
+        }
+      }
+    }
+  };
 }
 
 export default RustBackendImpl;

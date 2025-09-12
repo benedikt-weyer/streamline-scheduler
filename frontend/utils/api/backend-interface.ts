@@ -217,6 +217,24 @@ export interface BackendInterface {
      */
     subscribe(callback: (payload: RealtimeMessage<CalendarEvent>) => void): RealtimeSubscription;
   };
+
+  // Data import/export methods
+  dataManagement?: {
+    /**
+     * Export all user data
+     */
+    exportUserData(): Promise<any>;
+
+    /**
+     * Import user data
+     */
+    importUserData(data: any): Promise<void>;
+
+    /**
+     * Clear all user data
+     */
+    clearAllUserData(): Promise<void>;
+  };
 }
 
 /**
