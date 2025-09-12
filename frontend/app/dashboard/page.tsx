@@ -1,15 +1,19 @@
-import { createClientServer } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { CanDoListMain } from "@/components/dashboard/can-do-list";
 import { ErrorProvider } from "@/utils/context/ErrorContext";
+import { getBackend } from "@/utils/api/backend-interface";
 import Link from "next/link";
 
 export default async function ProtectedPage() {
-  const supabase = await createClientServer();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  
+  try {
+    const backend = getBackend();
+    const { data: { user: authUser } } = await backend.auth.getUser();
+    user = authUser;
+  } catch (error) {
+    console.warn('Backend not initialized in dashboard:', error);
+  }
 
   if (!user) {
     return redirect("/sign-in");

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getStoredEncryptionKey, clearStoredEncryptionKey } from '@/utils/cryptography/encryption';
-import { createClientBrowser } from '@/utils/supabase/client';
+import { getBackend } from '@/utils/api/backend-interface';
 
 export function useEncryptionKey() {
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
@@ -8,11 +8,15 @@ export function useEncryptionKey() {
 
   useEffect(() => {
     console.log('[useEncryptionKey] Hook initialized');
-    console.log('[useEncryptionKey] Supabase config:', {
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      anonKeyPresent: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    });
-    const supabase = createClientBrowser();
+    
+    let backend;
+    try {
+      backend = getBackend();
+    } catch (error) {
+      console.error('[useEncryptionKey] Backend not initialized:', error);
+      setIsLoading(false);
+      return;
+    }
     
     async function loadEncryptionKey() {
       console.log('[useEncryptionKey] Loading initial encryption key...');
@@ -21,8 +25,8 @@ export function useEncryptionKey() {
         console.log('[useEncryptionKey] Waiting for cookie hydration...');
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        console.log('[useEncryptionKey] Getting session from Supabase...');
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('[useEncryptionKey] Getting session from backend...');
+        const { data: { session }, error } = await backend.auth.getSession();
         
         console.log('[useEncryptionKey] Session data:', {
           session: session ? {
@@ -36,7 +40,7 @@ export function useEncryptionKey() {
         
         // Also try getUser() as an alternative
         console.log('[useEncryptionKey] Also trying getUser() as alternative...');
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await backend.auth.getUser();
         console.log('[useEncryptionKey] User data:', {
           user: user ? {
             userId: user.id,
@@ -83,7 +87,7 @@ export function useEncryptionKey() {
 
     // Listen for authentication state changes
     console.log('[useEncryptionKey] Setting up auth state change listener...');
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = backend.auth.onAuthStateChange(
       async (event, session) => {
         console.log('[useEncryptionKey] Auth state changed:', event, session ? `session exists (user: ${session.user.id})` : 'no session');
         

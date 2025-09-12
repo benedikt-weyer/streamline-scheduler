@@ -1,8 +1,35 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/utils/supabase/middleware";
+import { type NextRequest, NextResponse } from "next/server";
+import { getBackend } from "@/utils/api/backend-interface";
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  // Create an unmodified response
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  try {
+    const backend = getBackend();
+    
+    // Check if user is authenticated for protected routes
+    const { data: { user }, error } = await backend.auth.getUser();
+
+    // protected routes
+    if (request.nextUrl.pathname.startsWith("/dashboard") && (error || !user)) {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
+
+    if (request.nextUrl.pathname === "/" && !error && user) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    return response;
+  } catch (e) {
+    // If backend is not initialized, allow the request to continue
+    console.warn('Backend not initialized in middleware:', e);
+    return response;
+  }
 }
 
 export const config = {

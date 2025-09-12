@@ -1,7 +1,5 @@
-import { EnvVarWarning } from "@/components/auth/env-var-warning";
 import HeaderAuth from "@/components/auth/header-auth";
 import { ThemeSwitcher } from "@/components/dashboard/theme-switcher";
-import { hasEnvVars } from "@/utils/supabase/check-env-vars";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import Link from "next/link";
@@ -41,7 +39,7 @@ export default function RootLayout({
         >
             <Navbar 
               themeSwitcher={<ThemeSwitcher />}
-              authComponent={!hasEnvVars ? <EnvVarWarning /> : <HeaderAuth />}
+              authComponent={<HeaderAuth />}
             />
             <main className="flex flex-col gap-20 w-full items-center">
               {children}

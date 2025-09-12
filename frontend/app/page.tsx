@@ -138,7 +138,7 @@ export default async function Home() {
               "TypeScript", 
               "Tailwind CSS",
               "shadcn/ui",
-              "Supabase",
+              "Rust Backend",
               "PostgreSQL"
             ].map((tech) => (
               <Badge key={tech} variant="secondary" className="text-sm px-4 py-2">
