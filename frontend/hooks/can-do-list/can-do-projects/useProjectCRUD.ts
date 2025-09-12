@@ -81,7 +81,7 @@ export const useProjectCRUD = (
       };
       
       const encryptedData = encryptData(updatedProjectData, derivedKey, iv);
-      await updateProject(id, encryptedData, iv, salt, parentId);
+      await updateProject(id, encryptedData, iv, salt, undefined, parentId);
       
       projectActions.setProjects(prevProjects =>
         prevProjects.map(project =>

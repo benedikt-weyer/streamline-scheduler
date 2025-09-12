@@ -159,7 +159,7 @@ export const useTaskCRUD = (
       const encryptedData = encryptData(updatedTaskData, derivedKey, iv);
       
       // Use the new action that handles display order and reordering
-      await toggleTaskCompleteWithReorder(id, encryptedData, iv, salt, completed, task.projectId);
+      await toggleTaskCompleteWithReorder(id, completed);
       
       if (completed) {
         // When completing a task, update local state to show it as completed
@@ -212,7 +212,7 @@ export const useTaskCRUD = (
         skipNextTaskReload();
       }
       
-      await moveTaskToProject(id, projectId);
+      await moveTaskToProject(id, projectId ?? null);
       
       taskActions.setTasks(prevTasks =>
         prevTasks.map(task =>

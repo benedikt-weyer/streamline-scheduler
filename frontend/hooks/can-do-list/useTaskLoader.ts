@@ -68,7 +68,7 @@ export const useTaskLoader = (
   const loadTasksByProject = useCallback(async (key: string, projectId?: string): Promise<Task[]> => {
     try {
       taskActions.setIsLoading(true);
-      const encryptedTasks = await fetchTasksByProject(projectId);
+      const encryptedTasks = await fetchTasksByProject(projectId ?? null);
       const decryptedTasks = decryptTasks(encryptedTasks, key);
       
       taskActions.setTasks(decryptedTasks);

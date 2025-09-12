@@ -32,7 +32,7 @@ export async function addTask(
       iv,
       salt,
       project_id: projectId,
-      display_order: displayOrder,
+      display_order: displayOrder ?? 0,
     });
     return task as EncryptedTask;
   } catch (error) {
@@ -60,7 +60,10 @@ export async function updateTask(
     if (projectId !== undefined) updateData.project_id = projectId;
     if (displayOrder !== undefined) updateData.display_order = displayOrder;
 
-    const { data: task } = await backend.canDoList.update(id, updateData);
+    const { data: task } = await backend.canDoList.update({
+      id,
+      ...updateData,
+    });
     return task as EncryptedTask;
   } catch (error) {
     console.error('Failed to update task:', error);
@@ -86,7 +89,8 @@ export async function reorderTasks(taskUpdates: Array<{ id: string; displayOrder
     
     // Update each task's display order
     for (const update of taskUpdates) {
-      await backend.canDoList.update(update.id, {
+      await backend.canDoList.update({
+        id: update.id,
         display_order: update.displayOrder,
       });
     }

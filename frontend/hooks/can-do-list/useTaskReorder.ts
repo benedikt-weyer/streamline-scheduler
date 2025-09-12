@@ -42,7 +42,7 @@ export const useTaskReorder = (
       // Create updates for bulk update
       const updates = reorderedTasks.map((task, index) => ({
         id: task.id,
-        displayOrder: index
+        order: index
       }));
 
       // Update the database

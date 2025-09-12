@@ -7,7 +7,7 @@ import { EncryptedCalendarEvent, EncryptedCalendar } from '@/utils/calendar/cale
 export async function fetchCalendarEvents(): Promise<EncryptedCalendarEvent[]> {
   try {
     const backend = getBackend();
-    const { data: events } = await backend.calendarEvents.list();
+    const { data: events } = await backend.calendarEvents.getAll();
     return events as EncryptedCalendarEvent[];
   } catch (error) {
     console.error('Failed to fetch calendar events:', error);
@@ -44,7 +44,8 @@ export async function updateCalendarEvent(
 ): Promise<EncryptedCalendarEvent> {
   try {
     const backend = getBackend();
-    const { data: event } = await backend.calendarEvents.update(id, {
+    const { data: event } = await backend.calendarEvents.update({
+      id,
       encrypted_data: encryptedData,
       iv,
       salt,
@@ -71,7 +72,7 @@ export async function deleteCalendarEvent(id: string): Promise<void> {
 export async function fetchCalendars(): Promise<EncryptedCalendar[]> {
   try {
     const backend = getBackend();
-    const { data: calendars } = await backend.calendars.list();
+    const { data: calendars } = await backend.calendars.getAll();
     return calendars as EncryptedCalendar[];
   } catch (error) {
     console.error('Failed to fetch calendars:', error);
@@ -109,7 +110,8 @@ export async function updateCalendar(
 ): Promise<EncryptedCalendar> {
   try {
     const backend = getBackend();
-    const { data: calendar } = await backend.calendars.update(id, {
+    const { data: calendar } = await backend.calendars.update({
+      id,
       encrypted_data: encryptedData,
       iv,
       salt,
@@ -138,9 +140,15 @@ export async function setDefaultCalendar(id: string): Promise<void> {
   try {
     const backend = getBackend();
     // First get the calendar details
-    const { data: calendar } = await backend.calendars.get(id);
+    const { data: calendar } = await backend.calendars.getById(id);
+    
+    if (!calendar) {
+      throw new Error('Calendar not found');
+    }
+    
     // Update it to be the default
-    await backend.calendars.update(id, {
+    await backend.calendars.update({
+      id,
       encrypted_data: calendar.encrypted_data,
       iv: calendar.iv,
       salt: calendar.salt,

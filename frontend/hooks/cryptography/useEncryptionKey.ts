@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getStoredEncryptionKey, clearStoredEncryptionKey } from '@/utils/cryptography/encryption';
-import { getBackend } from '@/utils/api/backend-interface';
+import { getBackend, BackendInterface } from '@/utils/api/backend-interface';
 
 export function useEncryptionKey() {
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
@@ -9,7 +9,7 @@ export function useEncryptionKey() {
   useEffect(() => {
     console.log('[useEncryptionKey] Hook initialized');
     
-    let backend;
+    let backend: BackendInterface;
     try {
       backend = getBackend();
     } catch (error) {

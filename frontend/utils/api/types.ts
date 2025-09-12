@@ -46,51 +46,63 @@ export interface UpdatePasswordRequest {
 // Can-do list types
 export interface CanDoItem {
   id: string;
-  content: string;
-  completed: boolean;
+  user_id: string;
+  project_id?: string;
+  display_order: number;
   created_at: string;
   updated_at: string;
-  due_date?: string;
-  priority?: 'low' | 'medium' | 'high';
-  tags?: string[];
-  duration_minutes?: number;
-  project_id?: string;
-  order: number;
-  user_id: string;
-  // Encrypted fields
-  encrypted_data?: string;
-  iv?: string;
-  salt?: string;
-}
-
-export interface CreateCanDoItemRequest {
-  content: string;
-  due_date?: string;
-  priority?: 'low' | 'medium' | 'high';
-  tags?: string[];
-  duration_minutes?: number;
-  project_id?: string;
-  order: number;
-  // Encrypted fields
-  encrypted_data?: string;
-  iv?: string;
-  salt?: string;
-}
-
-export interface UpdateCanDoItemRequest {
-  id: string;
+  // Encrypted fields (required for actual API responses)
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+  
+  // NOTE: These fields are for TypeScript compatibility and client-side use only
+  // They should be decrypted from encrypted_data
   content?: string;
   completed?: boolean;
   due_date?: string;
   priority?: 'low' | 'medium' | 'high';
   tags?: string[];
   duration_minutes?: number;
-  project_id?: string;
   order?: number;
-  // Encrypted fields
+}
+
+export interface CreateCanDoItemRequest {
+  // Backend API fields
+  project_id?: string;
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+  display_order?: number;
+  
+  // NOTE: These fields are for TypeScript compatibility and client-side use only
+  // They should be encrypted into encrypted_data before sending to backend
+  content?: string;
+  due_date?: string;
+  priority?: 'low' | 'medium' | 'high';
+  tags?: string[];
+  duration_minutes?: number;
+  order?: number;
+}
+
+export interface UpdateCanDoItemRequest {
+  id: string;
+  // Backend API fields
+  project_id?: string;
   encrypted_data?: string;
   iv?: string;
   salt?: string;
+  display_order?: number;
+  
+  // NOTE: These fields are for TypeScript compatibility and client-side use only
+  // They should be encrypted into encrypted_data before sending to backend
+  content?: string;
+  completed?: boolean;
+  due_date?: string;
+  priority?: 'low' | 'medium' | 'high';
+  tags?: string[];
+  duration_minutes?: number;
+  order?: number;
 }
 
 // Project types

@@ -115,7 +115,7 @@ export function useCalendars(encryptionKey: string | null) {
       };
       
       const encryptedData = encryptData(calendarData, derivedKey, iv);
-      const newCalendarRecord = await addCalendar(encryptedData, iv, salt, true);
+      const newCalendarRecord = await addCalendar(encryptedData, iv, salt);
       
       const newCalendar: Calendar = {
         id: newCalendarRecord.id,
@@ -208,7 +208,7 @@ export function useCalendars(encryptionKey: string | null) {
       // Determine if this should be the default calendar
       const isDefault = calendars.length === 0;
       
-      const newEncryptedCalendar = await addCalendar(encryptedData, iv, salt, isDefault);
+      const newEncryptedCalendar = await addCalendar(encryptedData, iv, salt);
       
       const newCalendar: Calendar = {
         id: newEncryptedCalendar.id,
@@ -253,7 +253,7 @@ export function useCalendars(encryptionKey: string | null) {
       // Determine if this should be the default calendar
       const isDefault = calendars.length === 0;
       
-      const newEncryptedCalendar = await addCalendar(encryptedData, iv, salt, isDefault);
+      const newEncryptedCalendar = await addCalendar(encryptedData, iv, salt);
       
       const newCalendar: Calendar = {
         id: newEncryptedCalendar.id,

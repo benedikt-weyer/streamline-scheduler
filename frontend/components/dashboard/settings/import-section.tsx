@@ -140,8 +140,20 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
       };
     }
 
-    // Data validation
-    const { tasks, projects, calendars, calendarEvents } = data.data;
+    // Data validation - handle both encrypted and decrypted formats
+    let tasks, projects, calendars, calendarEvents;
+    
+    if (isDecrypted) {
+      // DecryptedExportData format
+      ({ tasks, projects, calendars, calendarEvents } = (data.data as any));
+    } else {
+      // ExportedData format
+      const exportData = data.data as any;
+      tasks = exportData.can_do_list;
+      projects = exportData.projects;
+      calendars = exportData.calendars;
+      calendarEvents = exportData.calendar_events;
+    }
     
     if (!Array.isArray(tasks)) errors.push('Invalid tasks data - must be an array');
     if (!Array.isArray(projects)) errors.push('Invalid projects data - must be an array');
@@ -281,8 +293,20 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
         parsedData = decryptImportData(importData, password);
         if (parsedData) {
           // Check if the decrypted data is in decrypted format
-          isDecrypted = parsedData.data.tasks && Array.isArray(parsedData.data.tasks) && 
-            parsedData.data.tasks.length > 0 && typeof parsedData.data.tasks[0].content === 'string';
+          const dataObj = parsedData.data as any;
+          // Check for decrypted format (has 'tasks' field with string content)
+          if (dataObj.tasks && Array.isArray(dataObj.tasks) && 
+              dataObj.tasks.length > 0 && typeof dataObj.tasks[0].content === 'string') {
+            isDecrypted = true;
+          }
+          // Check for encrypted format (has 'can_do_list' field with encrypted content)
+          else if (dataObj.can_do_list && Array.isArray(dataObj.can_do_list) && 
+                   dataObj.can_do_list.length > 0 && typeof dataObj.can_do_list[0].content === 'string' &&
+                   dataObj.can_do_list[0].content.includes('encrypted:')) {
+            isDecrypted = false;
+          } else {
+            isDecrypted = false; // Default to encrypted format
+          }
         }
       } else if (isDecryptedFormat) {
         // Handle plain decrypted data
@@ -329,7 +353,10 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
       
       // Success feedback with more detail
       const formatType = preview.isDecrypted ? 'decrypted' : 'encrypted';
-      const summary = `Processed for import (${formatType} format): ${preview.data.data.tasks.length} tasks, ${preview.data.data.projects.length} projects, ${preview.data.data.calendars.length} calendars, ${preview.data.data.calendarEvents.length} events`;
+      const dataObj = preview.data.data as any;
+      const tasksCount = dataObj.tasks ? dataObj.tasks.length : (dataObj.can_do_list ? dataObj.can_do_list.length : 0);
+      const calendarEventsCount = dataObj.calendarEvents ? dataObj.calendarEvents.length : (dataObj.calendar_events ? dataObj.calendar_events.length : 0);
+      const summary = `Processed for import (${formatType} format): ${tasksCount} tasks, ${dataObj.projects.length} projects, ${dataObj.calendars.length} calendars, ${calendarEventsCount} events`;
       
       alert(`Data import completed!\n\n${summary}\n\nNote: Duplicate items were automatically skipped. Please refresh the page to see your imported data.`);
       
