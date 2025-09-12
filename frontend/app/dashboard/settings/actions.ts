@@ -371,6 +371,7 @@ export interface DecryptedTask {
   blockedBy?: string[];
   projectId?: string;
   displayOrder: number;
+  myDay?: boolean; // New field: whether the task is added to My Day
   createdAt: string;
   updatedAt?: string;
 }
@@ -400,10 +401,16 @@ export interface DecryptedCalendar {
 export interface DecryptedCalendarEvent {
   title: string;
   description?: string;
+  location?: string; // New field: event location
   startTime: string;
   endTime: string;
-  isAllDay: boolean;
-  recurrence?: any;
+  isAllDay?: boolean;
+  recurrencePattern?: {
+    frequency: string;
+    endDate?: string;
+    interval?: number;
+    daysOfWeek?: number[];
+  }; // Updated: proper recurrence pattern structure instead of generic 'recurrence'
   calendarId: string;
   createdAt: string;
   updatedAt?: string;
@@ -562,7 +569,8 @@ export async function importDecryptedUserData(
           impact: task.impact,
           urgency: task.urgency,
           dueDate: task.dueDate,
-          blockedBy: task.blockedBy
+          blockedBy: task.blockedBy,
+          myDay: task.myDay
         })), 
         encryptionKey
       ).map((task, index) => ({
@@ -599,10 +607,11 @@ export async function importDecryptedUserData(
         decryptedData.data.calendarEvents.map(event => ({
           title: event.title,
           description: event.description,
+          location: event.location,
           startTime: event.startTime,
           endTime: event.endTime,
           isAllDay: event.isAllDay,
-          recurrence: event.recurrence
+          recurrencePattern: event.recurrencePattern
         })), 
         encryptionKey
       ).map((event, index) => ({

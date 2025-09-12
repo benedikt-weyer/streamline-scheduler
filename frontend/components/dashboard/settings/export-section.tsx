@@ -43,6 +43,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
               urgency: decryptedData.urgency,
               dueDate: decryptedData.dueDate,
               blockedBy: decryptedData.blockedBy,
+              myDay: decryptedData.myDay, // New field: My Day status
               projectId: task.project_id,
               displayOrder: task.display_order ?? 0,
               createdAt: task.created_at,
@@ -122,10 +123,11 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             return {
               title: decryptedData.title,
               description: decryptedData.description,
+              location: decryptedData.location, // New field: event location
               startTime: decryptedData.startTime,
               endTime: decryptedData.endTime,
               isAllDay: decryptedData.isAllDay,
-              recurrence: decryptedData.recurrence,
+              recurrencePattern: decryptedData.recurrencePattern, // Updated: proper recurrence pattern structure
               calendarId: event.calendar_id,
               createdAt: event.created_at,
               updatedAt: event.updated_at
