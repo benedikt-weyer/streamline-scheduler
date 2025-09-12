@@ -47,8 +47,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("Starting Streamline Backend...");
 
     // Initialize database
+    tracing::info!("Attempting to connect to database...");
     let db = Database::new().await?;
-    tracing::info!("Database connected");
+    tracing::info!("Database connected successfully");
     
     // Run migrations
     Migrator::up(&db.connection, None).await?;
