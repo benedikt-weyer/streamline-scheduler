@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getBackend } from '@/utils/api/backend-interface';
+import { RealtimeSubscription, RealtimeMessage, Calendar, CalendarEvent } from '@/utils/api/types';
 
 export function useCalendarSubscriptions(
   encryptionKey: string | null,
@@ -15,15 +16,15 @@ export function useCalendarSubscriptions(
       return;
     }
 
-    let calendarUnsubscribe: (() => void) | null = null;
-    let eventUnsubscribe: (() => void) | null = null;
+    let calendarUnsubscribe: RealtimeSubscription | null = null;
+    let eventUnsubscribe: RealtimeSubscription | null = null;
 
     const setupSubscriptions = async () => {
       try {
         const backend = getBackend();
 
         // Subscribe to calendars changes
-        calendarUnsubscribe = backend.websocket.subscribe('calendars', async (message) => {
+        calendarUnsubscribe = backend.calendars.subscribe(async (message: RealtimeMessage<Calendar>) => {
           // console.log('Calendar change detected:', message.event_type);
           
           // Reload calendars when a change is detected
@@ -35,7 +36,7 @@ export function useCalendarSubscriptions(
         });
 
         // Subscribe to calendar_events changes
-        eventUnsubscribe = backend.websocket.subscribe('calendar_events', async (message) => {
+        eventUnsubscribe = backend.calendarEvents.subscribe(async (message: RealtimeMessage<CalendarEvent>) => {
           // console.log('Calendar event change detected:', message.event_type);
           
           // Skip reload if we're in the middle of a drag operation
@@ -70,10 +71,10 @@ export function useCalendarSubscriptions(
     return () => {
       // console.log('Unsubscribing from calendar and event changes');
       if (calendarUnsubscribe) {
-        calendarUnsubscribe();
+        calendarUnsubscribe.unsubscribe();
       }
       if (eventUnsubscribe) {
-        eventUnsubscribe();
+        eventUnsubscribe.unsubscribe();
       }
       setIsSubscribed(false);
     };

@@ -67,34 +67,26 @@ class RustBackendImpl implements BackendInterface {
   }
 
   private restoreAuthToken(): void {
-    console.log('RustBackend: Restoring auth token...');
     // Try localStorage first
     try {
       const token = localStorage.getItem('auth_token');
-      console.log('RustBackend: Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'null');
       if (token) {
         this.authToken = token;
         return;
       }
     } catch (e) {
-      console.log('RustBackend: localStorage not available:', e);
       // localStorage might not be available in SSR
     }
 
     // Try cookies as fallback
     try {
       const match = document.cookie.match(/auth_token=([^;]+)/);
-      console.log('RustBackend: Cookies:', document.cookie);
-      console.log('RustBackend: Token from cookies:', match ? `${match[1].substring(0, 20)}...` : 'null');
       if (match) {
         this.authToken = match[1];
       }
     } catch (e) {
-      console.log('RustBackend: document.cookie not available:', e);
       // document might not be available in SSR
     }
-    
-    console.log('RustBackend: Final authToken:', this.authToken ? `${this.authToken.substring(0, 20)}...` : 'null');
   }
 
 
@@ -144,9 +136,6 @@ class RustBackendImpl implements BackendInterface {
 
     if (this.authToken) {
       headers['Authorization'] = `Bearer ${this.authToken}`;
-      console.log(`RustBackend: Making request to ${endpoint} with token: ${this.authToken.substring(0, 20)}...`);
-    } else {
-      console.log(`RustBackend: Making request to ${endpoint} without token`);
     }
 
     const response = await fetch(url, {
@@ -402,8 +391,20 @@ class RustBackendImpl implements BackendInterface {
 
     getSession: async (): Promise<{ data: { session: AuthSession | null }, error: string | null }> => {
       try {
-        const response = await this.makeRequest<{ data: { session: AuthSession | null } }>('/api/auth/session');
-        return { ...response, error: null };
+        // Since /api/auth/session doesn't exist, we'll construct a session from the current user
+        if (this.authToken) {
+          const { data: { user }, error } = await this.auth.getUser();
+          if (user && !error) {
+            const session: AuthSession = {
+              user: user,
+              access_token: this.authToken,
+              refresh_token: undefined,
+              expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+            };
+            return { data: { session }, error: null };
+          }
+        }
+        return { data: { session: null }, error: null };
       } catch (error) {
         return { 
           data: { session: null }, 
@@ -414,17 +415,13 @@ class RustBackendImpl implements BackendInterface {
 
     getUser: async (): Promise<{ data: { user: AuthUser | null }, error: string | null }> => {
       try {
-        console.log('RustBackend: Calling /api/auth/me');
         const response = await this.makeRequest<{ data: AuthUser | null }>('/api/auth/me');
-        console.log('RustBackend: /api/auth/me response:', response);
-        console.log('RustBackend: response.data:', response.data);
         
         // The backend returns user data directly in response.data, not response.data.user
         const user = response.data;
         
         // If we have a valid user and token, trigger SIGNED_IN event for consistency
         if (user && this.authToken) {
-          console.log('RustBackend: Valid user found, triggering SIGNED_IN event');
           const session: AuthSession = {
             user: user,
             access_token: this.authToken,
@@ -435,16 +432,12 @@ class RustBackendImpl implements BackendInterface {
           this.authStateCallbacks.forEach(callback => {
             callback('SIGNED_IN', session);
           });
-        } else {
-          console.log('RustBackend: No valid user found in response');
         }
         
         return { data: { user }, error: null };
       } catch (error) {
-        console.log('RustBackend: Error in getUser:', error);
         // If token is invalid, clear it
         if (error instanceof Error && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
-          console.log('RustBackend: Clearing invalid token');
           this.clearAuthToken();
           // Trigger SIGNED_OUT event
           this.authStateCallbacks.forEach(callback => {
@@ -507,6 +500,11 @@ class RustBackendImpl implements BackendInterface {
       return this.makeRequest<PaginatedResponse<CanDoItem>>(`/api/can-do-list?${params}`);
     },
 
+    // Alias for getAll to match the expected interface
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<CanDoItem>> => {
+      return this.canDoList.getAll(options);
+    },
+
     getById: async (id: string): Promise<ApiResponse<CanDoItem>> => {
       return this.makeRequest<ApiResponse<CanDoItem>>(`/api/can-do-list/${id}`);
     },
@@ -549,6 +547,11 @@ class RustBackendImpl implements BackendInterface {
       if (options?.offset) params.append('offset', options.offset.toString());
       
       return this.makeRequest<PaginatedResponse<Project>>(`/api/projects?${params}`);
+    },
+
+    // Alias for getAll to match the expected interface
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<Project>> => {
+      return this.projects.getAll(options);
     },
 
     getById: async (id: string): Promise<ApiResponse<Project>> => {
@@ -595,6 +598,11 @@ class RustBackendImpl implements BackendInterface {
       return this.makeRequest<PaginatedResponse<Calendar>>(`/api/calendars?${params}`);
     },
 
+    // Alias for getAll to match the expected interface
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<Calendar>> => {
+      return this.calendars.getAll(options);
+    },
+
     getById: async (id: string): Promise<ApiResponse<Calendar>> => {
       return this.makeRequest<ApiResponse<Calendar>>(`/api/calendars/${id}`);
     },
@@ -637,6 +645,11 @@ class RustBackendImpl implements BackendInterface {
       if (options?.offset) params.append('offset', options.offset.toString());
       
       return this.makeRequest<PaginatedResponse<CalendarEvent>>(`/api/calendar-events?${params}`);
+    },
+
+    // Alias for getAll to match the expected interface
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEvent>> => {
+      return this.calendarEvents.getAll(options);
     },
 
     getByDateRange: async (

@@ -35,26 +35,20 @@ export const signInClient = async (formData: FormData): Promise<{ error?: string
 
   try {
     const backend = getBackend();
-    console.log('SignIn: Attempting to sign in with:', { email });
     const authResponse = await backend.auth.signIn({
       email,
       password,
     });
 
-    console.log('SignIn: Backend response:', authResponse);
-
     if (authResponse.error) {
-      console.log('SignIn: Error from backend:', authResponse.error);
       return { error: authResponse.error };
     }
 
     // Check if we have a valid session/user
     if (authResponse.session && authResponse.user) {
-      console.log('SignIn: Success - user signed in:', authResponse.user);
       return { success: true };
     }
 
-    console.log('SignIn: No valid session/user in response');
     return { error: "Sign in failed" };
   } catch (error) {
     console.error("Sign in error:", error);

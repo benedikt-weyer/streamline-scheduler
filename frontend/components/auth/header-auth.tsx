@@ -15,9 +15,7 @@ export default function AuthButton() {
     async function checkAuth() {
       try {
         const backend = getBackend();
-        console.log('HeaderAuth: Checking auth status...');
         const { data: { user: authUser }, error } = await backend.auth.getUser();
-        console.log('HeaderAuth: Auth check result:', { user: authUser, error });
         setUser(authUser);
       } catch (error) {
         console.warn('Backend not initialized in AuthButton:', error);
@@ -31,7 +29,6 @@ export default function AuthButton() {
     // Listen for auth state changes
     const backend = getBackend();
     const { data } = backend.auth.onAuthStateChange((event, session) => {
-      console.log('HeaderAuth: Auth state change:', { event, session: session?.user });
       if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
         setIsLoading(false);
