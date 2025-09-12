@@ -44,13 +44,13 @@ pkgs.mkShell {
     
     # Print welcome message
     echo "🚀 Welcome to Streamline Scheduler development environment"
-    echo "Architecture: Rust Backend + Next.js Frontend + E2E Encryption"
+    echo "New Architecture: Rust Backend + SvelteKit Frontend + E2E Encryption"
     echo "-----------------------------------------------------"
     echo "Available commands:"
     echo "  start         - Start full stack (database, backend, frontend)"
     echo "  start:db      - Start only PostgreSQL database"
     echo "  start:be      - Start only Rust backend"
-    echo "  start:fe      - Start only Next.js frontend"
+    echo "  start:fe      - Start only SvelteKit frontend"
     echo "  stop          - Stop all development servers"
     echo "  stop:db       - Stop only database"
     echo "  stop:be       - Stop only backend"
@@ -154,10 +154,10 @@ pkgs.mkShell {
       cd "$PROJECT_DIR"
     }
 
-    # Define function to start Next.js frontend
+    # Define function to start SvelteKit frontend
     start_frontend() {
-      echo "⚡ Starting Next.js development server..."
-      cd "$PROJECT_DIR/frontend"
+      echo "⚡ Starting SvelteKit development server..."
+      cd "$PROJECT_DIR/frontend_new"
       
       # Create .env.local file if it doesn't exist
       if [ ! -f ".env.local" ]; then
@@ -168,18 +168,18 @@ pkgs.mkShell {
       nohup pnpm dev > /tmp/frontend.log 2>&1 &
       echo $! > "$TEMP_DIR/frontend.pid"
       echo "Frontend server started in background (logs at /tmp/frontend.log)"
-      echo "📱 Access the app at http://localhost:3000"
+      echo "📱 Access the app at http://localhost:5173"
       cd "$PROJECT_DIR"
       
       # Wait a moment for the server to start, then open browser
       sleep 3
       echo "🌐 Opening browser..."
       if command -v xdg-open > /dev/null; then
-        xdg-open http://localhost:3000
+        xdg-open http://localhost:5173
       elif command -v open > /dev/null; then
-        open http://localhost:3000
+        open http://localhost:5173
       else
-        echo "⚠️  Could not auto-open browser. Please visit http://localhost:3000 manually"
+        echo "⚠️  Could not auto-open browser. Please visit http://localhost:5173 manually"
       fi
     }
 
@@ -204,7 +204,7 @@ pkgs.mkShell {
 
     # Define function to stop frontend
     stop_frontend() {
-      echo "🛑 Stopping Next.js development server..."
+      echo "🛑 Stopping SvelteKit development server..."
       if [ -f "$TEMP_DIR/frontend.pid" ]; then
         kill $(cat "$TEMP_DIR/frontend.pid") 2>/dev/null || true
         rm "$TEMP_DIR/frontend.pid"
@@ -235,7 +235,7 @@ pkgs.mkShell {
 
     # Define function to restart frontend
     restart_frontend() {
-      echo "🔄 Restarting Next.js development server..."
+      echo "🔄 Restarting SvelteKit development server..."
       stop_frontend
       sleep 2
       start_frontend
@@ -264,8 +264,8 @@ pkgs.mkShell {
 
     # Define function to build frontend
     build_frontend() {
-      echo "🔨 Building Next.js frontend..."
-      cd "$PROJECT_DIR/frontend"
+      echo "🔨 Building SvelteKit frontend..."
+      cd "$PROJECT_DIR/frontend_new"
       pnpm build
       cd "$PROJECT_DIR"
       echo "✅ Frontend build complete"
@@ -281,8 +281,8 @@ pkgs.mkShell {
 
     # Define function to run frontend tests
     test_frontend() {
-      echo "🧪 Running Next.js frontend tests..."
-      cd "$PROJECT_DIR/frontend"
+      echo "🧪 Running SvelteKit frontend tests..."
+      cd "$PROJECT_DIR/frontend_new"
       pnpm test
       cd "$PROJECT_DIR"
     }
@@ -337,9 +337,9 @@ pkgs.mkShell {
     alias logs:db='docker logs streamline-db -f'
 
     # Ensure pnpm dependencies are installed for frontend
-    if [ -d "$PROJECT_DIR/frontend" ]; then
-      echo "📦 Setting up Next.js frontend dependencies..."
-      cd "$PROJECT_DIR/frontend"
+    if [ -d "$PROJECT_DIR/frontend_new" ]; then
+      echo "📦 Setting up SvelteKit frontend dependencies..."
+      cd "$PROJECT_DIR/frontend_new"
       if [ ! -d "node_modules" ]; then
         echo "Installing dependencies with pnpm..."
         pnpm install
@@ -362,7 +362,7 @@ pkgs.mkShell {
     echo ""
     echo "🎯 Quick start:"
     echo "  1. Run 'start' to launch the full stack"
-    echo "  2. Visit http://localhost:3000 for the frontend"
+    echo "  2. Visit http://localhost:5173 for the frontend"
     echo "  3. API is available at http://localhost:3001"
     echo "  4. Database is on localhost:5432"
     echo "  5. pgAdmin is available at http://localhost:5050"
