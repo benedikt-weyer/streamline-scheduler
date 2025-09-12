@@ -46,16 +46,12 @@ WORKDIR /app
 # Copy the binary from builder stage
 COPY --from=builder /app/target/release/streamline_backend /app/
 
-# Change ownership to app user
-RUN chown -R app:app /app
+# Make sure the binary is executable and change ownership
+RUN chmod +x /app/streamline_backend && chown -R app:app /app
 USER app
 
 # Expose port
 EXPOSE 3001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3001/health || exit 1
-
-# Run the application
-CMD ["./streamline_backend"]
+# Run the application with verbose output
+CMD ["sh", "-c", "echo 'Starting streamline_backend...' && ls -la /app && ./streamline_backend"]
