@@ -1,6 +1,7 @@
 'use client';
 
 import { getBackend } from '@/utils/api/backend-interface';
+import { encryptData, generateSalt, generateIV, deriveKeyFromPassword } from '@/utils/cryptography/encryption';
 
 export interface ExportedData {
   version: string;
@@ -282,26 +283,30 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
   try {
     const backend = getBackend();
 
-    // Use the backend's data management import method if available
-    if (backend.dataManagement?.importUserData) {
-      // Convert decrypted data to the format expected by the backend
-      const convertedData = {
-        ...data,
-        data: {
-          can_do_list: data.data.tasks || [],
-          projects: data.data.projects || [],
-          calendars: data.data.calendars || [],
-          calendar_events: data.data.calendarEvents || [],
-        }
-      };
-      return await backend.dataManagement.importUserData(convertedData);
-    }
-
-    // Fallback to direct implementation with proper field mapping
+    // For decrypted data, we must encrypt it before sending to the backend
+    // Direct implementation with proper field mapping and encryption
     // Import projects first
     if (data.data?.projects) {
       for (const project of data.data.projects) {
+        // Encrypt project data
+        const salt = generateSalt();
+        const iv = generateIV();
+        const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+        
+        const projectData = {
+          name: project.name || 'Imported Project',
+          description: project.description,
+          color: project.color,
+        };
+        
+        const encryptedData = encryptData(projectData, derivedKey, iv);
+        
         await backend.projects.create({
+          // Encrypted data (future E2EE approach)
+          encrypted_data: encryptedData,
+          iv: iv,
+          salt: salt,
+          // Backward compatibility fields (current backend expects these)
           name: project.name || 'Imported Project',
           description: project.description,
           color: project.color,
@@ -315,19 +320,32 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
     // Import can-do list items (tasks)
     if (data.data?.tasks) {
       for (const task of data.data.tasks) {
-        // IMPORTANT: impact and urgency (0-10) are stored in encrypted_data, not as separate DB fields
-        // The backend API only supports a simplified 'priority' field for compatibility
-        // Full data including impact/urgency should be encrypted and stored in encrypted_data
+        // Encrypt task data to preserve impact/urgency granularity (0-10 scale)
+        const salt = generateSalt();
+        const iv = generateIV();
+        const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
         
-        // Convert urgency (0-10) to priority for the current backend API
+        const taskData = {
+          content: task.content.trim(),
+          completed: task.completed,
+          estimatedDuration: task.estimatedDuration,
+          impact: task.impact,
+          urgency: task.urgency,
+          dueDate: task.dueDate,
+          blockedBy: task.blockedBy
+        };
+        
+        const encryptedData = encryptData(taskData, derivedKey, iv);
+        
+        // Convert urgency (0-10) to priority for backward compatibility
         const priority = task.urgency ? (task.urgency >= 8 ? 'high' : task.urgency >= 5 ? 'medium' : 'low') : undefined;
         
-        // TODO: This import currently loses impact/urgency granularity (0-10 scale)
-        // Need to either:
-        // 1. Use proper encryption here to store full taskData in encrypted_data, OR
-        // 2. Update backend to support impact/urgency fields directly
-        
         await backend.canDoList.create({
+          // Encrypted data (preserves full granularity)
+          encrypted_data: encryptedData,
+          iv: iv,
+          salt: salt,
+          // Backward compatibility fields
           content: task.content || 'Imported Task',
           due_date: task.dueDate,
           priority: priority,
@@ -335,7 +353,6 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           duration_minutes: task.estimatedDuration,
           project_id: task.projectId,
           order: task.displayOrder || 0,
-          // Note: Without proper encryption, impact/urgency data will be lost during import
         });
       }
     }
@@ -343,8 +360,11 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
     // Import calendars
     if (data.data?.calendars) {
       for (const calendar of data.data.calendars) {
-        // TODO: Properly encrypt calendar data including type, icsUrl, lastSync
-        // For now, create a placeholder encrypted structure
+        // Encrypt calendar data including ICS parameters
+        const salt = generateSalt();
+        const iv = generateIV();
+        const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+        
         const calendarData = {
           name: calendar.name || 'Imported Calendar',
           color: calendar.color || '#3b82f6',
@@ -354,10 +374,13 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           last_sync: calendar.lastSync,
         };
         
+        const encryptedData = encryptData(calendarData, derivedKey, iv);
+        
         await backend.calendars.create({
-          encrypted_data: JSON.stringify(calendarData), // TODO: Use proper encryption
-          iv: 'placeholder_iv', // TODO: Use proper IV
-          salt: 'placeholder_salt', // TODO: Use proper salt
+          // Encrypted data (preserves ICS parameters)
+          encrypted_data: encryptedData,
+          iv: iv,
+          salt: salt,
           is_default: calendar.isDefault || false,
           // Backward compatibility fields
           name: calendar.name || 'Imported Calendar',
@@ -396,8 +419,11 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           }
         }
 
-        // TODO: Properly encrypt calendar event data
-        // For now, create a placeholder encrypted structure
+        // Encrypt calendar event data including location
+        const salt = generateSalt();
+        const iv = generateIV();
+        const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+        
         const eventData = {
           title: event.title || 'Imported Event',
           description: event.description,
@@ -410,10 +436,13 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           recurrence_exception: event.recurrenceException,
         };
         
+        const encryptedData = encryptData(eventData, derivedKey, iv);
+        
         await backend.calendarEvents.create({
-          encrypted_data: JSON.stringify(eventData), // TODO: Use proper encryption
-          iv: 'placeholder_iv', // TODO: Use proper IV
-          salt: 'placeholder_salt', // TODO: Use proper salt
+          // Encrypted data (preserves location and all event details)
+          encrypted_data: encryptedData,
+          iv: iv,
+          salt: salt,
           // Backward compatibility fields
           title: event.title || 'Imported Event',
           description: event.description,
