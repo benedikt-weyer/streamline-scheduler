@@ -36,6 +36,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             if (!decryptedData) return null;
             
             return {
+              id: task.id,
               content: decryptedData.content,
               completed: decryptedData.completed,
               estimatedDuration: decryptedData.estimatedDuration,
@@ -66,6 +67,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             if (!decryptedData) return null;
             
             return {
+              id: project.id,
               name: decryptedData.name,
               color: decryptedData.color,
               parentId: project.parent_id,
@@ -92,6 +94,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             if (!decryptedData) return null;
             
             return {
+              id: calendar.id,
               name: decryptedData.name,
               color: decryptedData.color,
               isVisible: decryptedData.isVisible ?? true,
@@ -131,6 +134,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             }
             
             return {
+              id: event.id,
               title: decryptedData.title,
               description: decryptedData.description,
               location: decryptedData.location,
@@ -140,7 +144,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
               recurrenceRule: decryptedData.recurrenceRule,
               recurrencePattern: recurrencePattern,
               recurrenceException: decryptedData.recurrenceException,
-              calendarId: event.calendar_id,
+              calendarId: decryptedData.calendarId,
               createdAt: event.created_at,
               updatedAt: event.updated_at
             };
