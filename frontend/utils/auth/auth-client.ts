@@ -15,14 +15,13 @@ export const signUpClient = async (formData: FormData): Promise<{ error?: string
     const { error } = await backend.auth.signUp({
       email,
       password,
-      emailRedirectTo: `/auth/callback`,
     });
 
     if (error) {
       console.error("Sign up error:", error);
       return { error };
     } else {
-      return { success: "Thanks for signing up! Please check your email for a verification link." };
+      return { success: "Account created successfully! You can now sign in." };
     }
   } catch (error) {
     console.error("Sign up error:", error);

@@ -262,29 +262,67 @@ class RustBackendImpl implements BackendInterface {
   // Authentication methods
   auth = {
     signUp: async (request: SignUpRequest): Promise<AuthResponse> => {
-      const response = await this.makeRequest<AuthResponse>('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(request),
-      });
-      
-      if (response.session?.access_token) {
-        this.storeAuthToken(response.session.access_token);
+      try {
+        const response = await this.makeRequest<any>('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify(request),
+        });
+        
+        // Handle the backend's response format
+        if (response.data?.access_token) {
+          this.storeAuthToken(response.data.access_token);
+          return {
+            session: {
+              user: response.data.user,
+              access_token: response.data.access_token,
+              refresh_token: null,
+              expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+            },
+            user: response.data.user,
+            error: null
+          };
+        }
+        
+        return { session: null, user: null, error: null };
+      } catch (error) {
+        return { 
+          session: null, 
+          user: null, 
+          error: error instanceof Error ? error.message : 'Sign up failed' 
+        };
       }
-      
-      return response;
     },
 
     signIn: async (request: SignInRequest): Promise<AuthResponse> => {
-      const response = await this.makeRequest<AuthResponse>('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(request),
-      });
-      
-      if (response.session?.access_token) {
-        this.storeAuthToken(response.session.access_token);
+      try {
+        const response = await this.makeRequest<any>('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify(request),
+        });
+        
+        // Handle the backend's response format
+        if (response.data?.access_token) {
+          this.storeAuthToken(response.data.access_token);
+          return {
+            session: {
+              user: response.data.user,
+              access_token: response.data.access_token,
+              refresh_token: null,
+              expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+            },
+            user: response.data.user,
+            error: null
+          };
+        }
+        
+        return { session: null, user: null, error: 'Invalid credentials' };
+      } catch (error) {
+        return { 
+          session: null, 
+          user: null, 
+          error: error instanceof Error ? error.message : 'Sign in failed' 
+        };
       }
-      
-      return response;
     },
 
     signOut: async (): Promise<{ error: string | null }> => {
