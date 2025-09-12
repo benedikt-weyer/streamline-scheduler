@@ -36,6 +36,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             if (!decryptedData) return null;
             
             return {
+              id: task.id, // Add missing task ID
               content: decryptedData.content,
               completed: decryptedData.completed,
               estimatedDuration: decryptedData.estimatedDuration,
@@ -67,6 +68,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             if (!decryptedData) return null;
             
             return {
+              id: project.id, // Add missing project ID
               name: decryptedData.name,
               color: decryptedData.color,
               parentId: project.parent_id,
@@ -93,6 +95,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             if (!decryptedData) return null;
             
             return {
+              id: calendar.id, // Add missing calendar ID
               name: decryptedData.name,
               color: decryptedData.color,
               isVisible: decryptedData.isVisible ?? true,
@@ -129,6 +132,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             } : undefined;
             
             return {
+              id: event.id, // Add missing event ID
               title: decryptedData.title,
               description: decryptedData.description,
               location: decryptedData.location, // New field: event location
@@ -136,7 +140,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
               endTime: decryptedData.endTime,
               isAllDay: decryptedData.isAllDay,
               recurrencePattern: recurrencePattern, // Properly reconstructed recurrence pattern
-              calendarId: event.calendar_id,
+              calendarId: decryptedData.calendarId, // Extract calendarId from encrypted data, not database row
               createdAt: event.created_at,
               updatedAt: event.updated_at
             };

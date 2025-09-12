@@ -362,6 +362,7 @@ export interface DecryptedExportData {
 }
 
 export interface DecryptedTask {
+  id: string; // Add missing task ID
   content: string;
   completed: boolean;
   estimatedDuration?: number;
@@ -377,6 +378,7 @@ export interface DecryptedTask {
 }
 
 export interface DecryptedProject {
+  id: string; // Add missing project ID
   name: string;
   color: string;
   parentId?: string;
@@ -387,6 +389,7 @@ export interface DecryptedProject {
 }
 
 export interface DecryptedCalendar {
+  id: string; // Add missing calendar ID
   name: string;
   color: string;
   isVisible: boolean;
@@ -399,6 +402,7 @@ export interface DecryptedCalendar {
 }
 
 export interface DecryptedCalendarEvent {
+  id: string; // Add missing event ID
   title: string;
   description?: string;
   location?: string; // New field: event location
