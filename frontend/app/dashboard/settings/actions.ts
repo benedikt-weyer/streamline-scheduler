@@ -18,8 +18,8 @@ export interface DecryptedTask {
   content: string;
   completed: boolean;
   estimatedDuration?: number;
-  impact?: string;
-  urgency?: string;
+  impact?: number;
+  urgency?: number;
   dueDate?: string;
   blockedBy?: string[];
   projectId?: string;
@@ -44,7 +44,7 @@ export interface DecryptedCalendar {
   color: string;
   isVisible?: boolean;
   isDefault?: boolean;
-  type?: string;
+  type?: 'regular' | 'ics';
   icsUrl?: string;
   lastSync?: string;
   createdAt: string;
@@ -54,6 +54,7 @@ export interface DecryptedCalendar {
 export interface DecryptedCalendarEvent {
   title: string;
   description?: string;
+  location?: string;
   startTime: string;
   endTime: string;
   isAllDay?: boolean;
@@ -156,10 +157,16 @@ export async function importUserData(data: ExportedData): Promise<void> {
     // Import can-do list items
     if (data.data?.can_do_list) {
       for (const task of data.data.can_do_list) {
+        // Handle urgency conversion (could be number 0-10 or already a priority string)
+        let priority = task.priority;
+        if (!priority && typeof task.urgency === 'number') {
+          priority = task.urgency >= 8 ? 'high' : task.urgency >= 5 ? 'medium' : 'low';
+        }
+        
         await backend.canDoList.create({
           content: task.content || 'Imported Task',
           due_date: task.due_date || task.dueDate,
-          priority: task.priority || (task.urgency >= 8 ? 'high' : task.urgency >= 5 ? 'medium' : 'low'),
+          priority: priority,
           tags: task.tags,
           duration_minutes: task.duration_minutes || task.estimatedDuration,
           encrypted_data: task.encrypted_data,
@@ -175,12 +182,17 @@ export async function importUserData(data: ExportedData): Promise<void> {
     if (data.data?.calendars) {
       for (const calendar of data.data.calendars) {
         await backend.calendars.create({
+          encrypted_data: calendar.encrypted_data || JSON.stringify(calendar), // Use encrypted data if available
+          iv: calendar.iv || 'placeholder_iv',
+          salt: calendar.salt || 'placeholder_salt',
+          is_default: calendar.is_default || false,
+          // Backward compatibility fields
           name: calendar.name || 'Imported Calendar',
           color: calendar.color || '#3b82f6',
           is_visible: calendar.is_visible !== false,
-          encrypted_data: calendar.encrypted_data,
-          iv: calendar.iv,
-          salt: calendar.salt,
+          type: calendar.type || 'regular',
+          ics_url: calendar.ics_url || calendar.icsUrl,
+          last_sync: calendar.last_sync || calendar.lastSync,
         });
       }
     }
@@ -189,17 +201,19 @@ export async function importUserData(data: ExportedData): Promise<void> {
     if (data.data?.calendar_events) {
       for (const event of data.data.calendar_events) {
         await backend.calendarEvents.create({
+          encrypted_data: event.encrypted_data || JSON.stringify(event), // Use encrypted data if available
+          iv: event.iv || 'placeholder_iv',
+          salt: event.salt || 'placeholder_salt',
+          // Backward compatibility fields
           title: event.title || 'Imported Event',
           description: event.description,
+          location: event.location,
           start_time: event.start_time || new Date().toISOString(),
           end_time: event.end_time || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           all_day: event.all_day || false,
           calendar_id: event.calendar_id,
           recurrence_rule: event.recurrence_rule,
           recurrence_exception: event.recurrence_exception,
-          encrypted_data: event.encrypted_data,
-          iv: event.iv,
-          salt: event.salt,
         });
       }
     }
@@ -301,14 +315,27 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
     // Import can-do list items (tasks)
     if (data.data?.tasks) {
       for (const task of data.data.tasks) {
+        // IMPORTANT: impact and urgency (0-10) are stored in encrypted_data, not as separate DB fields
+        // The backend API only supports a simplified 'priority' field for compatibility
+        // Full data including impact/urgency should be encrypted and stored in encrypted_data
+        
+        // Convert urgency (0-10) to priority for the current backend API
+        const priority = task.urgency ? (task.urgency >= 8 ? 'high' : task.urgency >= 5 ? 'medium' : 'low') : undefined;
+        
+        // TODO: This import currently loses impact/urgency granularity (0-10 scale)
+        // Need to either:
+        // 1. Use proper encryption here to store full taskData in encrypted_data, OR
+        // 2. Update backend to support impact/urgency fields directly
+        
         await backend.canDoList.create({
           content: task.content || 'Imported Task',
           due_date: task.dueDate,
-          priority: task.urgency ? (parseInt(task.urgency) >= 8 ? 'high' : parseInt(task.urgency) >= 5 ? 'medium' : 'low') : undefined,
+          priority: priority,
           tags: undefined, // Not available in DecryptedTask
           duration_minutes: task.estimatedDuration,
           project_id: task.projectId,
           order: task.displayOrder || 0,
+          // Note: Without proper encryption, impact/urgency data will be lost during import
         });
       }
     }
@@ -316,12 +343,29 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
     // Import calendars
     if (data.data?.calendars) {
       for (const calendar of data.data.calendars) {
-        // Note: ICS-specific fields (type, icsUrl, lastSync) will be lost
-        // as they're not supported by the current backend API
-        await backend.calendars.create({
+        // TODO: Properly encrypt calendar data including type, icsUrl, lastSync
+        // For now, create a placeholder encrypted structure
+        const calendarData = {
           name: calendar.name || 'Imported Calendar',
           color: calendar.color || '#3b82f6',
-          is_visible: calendar.isVisible !== false, // Default to visible unless explicitly false
+          is_visible: calendar.isVisible !== false,
+          type: calendar.type || 'regular',
+          ics_url: calendar.icsUrl,
+          last_sync: calendar.lastSync,
+        };
+        
+        await backend.calendars.create({
+          encrypted_data: JSON.stringify(calendarData), // TODO: Use proper encryption
+          iv: 'placeholder_iv', // TODO: Use proper IV
+          salt: 'placeholder_salt', // TODO: Use proper salt
+          is_default: calendar.isDefault || false,
+          // Backward compatibility fields
+          name: calendar.name || 'Imported Calendar',
+          color: calendar.color || '#3b82f6',
+          is_visible: calendar.isVisible !== false,
+          type: calendar.type || 'regular',
+          ics_url: calendar.icsUrl,
+          last_sync: calendar.lastSync,
         });
       }
     }
@@ -352,9 +396,28 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           }
         }
 
-        await backend.calendarEvents.create({
+        // TODO: Properly encrypt calendar event data
+        // For now, create a placeholder encrypted structure
+        const eventData = {
           title: event.title || 'Imported Event',
           description: event.description,
+          location: event.location,
+          start_time: event.startTime || new Date().toISOString(),
+          end_time: event.endTime || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          all_day: event.isAllDay || false,
+          calendar_id: event.calendarId,
+          recurrence_rule: recurrenceRule,
+          recurrence_exception: event.recurrenceException,
+        };
+        
+        await backend.calendarEvents.create({
+          encrypted_data: JSON.stringify(eventData), // TODO: Use proper encryption
+          iv: 'placeholder_iv', // TODO: Use proper IV
+          salt: 'placeholder_salt', // TODO: Use proper salt
+          // Backward compatibility fields
+          title: event.title || 'Imported Event',
+          description: event.description,
+          location: event.location,
           start_time: event.startTime || new Date().toISOString(),
           end_time: event.endTime || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           all_day: event.isAllDay || false,

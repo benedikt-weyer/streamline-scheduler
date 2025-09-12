@@ -773,12 +773,17 @@ class RustBackendImpl implements BackendInterface {
       if (data.data?.calendars) {
         for (const calendar of data.data.calendars) {
           await this.calendars.create({
+            encrypted_data: calendar.encrypted_data || JSON.stringify(calendar),
+            iv: calendar.iv || 'placeholder_iv',
+            salt: calendar.salt || 'placeholder_salt',
+            is_default: calendar.is_default || false,
+            // Backward compatibility fields
             name: calendar.name || 'Imported Calendar',
             color: calendar.color || '#3b82f6',
             is_visible: calendar.is_visible !== false,
-            encrypted_data: calendar.encrypted_data,
-            iv: calendar.iv,
-            salt: calendar.salt,
+            type: calendar.type || 'regular',
+            ics_url: calendar.ics_url || calendar.icsUrl,
+            last_sync: calendar.last_sync || calendar.lastSync,
           });
         }
       }

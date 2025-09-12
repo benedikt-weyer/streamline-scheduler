@@ -345,10 +345,13 @@ Get all can-do items for the authenticated user.
 {
   "content": "Task content",
   "completed": false,
-  "due_date": "2025-09-15T12:00:00Z",
-  "priority": "medium",
-  "tags": ["work", "urgent"],
-  "duration_minutes": 60
+  "estimatedDuration": 60,
+  "impact": 7,
+  "urgency": 8,
+  "dueDate": "2025-09-15T12:00:00Z",
+  "blockedBy": ["other-task-id"],
+  "priority": "high",
+  "tags": ["work", "urgent"]
 }
 ```
 
@@ -378,10 +381,13 @@ Create a new can-do item.
 {
   "content": "New task",
   "completed": false,
-  "due_date": "2025-09-15T12:00:00Z",
-  "priority": "medium",
-  "tags": ["work"],
-  "duration_minutes": 60
+  "estimatedDuration": 60,
+  "impact": 7,
+  "urgency": 8,
+  "dueDate": "2025-09-15T12:00:00Z",
+  "blockedBy": [],
+  "priority": "high",
+  "tags": ["work"]
 }
 ```
 
@@ -428,7 +434,21 @@ Same patterns as projects.
 {
   "name": "My Calendar",
   "color": "#3b82f6",
-  "is_visible": true
+  "is_visible": true,
+  "type": "regular"
+}
+```
+
+**For ICS calendars, `encrypted_data` contains:**
+
+```json
+{
+  "name": "External Calendar",
+  "color": "#10b981",
+  "is_visible": true,
+  "type": "ics",
+  "ics_url": "https://calendar.google.com/calendar/ical/example%40gmail.com/private-abc123/basic.ics",
+  "last_sync": "2025-09-12T14:30:00Z"
 }
 ```
 
@@ -489,6 +509,7 @@ Same patterns as projects.
 {
   "title": "Event Title",
   "description": "Event description",
+  "location": "Conference Room A",
   "start_time": "2025-09-15T10:00:00Z",
   "end_time": "2025-09-15T11:00:00Z",
   "all_day": false,

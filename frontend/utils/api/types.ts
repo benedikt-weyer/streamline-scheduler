@@ -141,87 +141,123 @@ export interface UpdateProjectRequest {
 // Calendar types
 export interface Calendar {
   id: string;
-  name: string;
-  color: string;
-  is_visible: boolean;
+  // Non-sensitive metadata
+  is_default?: boolean;
   created_at: string;
   updated_at: string;
   user_id: string;
-  // Encrypted fields
-  encrypted_data?: string;
-  iv?: string;
-  salt?: string;
+  // Encrypted fields (all sensitive data stored here)
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+  
+  // NOTE: These fields are for TypeScript compatibility and client-side use only
+  // They should be populated from decrypted encrypted_data
+  name?: string;
+  color?: string;
+  is_visible?: boolean;
+  type?: 'regular' | 'ics';
+  // ICS-specific parameters (only the ones actually used in the codebase)
+  ics_url?: string;      // Maps to icsUrl in calendar-types.ts
+  last_sync?: string;    // Maps to lastSync in calendar-types.ts
 }
 
 export interface CreateCalendarRequest {
-  name: string;
-  color: string;
+  // Required encrypted fields (contains all sensitive calendar data)
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+  is_default?: boolean;
+  
+  // NOTE: These fields are for backward compatibility only
+  // The actual API should only accept encrypted_data
+  name?: string;
+  color?: string;
   is_visible?: boolean;
-  // Encrypted fields
-  encrypted_data?: string;
-  iv?: string;
-  salt?: string;
+  type?: 'regular' | 'ics';
+  ics_url?: string;
+  last_sync?: string;
 }
 
 export interface UpdateCalendarRequest {
   id: string;
-  name?: string;
-  color?: string;
-  is_visible?: boolean;
-  // Encrypted fields
+  // Encrypted fields (contains all sensitive calendar data)
   encrypted_data?: string;
   iv?: string;
   salt?: string;
+  is_default?: boolean;
+  
+  // NOTE: These fields are for backward compatibility only
+  // The actual API should only accept encrypted_data
+  name?: string;
+  color?: string;
+  is_visible?: boolean;
+  type?: 'regular' | 'ics';
+  ics_url?: string;
+  last_sync?: string;
 }
 
 export interface CalendarEvent {
   id: string;
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time: string;
-  all_day: boolean;
-  calendar_id: string;
+  // Non-sensitive metadata (stored in plaintext)
   created_at: string;
   updated_at: string;
   user_id: string;
-  recurrence_rule?: string;
-  recurrence_exception?: string[];
-  // Encrypted fields
-  encrypted_data?: string;
-  iv?: string;
-  salt?: string;
-}
-
-export interface CreateCalendarEventRequest {
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time: string;
-  all_day?: boolean;
-  calendar_id: string;
-  recurrence_rule?: string;
-  recurrence_exception?: string[];
-  // Encrypted fields
-  encrypted_data?: string;
-  iv?: string;
-  salt?: string;
-}
-
-export interface UpdateCalendarEventRequest {
-  id: string;
+  // Encrypted fields (all sensitive data stored here)
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+  
+  // NOTE: These fields are for TypeScript compatibility and client-side use only
+  // They should be populated from decrypted encrypted_data
   title?: string;
   description?: string;
+  location?: string;
   start_time?: string;
   end_time?: string;
   all_day?: boolean;
   calendar_id?: string;
   recurrence_rule?: string;
   recurrence_exception?: string[];
-  // Encrypted fields
+}
+
+export interface CreateCalendarEventRequest {
+  // Required encrypted fields (contains all sensitive event data)
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+  
+  // NOTE: These fields are for backward compatibility only
+  // The actual API should only accept encrypted_data
+  title?: string;
+  description?: string;
+  location?: string;
+  start_time?: string;
+  end_time?: string;
+  all_day?: boolean;
+  calendar_id?: string;
+  recurrence_rule?: string;
+  recurrence_exception?: string[];
+}
+
+export interface UpdateCalendarEventRequest {
+  id: string;
+  // Encrypted fields (contains all sensitive event data)
   encrypted_data?: string;
   iv?: string;
   salt?: string;
+  
+  // NOTE: These fields are for backward compatibility only
+  // The actual API should only accept encrypted_data
+  title?: string;
+  description?: string;
+  location?: string;
+  start_time?: string;
+  end_time?: string;
+  all_day?: boolean;
+  calendar_id?: string;
+  recurrence_rule?: string;
+  recurrence_exception?: string[];
 }
 
 // Real-time subscription types
