@@ -73,11 +73,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://localhost:3001}
+        - NEXT_PUBLIC_BACKEND_HTTP_URL=${NEXT_PUBLIC_BACKEND_HTTP_URL:-http://backend:3001}
+        - NEXT_PUBLIC_BACKEND_WS_URL=${NEXT_PUBLIC_BACKEND_WS_URL:-ws://backend:3001}
     container_name: streamline-frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://backend:3001}
+      NEXT_PUBLIC_BACKEND_HTTP_URL: ${NEXT_PUBLIC_BACKEND_HTTP_URL:-http://backend:3001}
+      NEXT_PUBLIC_BACKEND_WS_URL: ${NEXT_PUBLIC_BACKEND_WS_URL:-ws://backend:3001}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
