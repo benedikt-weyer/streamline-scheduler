@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { createClientBrowser } from '@/utils/supabase/client';
+import { getBackend } from '@/utils/api/backend-interface';
 
 /**
  * Hook for managing real-time subscriptions to can-do list changes
@@ -17,19 +17,14 @@ export function useTaskSubscriptions(
       return;
     }
 
-    // Initialize Supabase client
-    const supabase = createClientBrowser();
-    
-    // Subscribe to changes on the can_do_list table
-    const subscription = supabase
-      .channel('can_do_list_changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'can_do_list' 
-        }, 
-        async (payload) => {
+    let unsubscribe: (() => void) | null = null;
+
+    const setupSubscription = async () => {
+      try {
+        const backend = getBackend();
+        
+        // Subscribe to changes on the can_do_list table
+        unsubscribe = backend.websocket.subscribe('can_do_list', async (message) => {
           // Skip reload if we're in the middle of a local update operation
           if (skipNextTaskReloadRef.current) {
             setTimeout(() => {
@@ -44,16 +39,21 @@ export function useTaskSubscriptions(
           } catch (error) {
             console.error('Error reloading tasks after subscription update:', error);
           }
-        }
-      )
-      .subscribe();
+        });
 
-    setIsSubscribed(true);
+        setIsSubscribed(true);
+      } catch (error) {
+        console.error('Failed to setup WebSocket subscription:', error);
+        setIsSubscribed(false);
+      }
+    };
+
+    setupSubscription();
 
     // Clean up the subscription when component unmounts or dependencies change
     return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
+      if (unsubscribe) {
+        unsubscribe();
       }
       setIsSubscribed(false);
     };

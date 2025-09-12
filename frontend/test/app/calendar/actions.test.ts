@@ -1,7 +1,7 @@
 import { fetchCalendarEvents, addCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '@/app/dashboard/calendar/actions';
 
-// Mock the Supabase client
-jest.mock('@/utils/supabase/server', () => {
+// Mock the backend interface
+jest.mock('@/utils/api/backend-interface', () => {
   return {
     createClient: jest.fn(() => ({
       auth: {

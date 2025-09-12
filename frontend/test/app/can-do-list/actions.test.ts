@@ -1,9 +1,9 @@
 import { fetchCanDoItems, addCanDoItem, updateCanDoItem, deleteCanDoItem } from '@/app/dashboard/can-do-list/actions';
-import { createClientServer } from '@/utils/supabase/server';
+import { getBackend } from '@/utils/api/backend-interface';
 
-// Mock the Supabase client
-jest.mock('@/utils/supabase/server', () => ({
-  createClient: jest.fn(),
+// Mock the backend interface
+jest.mock('@/utils/api/backend-interface', () => ({
+  getBackend: jest.fn(),
 }));
 
 // Mock the Next.js cache function
