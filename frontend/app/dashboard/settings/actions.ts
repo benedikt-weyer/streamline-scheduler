@@ -285,9 +285,19 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
 
     // For decrypted data, we must encrypt it before sending to the backend
     // Direct implementation with proper field mapping and encryption
-    // Import projects first
+    // Import projects first (sorted by hierarchy to avoid foreign key violations)
     if (data.data?.projects) {
-      for (const project of data.data.projects) {
+      // Sort projects to ensure parents are created before children
+      // Simple approach: parents (no parentId) first, then all children
+      const sortedProjects = [...data.data.projects].sort((a, b) => {
+        // Parents (no parentId) come first
+        if (!a.parentId && b.parentId) return -1;
+        if (a.parentId && !b.parentId) return 1;
+        // If both have parents or both don't, maintain original order
+        return 0;
+      });
+      
+      for (const project of sortedProjects) {
         // Encrypt project data
         const salt = generateSalt();
         const iv = generateIV();
