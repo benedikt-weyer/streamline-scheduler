@@ -67,22 +67,48 @@ export const decryptData = (encryptedData: string, key: string, iv: string, sile
   }
 };
 
-// Hash the user's password for storage in cookie
-// Note: This is only for local encryption purposes, not for authentication
+// Salt for authentication hashing
+const AUTH_SALT = 'streamline_auth_salt_2024';
+
+// Salt for encryption key derivation
+const ENCRYPTION_SALT = 'streamline_encryption_salt_2024';
+
+// Hash the user's password for authentication
+export const hashPasswordForAuth = (password: string): string => {
+  return CryptoJS.PBKDF2(password, AUTH_SALT, {
+    keySize: 256 / 32,
+    iterations: 10000
+  }).toString();
+};
+
+// Hash the user's password for encryption/decryption key derivation
+export const hashPasswordForEncryption = (password: string): string => {
+  return CryptoJS.PBKDF2(password, ENCRYPTION_SALT, {
+    keySize: 256 / 32,
+    iterations: 10000
+  }).toString();
+};
+
+// Legacy function for backward compatibility - now uses encryption hashing
 export const hashPassword = (password: string): string => {
-  return CryptoJS.SHA256(password).toString();
+  return hashPasswordForEncryption(password);
 };
 
-// Cookie management functions for storing the hashed password
-export const storeHashedPassword = (hashedPassword: string): void => {
-  document.cookie = `encKey=${hashedPassword};path=/;max-age=${60 * 60 * 24 * 30};SameSite=Strict`;
+// Cookie management functions for storing the encryption key
+export const storeEncryptionKey = (encryptionKey: string): void => {
+  document.cookie = `encKey=${encryptionKey};path=/;max-age=${60 * 60 * 24 * 30};SameSite=Strict`;
 };
 
-export const getHashedPassword = (): string | null => {
+export const getStoredEncryptionKey = (): string | null => {
   const match = RegExp(/encKey=([^;]+)/).exec(document.cookie);
   return match ? match[1] : null;
 };
 
-export const clearHashedPassword = (): void => {
+export const clearStoredEncryptionKey = (): void => {
   document.cookie = 'encKey=;path=/;max-age=0';
 };
+
+// Legacy function names for backward compatibility
+export const storeHashedPassword = storeEncryptionKey;
+export const getHashedPassword = getStoredEncryptionKey;
+export const clearHashedPassword = clearStoredEncryptionKey;

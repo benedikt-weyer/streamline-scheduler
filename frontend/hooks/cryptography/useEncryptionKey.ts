@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { hashPassword } from '@/utils/cryptography/encryption';
+import { getStoredEncryptionKey, clearStoredEncryptionKey } from '@/utils/cryptography/encryption';
 import { createClientBrowser } from '@/utils/supabase/client';
 
 export function useEncryptionKey() {
@@ -46,37 +46,23 @@ export function useEncryptionKey() {
           userError: userError
         });
         
-        // Also check if there are any stored auth tokens
-        console.log('[useEncryptionKey] Checking localStorage for auth tokens...');
-        const localStorageKeys = Object.keys(localStorage).filter(key => 
-          key.includes('supabase') || key.includes('auth')
-        );
-        console.log('[useEncryptionKey] LocalStorage auth-related keys:', localStorageKeys);
-        
-        // Check cookies as well
-        console.log('[useEncryptionKey] Checking document.cookie for auth tokens...');
-        const cookies = document.cookie.split(';').map(c => c.trim()).filter(c => 
-          c.includes('supabase') || c.includes('auth')
-        );
-        console.log('[useEncryptionKey] Auth-related cookies:', cookies.map(c => c.split('=')[0]));
-        
         // Use session if available, otherwise try user
         const finalSession = session;
         const finalUser = session?.user || user;
         
         if (finalSession || finalUser) {
-          const userId = finalUser?.id;
-          const userEmail = finalUser?.email;
-          console.log('[useEncryptionKey] Final user found - ID:', userId, 'Email:', userEmail ? 'present' : 'missing');
+          console.log('[useEncryptionKey] User is authenticated, checking for stored encryption key...');
           
-          if (userEmail) {
-            // Generate a key based on the user's email
-            console.log('[useEncryptionKey] Generating encryption key from email...');
-            const key = hashPassword(userEmail);
-            setEncryptionKey(key);
-            console.log('[useEncryptionKey] Encryption key generated and set');
+          // Get the stored encryption key from cookies
+          const storedKey = getStoredEncryptionKey();
+          console.log('[useEncryptionKey] Stored encryption key:', storedKey ? 'present' : 'missing');
+          
+          if (storedKey) {
+            setEncryptionKey(storedKey);
+            console.log('[useEncryptionKey] Encryption key loaded from storage');
           } else {
-            console.warn('[useEncryptionKey] No email found in session or user');
+            console.warn('[useEncryptionKey] No stored encryption key found - user may need to sign in again');
+            setEncryptionKey(null);
           }
         } else {
           // No session, clear the encryption key
@@ -102,35 +88,34 @@ export function useEncryptionKey() {
         console.log('[useEncryptionKey] Auth state changed:', event, session ? `session exists (user: ${session.user.id})` : 'no session');
         
         if (event === 'SIGNED_IN' && session) {
-          // User signed in, generate encryption key
-          console.log('[useEncryptionKey] SIGNED_IN event - generating encryption key');
-          const userEmail = session.user.email;
-          console.log('[useEncryptionKey] User email for SIGNED_IN:', userEmail ? 'present' : 'missing');
-          if (userEmail) {
-            const key = hashPassword(userEmail);
-            setEncryptionKey(key);
-            console.log('[useEncryptionKey] Encryption key set for user:', userEmail);
+          // User signed in, check for stored encryption key
+          console.log('[useEncryptionKey] SIGNED_IN event - checking for stored encryption key');
+          const storedKey = getStoredEncryptionKey();
+          if (storedKey) {
+            setEncryptionKey(storedKey);
+            console.log('[useEncryptionKey] Encryption key loaded from storage after sign in');
           } else {
-            console.warn('[useEncryptionKey] No email found during SIGNED_IN');
+            console.warn('[useEncryptionKey] No stored encryption key found after sign in');
+            setEncryptionKey(null);
           }
         } else if (event === 'SIGNED_OUT') {
           // User signed out, clear encryption key
           console.log('[useEncryptionKey] SIGNED_OUT event - clearing encryption key');
+          clearStoredEncryptionKey();
           setEncryptionKey(null);
           console.log('[useEncryptionKey] Encryption key cleared');
         } else if (event === 'INITIAL_SESSION') {
           // Initial session check - handle like a session state
           console.log('[useEncryptionKey] INITIAL_SESSION event - checking for existing session');
           if (session) {
-            console.log('[useEncryptionKey] INITIAL_SESSION with session - generating encryption key');
-            const userEmail = session.user.email;
-            console.log('[useEncryptionKey] User email for INITIAL_SESSION:', userEmail ? 'present' : 'missing');
-            if (userEmail) {
-              const key = hashPassword(userEmail);
-              setEncryptionKey(key);
-              console.log('[useEncryptionKey] Encryption key set for user:', userEmail);
+            console.log('[useEncryptionKey] INITIAL_SESSION with session - checking for stored encryption key');
+            const storedKey = getStoredEncryptionKey();
+            if (storedKey) {
+              setEncryptionKey(storedKey);
+              console.log('[useEncryptionKey] Encryption key loaded from storage during initial session');
             } else {
-              console.warn('[useEncryptionKey] No email found during INITIAL_SESSION');
+              console.warn('[useEncryptionKey] No stored encryption key found during initial session');
+              setEncryptionKey(null);
             }
           } else {
             console.log('[useEncryptionKey] INITIAL_SESSION with no session - clearing encryption key');
@@ -139,15 +124,17 @@ export function useEncryptionKey() {
         } else if (event === 'TOKEN_REFRESHED' && session) {
           // Token refreshed, ensure we still have the encryption key
           console.log('[useEncryptionKey] TOKEN_REFRESHED event - checking encryption key');
-          const userEmail = session.user.email;
           console.log('[useEncryptionKey] Current encryptionKey state:', encryptionKey ? 'present' : 'null');
-          console.log('[useEncryptionKey] User email for TOKEN_REFRESHED:', userEmail ? 'present' : 'missing');
-          if (userEmail && !encryptionKey) {
+          if (!encryptionKey) {
             console.log('[useEncryptionKey] Restoring encryption key after token refresh');
-            const key = hashPassword(userEmail);
-            setEncryptionKey(key);
-            console.log('[useEncryptionKey] Encryption key restored after token refresh:', userEmail);
-          } else if (encryptionKey) {
+            const storedKey = getStoredEncryptionKey();
+            if (storedKey) {
+              setEncryptionKey(storedKey);
+              console.log('[useEncryptionKey] Encryption key restored after token refresh');
+            } else {
+              console.warn('[useEncryptionKey] No stored encryption key found after token refresh');
+            }
+          } else {
             console.log('[useEncryptionKey] Encryption key already present, no action needed');
           }
         } else {

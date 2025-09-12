@@ -4,11 +4,13 @@ import {
   decryptData,
   generateSalt,
   generateIV,
-  hashPassword
+  hashPassword,
+  hashPasswordForAuth,
+  hashPasswordForEncryption
 } from '@/utils/cryptography/encryption';
 
 describe('Encryption Utilities', () => {
-  describe('hashPassword', () => {
+  describe('hashPassword (legacy)', () => {
     it('should create a deterministic hash from a password', () => {
       const password = 'testPassword123';
       const hash1 = hashPassword(password);
@@ -26,6 +28,56 @@ describe('Encryption Utilities', () => {
       const hash2 = hashPassword(password2);
       
       expect(hash1).not.toBe(hash2);
+    });
+  });
+
+  describe('hashPasswordForAuth', () => {
+    it('should create a deterministic hash from a password for authentication', () => {
+      const password = 'testPassword123';
+      const hash1 = hashPasswordForAuth(password);
+      const hash2 = hashPasswordForAuth(password);
+      
+      expect(hash1).toBe(hash2);
+      expect(hash1.length).toBeGreaterThan(0);
+    });
+    
+    it('should create different hashes for different passwords', () => {
+      const password1 = 'testPassword123';
+      const password2 = 'testPassword124';
+      
+      const hash1 = hashPasswordForAuth(password1);
+      const hash2 = hashPasswordForAuth(password2);
+      
+      expect(hash1).not.toBe(hash2);
+    });
+  });
+
+  describe('hashPasswordForEncryption', () => {
+    it('should create a deterministic hash from a password for encryption', () => {
+      const password = 'testPassword123';
+      const hash1 = hashPasswordForEncryption(password);
+      const hash2 = hashPasswordForEncryption(password);
+      
+      expect(hash1).toBe(hash2);
+      expect(hash1.length).toBeGreaterThan(0);
+    });
+    
+    it('should create different hashes for different passwords', () => {
+      const password1 = 'testPassword123';
+      const password2 = 'testPassword124';
+      
+      const hash1 = hashPasswordForEncryption(password1);
+      const hash2 = hashPasswordForEncryption(password2);
+      
+      expect(hash1).not.toBe(hash2);
+    });
+    
+    it('should create different hashes for auth vs encryption with same password', () => {
+      const password = 'testPassword123';
+      const authHash = hashPasswordForAuth(password);
+      const encryptionHash = hashPasswordForEncryption(password);
+      
+      expect(authHash).not.toBe(encryptionHash);
     });
   });
   

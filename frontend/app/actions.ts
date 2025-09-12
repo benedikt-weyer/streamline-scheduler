@@ -4,6 +4,7 @@ import { encodedRedirect } from "@/utils/navigation-utils";
 import { createClientServer } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { hashPasswordForAuth } from "@/utils/cryptography/encryption";
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -114,8 +115,11 @@ export const resetPasswordAction = async (formData: FormData) => {
     );
   }
 
+  // Hash the new password for authentication
+  const authHash = hashPasswordForAuth(password);
+
   const { error } = await supabase.auth.updateUser({
-    password: password,
+    password: authHash,
   });
 
   if (error) {

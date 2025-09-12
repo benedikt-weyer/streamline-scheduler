@@ -7,7 +7,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-import { hashPassword, storeHashedPassword } from "@/utils/cryptography/encryption";
+import { hashPasswordForAuth, hashPasswordForEncryption, storeEncryptionKey } from "@/utils/cryptography/encryption";
 
 import { useState, useEffect, Suspense } from "react";
 import { useForm } from "react-hook-form";
@@ -48,14 +48,17 @@ function SignInForm() {
   }, [searchParams]);
 
   const onSubmit = async (values: SignInFormValues) => {    
-    // Hash the password and store it in a cookie for client-side encryption
-    const hashedPassword = hashPassword(values.password);
-    storeHashedPassword(hashedPassword);
+    // Hash the password for authentication with Supabase
+    const authHash = hashPasswordForAuth(values.password);
     
-    // Create and submit the form data
+    // Hash the password for encryption and store it in a cookie for client-side encryption
+    const encryptionKey = hashPasswordForEncryption(values.password);
+    storeEncryptionKey(encryptionKey);
+    
+    // Create and submit the form data with the hashed password for authentication
     const formData = new FormData();
     formData.append('email', values.email);
-    formData.append('password', values.password);
+    formData.append('password', authHash);
     
     await signInAction(formData);
   };

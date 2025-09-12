@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { hashPasswordForAuth } from "@/utils/cryptography/encryption";
 
 // Define the schema for form validation
 const signUpSchema = z.object({
@@ -49,9 +50,12 @@ function SignUpForm() {
   }, [searchParams]);
 
   const onSubmit = async (values: SignUpFormValues) => {
+    // Hash the password for authentication with Supabase
+    const authHash = hashPasswordForAuth(values.password);
+    
     const formData = new FormData();
     formData.append('email', values.email);
-    formData.append('password', values.password);
+    formData.append('password', authHash);
     
     await signUpAction(formData);
   };
