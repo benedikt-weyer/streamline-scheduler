@@ -7,7 +7,8 @@ import { EncryptedProject } from '@/utils/can-do-list/can-do-list-types';
 export async function fetchProjects(): Promise<EncryptedProject[]> {
   try {
     const backend = getBackend();
-    const { data: projects } = await backend.projects.getAll();
+    // Use all=true to fetch all projects regardless of hierarchy
+    const { data: projects } = await backend.projects.getAll({ all: true });
     return projects as unknown as EncryptedProject[];
   } catch (error) {
     console.error('Failed to fetch projects:', error);

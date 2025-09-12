@@ -107,7 +107,7 @@ export async function exportUserData(): Promise<ExportedData> {
     // Fetch all user data
     const [canDoListResult, projectsResult, calendarsResult, calendarEventsResult] = await Promise.all([
       backend.canDoList.getAll(),
-      backend.projects.getAll(),
+      backend.projects.getAll({ all: true }), // Get all projects including children
       backend.calendars.getAll(),
       backend.calendarEvents.getAll(),
     ]);
@@ -242,7 +242,7 @@ export async function clearAllUserData(): Promise<void> {
     // Get all data first
     const [canDoListResult, projectsResult, calendarsResult, calendarEventsResult] = await Promise.all([
       backend.canDoList.getAll(),
-      backend.projects.getAll(),
+      backend.projects.getAll({ all: true }), // Get all projects including children
       backend.calendars.getAll(),
       backend.calendarEvents.getAll(),
     ]);
@@ -295,6 +295,11 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
     // Direct implementation with proper field mapping and encryption
     // Import projects first (sorted by hierarchy to avoid foreign key violations)
     if (data.data?.projects) {
+      console.log('[Import] Found projects to import:', data.data.projects.length);
+      data.data.projects.forEach((p, index) => {
+        console.log(`[Import] Project ${index + 1}: "${p.name}" (parentId: ${p.parentId})`);
+      });
+      
       // Sort projects to ensure parents are created before children
       // Simple approach: parents (no parentId) first, then all children
       const sortedProjects = [...data.data.projects].sort((a, b) => {
@@ -469,12 +474,12 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           title: event.title || 'Imported Event',
           description: event.description,
           location: event.location,
-          start_time: event.startTime || new Date().toISOString(),
-          end_time: event.endTime || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          all_day: event.isAllDay || false,
-          calendar_id: mappedCalendarId,
-          recurrence_rule: recurrenceRule,
-          recurrence_exception: event.recurrenceException,
+          startTime: event.startTime || new Date().toISOString(),
+          endTime: event.endTime || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          isAllDay: event.isAllDay || false,
+          calendarId: mappedCalendarId,
+          recurrenceRule: recurrenceRule,
+          recurrenceException: event.recurrenceException,
         };
         
         const encryptedData = encryptData(eventData, derivedKey, iv);

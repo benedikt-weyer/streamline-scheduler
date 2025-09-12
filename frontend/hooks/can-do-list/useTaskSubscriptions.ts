@@ -24,7 +24,7 @@ export function useTaskSubscriptions(
         const backend = getBackend();
         
         // Subscribe to changes on the can_do_list table
-        unsubscribe = backend.websocket.subscribe('can_do_list', async (message) => {
+        const subscription = backend.canDoList.subscribe(async (message) => {
           // Skip reload if we're in the middle of a local update operation
           if (skipNextTaskReloadRef.current) {
             setTimeout(() => {
@@ -41,6 +41,8 @@ export function useTaskSubscriptions(
           }
         });
 
+        // Store the unsubscribe function
+        unsubscribe = subscription.unsubscribe;
         setIsSubscribed(true);
       } catch (error) {
         console.error('Failed to setup WebSocket subscription:', error);

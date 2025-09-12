@@ -100,10 +100,11 @@ export async function reorderTasks(taskUpdates: Array<{ id: string; displayOrder
 export async function moveTaskToProject(taskId: string, projectId: string | null): Promise<EncryptedTask> {
   try {
     const backend = getBackend();
-    const { data: task } = await backend.canDoList.update(taskId, {
-      project_id: projectId,
+    const { data: task } = await backend.canDoList.update({
+      id: taskId,
+      project_id: projectId || undefined,
     });
-    return task as EncryptedTask;
+    return task as unknown as EncryptedTask;
   } catch (error) {
     console.error('Failed to move task to project:', error);
     throw error;
@@ -114,10 +115,11 @@ export async function moveTaskToProject(taskId: string, projectId: string | null
 export async function toggleTaskCompleteWithReorder(taskId: string, completed: boolean): Promise<EncryptedTask> {
   try {
     const backend = getBackend();
-    const { data: task } = await backend.canDoList.update(taskId, {
+    const { data: task } = await backend.canDoList.update({
+      id: taskId,
       completed,
     });
-    return task as EncryptedTask;
+    return task as unknown as EncryptedTask;
   } catch (error) {
     console.error('Failed to toggle task complete:', error);
     throw error;
@@ -143,9 +145,25 @@ export async function fetchTasksByProject(projectId: string | null): Promise<Enc
     const backend = getBackend();
     // First fetch all tasks, then filter by project
     const { data: tasks } = await backend.canDoList.getAll();
-    return (tasks as EncryptedTask[]).filter(task => task.project_id === projectId);
+    return (tasks as unknown as EncryptedTask[]).filter(task => task.project_id === projectId);
   } catch (error) {
     console.error('Failed to fetch tasks by project:', error);
+    throw error;
+  }
+}
+
+// Bulk update task order
+export async function bulkUpdateTaskOrder(taskUpdates: { id: string; order: number }[]): Promise<void> {
+  try {
+    const backend = getBackend();
+    for (const { id, order } of taskUpdates) {
+      await backend.canDoList.update({
+        id,
+        order,
+      });
+    }
+  } catch (error) {
+    console.error('Failed to bulk update task order:', error);
     throw error;
   }
 }

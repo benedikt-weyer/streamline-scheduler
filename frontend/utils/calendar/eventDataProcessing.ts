@@ -49,12 +49,16 @@ export const processDecryptedEvent = (
   decryptedData: any,
   calendars: Calendar[]
 ): CalendarEvent | null => {
-  const startTime = new Date(decryptedData.startTime);
-  const endTime = new Date(decryptedData.endTime);
+  // Handle both camelCase and snake_case field names for backward compatibility
+  const startTimeValue = decryptedData.startTime || decryptedData.start_time;
+  const endTimeValue = decryptedData.endTime || decryptedData.end_time;
+  
+  const startTime = new Date(startTimeValue);
+  const endTime = new Date(endTimeValue);
   
   if (!isValid(startTime) || !isValid(endTime)) {
     console.error('Invalid date found for event after decryption:', rawEvent.id, 
-      { startTime: decryptedData.startTime, endTime: decryptedData.endTime });
+      { startTime: startTimeValue, endTime: endTimeValue, decryptedData });
     return null;
   }
   
@@ -68,16 +72,18 @@ export const processDecryptedEvent = (
     };
   }
   
-  const calendar = calendars.find(cal => cal.id === decryptedData.calendarId);
+  // Handle both camelCase and snake_case for calendar ID
+  const calendarId = decryptedData.calendarId || decryptedData.calendar_id;
+  const calendar = calendars.find(cal => cal.id === calendarId);
   
   return {
     id: rawEvent.id,
     title: decryptedData.title,
     description: decryptedData.description,
     location: decryptedData.location,
-    calendarId: decryptedData.calendarId,
+    calendarId: calendarId,
     calendar: calendar,
-    isAllDay: decryptedData.isAllDay ?? false,
+    isAllDay: decryptedData.isAllDay ?? decryptedData.all_day ?? false,
     startTime,
     endTime,
     recurrencePattern,

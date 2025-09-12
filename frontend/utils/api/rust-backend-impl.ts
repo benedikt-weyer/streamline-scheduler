@@ -545,6 +545,7 @@ class RustBackendImpl implements BackendInterface {
       const params = new URLSearchParams();
       if (options?.limit) params.append('limit', options.limit.toString());
       if (options?.offset) params.append('offset', options.offset.toString());
+      if (options?.all) params.append('all', 'true');
       
       return this.makeRequest<PaginatedResponse<Project>>(`/api/projects?${params}`);
     },
@@ -713,7 +714,7 @@ class RustBackendImpl implements BackendInterface {
       // Fetch all user data
       const [canDoListResult, projectsResult, calendarsResult, calendarEventsResult] = await Promise.all([
         this.canDoList.getAll(),
-        this.projects.getAll(),
+        this.projects.getAll({ all: true }), // Get all projects including children
         this.calendars.getAll(),
         this.calendarEvents.getAll(),
       ]);
@@ -812,7 +813,7 @@ class RustBackendImpl implements BackendInterface {
       // Get all data first
       const [canDoListResult, projectsResult, calendarsResult, calendarEventsResult] = await Promise.all([
         this.canDoList.getAll(),
-        this.projects.getAll(),
+        this.projects.getAll({ all: true }), // Get all projects including children
         this.calendars.getAll(),
         this.calendarEvents.getAll(),
       ]);

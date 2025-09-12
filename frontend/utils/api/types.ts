@@ -307,4 +307,5 @@ export interface QueryOptions {
   limit?: number;
   offset?: number;
   select?: string[];
+  all?: boolean; // For fetching all items regardless of hierarchy
 }

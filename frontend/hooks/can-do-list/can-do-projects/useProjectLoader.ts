@@ -56,6 +56,10 @@ export const useProjectLoader = (
         .filter((project): project is NonNullable<typeof project> => project !== null);
       
       console.log('[ProjectLoader] Decrypted projects:', decryptedProjects.length);
+      // Debug: Log all projects with their parent relationships
+      decryptedProjects.forEach(p => {
+        console.log(`[ProjectLoader] Project: "${p.name}" (ID: ${p.id}, ParentID: ${p.parentId})`);
+      });
       projectActions.setProjects(decryptedProjects);
       projectActions.setIsLoading(false);
       return decryptedProjects;

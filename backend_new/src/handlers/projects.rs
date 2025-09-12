@@ -20,6 +20,7 @@ use crate::{
 #[derive(Debug, Deserialize)]
 pub struct ProjectQuery {
     pub parent_id: Option<Uuid>,
+    pub all: Option<bool>,
 }
 
 pub async fn list_projects(
@@ -29,12 +30,15 @@ pub async fn list_projects(
 ) -> Result<Json<ApiResponse<Vec<ProjectResponse>>>> {
     let mut find = Projects::find().filter(projects::Column::UserId.eq(auth_user.0.id));
     
-    match query.parent_id {
-        Some(parent_id) => {
-            find = find.filter(projects::Column::ParentId.eq(parent_id));
-        }
-        None => {
-            find = find.filter(projects::Column::ParentId.is_null());
+    // If 'all' parameter is true, return all projects regardless of parent_id
+    if !query.all.unwrap_or(false) {
+        match query.parent_id {
+            Some(parent_id) => {
+                find = find.filter(projects::Column::ParentId.eq(parent_id));
+            }
+            None => {
+                find = find.filter(projects::Column::ParentId.is_null());
+            }
         }
     }
     
