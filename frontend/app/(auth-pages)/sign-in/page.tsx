@@ -70,8 +70,10 @@ function SignInForm() {
       if (result.error) {
         setMessage({ error: result.error });
       } else if (result.success) {
-        // Redirect to dashboard on successful sign in
-        window.location.href = '/dashboard';
+        // Small delay to allow auth state to propagate
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 100);
       }
     } catch (error) {
       setMessage({ error: 'An unexpected error occurred' });

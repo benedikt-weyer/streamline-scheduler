@@ -55,41 +55,49 @@ class RustBackendImpl implements BackendInterface {
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
 
-  constructor(baseUrl: string = 'http://localhost:3001', wsUrl: string = 'ws://localhost:3001') {
-    this.baseUrl = baseUrl.replace(/\/$/, '');
-    this.wsUrl = wsUrl.replace(/\/$/, '');
+  constructor(baseUrl: string, wsUrl: string) {
+    this.baseUrl = baseUrl;
+    this.wsUrl = wsUrl;
     
-    // Try to restore auth token from localStorage or cookies
-    this.restoreAuthToken();
-    
-    // Initialize WebSocket connection only if we have a token
-    if (this.authToken) {
-      this.initWebSocket();
+    // Only initialize on client side
+    if (typeof window !== 'undefined') {
+      this.restoreAuthToken();
+      // Remove the async timeout - let components handle their own auth checks
     }
   }
 
   private restoreAuthToken(): void {
+    console.log('RustBackend: Restoring auth token...');
     // Try localStorage first
     try {
       const token = localStorage.getItem('auth_token');
+      console.log('RustBackend: Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'null');
       if (token) {
         this.authToken = token;
         return;
       }
     } catch (e) {
+      console.log('RustBackend: localStorage not available:', e);
       // localStorage might not be available in SSR
     }
 
     // Try cookies as fallback
     try {
       const match = document.cookie.match(/auth_token=([^;]+)/);
+      console.log('RustBackend: Cookies:', document.cookie);
+      console.log('RustBackend: Token from cookies:', match ? `${match[1].substring(0, 20)}...` : 'null');
       if (match) {
         this.authToken = match[1];
       }
     } catch (e) {
+      console.log('RustBackend: document.cookie not available:', e);
       // document might not be available in SSR
     }
+    
+    console.log('RustBackend: Final authToken:', this.authToken ? `${this.authToken.substring(0, 20)}...` : 'null');
   }
+
+
 
   private storeAuthToken(token: string): void {
     this.authToken = token;
@@ -136,6 +144,9 @@ class RustBackendImpl implements BackendInterface {
 
     if (this.authToken) {
       headers['Authorization'] = `Bearer ${this.authToken}`;
+      console.log(`RustBackend: Making request to ${endpoint} with token: ${this.authToken.substring(0, 20)}...`);
+    } else {
+      console.log(`RustBackend: Making request to ${endpoint} without token`);
     }
 
     const response = await fetch(url, {
@@ -306,7 +317,7 @@ class RustBackendImpl implements BackendInterface {
             session: {
               user: response.data.user,
               access_token: response.data.access_token,
-              refresh_token: null,
+              refresh_token: undefined,
               expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
             },
             user: response.data.user,
@@ -334,16 +345,24 @@ class RustBackendImpl implements BackendInterface {
         // Handle the backend's response format
         if (response.data?.access_token) {
           this.storeAuthToken(response.data.access_token);
-          return {
+          
+          const authResult = {
             session: {
               user: response.data.user,
               access_token: response.data.access_token,
-              refresh_token: null,
+              refresh_token: undefined,
               expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
             },
             user: response.data.user,
             error: null
           };
+          
+          // Trigger auth state change
+          this.authStateCallbacks.forEach(callback => {
+            callback('SIGNED_IN', authResult.session);
+          });
+          
+          return authResult;
         }
         
         return { session: null, user: null, error: 'Invalid credentials' };
@@ -362,9 +381,21 @@ class RustBackendImpl implements BackendInterface {
           method: 'POST',
         });
         this.clearAuthToken();
+        
+        // Trigger auth state change
+        this.authStateCallbacks.forEach(callback => {
+          callback('SIGNED_OUT', null);
+        });
+        
         return { error: null };
       } catch (error) {
         this.clearAuthToken(); // Clear token even if request fails
+        
+        // Trigger auth state change even if logout request fails
+        this.authStateCallbacks.forEach(callback => {
+          callback('SIGNED_OUT', null);
+        });
+        
         return { error: error instanceof Error ? error.message : 'Sign out failed' };
       }
     },
@@ -383,9 +414,43 @@ class RustBackendImpl implements BackendInterface {
 
     getUser: async (): Promise<{ data: { user: AuthUser | null }, error: string | null }> => {
       try {
-        const response = await this.makeRequest<{ data: { user: AuthUser | null } }>('/api/auth/me');
-        return { ...response, error: null };
+        console.log('RustBackend: Calling /api/auth/me');
+        const response = await this.makeRequest<{ data: AuthUser | null }>('/api/auth/me');
+        console.log('RustBackend: /api/auth/me response:', response);
+        console.log('RustBackend: response.data:', response.data);
+        
+        // The backend returns user data directly in response.data, not response.data.user
+        const user = response.data;
+        
+        // If we have a valid user and token, trigger SIGNED_IN event for consistency
+        if (user && this.authToken) {
+          console.log('RustBackend: Valid user found, triggering SIGNED_IN event');
+          const session: AuthSession = {
+            user: user,
+            access_token: this.authToken,
+            refresh_token: undefined,
+            expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+          };
+          
+          this.authStateCallbacks.forEach(callback => {
+            callback('SIGNED_IN', session);
+          });
+        } else {
+          console.log('RustBackend: No valid user found in response');
+        }
+        
+        return { data: { user }, error: null };
       } catch (error) {
+        console.log('RustBackend: Error in getUser:', error);
+        // If token is invalid, clear it
+        if (error instanceof Error && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
+          console.log('RustBackend: Clearing invalid token');
+          this.clearAuthToken();
+          // Trigger SIGNED_OUT event
+          this.authStateCallbacks.forEach(callback => {
+            callback('SIGNED_OUT', null);
+          });
+        }
         return { 
           data: { user: null }, 
           error: error instanceof Error ? error.message : 'Failed to get user' 
