@@ -3,16 +3,16 @@
 	import { authStore } from '$lib/stores/auth';
 	import { dataStore } from '$lib/stores/data';
 	import { goto } from '$app/navigation';
-	import { getEncryptionKey } from '$lib/crypto/encryption';
+	import { page } from '$app/stores';
 	
 	let { children } = $props();
 	let isLoadingData = $state(false);
 	let dataLoaded = $state(false);
+	
+	// Check if we're on the calendar page - if so, render children directly
+	let isCalendarPage = $derived($page.route.id === '/dashboard/calendar');
 
-	onMount(async () => {
-		// Initialize auth
-		await authStore.initialize();
-		
+	onMount(() => {
 		// Check if user is authenticated and handle data loading
 		const unsubscribe = authStore.subscribe(async (state) => {
 			if (!state.isLoading && !state.user) {
@@ -21,7 +21,7 @@
 			}
 			
 			// If user is authenticated and we haven't loaded data yet
-			if (state.user && !dataLoaded) {
+			if (state.user && state.encryptionKey && !dataLoaded) {
 				await initializeUserData();
 			}
 		});
@@ -30,17 +30,6 @@
 	});
 
 	async function initializeUserData() {
-		const storedEncryptionKey = getEncryptionKey();
-		
-		if (!storedEncryptionKey) {
-			// No encryption key found - this shouldn't happen with the new flow
-			// Redirect back to signin to regenerate keys
-			console.error('No encryption key found, redirecting to signin');
-			authStore.signOut();
-			goto('/auth/signin');
-			return;
-		}
-
 		isLoadingData = true;
 		try {
 			console.log('Starting data load with encryption key available');
@@ -48,7 +37,8 @@
 			// Load all data and connect WebSocket
 			// The data store will automatically use the stored encryption key
 			await dataStore.loadAll();
-			dataStore.connectWebSocket();
+			// TODO: Fix WebSocket authentication before enabling
+			// dataStore.connectWebSocket();
 			
 			console.log('Data loading completed successfully');
 			dataLoaded = true;
@@ -64,13 +54,16 @@
 	}
 
 	function handleSignOut() {
-		dataStore.disconnectWebSocket();
+		// dataStore.disconnectWebSocket(); // Disabled until WebSocket auth is fixed
 		authStore.signOut();
 		goto('/');
 	}
 </script>
 
-{#if isLoadingData}
+{#if isCalendarPage}
+	<!-- Calendar page gets full control - bypass dashboard layout -->
+	{@render children()}
+{:else if isLoadingData}
 	<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
 		<div class="sm:mx-auto sm:w-full sm:max-w-md">
 			<div class="text-center">
@@ -133,8 +126,8 @@
 		</div>
 
 		<!-- Main content -->
-		<div class="flex flex-col w-0 flex-1 overflow-hidden">
-			<main class="flex-1 relative overflow-y-auto focus:outline-none">
+		<div class="flex flex-col w-0 flex-1">
+			<main class="flex-1 relative focus:outline-none">
 				{@render children()}
 			</main>
 		</div>

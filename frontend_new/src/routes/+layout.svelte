@@ -1,9 +1,17 @@
 <script lang="ts">
 	import favicon from '$lib/assets/favicon.svg';
 	import Navbar from '$lib/components/navbar.svelte';
+	import { authStore } from '$lib/stores/auth';
+	import { onMount } from 'svelte';
 	import "../app.css";
 
 	let { children } = $props();
+
+	onMount(async () => {
+		console.log('Starting auth initialization');
+		await authStore.initialize();
+		console.log('Auth initialization completed');
+	});
 </script>
 
 <svelte:head>

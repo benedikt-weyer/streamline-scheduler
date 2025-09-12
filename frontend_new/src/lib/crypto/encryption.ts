@@ -8,6 +8,14 @@ export function deriveKey(password: string, salt: string, keySize: number = 256)
   }).toString();
 }
 
+// Legacy function name for compatibility
+export const deriveKeyFromPassword = (password: string, salt: string): string => {
+  return CryptoJS.PBKDF2(password, salt, {
+    keySize: 256 / 32,
+    iterations: 1000
+  }).toString();
+};
+
 // Generate a random salt
 export function generateSalt(): string {
   return CryptoJS.lib.WordArray.random(128/8).toString();
@@ -18,8 +26,8 @@ export function generateIV(): string {
   return CryptoJS.lib.WordArray.random(128/8).toString();
 }
 
-// Encrypt data using AES-GCM
-export function encryptData(plaintext: string, password: string): {
+// Encrypt data using AES with derived key and IV (modern version)
+export function encryptDataWithPassword(plaintext: string, password: string): {
   encrypted: string;
   iv: string;
   salt: string;
@@ -41,8 +49,8 @@ export function encryptData(plaintext: string, password: string): {
   };
 }
 
-// Decrypt data using AES-GCM
-export function decryptData(
+// Decrypt data using AES with derived key and IV (modern version)
+export function decryptDataWithPassword(
   encryptedData: string,
   password: string,
   iv: string,
@@ -58,6 +66,57 @@ export function decryptData(
   
   return decrypted.toString(CryptoJS.enc.Utf8);
 }
+
+// Legacy encrypt function for compatibility
+export const encryptData = (data: any, key: string, iv: string): string => {
+  const jsonString = JSON.stringify(data);
+  const encrypted = CryptoJS.AES.encrypt(jsonString, key, {
+    iv: CryptoJS.enc.Hex.parse(iv),
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7
+  });
+  
+  return encrypted.toString();
+};
+
+// Legacy decrypt function for compatibility
+export const decryptData = (encryptedData: string, key: string, iv: string, silenceErrors = false): any => {
+  try {
+    // Validate IV is a proper hex format
+    if (!/^[0-9a-fA-F]+$/.test(iv)) {
+      throw new Error('Invalid IV format: must be a hex string');
+    }
+    
+    const decrypted = CryptoJS.AES.decrypt(encryptedData, key, {
+      iv: CryptoJS.enc.Hex.parse(iv),
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7
+    });
+    
+    const decryptedString = decrypted.toString(CryptoJS.enc.Utf8);
+    
+    if (!decryptedString) {
+      if (!silenceErrors) {
+        console.error('Decryption failed: Empty result (wrong key or corrupted data)');
+      }
+      return null;
+    }
+    
+    try {
+      return JSON.parse(decryptedString);
+    } catch (parseError) {
+      if (!silenceErrors) {
+        console.error('Failed to parse decrypted JSON:', parseError);
+      }
+      return null;
+    }
+  } catch (error) {
+    if (!silenceErrors) {
+      console.error('Decryption error:', error);
+    }
+    return null;
+  }
+};
 
 // Derive authentication hash from password (for server authentication)
 export function deriveAuthHash(password: string, email: string): string {
@@ -94,7 +153,7 @@ export function encryptDataWithStoredKey(plaintext: string): {
   const encryptionKey = getEncryptionKey();
   if (!encryptionKey) return null;
   
-  return encryptData(plaintext, encryptionKey);
+  return encryptDataWithPassword(plaintext, encryptionKey);
 }
 
 // Enhanced decryption function that uses stored encryption key
@@ -106,7 +165,7 @@ export function decryptDataWithStoredKey(
   const encryptionKey = getEncryptionKey();
   if (!encryptionKey) return null;
   
-  return decryptData(encryptedData, encryptionKey, iv, salt);
+  return decryptDataWithPassword(encryptedData, encryptionKey, iv, salt);
 }
 
 // Legacy function - kept for backwards compatibility

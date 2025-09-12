@@ -8,6 +8,7 @@ export interface AuthState {
 	session: Session | null;
 	isLoading: boolean;
 	error: string | null;
+	encryptionKey: string | null;
 }
 
 function createAuthStore() {
@@ -16,6 +17,7 @@ function createAuthStore() {
 		session: null,
 		isLoading: true,
 		error: null,
+		encryptionKey: null,
 	});
 
 	return {
@@ -31,11 +33,15 @@ function createAuthStore() {
 					update(state => ({ ...state, isLoading: false, error: error.message }));
 					return;
 				}
+
+				// Get encryption key from localStorage if available
+				const encryptionKey = typeof window !== 'undefined' ? localStorage.getItem('encryption_key') : null;
 				
 				update(state => ({
 					...state,
 					user: session?.user || null,
 					session,
+					encryptionKey,
 					isLoading: false,
 					error: null
 				}));
@@ -53,9 +59,8 @@ function createAuthStore() {
 			update(state => ({ ...state, isLoading: true, error: null }));
 			
 			try {
-				// Derive authentication hash for server authentication
-				const authHash = deriveAuthHash(password, email);
-				const authResponse = await apiClient.signIn(email, authHash);
+				// Send raw password to backend - it handles hashing internally
+				const authResponse = await apiClient.signIn(email, password);
 				
 				// Derive and store encryption key for client-side data encryption
 				const encryptionKey = deriveEncryptionKey(password, email);
@@ -73,6 +78,7 @@ function createAuthStore() {
 					...state,
 					user: authResponse.user,
 					session,
+					encryptionKey,
 					isLoading: false,
 					error: null
 				}));
@@ -89,12 +95,18 @@ function createAuthStore() {
 			}
 		},
 		
-		async signUp(email: string, authHash: string, encryptionKey: string) {
+		async signUp(email: string, password: string) {
 			update(state => ({ ...state, isLoading: true, error: null }));
 			
 			try {
-				// Register with the authentication hash
-				const authResponse = await apiClient.signUp(email, authHash);
+				// Send raw password to backend - it handles hashing internally
+				const authResponse = await apiClient.signUp(email, password);
+				
+				// Derive and store encryption key for client-side data encryption
+				const encryptionKey = deriveEncryptionKey(password, email);
+				if (typeof window !== 'undefined') {
+					localStorage.setItem('encryption_key', encryptionKey);
+				}
 				
 				const session: Session = {
 					access_token: authResponse.access_token,
@@ -102,15 +114,11 @@ function createAuthStore() {
 					user: authResponse.user
 				};
 				
-				// Store the encryption key locally for data encryption/decryption
-				if (typeof window !== 'undefined') {
-					localStorage.setItem('encryption_key', encryptionKey);
-				}
-				
 				update(state => ({
 					...state,
 					user: authResponse.user,
 					session,
+					encryptionKey,
 					isLoading: false,
 					error: null
 				}));
@@ -139,7 +147,8 @@ function createAuthStore() {
 				user: null,
 				session: null,
 				isLoading: false,
-				error: null
+				error: null,
+				encryptionKey: null
 			});
 		},
 		
