@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 
+// Initialize backend connection
+import "@/utils/api/init";
+
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://localhost:3000";
