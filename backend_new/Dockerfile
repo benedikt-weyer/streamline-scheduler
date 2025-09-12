@@ -29,6 +29,15 @@ ARG JWT_SECRET
 ARG PORT
 ARG RUST_LOG
 
+# Remove any existing .env files first
+RUN find . -name ".env" -not -name ".env.example" -delete 2>/dev/null || true
+
+# Create .env file with the environment variables from build args
+RUN echo "DATABASE_URL=${DATABASE_URL:-postgres://postgres:password@db:5432/streamline_scheduler}" > .env && \
+    echo "JWT_SECRET=${JWT_SECRET:-default-jwt-secret-change-in-production}" >> .env && \
+    echo "PORT=${PORT:-3001}" >> .env && \
+    echo "RUST_LOG=${RUST_LOG:-info}" >> .env
+
 # Build the application
 RUN cargo build --release
 
@@ -49,18 +58,9 @@ RUN groupadd -r app && useradd -r -g app app
 # Create app directory
 WORKDIR /app
 
-# Copy the binary from builder stage
+# Copy the binary and .env file from builder stage
 COPY --from=builder /app/target/release/streamline_backend /app/
-
-# Create .env file with environment variables (similar to frontend approach)
-# Remove any existing .env files first
-RUN find . -name ".env" -not -name ".env.example" -delete 2>/dev/null || true
-
-# Create .env file with the environment variables from build args
-RUN echo "DATABASE_URL=${DATABASE_URL:-postgres://postgres:password@db:5432/streamline_scheduler}" > .env && \
-    echo "JWT_SECRET=${JWT_SECRET:-default-jwt-secret-change-in-production}" >> .env && \
-    echo "PORT=${PORT:-3001}" >> .env && \
-    echo "RUST_LOG=${RUST_LOG:-info}" >> .env
+COPY --from=builder /app/.env /app/
 
 # Make sure the binary is executable and change ownership
 RUN chmod +x /app/streamline_backend && chown -R app:app /app
@@ -73,5 +73,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3001/health || exit 1
 
-# Run the application
-CMD ["./streamline_backend"]
+# Run the application with environment variable logging
+CMD ["sh", "-c", "echo 'Starting streamline_backend...' && echo 'Environment variables:' && echo 'DATABASE_URL='$DATABASE_URL && echo 'JWT_SECRET='${JWT_SECRET:0:10}'...' && echo 'PORT='$PORT && echo 'RUST_LOG='$RUST_LOG && echo 'Starting application...' && ./streamline_backend"]
