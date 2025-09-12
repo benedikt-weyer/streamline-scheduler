@@ -1,6 +1,6 @@
 'use client';
 
-import { signUpAction } from "@/app/actions";
+import { signUpClient } from "@/utils/auth/auth-client";
 import { FormMessage as AuthFormMessage, Message } from "@/components/auth/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Input } from "@/components/ui/input";
@@ -50,14 +50,20 @@ function SignUpForm() {
   }, [searchParams]);
 
   const onSubmit = async (values: SignUpFormValues) => {
-    // Hash the password for authentication with Supabase
+    // Hash the password for authentication with backend
     const authHash = hashPasswordForAuth(values.password);
     
     const formData = new FormData();
     formData.append('email', values.email);
     formData.append('password', authHash);
     
-    await signUpAction(formData);
+    const result = await signUpClient(formData);
+    
+    if (result.error) {
+      setMessage({ error: result.error });
+    } else if (result.success) {
+      setMessage({ success: result.success });
+    }
   };
 
   return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { signInAction } from "@/app/actions";
+import { signInClient } from "@/utils/auth/auth-client";
 
 import { FormMessage as AuthFormMessage, Message } from "@/components/auth/form-message";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -27,6 +27,7 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 function SignInForm() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState<Message | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Initialize react-hook-form with zod validation
   const form = useForm<SignInFormValues>({
@@ -48,19 +49,35 @@ function SignInForm() {
   }, [searchParams]);
 
   const onSubmit = async (values: SignInFormValues) => {    
-    // Hash the password for authentication with Supabase
-    const authHash = hashPasswordForAuth(values.password);
+    setIsLoading(true);
+    setMessage(null);
     
-    // Hash the password for encryption and store it in a cookie for client-side encryption
-    const encryptionKey = hashPasswordForEncryption(values.password);
-    storeEncryptionKey(encryptionKey);
-    
-    // Create and submit the form data with the hashed password for authentication
-    const formData = new FormData();
-    formData.append('email', values.email);
-    formData.append('password', authHash);
-    
-    await signInAction(formData);
+    try {
+      // Hash the password for authentication with backend
+      const authHash = hashPasswordForAuth(values.password);
+      
+      // Hash the password for encryption and store it in a cookie for client-side encryption
+      const encryptionKey = hashPasswordForEncryption(values.password);
+      storeEncryptionKey(encryptionKey);
+      
+      // Create and submit the form data with the hashed password for authentication
+      const formData = new FormData();
+      formData.append('email', values.email);
+      formData.append('password', authHash);
+      
+      const result = await signInClient(formData);
+      
+      if (result.error) {
+        setMessage({ error: result.error });
+      } else if (result.success) {
+        // Redirect to dashboard on successful sign in
+        window.location.href = '/dashboard';
+      }
+    } catch (error) {
+      setMessage({ error: 'An unexpected error occurred' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -126,8 +143,8 @@ function SignInForm() {
             )}
           />
           
-          <SubmitButton pendingText="Signing In...">
-            Sign in
+          <SubmitButton pendingText="Signing In..." disabled={isLoading}>
+            {isLoading ? "Signing In..." : "Sign in"}
           </SubmitButton>
           { message ? <AuthFormMessage message={message} /> : null }
         </div>
