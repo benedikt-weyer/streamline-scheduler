@@ -74,4 +74,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3001/health || exit 1
 
 # Run the application with environment variable logging
-CMD ["sh", "-c", "echo 'Starting streamline_backend...' && echo 'Environment variables:' && echo 'DATABASE_URL='$DATABASE_URL && echo 'JWT_SECRET='${JWT_SECRET:0:10}'...' && echo 'PORT='$PORT && echo 'RUST_LOG='$RUST_LOG && echo 'Starting application...' && ./streamline_backend"]
+CMD ["sh", "-c", "echo 'Starting streamline_backend...' && echo 'Environment variables:' && echo 'DATABASE_URL='$DATABASE_URL && echo 'JWT_SECRET=***' && echo 'PORT='$PORT && echo 'RUST_LOG='$RUST_LOG && echo 'Starting application...' && ./streamline_backend"]
