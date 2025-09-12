@@ -1,6 +1,9 @@
 #!/bin/bash
 
-# Production Setup Script for Streamline Scheduler
+# Producti# Function to generate a secure JWT secret (64 characters)
+generate_jwt_secret() {
+    openssl rand -base64 64 | tr -d "=+/\n" | cut -c1-64
+}cript for Streamline Scheduler
 # This script helps configure the application for production use
 
 set -e
@@ -27,26 +30,9 @@ generate_jwt_secret() {
     echo "your-super-secret-jwt-token-with-at-least-32-characters-long"
 }
 
-# Function to generate Supabase keys
-generate_supabase_keys() {
-    # Generate ANON key (for demo - in production you should use supabase CLI)
-    echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
-}
-
-# Function to generate service role key
-generate_service_key() {
-    # Generate SERVICE_ROLE key (for demo - in production you should use supabase CLI)
-    echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
-}
-
-# Function to generate vault encryption key (32 characters)
-generate_vault_key() {
-    openssl rand -base64 32 | tr -d "=+/" | cut -c1-32
-}
-
-# Function to generate secret key base (64 characters)
-generate_secret_key_base() {
-    openssl rand -base64 64 | tr -d "=+/" | cut -c1-64
+# Function to generate a secure JWT secret (64 characters)
+generate_jwt_secret() {
+    openssl rand -base64 64 | tr -d "=+/\n" | cut -c1-64
 }
 
 # Function to prompt for user input with default
@@ -96,12 +82,7 @@ echo ""
 echo -e "${BLUE}Generating secure secrets...${NC}"
 POSTGRES_PASSWORD=$(generate_password)
 JWT_SECRET=$(generate_jwt_secret)
-DASHBOARD_PASSWORD=$(generate_password)
-LOGFLARE_API_KEY=$(generate_password)
-ANON_KEY=$(generate_supabase_keys)
-SERVICE_ROLE_KEY=$(generate_service_key)
-VAULT_ENC_KEY=$(generate_vault_key)
-SECRET_KEY_BASE=$(generate_secret_key_base)
+PGADMIN_PASSWORD=$(generate_password)
 
 echo -e "${GREEN}✓ Secrets generated${NC}"
 
@@ -114,45 +95,37 @@ ENABLE_SSL=$(prompt_with_default "Enable SSL/HTTPS? (y/n)" "y")
 
 if [[ $ENABLE_SSL =~ ^[Yy]$ ]]; then
     PROTOCOL="https"
-    API_PORT="443"
+    HTTP_PORT="443"
+    HTTPS_PORT="443"
 else
     PROTOCOL="http"
-    API_PORT="80"
+    HTTP_PORT="80"
+    HTTPS_PORT="443"
 fi
 
-SUPABASE_PUBLIC_URL="${PROTOCOL}://${DOMAIN}"
+# For production with reverse proxy, both frontend and backend use the same domain
+FRONTEND_URL="${PROTOCOL}://${DOMAIN}"
+BACKEND_URL="${PROTOCOL}://${DOMAIN}"
+
+# For local development, use separate ports
 if [ "$DOMAIN" = "localhost" ]; then
-    SUPABASE_PUBLIC_URL="http://localhost:54321"
-    API_PORT="54321"
+    FRONTEND_URL="http://localhost:3000"
+    BACKEND_URL="http://localhost:3001"
 fi
-
-API_EXTERNAL_URL="$SUPABASE_PUBLIC_URL"
-SITE_URL=$(prompt_with_default "Frontend URL" "${PROTOCOL}://${DOMAIN}")
-
-# Email configuration
-echo ""
-echo -e "${BLUE}📧 Email Configuration (for authentication):${NC}"
-SMTP_HOST=$(prompt_with_default "SMTP Host" "smtp.gmail.com")
-SMTP_PORT=$(prompt_with_default "SMTP Port" "587")
-SMTP_USER=$(prompt_with_default "SMTP Username" "")
-SMTP_PASS=$(prompt_password "SMTP Password")
-SMTP_ADMIN_EMAIL=$(prompt_with_default "Admin Email" "$SMTP_USER")
-SMTP_SENDER_NAME=$(prompt_with_default "Email Sender Name" "Streamline Scheduler")
 
 # Database configuration
 echo ""
 echo -e "${BLUE}🗄️  Database Configuration:${NC}"
-DB_HOST=$(prompt_with_default "Database Host" "db")
-DB_PORT=$(prompt_with_default "Database Port" "5432")
-DB_NAME=$(prompt_with_default "Database Name" "postgres")
+DB_NAME=$(prompt_with_default "Database Name" "streamline_scheduler")
+DB_USER=$(prompt_with_default "Database User" "postgres")
 
 # Port configuration
 echo ""
 echo -e "${BLUE}🌐 Port Configuration:${NC}"
 FRONTEND_PORT=$(prompt_with_default "Frontend Port" "3000")
-KONG_HTTP_PORT=$(prompt_with_default "Kong HTTP Port" "54321")
-KONG_HTTPS_PORT=$(prompt_with_default "Kong HTTPS Port" "54323")
-STUDIO_PORT=$(prompt_with_default "Supabase Studio Port" "54324")
+BACKEND_PORT=$(prompt_with_default "Backend Port" "3001")
+DB_PORT=$(prompt_with_default "Database Port" "5432")
+PGADMIN_PORT=$(prompt_with_default "pgAdmin Port" "5050")
 
 echo ""
 echo -e "${BLUE}📝 Creating .env file...${NC}"
@@ -167,101 +140,42 @@ cat > .env << EOF
 ############################################
 
 # Database Configuration
-POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-POSTGRES_HOST=$DB_HOST
-POSTGRES_PORT=$DB_PORT
 POSTGRES_DB=$DB_NAME
+POSTGRES_USER=$DB_USER
+POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+POSTGRES_PORT=$DB_PORT
+
+# pgAdmin Configuration
+PGADMIN_EMAIL=admin@streamline.com
+PGADMIN_PASSWORD=$PGADMIN_PASSWORD
+PGADMIN_PORT=$PGADMIN_PORT
 
 # JWT Configuration (CRITICAL: Change in production!)
 JWT_SECRET=$JWT_SECRET
-JWT_EXPIRY=3600
+JWT_EXPIRY_HOURS=24
 
-# Supabase Keys (CRITICAL: Generate new keys for production!)
-# Use: supabase gen keys --project-ref YOUR_PROJECT_REF
-ANON_KEY=$ANON_KEY
-SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+# Backend Configuration (Rust)
+BACKEND_PORT=$BACKEND_PORT
+RUST_LOG=info
 
-# Encryption Keys
-VAULT_ENC_KEY=$VAULT_ENC_KEY
-SECRET_KEY_BASE=$SECRET_KEY_BASE
-
-# Dashboard Access
-DASHBOARD_USERNAME=admin
-DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD
+# CORS Configuration (customize for production)
+ALLOWED_ORIGINS=$FRONTEND_URL
 
 ############################################
-# 🌍 URLS AND DOMAINS
+# 🌍 FRONTEND CONFIGURATION
 ############################################
 
-# Public URLs
-SUPABASE_PUBLIC_URL=$SUPABASE_PUBLIC_URL
-NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_PUBLIC_URL
-API_EXTERNAL_URL=$API_EXTERNAL_URL
-SITE_URL=$SITE_URL
-ADDITIONAL_REDIRECT_URLS=
-
-############################################
-# 🔌 PORTS
-############################################
-
+# Frontend Configuration (Next.js)
 FRONTEND_PORT=$FRONTEND_PORT
-KONG_HTTP_PORT=$KONG_HTTP_PORT
-KONG_HTTPS_PORT=$KONG_HTTPS_PORT
-STUDIO_PORT=$STUDIO_PORT
+NEXT_PUBLIC_BACKEND_URL=$BACKEND_URL
 
 ############################################
-# 🔐 AUTHENTICATION
+# � NGINX CONFIGURATION
 ############################################
 
-DISABLE_SIGNUP=false
-ENABLE_EMAIL_SIGNUP=true
-ENABLE_EMAIL_AUTOCONFIRM=true
-ENABLE_PHONE_SIGNUP=false
-ENABLE_PHONE_AUTOCONFIRM=false
-ENABLE_ANONYMOUS_USERS=false
-
-############################################
-# 📧 EMAIL CONFIGURATION
-############################################
-
-SMTP_ADMIN_EMAIL=$SMTP_ADMIN_EMAIL
-SMTP_HOST=$SMTP_HOST
-SMTP_PORT=$SMTP_PORT
-SMTP_USER=$SMTP_USER
-SMTP_PASS=$SMTP_PASS
-SMTP_SENDER_NAME=$SMTP_SENDER_NAME
-
-# Email URL Paths
-MAILER_URLPATHS_INVITE=/auth/v1/verify
-MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify
-MAILER_URLPATHS_RECOVERY=/auth/v1/verify
-MAILER_URLPATHS_EMAIL_CHANGE=/auth/v1/verify
-
-############################################
-# 🗄️  DATABASE SCHEMA
-############################################
-
-PGRST_DB_SCHEMAS=public,graphql_public
-
-############################################
-# 📊 ANALYTICS
-############################################
-
-LOGFLARE_API_KEY=$LOGFLARE_API_KEY
-
-############################################
-# ⚡ EDGE FUNCTIONS
-############################################
-
-VERIFY_JWT=true
-
-############################################
-# 🏢 ORGANIZATION
-############################################
-
-STUDIO_DEFAULT_ORGANIZATION=Your Organization
-STUDIO_DEFAULT_PROJECT=Streamline Scheduler
-OPENAI_API_KEY=
+# Nginx Configuration (for production)
+HTTP_PORT=$HTTP_PORT
+HTTPS_PORT=$HTTPS_PORT
 EOF
 
 echo -e "${GREEN}✓ .env file created successfully!${NC}"
@@ -275,9 +189,7 @@ if [ ! -f "frontend/.env.local" ]; then
 # Frontend Environment Variables
 # Generated on $(date)
 
-NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_PUBLIC_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY
-NEXT_PUBLIC_VERCEL_URL=$SITE_URL
+NEXT_PUBLIC_BACKEND_URL=$BACKEND_URL
 EOF
     
     echo -e "${GREEN}✓ frontend/.env.local created successfully!${NC}"
@@ -296,15 +208,32 @@ echo "4. Configure your domain's DNS to point to your server"
 echo "5. Start the services with: docker compose up -d"
 echo ""
 echo -e "${BLUE}🔧 Access URLs:${NC}"
-echo "• Frontend: $SITE_URL"
-echo "• Supabase API: $SUPABASE_PUBLIC_URL"
-echo "• Supabase Studio: $SUPABASE_PUBLIC_URL (replace port with $STUDIO_PORT)"
+if [ "$DOMAIN" = "localhost" ]; then
+    echo "• Frontend (Next.js): $FRONTEND_URL"
+    echo "• Backend (Rust): $BACKEND_URL"
+else
+    echo "• Application: $FRONTEND_URL"
+    echo "• API Endpoints: $BACKEND_URL/api/*"
+    echo "• WebSocket: $BACKEND_URL/ws"
+fi
+echo "• pgAdmin: ${PROTOCOL}://${DOMAIN}:$PGADMIN_PORT"
+echo ""
+echo -e "${BLUE}🔧 Reverse Proxy Configuration:${NC}"
+if [ "$DOMAIN" != "localhost" ]; then
+    echo "• The nginx.conf is configured for single-domain deployment"
+    echo "• Frontend served at: $FRONTEND_URL/"
+    echo "• Backend API at: $FRONTEND_URL/api/"
+    echo "• WebSocket at: $FRONTEND_URL/ws"
+    echo "• All traffic goes through port 443 (HTTPS) or 80 (HTTP)"
+fi
 echo ""
 echo -e "${YELLOW}⚠️  IMPORTANT SECURITY NOTES:${NC}"
 echo "• Change default passwords before going live"
-echo "• Generate production Supabase keys with 'supabase gen keys'"
-echo "• Enable email confirmation in production (ENABLE_EMAIL_AUTOCONFIRM=false)"
+echo "• Generate a secure JWT secret (at least 32 characters)"
 echo "• Set up proper backup procedures for your database"
 echo "• Consider using managed database services for production"
+echo "• Configure SSL/TLS termination properly"
+echo "• Review CORS settings in ALLOWED_ORIGINS"
+echo "• Test API endpoints at $BACKEND_URL/api/ after deployment"
 echo ""
 echo -e "${GREEN}✨ Happy deploying!${NC}" 

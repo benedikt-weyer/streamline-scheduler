@@ -67,17 +67,17 @@ services:
     networks:
       - app-network
 
-  # Frontend service (SvelteKit)
+  # Frontend service (Next.js)
   frontend:
     build:
-      context: ./frontend_new
+      context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:3001}
+        - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL:-http://localhost:3001}
     container_name: streamline-frontend
     restart: unless-stopped
     environment:
-      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://backend:3001}
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://backend:3001}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
