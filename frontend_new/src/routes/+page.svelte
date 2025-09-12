@@ -4,6 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Calendar, CheckSquare, Shield, Home as HomeIcon, Palette, Moon, Repeat, Zap } from 'lucide-svelte';
 
 	onMount(async () => {
 		await authStore.initialize();
@@ -20,146 +22,169 @@
 </script>
 
 <svelte:head>
-	<title>Streamline Scheduler - E2E Encrypted Todo & Calendar</title>
-	<meta name="description" content="Privacy-focused task management and calendar with end-to-end encryption" />
+	<title>Streamline Scheduler</title>
+	<meta name="description" content="Open source self hostable secure calendar todolist combo" />
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+<div class="h-screen w-full overflow-y-auto bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900">
 	<!-- Hero Section -->
 	<div class="relative overflow-hidden">
-		<div class="max-w-7xl mx-auto">
-			<div class="relative z-10 pb-8 bg-gradient-to-br from-blue-50 to-indigo-100 sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
-				<main class="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
-					<div class="sm:text-center lg:text-left">
-						<h1 class="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
-							<span class="block xl:inline">Streamline your</span>
-							<span class="block text-blue-600 xl:inline">productivity</span>
-						</h1>
-						<p class="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-							Privacy-focused task management and calendar with end-to-end encryption. 
-							Your data stays encrypted and only you can decrypt it.
-						</p>
-						<div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start gap-3">
-							<Button 
-								href="/auth/signup" 
-								size="lg" 
-								class="w-full sm:w-auto"
-							>
-								Get started
-							</Button>
-							<Button 
-								href="/auth/signin" 
-								variant="outline" 
-								size="lg" 
-								class="w-full sm:w-auto"
-							>
-								Sign in
-							</Button>
-						</div>
-					</div>
-				</main>
-			</div>
-		</div>
-		<div class="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
-			<div class="h-56 w-full bg-gray-50 sm:h-72 md:h-96 lg:w-full lg:h-full flex items-center justify-center">
-				<div class="text-center">
-					<div class="text-6xl text-blue-600 mb-4">🔒</div>
-					<div class="text-lg text-gray-600">End-to-End Encrypted</div>
+		<div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-indigo-600/10 dark:from-blue-400/10 dark:to-indigo-400/10"></div>
+		<div class="relative container mx-auto px-4 pt-20 pb-16 text-center">
+			<div class="max-w-4xl mx-auto">
+				<Badge variant="secondary" class="mb-6 text-sm font-medium">
+					Open Source • Self-Hostable • Privacy-First
+				</Badge>
+				<h1 class="text-5xl md:text-7xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-6">
+					Streamline Scheduler
+				</h1>
+				<p class="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
+					The perfect calendar-todolist combo for efficient task and event management. 
+					<br class="hidden md:block" />
+					Privacy-focused, self-hostable, and beautifully designed.
+				</p>
+				<div class="flex flex-col sm:flex-row gap-4 justify-center">
+					<Button size="lg" class="text-base px-8 py-6" href="/dashboard">
+						Get Started
+						<Zap class="ml-2 h-5 w-5" />
+					</Button>
+					<Button size="lg" variant="outline" class="text-base px-8 py-6" href="https://github.com/your-username/streamline-scheduler" target="_blank">
+						View on GitHub
+					</Button>
 				</div>
 			</div>
 		</div>
 	</div>
 
 	<!-- Features Section -->
-	<div class="py-12 bg-white">
-		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-			<div class="lg:text-center">
-				<h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">Features</h2>
-				<p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-					Everything you need to stay organized
-				</p>
-				<p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-					A complete productivity suite with privacy at its core.
-				</p>
+	<div class="container mx-auto px-4 py-20">
+		<div class="text-center mb-16">
+			<h2 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+				Everything you need for productive scheduling
+			</h2>
+			<p class="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+				Streamline Scheduler combines powerful calendar and task management features 
+				with privacy-first design and easy self-hosting.
+			</p>
+		</div>
+
+		<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+			<Card class="group hover:shadow-lg transition-all duration-300 border-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+				<CardHeader>
+					<div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+						<Calendar class="h-6 w-6 text-blue-600 dark:text-blue-400" />
+					</div>
+					<CardTitle class="text-xl">Calendar Management</CardTitle>
+					<CardDescription>
+						Create, edit, and manage events with support for recurring patterns and flexible scheduling.
+					</CardDescription>
+				</CardHeader>
+			</Card>
+
+			<Card class="group hover:shadow-lg transition-all duration-300 border-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+				<CardHeader>
+					<div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+						<CheckSquare class="h-6 w-6 text-green-600 dark:text-green-400" />
+					</div>
+					<CardTitle class="text-xl">Smart Todo Lists</CardTitle>
+					<CardDescription>
+						Efficient task management with priorities, due dates, and seamless integration with your calendar.
+					</CardDescription>
+				</CardHeader>
+			</Card>
+
+			<Card class="group hover:shadow-lg transition-all duration-300 border-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+				<CardHeader>
+					<div class="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+						<Repeat class="h-6 w-6 text-purple-600 dark:text-purple-400" />
+					</div>
+					<CardTitle class="text-xl">Recurring Events</CardTitle>
+					<CardDescription>
+						Set up repeating events and tasks with flexible patterns that adapt to your schedule.
+					</CardDescription>
+				</CardHeader>
+			</Card>
+
+			<Card class="group hover:shadow-lg transition-all duration-300 border-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+				<CardHeader>
+					<div class="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+						<Shield class="h-6 w-6 text-red-600 dark:text-red-400" />
+					</div>
+					<CardTitle class="text-xl">Privacy-Focused</CardTitle>
+					<CardDescription>
+						Your data stays on your server. No tracking, no third-party analytics, complete control.
+					</CardDescription>
+				</CardHeader>
+			</Card>
+
+			<Card class="group hover:shadow-lg transition-all duration-300 border-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+				<CardHeader>
+					<div class="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+						<HomeIcon class="h-6 w-6 text-orange-600 dark:text-orange-400" />
+					</div>
+					<CardTitle class="text-xl">Easy Self-Hosting</CardTitle>
+					<CardDescription>
+						Simple deployment options with Docker, cloud providers, or manual setup for personal or team use.
+					</CardDescription>
+				</CardHeader>
+			</Card>
+
+			<Card class="group hover:shadow-lg transition-all duration-300 border-0 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+				<CardHeader>
+					<div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+						<Palette class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+					</div>
+					<CardTitle class="text-xl">Modern Design</CardTitle>
+					<CardDescription>
+						Beautiful, responsive interface built with shadcn/ui and Tailwind CSS. Full dark/light theme support.
+					</CardDescription>
+				</CardHeader>
+			</Card>
+		</div>
+
+		<!-- Tech Stack Section -->
+		<div class="text-center mb-16">
+			<h3 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-8">
+				Built with modern technologies
+			</h3>
+			<div class="flex flex-wrap justify-center gap-3">
+				{#each [
+					"SvelteKit",
+					"Svelte 5",
+					"TypeScript", 
+					"Tailwind CSS",
+					"shadcn-svelte",
+					"Rust Backend",
+					"PostgreSQL"
+				] as tech}
+					<Badge variant="secondary" class="text-sm px-4 py-2">
+						{tech}
+					</Badge>
+				{/each}
 			</div>
+		</div>
 
-			<div class="mt-10 grid gap-6 md:grid-cols-2 lg:gap-8">
-				<Card>
-					<CardHeader>
-						<div class="flex items-center gap-4">
-							<div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary text-primary-foreground">
-								<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-								</svg>
-							</div>
-							<CardTitle>Task Management</CardTitle>
-						</div>
-					</CardHeader>
-					<CardContent>
-						<CardDescription>
-							Organize your tasks with projects, priorities, and due dates. 
-							Drag and drop to reorder and keep everything in sync.
-						</CardDescription>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<div class="flex items-center gap-4">
-							<div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary text-primary-foreground">
-								<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-								</svg>
-							</div>
-							<CardTitle>Calendar Integration</CardTitle>
-						</div>
-					</CardHeader>
-					<CardContent>
-						<CardDescription>
-							Schedule events, set reminders, and view your agenda. 
-							Everything seamlessly integrated with your task list.
-						</CardDescription>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<div class="flex items-center gap-4">
-							<div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary text-primary-foreground">
-								<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-								</svg>
-							</div>
-							<CardTitle>End-to-End Encryption</CardTitle>
-						</div>
-					</CardHeader>
-					<CardContent>
-						<CardDescription>
-							Your data is encrypted before it leaves your device. 
-							Even we can't read your tasks and calendar events.
-						</CardDescription>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<div class="flex items-center gap-4">
-							<div class="flex items-center justify-center h-12 w-12 rounded-md bg-primary text-primary-foreground">
-								<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-								</svg>
-							</div>
-							<CardTitle>Real-time Sync</CardTitle>
-						</div>
-					</CardHeader>
-					<CardContent>
-						<CardDescription>
-							Changes sync instantly across all your devices while maintaining 
-							complete privacy and security.
-						</CardDescription>
-					</CardContent>
-				</Card>
-			</div>
+		<!-- CTA Section -->
+		<div class="text-center">
+			<Card class="max-w-4xl mx-auto border-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+				<CardContent class="p-12">
+					<h3 class="text-3xl font-bold mb-4">
+						Ready to streamline your scheduling?
+					</h3>
+					<p class="text-xl mb-8 text-blue-100">
+						Join thousands of users who've taken control of their time with Streamline Scheduler.
+					</p>
+					<div class="flex flex-col sm:flex-row gap-4 justify-center">
+						<Button size="lg" variant="secondary" class="text-base px-8 py-6" href="/dashboard">
+							Start Using Now
+							<Zap class="ml-2 h-5 w-5" />
+						</Button>
+						<Button size="lg" variant="outline" class="text-base px-8 py-6 border-white text-white hover:bg-white hover:text-blue-600" href="https://github.com/your-username/streamline-scheduler" target="_blank">
+							Self-Host Guide
+						</Button>
+					</div>
+				</CardContent>
+			</Card>
 		</div>
 	</div>
 </div>
