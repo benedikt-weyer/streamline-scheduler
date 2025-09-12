@@ -29,6 +29,7 @@ use crate::{
     websocket::WebSocketState,
 };
 
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
@@ -64,13 +65,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Public routes (no authentication required)
-    let public_routes = Router::new()
+    let public_app = Router::new()
         .route("/api/auth/register", post(crate::handlers::auth::register))
         .route("/api/auth/login", post(crate::handlers::auth::login))
-        .route("/health", get(crate::handlers::health::health_check));
+        .route("/health", get(crate::handlers::health::health_check))
+        .route("/ws", get(crate::websocket::websocket_handler))
+        .with_state(app_state.clone());
 
     // Protected routes (authentication required)
-    let protected_routes = Router::new()
+    let protected_app = Router::new()
         .route("/api/auth/me", get(crate::handlers::auth::me))
         .route("/api/projects", 
                get(crate::handlers::projects::list_projects)
@@ -100,29 +103,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                get(crate::handlers::calendar_events::get_event)
                .put(crate::handlers::calendar_events::update_event)
                .delete(crate::handlers::calendar_events::delete_event))
-        .route("/ws", get(crate::websocket::websocket_handler))
         .layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             auth_middleware,
-        ));
+        ))
+        .with_state(app_state.clone());
 
-    // Build application with state
+    // Combine the apps
     let app = Router::new()
-        .merge(public_routes)
-        .merge(protected_routes)
+        .merge(public_app)
+        .merge(protected_app)
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
                 .layer(CorsLayer::permissive()),
-        )
-        .with_state(app_state);
+        );
 
     // Start server
     let port = env::var("PORT").unwrap_or_else(|_| "3001".to_string());
     let addr = format!("0.0.0.0:{}", port);
     tracing::info!("Listening on {}", addr);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app.into_make_service()).await?;
 
     Ok(())
 }

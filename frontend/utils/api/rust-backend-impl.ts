@@ -62,8 +62,10 @@ class RustBackendImpl implements BackendInterface {
     // Try to restore auth token from localStorage or cookies
     this.restoreAuthToken();
     
-    // Initialize WebSocket connection
-    this.initWebSocket();
+    // Initialize WebSocket connection only if we have a token
+    if (this.authToken) {
+      this.initWebSocket();
+    }
   }
 
   private restoreAuthToken(): void {
@@ -98,6 +100,11 @@ class RustBackendImpl implements BackendInterface {
       // Fallback to cookies if localStorage fails
       document.cookie = `auth_token=${token};path=/;max-age=${60 * 60 * 24 * 30};SameSite=Strict`;
     }
+    
+    // Initialize WebSocket connection now that we have a token
+    if (!this.ws && typeof window !== 'undefined') {
+      this.initWebSocket();
+    }
   }
 
   private clearAuthToken(): void {
@@ -108,6 +115,12 @@ class RustBackendImpl implements BackendInterface {
     } catch (e) {
       // Clear cookie as fallback
       document.cookie = 'auth_token=;path=/;max-age=0';
+    }
+    
+    // Close WebSocket connection when token is cleared
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
     }
   }
 
@@ -144,26 +157,44 @@ class RustBackendImpl implements BackendInterface {
       return;
     }
 
+    // Don't connect if we don't have an auth token
+    if (!this.authToken) {
+      console.log('[RustBackend] No auth token available, skipping WebSocket connection');
+      return;
+    }
+
     try {
       const wsUrl = `${this.wsUrl}/ws`;
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        console.log('[RustBackend] WebSocket connected');
+        console.log('[RustBackend] WebSocket connected, sending auth token');
         this.wsReconnectAttempts = 0;
         
-        // Send auth token if available
+        // Send auth token immediately (required by backend)
         if (this.authToken) {
           this.ws?.send(JSON.stringify({
-            type: 'auth',
             token: this.authToken
           }));
+        } else {
+          console.warn('[RustBackend] No auth token available for WebSocket auth');
+          this.ws?.close();
         }
       };
 
       this.ws.onmessage = (event) => {
         try {
-          const message: WebSocketMessage = JSON.parse(event.data);
+          const message = JSON.parse(event.data);
+          
+          // Handle auth responses
+          if (message.type === 'auth_success') {
+            console.log('[RustBackend] WebSocket authentication successful');
+          } else if (message.type === 'auth_error') {
+            console.error('[RustBackend] WebSocket authentication failed:', message.message);
+            this.ws?.close();
+            return;
+          }
+          
           this.handleWebSocketMessage(message);
         } catch (error) {
           console.error('[RustBackend] Failed to parse WebSocket message:', error);
