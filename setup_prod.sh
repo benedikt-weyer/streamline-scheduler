@@ -1,9 +1,6 @@
 #!/bin/bash
 
-# Producti# Function to generate a secure JWT secret (64 characters)
-generate_jwt_secret() {
-    openssl rand -base64 64 | tr -d "=+/\n" | cut -c1-64
-}cript for Streamline Scheduler
+# Production setup script for Streamline Scheduler
 # This script helps configure the application for production use
 
 set -e
@@ -22,12 +19,6 @@ NC='\033[0m' # No Color
 # Function to generate a random password
 generate_password() {
     openssl rand -base64 32 | tr -d "=+/" | cut -c1-32
-}
-
-# Function to generate a random JWT secret (64 characters)
-generate_jwt_secret() {
-    #openssl rand -base64 64 | tr -d "=+/\n" | cut -c1-64
-    echo "your-super-secret-jwt-token-with-at-least-32-characters-long"
 }
 
 # Function to generate a secure JWT secret (64 characters)
