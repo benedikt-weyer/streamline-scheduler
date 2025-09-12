@@ -1,19 +1,6 @@
 #!/bin/bash
 
-# Development Setup Script for Streamline Schedul# Create frontend .env.local if it doesn't exist
-if [ ! -f "frontend/.env.local" ]; then
-    echo -e "${BLUE}📝 Creating frontend/.env.local...${NC}"
-    
-    cat > frontend/.env.local << 'EOF'
-# Frontend Development Environment Variables
-
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
-EOF
-    
-    echo -e "${GREEN}✓ frontend/.env.local created${NC}"
-else
-    echo -e "${YELLOW}⚠️  frontend/.env.local already exists, skipping...${NC}"
-fi sets up the application for local development
+# Development Setup Script for Streamline Scheduler sets up the application for local development
 
 set -e
 
@@ -60,7 +47,8 @@ ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
 
 # Frontend Configuration (Next.js)
 FRONTEND_PORT=3000
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+NEXT_PUBLIC_BACKEND_HTTP_URL=http://localhost:3001
+NEXT_PUBLIC_BACKEND_WS_URL=ws://localhost:3001
 
 # Nginx Configuration (for production)
 HTTP_PORT=80
@@ -79,9 +67,8 @@ if [ ! -f "frontend/.env.local" ]; then
     cat > frontend/.env.local << 'EOF'
 # Frontend Development Environment Variables
 
-NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-NEXT_PUBLIC_VERCEL_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_HTTP_URL=http://localhost:3001
+NEXT_PUBLIC_BACKEND_WS_URL=ws://localhost:3001
 EOF
     
     echo -e "${GREEN}✓ frontend/.env.local created${NC}"

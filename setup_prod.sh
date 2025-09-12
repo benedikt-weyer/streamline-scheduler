@@ -158,7 +158,8 @@ ALLOWED_ORIGINS=$FRONTEND_URL
 
 # Frontend Configuration (Next.js)
 FRONTEND_PORT=$FRONTEND_PORT
-NEXT_PUBLIC_BACKEND_URL=$BACKEND_URL
+NEXT_PUBLIC_BACKEND_HTTP_URL=$BACKEND_URL
+NEXT_PUBLIC_BACKEND_WS_URL=$(echo $BACKEND_URL | sed 's/^http/ws/')
 
 ############################################
 # � NGINX CONFIGURATION
@@ -180,7 +181,8 @@ if [ ! -f "frontend/.env.local" ]; then
 # Frontend Environment Variables
 # Generated on $(date)
 
-NEXT_PUBLIC_BACKEND_URL=$BACKEND_URL
+NEXT_PUBLIC_BACKEND_HTTP_URL=$BACKEND_URL
+NEXT_PUBLIC_BACKEND_WS_URL=$(echo $BACKEND_URL | sed 's/^http/ws/')
 EOF
     
     echo -e "${GREEN}✓ frontend/.env.local created successfully!${NC}"
