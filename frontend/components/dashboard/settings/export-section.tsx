@@ -120,6 +120,14 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             
             if (!decryptedData) return null;
             
+            // Reconstruct recurrence pattern from individual fields
+            const recurrencePattern = decryptedData.recurrenceFrequency && decryptedData.recurrenceFrequency !== 'none' ? {
+              frequency: decryptedData.recurrenceFrequency,
+              endDate: decryptedData.recurrenceEndDate,
+              interval: decryptedData.recurrenceInterval,
+              daysOfWeek: decryptedData.daysOfWeek
+            } : undefined;
+            
             return {
               title: decryptedData.title,
               description: decryptedData.description,
@@ -127,7 +135,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
               startTime: decryptedData.startTime,
               endTime: decryptedData.endTime,
               isAllDay: decryptedData.isAllDay,
-              recurrencePattern: decryptedData.recurrencePattern, // Updated: proper recurrence pattern structure
+              recurrencePattern: recurrencePattern, // Properly reconstructed recurrence pattern
               calendarId: event.calendar_id,
               createdAt: event.created_at,
               updatedAt: event.updated_at
