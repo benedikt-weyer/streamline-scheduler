@@ -23,6 +23,12 @@ RUN cargo build --release && rm -rf src
 # Copy source code
 COPY src ./src
 
+# Accept environment variables from host system as build arguments
+ARG DATABASE_URL
+ARG JWT_SECRET
+ARG PORT
+ARG RUST_LOG
+
 # Build the application
 RUN cargo build --release
 
@@ -46,6 +52,16 @@ WORKDIR /app
 # Copy the binary from builder stage
 COPY --from=builder /app/target/release/streamline_backend /app/
 
+# Create .env file with environment variables (similar to frontend approach)
+# Remove any existing .env files first
+RUN find . -name ".env" -not -name ".env.example" -delete 2>/dev/null || true
+
+# Create .env file with the environment variables from build args
+RUN echo "DATABASE_URL=${DATABASE_URL:-postgres://postgres:password@db:5432/streamline_scheduler}" > .env && \
+    echo "JWT_SECRET=${JWT_SECRET:-default-jwt-secret-change-in-production}" >> .env && \
+    echo "PORT=${PORT:-3001}" >> .env && \
+    echo "RUST_LOG=${RUST_LOG:-info}" >> .env
+
 # Make sure the binary is executable and change ownership
 RUN chmod +x /app/streamline_backend && chown -R app:app /app
 USER app
@@ -53,5 +69,9 @@ USER app
 # Expose port
 EXPOSE 3001
 
-# Run the application with verbose output
-CMD ["sh", "-c", "echo 'Starting streamline_backend...' && ls -la /app && ./streamline_backend"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3001/health || exit 1
+
+# Run the application
+CMD ["./streamline_backend"]

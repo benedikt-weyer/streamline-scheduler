@@ -45,6 +45,11 @@ services:
     build:
       context: ./backend_new
       dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-your-super-secret-and-long-postgres-password}@db:5432/${POSTGRES_DB:-streamline_scheduler}
+        - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-token-with-at-least-32-characters-long}
+        - PORT=3001
+        - RUST_LOG=${RUST_LOG:-info}
     container_name: streamline-backend
     restart: unless-stopped
     environment:
