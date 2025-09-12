@@ -7,8 +7,8 @@ import { EncryptedProject } from '@/utils/can-do-list/can-do-list-types';
 export async function fetchProjects(): Promise<EncryptedProject[]> {
   try {
     const backend = getBackend();
-    const { data: projects } = await backend.projects.list();
-    return projects as EncryptedProject[];
+    const { data: projects } = await backend.projects.getAll();
+    return projects as unknown as EncryptedProject[];
   } catch (error) {
     console.error('Failed to fetch projects:', error);
     throw error;
@@ -27,14 +27,15 @@ export async function addProject(
   try {
     const backend = getBackend();
     const { data: project } = await backend.projects.create({
+      name: 'Project', // Will be replaced by encrypted data
       encrypted_data: encryptedData,
       iv,
       salt,
       parent_id: parentId,
-      display_order: displayOrder,
-      is_collapsed: isCollapsed,
+      order: displayOrder || 0,
+      collapsed: isCollapsed,
     });
-    return project as EncryptedProject;
+    return project as unknown as EncryptedProject;
   } catch (error) {
     console.error('Failed to add project:', error);
     throw error;
@@ -64,8 +65,13 @@ export async function updateProject(
     if (displayOrder !== undefined) updateData.display_order = displayOrder;
     if (isCollapsed !== undefined) updateData.is_collapsed = isCollapsed;
 
-    const { data: project } = await backend.projects.update(id, updateData);
-    return project as EncryptedProject;
+    const { data: project } = await backend.projects.update({
+      id,
+      ...updateData,
+      order: updateData.display_order,
+      collapsed: updateData.is_collapsed
+    });
+    return project as unknown as EncryptedProject;
   } catch (error) {
     console.error('Failed to update project:', error);
     throw error;
@@ -97,7 +103,12 @@ export async function reorderProjects(projectUpdates: Array<{ id: string; displa
         updateData.parent_id = update.parentId;
       }
       
-      await backend.projects.update(update.id, updateData);
+      await backend.projects.update({
+        id: update.id,
+        ...updateData,
+        order: updateData.display_order,
+        parent_id: updateData.parent_id
+      });
     }
   } catch (error) {
     console.error('Failed to reorder projects:', error);
@@ -109,12 +120,19 @@ export async function reorderProjects(projectUpdates: Array<{ id: string; displa
 export async function toggleProjectCollapse(id: string, isCollapsed: boolean): Promise<EncryptedProject> {
   try {
     const backend = getBackend();
-    const { data: project } = await backend.projects.update(id, {
-      is_collapsed: isCollapsed,
+    const { data: project } = await backend.projects.update({
+      id,
+      collapsed: isCollapsed,
     });
-    return project as EncryptedProject;
+    return project as unknown as EncryptedProject;
   } catch (error) {
     console.error('Failed to toggle project collapse:', error);
     throw error;
   }
 }
+
+// Bulk update project order (alias for reorderProjects)
+export const bulkUpdateProjectOrder = reorderProjects;
+
+// Update project collapsed state (alias for toggleProjectCollapse)
+export const updateProjectCollapsedState = toggleProjectCollapse;

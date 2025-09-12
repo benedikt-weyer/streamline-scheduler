@@ -7,8 +7,8 @@ import { EncryptedTask } from '@/utils/can-do-list/can-do-list-types';
 export async function fetchTasks(silent = false): Promise<EncryptedTask[]> {
   try {
     const backend = getBackend();
-    const { data: tasks } = await backend.canDoList.list();
-    return tasks as EncryptedTask[];
+    const { data: tasks } = await backend.canDoList.getAll();
+    return tasks as unknown as EncryptedTask[];
   } catch (error) {
     if (!silent) {
       console.error('Failed to fetch tasks:', error);
@@ -106,6 +106,46 @@ export async function moveTaskToProject(taskId: string, projectId: string | null
     return task as EncryptedTask;
   } catch (error) {
     console.error('Failed to move task to project:', error);
+    throw error;
+  }
+}
+
+// Toggle task complete with reorder
+export async function toggleTaskCompleteWithReorder(taskId: string, completed: boolean): Promise<EncryptedTask> {
+  try {
+    const backend = getBackend();
+    const { data: task } = await backend.canDoList.update(taskId, {
+      completed,
+    });
+    return task as EncryptedTask;
+  } catch (error) {
+    console.error('Failed to toggle task complete:', error);
+    throw error;
+  }
+}
+
+// Bulk delete tasks
+export async function bulkDeleteTasks(taskIds: string[]): Promise<void> {
+  try {
+    const backend = getBackend();
+    for (const taskId of taskIds) {
+      await backend.canDoList.delete(taskId);
+    }
+  } catch (error) {
+    console.error('Failed to bulk delete tasks:', error);
+    throw error;
+  }
+}
+
+// Fetch tasks by project
+export async function fetchTasksByProject(projectId: string | null): Promise<EncryptedTask[]> {
+  try {
+    const backend = getBackend();
+    // First fetch all tasks, then filter by project
+    const { data: tasks } = await backend.canDoList.getAll();
+    return (tasks as EncryptedTask[]).filter(task => task.project_id === projectId);
+  } catch (error) {
+    console.error('Failed to fetch tasks by project:', error);
     throw error;
   }
 }

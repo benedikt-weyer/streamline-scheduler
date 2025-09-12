@@ -16,6 +16,7 @@ export interface ExportedData {
 }
 
 export interface DecryptedTask {
+  id?: string;
   content: string;
   completed: boolean;
   estimatedDuration?: number;
@@ -30,6 +31,7 @@ export interface DecryptedTask {
 }
 
 export interface DecryptedProject {
+  id?: string;
   name: string;
   description?: string;
   color?: string;
@@ -41,6 +43,7 @@ export interface DecryptedProject {
 }
 
 export interface DecryptedCalendar {
+  id?: string;
   name: string;
   color: string;
   isVisible?: boolean;
@@ -53,6 +56,7 @@ export interface DecryptedCalendar {
 }
 
 export interface DecryptedCalendarEvent {
+  id?: string;
   title: string;
   description?: string;
   location?: string;
@@ -283,6 +287,10 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
   try {
     const backend = getBackend();
 
+    // Track ID mappings: old ID -> new ID
+    const projectIdMapping: Map<string, string> = new Map();
+    const calendarIdMapping: Map<string, string> = new Map();
+
     // For decrypted data, we must encrypt it before sending to the backend
     // Direct implementation with proper field mapping and encryption
     // Import projects first (sorted by hierarchy to avoid foreign key violations)
@@ -311,7 +319,10 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
         
         const encryptedData = encryptData(projectData, derivedKey, iv);
         
-        await backend.projects.create({
+        // Map the parent ID to the new ID if it exists
+        const mappedParentId = project.parentId ? projectIdMapping.get(project.parentId) : undefined;
+        
+        const createdProject = await backend.projects.create({
           // Encrypted data (future E2EE approach)
           encrypted_data: encryptedData,
           iv: iv,
@@ -320,10 +331,15 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           name: project.name || 'Imported Project',
           description: project.description,
           color: project.color,
-          parent_id: project.parentId,
+          parent_id: mappedParentId,
           order: project.displayOrder || 0,
           collapsed: project.isCollapsed || false,
         });
+        
+        // Store the ID mapping for children to reference
+        if (project.id && createdProject.data?.id) {
+          projectIdMapping.set(project.id, createdProject.data.id);
+        }
       }
     }
 
@@ -350,6 +366,9 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
         // Convert urgency (0-10) to priority for backward compatibility
         const priority = task.urgency ? (task.urgency >= 8 ? 'high' : task.urgency >= 5 ? 'medium' : 'low') : undefined;
         
+        // Map the project ID to the new ID if it exists
+        const mappedProjectId = task.projectId ? projectIdMapping.get(task.projectId) : undefined;
+        
         await backend.canDoList.create({
           // Encrypted data (preserves full granularity)
           encrypted_data: encryptedData,
@@ -361,7 +380,7 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           priority: priority,
           tags: undefined, // Not available in DecryptedTask
           duration_minutes: task.estimatedDuration,
-          project_id: task.projectId,
+          project_id: mappedProjectId,
           order: task.displayOrder || 0,
         });
       }
@@ -386,7 +405,7 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
         
         const encryptedData = encryptData(calendarData, derivedKey, iv);
         
-        await backend.calendars.create({
+        const createdCalendar = await backend.calendars.create({
           // Encrypted data (preserves ICS parameters)
           encrypted_data: encryptedData,
           iv: iv,
@@ -400,6 +419,11 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           ics_url: calendar.icsUrl,
           last_sync: calendar.lastSync,
         });
+        
+        // Store the ID mapping for events to reference
+        if (calendar.id && createdCalendar.data?.id) {
+          calendarIdMapping.set(calendar.id, createdCalendar.data.id);
+        }
       }
     }
 
@@ -409,6 +433,13 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
         // Skip events without a calendar ID - they can't be imported
         if (!event.calendarId) {
           console.warn('Skipping calendar event without calendarId:', event.title);
+          continue;
+        }
+
+        // Map the calendar ID to the new ID
+        const mappedCalendarId = calendarIdMapping.get(event.calendarId);
+        if (!mappedCalendarId) {
+          console.warn('Skipping calendar event with unmapped calendarId:', event.title, event.calendarId);
           continue;
         }
 
@@ -441,7 +472,7 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           start_time: event.startTime || new Date().toISOString(),
           end_time: event.endTime || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           all_day: event.isAllDay || false,
-          calendar_id: event.calendarId,
+          calendar_id: mappedCalendarId,
           recurrence_rule: recurrenceRule,
           recurrence_exception: event.recurrenceException,
         };
@@ -460,7 +491,7 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           start_time: event.startTime || new Date().toISOString(),
           end_time: event.endTime || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           all_day: event.isAllDay || false,
-          calendar_id: event.calendarId,
+          calendar_id: mappedCalendarId,
           recurrence_rule: recurrenceRule,
           recurrence_exception: event.recurrenceException,
         });
