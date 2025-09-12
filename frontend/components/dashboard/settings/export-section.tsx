@@ -119,13 +119,27 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             
             if (!decryptedData) return null;
             
+            // Construct recurrence pattern from decrypted data
+            let recurrencePattern = undefined;
+            if (decryptedData.recurrenceFrequency && decryptedData.recurrenceFrequency !== 'none') {
+              recurrencePattern = {
+                frequency: decryptedData.recurrenceFrequency,
+                interval: decryptedData.recurrenceInterval || 1,
+                endDate: decryptedData.recurrenceEndDate,
+                daysOfWeek: decryptedData.daysOfWeek
+              };
+            }
+            
             return {
               title: decryptedData.title,
               description: decryptedData.description,
+              location: decryptedData.location,
               startTime: decryptedData.startTime,
               endTime: decryptedData.endTime,
               isAllDay: decryptedData.isAllDay,
-              recurrence: decryptedData.recurrence,
+              recurrenceRule: decryptedData.recurrenceRule,
+              recurrencePattern: recurrencePattern,
+              recurrenceException: decryptedData.recurrenceException,
               calendarId: event.calendar_id,
               createdAt: event.created_at,
               updatedAt: event.updated_at

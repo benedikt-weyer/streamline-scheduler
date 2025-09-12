@@ -69,6 +69,7 @@ export interface DecryptedCalendarEvent {
     frequency: string;
     endDate?: string;
     interval?: number;
+    daysOfWeek?: number[];
   };
   recurrenceException?: string[];
   createdAt: string;
@@ -450,6 +451,11 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
 
         // Convert recurrencePattern to recurrenceRule if needed
         let recurrenceRule = event.recurrenceRule;
+        let recurrenceFrequency = 'none';
+        let recurrenceInterval = 1;
+        let recurrenceEndDate = undefined;
+        let daysOfWeek = undefined;
+        
         if (!recurrenceRule && event.recurrencePattern) {
           // Basic conversion from recurrencePattern to RRULE format
           const { frequency, interval, endDate } = event.recurrencePattern;
@@ -463,9 +469,15 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
             const until = new Date(endDate).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
             recurrenceRule += `;UNTIL=${until}`;
           }
+          
+          // Store individual recurrence fields for frontend use
+          recurrenceFrequency = frequency;
+          recurrenceInterval = interval || 1;
+          recurrenceEndDate = endDate;
+          daysOfWeek = event.recurrencePattern.daysOfWeek;
         }
 
-        // Encrypt calendar event data including location
+        // Encrypt calendar event data including location and all recurrence fields
         const salt = generateSalt();
         const iv = generateIV();
         const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
@@ -480,6 +492,11 @@ export async function importDecryptedUserData(data: DecryptedExportData, encrypt
           calendarId: mappedCalendarId,
           recurrenceRule: recurrenceRule,
           recurrenceException: event.recurrenceException,
+          // Store individual recurrence fields for proper frontend handling
+          recurrenceFrequency: recurrenceFrequency,
+          recurrenceInterval: recurrenceInterval,
+          recurrenceEndDate: recurrenceEndDate,
+          daysOfWeek: daysOfWeek,
         };
         
         const encryptedData = encryptData(eventData, derivedKey, iv);
