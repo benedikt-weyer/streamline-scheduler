@@ -1,104 +1,251 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+# Streamline Scheduler - Frontend
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
+The frontend for Streamline Scheduler is built with Next.js 14+, React 19, TypeScript, Tailwind CSS, and shadcn/ui components. It features client-side end-to-end encryption and a modern, responsive interface.
 
-<p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
-</p>
-<br/>
+## Tech Stack
+
+- **Framework**: Next.js 14+ with App Router
+- **Language**: TypeScript
+- **UI Library**: React 19
+- **Styling**: Tailwind CSS
+- **Components**: shadcn/ui
+- **Encryption**: crypto-js for client-side encryption
+- **Drag & Drop**: @dnd-kit for project and task reordering
+- **Form Handling**: react-hook-form with Zod validation
+- **Theme**: next-themes for dark/light mode support
+- **Icons**: Lucide React
+- **Notifications**: Sonner for toast notifications
+- **Date Handling**: date-fns
 
 ## Features
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Middleware
-  - Client
-  - Server
-  - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+- 🎨 **Modern UI**: Beautiful, responsive interface built with shadcn/ui components
+- 🌙 **Dark Mode**: Full dark/light theme support with system preference detection
+- 🔒 **End-to-End Encryption**: All sensitive data encrypted client-side before transmission
+- 📱 **Mobile Responsive**: Optimized for all screen sizes
+- 🔄 **Real-time Updates**: WebSocket connection for instant synchronization
+- 🗂️ **Drag & Drop**: Intuitive project and task reordering
+- ⌨️ **Keyboard Shortcuts**: Efficient navigation and task management
+- 🔍 **Search**: Fast search across projects, tasks, and calendar events
+- 📅 **Calendar Views**: Multiple calendar layouts and views
+- ✅ **Task Management**: Advanced todo list with priorities and due dates
 
-## Demo
+## Project Structure
 
-You can view a fully working demo at [demo-nextjs-with-supabase.vercel.app](https://demo-nextjs-with-supabase.vercel.app/).
+```text
+frontend/
+├── app/                    # Next.js 14+ app router
+│   ├── (auth-pages)/      # Authentication pages
+│   │   ├── sign-in/       # Sign in page
+│   │   └── sign-up/       # Sign up page
+│   ├── dashboard/         # Dashboard pages
+│   │   ├── calendar/      # Calendar views
+│   │   ├── projects/      # Project management
+│   │   └── can-do-list/   # Todo list management
+│   ├── api/               # API routes (if any)
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Home page
+├── components/            # React components
+│   ├── ui/                # shadcn/ui base components
+│   ├── auth/              # Authentication components
+│   ├── dashboard/         # Dashboard-specific components
+│   └── navbar.tsx         # Navigation component
+├── hooks/                 # Custom React hooks
+│   ├── calendar/          # Calendar-related hooks
+│   ├── can-do-list/       # Todo list hooks
+│   └── cryptography/      # Encryption hooks
+├── utils/                 # Utility functions
+│   ├── api/               # API client and utilities
+│   ├── auth/              # Authentication utilities
+│   ├── calendar/          # Calendar utilities
+│   ├── can-do-list/       # Todo list utilities
+│   ├── context/           # React context utilities
+│   ├── cryptography/      # Client-side encryption
+│   └── navigation-utils.ts # Navigation helpers
+├── lib/                   # Library configurations
+│   └── shadcn-utils.ts    # shadcn/ui utilities
+├── test/                  # Test files
+│   ├── app/               # App tests
+│   ├── components/        # Component tests
+│   └── utils/             # Utility tests
+└── public/                # Static assets
+    ├── icon-192x192.png   # PWA icon
+    └── icon-512x512.png   # PWA icon
+```
 
-## Deploy to Vercel
+## Environment Variables
 
-Vercel deployment will guide you through creating a Supabase account and project.
+Create a `.env.local` file in the frontend directory:
 
-After installation of the Supabase integration, all relevant environment variables will be assigned to the project so the deployment is fully functioning.
+```bash
+# Backend API URL
+NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&project-name=nextjs-with-supabase&repository-name=nextjs-with-supabase&demo-title=nextjs-with-supabase&demo-description=This+starter+configures+Supabase+Auth+to+use+cookies%2C+making+the+user%27s+session+available+throughout+the+entire+Next.js+app+-+Client+Components%2C+Server+Components%2C+Route+Handlers%2C+Server+Actions+and+Middleware.&demo-url=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2F&external-id=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js%2Ftree%2Fcanary%2Fexamples%2Fwith-supabase&demo-image=https%3A%2F%2Fdemo-nextjs-with-supabase.vercel.app%2Fopengraph-image.png)
+# Optional: Additional configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-The above will also clone the Starter kit to your GitHub, you can clone that locally and develop locally.
+## Development
 
-If you wish to just develop locally and not deploy to Vercel, [follow the steps below](#clone-and-run-locally).
+### Prerequisites
 
-## Clone and run locally
+- Node.js 20.x or later
+- pnpm (recommended) or npm
 
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
+### Setup
 
-2. Create a Next.js app using the Supabase Starter template npx command
+1. **Install dependencies**:
 
    ```bash
-   npx create-next-app --example with-supabase with-supabase-app
+   pnpm install
    ```
+
+2. **Set up environment variables**:
 
    ```bash
-   yarn create next-app --example with-supabase with-supabase-app
+   cp env.example .env.local
+   # Edit .env.local with your backend URL
    ```
+
+3. **Start the development server**:
 
    ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
+   pnpm dev
    ```
 
-3. Use `cd` to change into the app's directory
+4. **Access the application**:
+   - Frontend: <http://localhost:3000>
 
-   ```bash
-   cd with-supabase-app
-   ```
+### Scripts
 
-4. Rename `.env.example` to `.env.local` and update the following:
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+- `pnpm test` - Run tests
+- `pnpm test:watch` - Run tests in watch mode
 
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=[INSERT SUPABASE PROJECT API ANON KEY]
-   ```
+## Security Features
 
-   Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://app.supabase.com/project/_/settings/api)
+### Client-Side Encryption
 
-5. You can now run the Next.js local development server:
+All sensitive user data is encrypted client-side before being sent to the server:
 
-   ```bash
-   npm run dev
-   ```
+- **Master Password**: Users provide a master password for key derivation (never sent to server)
+- **PBKDF2 Key Derivation**: Strong key derivation with configurable iterations
+- **AES Encryption**: AES-CBC encryption for data protection
+- **Zero Knowledge**: Server never has access to unencrypted user data
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
+### Encryption Process
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
+1. User provides master password
+2. Password is used with PBKDF2 to derive encryption key
+3. All sensitive data (projects, tasks, calendar events) is encrypted client-side
+4. Only encrypted data is transmitted to and stored on the server
+5. Data is decrypted client-side when retrieved
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+## Components
 
-## Feedback and issues
+The frontend uses shadcn/ui components for consistent design:
 
-Please file feedback and issues over on the [Supabase GitHub org](https://github.com/supabase/supabase/issues/new/choose).
+### UI Components
 
-## More Supabase examples
+- **Forms**: Input, Select, Checkbox, Button components
+- **Layout**: Dialog, Popover, Tabs, Card components
+- **Navigation**: Dropdown Menu, Command palette
+- **Feedback**: Alert Dialog, Toast notifications
+- **Data Display**: Tables, Lists, Calendar views
 
-- [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
-- [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
-- [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+### Custom Components
+
+- **Navbar**: Main navigation with theme switcher
+- **AuthHeader**: Authentication status and user menu
+- **Dashboard Components**: Project lists, calendar views, task management
+- **Encryption Components**: Master password setup, key management
+
+## Testing
+
+The project includes Jest and React Testing Library for testing:
+
+- **Unit Tests**: Component and utility function tests
+- **Integration Tests**: User interaction and API integration tests
+- **Setup**: Test environment configured in `test/setup.ts`
+
+Run tests:
+
+```bash
+# Run all tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+```
+
+## Build and Deployment
+
+### Production Build
+
+```bash
+# Build the application
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+### Docker Deployment
+
+The frontend includes a Dockerfile for containerized deployment:
+
+```bash
+# Build Docker image
+docker build -t streamline-frontend .
+
+# Run container
+docker run -p 3000:3000 streamline-frontend
+```
+
+## API Integration
+
+The frontend communicates with the Rust backend through:
+
+- **REST API**: CRUD operations for projects, tasks, calendar events
+- **WebSocket**: Real-time updates and synchronization
+- **Authentication**: JWT-based authentication with automatic token refresh
+
+### API Client
+
+Located in `utils/api/`, the API client handles:
+
+- HTTP requests to backend endpoints
+- WebSocket connection management
+- Authentication token management
+- Error handling and retry logic
+- Request/response encryption/decryption
+
+## Contributing
+
+When contributing to the frontend:
+
+1. **Follow TypeScript best practices**
+2. **Use existing shadcn/ui components** when possible
+3. **Maintain encryption for sensitive data**
+4. **Add tests for new components**
+5. **Follow the existing code structure**
+6. **Update this README** if adding new features
+
+## Troubleshooting
+
+### Common Issues
+
+- **Build errors**: Check TypeScript errors and dependencies
+- **API connection**: Verify backend URL in environment variables
+- **Encryption errors**: Check master password handling
+- **Theme issues**: Verify next-themes configuration
+
+### Development Tips
+
+- Use the browser developer tools for debugging
+- Check network tab for API requests
+- Use React Developer Tools for component debugging
+- Test encryption/decryption flows thoroughly

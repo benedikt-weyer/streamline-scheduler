@@ -1,6 +1,6 @@
 # Streamline Scheduler
 
-Streamline Scheduler is an open source self-hostable calendar-todolist combo with end-to-end encryption, which provides fast and efficient streamlined scheduling of tasks and events. It can be used as a standalone todolist app and/or calendar app. The frontend is built with SvelteKit, Tailwind CSS, and features client-side encryption. The backend uses a custom Rust API with Axum framework and PostgreSQL. Privacy-focused and easy self-hosting first.
+Streamline Scheduler is an open source self-hostable calendar-todolist combo with end-to-end encryption, which provides fast and efficient streamlined scheduling of tasks and events. It can be used as a standalone todolist app and/or calendar app. The frontend is built with Next.js, React, TypeScript, Tailwind CSS, and shadcn/ui components, featuring client-side encryption. The backend uses a custom Rust API with Axum framework and PostgreSQL. Privacy-focused and easy self-hosting first.
 
 ## Features
 
@@ -9,28 +9,25 @@ Streamline Scheduler is an open source self-hostable calendar-todolist combo wit
 - 🔄 **Recurring Events & Tasks** - Set up repeating events and tasks with flexible patterns
 - 🔒 **End-to-End Encryption** - All data is encrypted client-side before transmission
 - 🏠 **Easy Self-Hosting** - Simple deployment options for personal or team use
-- 🎨 **Modern UI** - Beautiful, responsive interface built with SvelteKit and Tailwind CSS
+- 🎨 **Modern UI** - Beautiful, responsive interface built with Next.js, React, and shadcn/ui
 - ⚡ **Real-time Sync** - WebSocket-based real-time updates across all devices
 - 🌙 **Dark Mode** - Full dark/light theme support
 - 🗂️ **Project Organization** - Hierarchical project structure with drag-and-drop reordering
 
 ## Architecture
 
-### New Architecture (Current)
-- **Frontend**: SvelteKit with Tailwind CSS 4, crypto-js for E2E encryption
+### Current Architecture
+- **Frontend**: Next.js 14+ with React 19, TypeScript, Tailwind CSS, shadcn/ui components
 - **Backend**: Rust with Axum framework, SeaORM, PostgreSQL
 - **Real-time**: WebSocket implementation for instant synchronization
-- **Security**: Client-side encryption with PBKDF2 key derivation
+- **Security**: Client-side encryption with crypto-js and PBKDF2 key derivation
 - **Package Manager**: pnpm
-
-### Legacy Architecture (Deprecated)
-- **Frontend**: Next.js 14+, React, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Supabase (PostgreSQL, Auth, Real-time subscriptions)
+- **Development**: Nix shell environment, Docker Compose for local development
 
 ## Tech Stack
 
-- **Frontend**: SvelteKit 5, TypeScript, Tailwind CSS 4, crypto-js, dnd-kit-svelte
-- **Backend**: Rust, Axum, SeaORM, PostgreSQL, JWT authentication
+- **Frontend**: Next.js 14+, React 19, TypeScript, Tailwind CSS, shadcn/ui, crypto-js, @dnd-kit
+- **Backend**: Rust, Axum, SeaORM, PostgreSQL, JWT authentication, WebSocket support
 - **Development**: Nix shell environment, Docker, pnpm
 - **Security**: End-to-end encryption, client-side key derivation
 
@@ -47,26 +44,28 @@ Streamline Scheduler can be easily self-hosted on your own server or cloud provi
    ```
 
 2. **Set up environment variables**:
+
    ```bash
    # Create environment file for the backend
    cp backend/env.example backend/.env
    
    # Create environment file for the frontend
-   cp frontend_new/env.example frontend_new/.env
+   cp frontend/env.example frontend/.env.local
    
    # Edit the environment files with your settings
    # Set strong passwords, JWT secrets, and database configuration
    ```
 
 3. **Deploy with Docker Compose**:
+
    ```bash
-   # Start all services (PostgreSQL, Rust backend, SvelteKit frontend)
+   # Start all services (PostgreSQL, Rust backend, Next.js frontend)
    docker-compose up -d
    ```
 
 4. **Access the application**:
-   - Frontend: https://localhost:443 (with SSL) or http://localhost:3000
-   - Backend API: http://localhost:3001
+   - Frontend: <https://localhost:443> (with SSL) or <http://localhost:3000>
+   - Backend API: <http://localhost:3001>
 
 ### Environment Variables
 
@@ -84,10 +83,11 @@ JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
 PORT=3001
 ```
 
-#### Frontend (.env)
+#### Frontend (.env.local)
+
 ```bash
 # Backend API URL
-VITE_BACKEND_URL=http://localhost:3001
+NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
 ```
 
 #### Docker Compose (.env)
@@ -231,6 +231,7 @@ The project includes a comprehensive `shell.nix` file that sets up a complete de
    ```
 
 3. **Start development servers**:
+
    ```bash
    # Start PostgreSQL database
    docker-compose up -d db
@@ -239,8 +240,8 @@ The project includes a comprehensive `shell.nix` file that sets up a complete de
    cd backend
    cargo run
    
-   # Start SvelteKit frontend (in another terminal)
-   cd frontend_new
+   # Start Next.js frontend (in another terminal)
+   cd frontend
    pnpm dev
    ```
 
@@ -270,8 +271,9 @@ The project includes a comprehensive `shell.nix` file that sets up a complete de
    ```
 
 3. **Setup Frontend**:
+
    ```bash
-   cd frontend_new
+   cd frontend
    
    # Install dependencies
    pnpm install
@@ -284,32 +286,41 @@ The project includes a comprehensive `shell.nix` file that sets up a complete de
    ```
 
 4. **Access the application**:
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:3001
+   - Frontend: <http://localhost:3000>
+   - Backend API: <http://localhost:3001>
    - Database: localhost:5432
 
 ### Project Structure
 
-```
+```text
 streamline-scheduler/
-├── frontend_new/            # SvelteKit frontend application
-│   ├── src/
-│   │   ├── lib/            # Shared libraries
-│   │   │   ├── api/        # API client
-│   │   │   ├── crypto/     # Encryption utilities
-│   │   │   └── stores/     # Svelte stores
-│   │   └── routes/         # SvelteKit routes
+├── frontend/                # Next.js frontend application
+│   ├── app/                # Next.js 14+ app router
+│   │   ├── (auth-pages)/   # Authentication pages
+│   │   ├── dashboard/      # Dashboard pages
+│   │   └── api/            # API routes
+│   ├── components/         # React components
+│   │   ├── ui/             # shadcn/ui components
+│   │   ├── auth/           # Authentication components
+│   │   └── dashboard/      # Dashboard components
+│   ├── utils/              # Utility functions
+│   │   ├── api/            # API client
+│   │   ├── auth/           # Authentication utilities
+│   │   └── cryptography/   # Encryption utilities
+│   ├── hooks/              # Custom React hooks
 │   ├── Dockerfile          # Frontend container
 │   └── package.json
-├── backend/             # Rust backend application
+├── backend/                # Rust backend application
 │   ├── src/
 │   │   ├── entities/       # Database entities (SeaORM)
 │   │   ├── handlers/       # API route handlers
 │   │   ├── migrator/       # Database migrations
-│   │   └── models/         # Request/response models
+│   │   ├── models/         # Request/response models
+│   │   ├── middleware/     # Middleware functions
+│   │   └── websocket/      # WebSocket implementation
 │   ├── Cargo.toml
 │   └── Dockerfile          # Backend container
-├── docker-compose.yml       # Complete stack deployment
+├── docker-compose.yml      # Complete stack deployment
 ├── nginx.conf              # Nginx configuration
 └── shell.nix               # Nix development environment
 ```
@@ -327,14 +338,12 @@ streamline-scheduler/
 
 ## Migration from Legacy Architecture
 
-If you're migrating from the old Supabase-based architecture:
+This project has evolved from a Supabase-based backend to a custom Rust backend for better privacy and control. The current architecture provides:
 
-1. **Backup your data** from Supabase
-2. **Deploy the new stack** using the Docker Compose setup
-3. **Create an account** in the new system
-4. **Import your data** (migration scripts coming soon)
-
-The new architecture provides better privacy with E2E encryption and more control over your data.
+- **Enhanced Privacy**: True end-to-end encryption with client-side key derivation
+- **Better Performance**: Custom Rust backend optimized for the specific use case
+- **Self-Hosting**: Complete control over your data and infrastructure
+- **Real-time Features**: Custom WebSocket implementation for instant synchronization
 
 ## Contributing
 
