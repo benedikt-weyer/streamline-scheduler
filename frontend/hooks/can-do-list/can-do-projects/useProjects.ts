@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
-import { Project } from '@/utils/can-do-list/can-do-list-types';
+import { ProjectDecrypted } from '@/utils/api/types';
 import { useProjectState } from './useProjectState';
 import { useProjectLoader } from './useProjectLoader';
 import { useProjectCRUD } from './useProjectCRUD';
 
 export interface ProjectHook {
-  projects: Project[];
+  projects: ProjectDecrypted[];
   isLoading: boolean;
-  loadProjects: () => Promise<Project[]>;
+  loadProjects: () => Promise<ProjectDecrypted[]>;
   handleAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
   handleUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   handleDeleteProject: (id: string) => Promise<boolean>;
