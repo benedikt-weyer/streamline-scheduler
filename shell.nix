@@ -68,6 +68,7 @@ pkgs.mkShell {
     echo "  test:fe       - Run frontend tests"
     echo "  migrate       - Run database migrations"
     echo "  logs          - Show logs from all services"
+    echo "  logs-follow   - Follow all logs in real-time"
     echo "  logs:be       - Show backend logs"
     echo "  logs:fe       - Show frontend logs"
     echo "  logs:db       - Show database logs"
@@ -313,6 +314,34 @@ pkgs.mkShell {
       docker logs streamline-db --tail 20 2>/dev/null || echo "No database logs found"
     }
 
+    # Define function to follow all logs in real-time
+    follow_all_logs() {
+      echo "📋 Following all logs in real-time... (Press Ctrl+C to stop)"
+      echo "=========================================="
+      
+      # Create named pipes for log output if they don't exist
+      mkdir -p /tmp/streamline-logs
+      
+      # Function to cleanup background processes
+      cleanup_follow() {
+        jobs -p | xargs -r kill 2>/dev/null
+        rm -rf /tmp/streamline-logs
+        echo ""
+        echo "✅ Stopped following logs"
+      }
+      
+      # Set up cleanup on exit
+      trap cleanup_follow INT TERM
+      
+      # Start following logs with prefixes
+      (tail -f /tmp/backend.log 2>/dev/null | sed 's/^/[BACKEND] /' &) 2>/dev/null
+      (tail -f /tmp/frontend.log 2>/dev/null | sed 's/^/[FRONTEND] /' &) 2>/dev/null
+      (docker logs streamline-db -f 2>/dev/null | sed 's/^/[DATABASE] /' &) 2>/dev/null
+      
+      # Wait for user to stop
+      wait
+    }
+
     # Set up cleanup on exit
     trap stop_all EXIT
 
@@ -336,6 +365,7 @@ pkgs.mkShell {
     alias test:fe='test_frontend'
     alias migrate='run_migrations'
     alias logs='show_logs'
+    alias logs-follow='follow_all_logs'
     alias logs:be='tail -f /tmp/backend.log'
     alias logs:fe='tail -f /tmp/frontend.log'
     alias logs:db='docker logs streamline-db -f'
@@ -376,7 +406,8 @@ pkgs.mkShell {
     echo "  - 'start:be' for backend only" 
     echo "  - 'start:fe' for frontend only"
     echo ""
-    echo "📋 Use 'logs' to see all logs or 'logs:be'/'logs:fe'/'logs:db' for specific services"
+    echo "📋 Use 'logs' to see all logs or 'logs-follow' to follow in real-time"
+    echo "    Individual logs: 'logs:be'/'logs:fe'/'logs:db'"
     echo ""
     echo "🔑 pgAdmin credentials (generated in .env file):"
     echo "  - Email: admin@streamline.com"
