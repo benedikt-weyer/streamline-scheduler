@@ -120,7 +120,7 @@ pkgs.mkShell {
     # Define function to start Rust backend
     start_backend() {
       echo "🦀 Starting Rust backend server..."
-      cd "$PROJECT_DIR/backend_new"
+      cd "$PROJECT_DIR/backend"
       
       # Create backend .env file from main .env file
       if [ ! -f ".env" ]; then
@@ -256,7 +256,7 @@ pkgs.mkShell {
     # Define function to build backend
     build_backend() {
       echo "🔨 Building Rust backend..."
-      cd "$PROJECT_DIR/backend_new"
+      cd "$PROJECT_DIR/backend"
       cargo build --release
       cd "$PROJECT_DIR"
       echo "✅ Backend build complete"
@@ -274,7 +274,7 @@ pkgs.mkShell {
     # Define function to run backend tests
     test_backend() {
       echo "🧪 Running Rust backend tests..."
-      cd "$PROJECT_DIR/backend_new"
+      cd "$PROJECT_DIR/backend"
       cargo test
       cd "$PROJECT_DIR"
     }
@@ -290,7 +290,7 @@ pkgs.mkShell {
     # Define function to run migrations
     run_migrations() {
       echo "🔄 Running database migrations..."
-      cd "$PROJECT_DIR/backend_new"
+      cd "$PROJECT_DIR/backend"
       cargo run --bin migrator
       cd "$PROJECT_DIR"
       echo "✅ Migrations complete"
@@ -348,9 +348,9 @@ pkgs.mkShell {
     fi
 
     # Check if Rust backend dependencies are ready
-    if [ -d "$PROJECT_DIR/backend_new" ]; then
+    if [ -d "$PROJECT_DIR/backend" ]; then
       echo "🦀 Checking Rust backend setup..."
-      cd "$PROJECT_DIR/backend_new"
+      cd "$PROJECT_DIR/backend"
       if [ ! -d "target" ]; then
         echo "Building Rust dependencies for the first time..."
         cargo build

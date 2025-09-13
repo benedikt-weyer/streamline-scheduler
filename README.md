@@ -49,7 +49,7 @@ Streamline Scheduler can be easily self-hosted on your own server or cloud provi
 2. **Set up environment variables**:
    ```bash
    # Create environment file for the backend
-   cp backend_new/env.example backend_new/.env
+   cp backend/env.example backend/.env
    
    # Create environment file for the frontend
    cp frontend_new/env.example frontend_new/.env
@@ -141,7 +141,7 @@ JWT_SECRET=your-super-secret-jwt-token-with-at-least-32-characters-long
    cd streamline-scheduler
    
    # Set up production environment
-   cp backend_new/env.example backend_new/.env.production
+   cp backend/env.example backend/.env.production
    cp frontend_new/env.example frontend_new/.env.production
    # Edit .env.production files with production settings
    
@@ -201,7 +201,7 @@ docker-compose pull
 docker-compose up -d
 
 # View logs
-docker-compose logs -f backend_new
+docker-compose logs -f backend
 docker-compose logs -f frontend
 ```
 
@@ -236,7 +236,7 @@ The project includes a comprehensive `shell.nix` file that sets up a complete de
    docker-compose up -d db
    
    # Start Rust backend (in one terminal)
-   cd backend_new
+   cd backend
    cargo run
    
    # Start SvelteKit frontend (in another terminal)
@@ -257,7 +257,7 @@ The project includes a comprehensive `shell.nix` file that sets up a complete de
 
 2. **Setup Backend**:
    ```bash
-   cd backend_new
+   cd backend
    
    # Set up environment
    cp env.example .env
@@ -301,7 +301,7 @@ streamline-scheduler/
 │   │   └── routes/         # SvelteKit routes
 │   ├── Dockerfile          # Frontend container
 │   └── package.json
-├── backend_new/             # Rust backend application
+├── backend/             # Rust backend application
 │   ├── src/
 │   │   ├── entities/       # Database entities (SeaORM)
 │   │   ├── handlers/       # API route handlers
