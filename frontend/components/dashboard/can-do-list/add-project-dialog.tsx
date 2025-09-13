@@ -23,7 +23,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
-import { Project } from '@/utils/can-do-list/can-do-list-types';
+import { ProjectDecrypted } from '@/utils/api/types';
 import { getAvailableParents } from '@/utils/can-do-list/project-hierarchy';
 
 // Predefined color options
@@ -54,7 +54,7 @@ interface AddProjectDialogProps {
   readonly onClose: () => void;
   readonly onSave: (name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly isLoading?: boolean;
-  readonly projects?: Project[];
+  readonly projects?: ProjectDecrypted[];
   readonly preselectedParentId?: string;
 }
 
@@ -85,7 +85,7 @@ export default function AddProjectDialog({
       // Find the parent project and use its color
       const parentProject = projects.find(p => p.id === preselectedParentId);
       if (parentProject) {
-        form.setValue('color', parentProject.color);
+        form.setValue('color', parentProject.color || PROJECT_COLORS[0]);
       }
     } else {
       form.setValue('parentId', undefined);
@@ -228,7 +228,7 @@ export default function AddProjectDialog({
                           if (parentId) {
                             const parentProject = projects.find(p => p.id === parentId);
                             if (parentProject) {
-                              form.setValue('color', parentProject.color);
+                              form.setValue('color', parentProject.color || PROJECT_COLORS[0]);
                             }
                           } else {
                             // Reset to default color when no parent is selected

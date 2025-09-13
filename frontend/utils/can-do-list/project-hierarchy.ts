@@ -1,10 +1,10 @@
-import { Project } from './can-do-list-types';
+import { ProjectDecrypted } from '@/utils/api/types';
 
 /**
  * Utility functions for working with hierarchical projects
  */
 
-export interface ProjectNode extends Project {
+export interface ProjectNode extends ProjectDecrypted {
   children: ProjectNode[];
   level: number;
 }
@@ -12,7 +12,7 @@ export interface ProjectNode extends Project {
 /**
  * Build a hierarchical tree structure from flat project list
  */
-export function buildProjectTree(projects: Project[]): ProjectNode[] {
+export function buildProjectTree(projects: ProjectDecrypted[]): ProjectNode[] {
   if (!projects || !Array.isArray(projects)) {
     return [];
   }
@@ -33,8 +33,8 @@ export function buildProjectTree(projects: Project[]): ProjectNode[] {
   projects.forEach(project => {
     const projectNode = projectMap.get(project.id)!;
     
-    if (project.parentId) {
-      const parent = projectMap.get(project.parentId);
+    if (project.parent_id) {
+      const parent = projectMap.get(project.parent_id);
       if (parent) {
         projectNode.level = parent.level + 1;
         parent.children.push(projectNode);
@@ -48,9 +48,9 @@ export function buildProjectTree(projects: Project[]): ProjectNode[] {
     }
   });
 
-  // Sort children recursively by displayOrder
+  // Sort children recursively by order
   const sortProjects = (nodes: ProjectNode[]) => {
-    nodes.sort((a, b) => a.displayOrder - b.displayOrder);
+    nodes.sort((a, b) => a.order - b.order);
     nodes.forEach(node => sortProjects(node.children));
   };
 
@@ -78,20 +78,20 @@ export function flattenProjectTree(tree: ProjectNode[]): ProjectNode[] {
 /**
  * Get all parent projects for a given project
  */
-export function getProjectPath(projectId: string, projects: Project[]): Project[] {
+export function getProjectPath(projectId: string, projects: ProjectDecrypted[]): ProjectDecrypted[] {
   if (!projects || !Array.isArray(projects)) {
     return [];
   }
   
-  const projectMap = new Map<string, Project>();
+  const projectMap = new Map<string, ProjectDecrypted>();
   projects.forEach(p => projectMap.set(p.id, p));
   
-  const path: Project[] = [];
+  const path: ProjectDecrypted[] = [];
   let currentProject = projectMap.get(projectId);
   
   while (currentProject) {
     path.unshift(currentProject);
-    currentProject = currentProject.parentId ? projectMap.get(currentProject.parentId) : undefined;
+    currentProject = currentProject.parent_id ? projectMap.get(currentProject.parent_id) : undefined;
   }
   
   return path;
@@ -100,13 +100,13 @@ export function getProjectPath(projectId: string, projects: Project[]): Project[
 /**
  * Get all descendant projects for a given project
  */
-export function getProjectDescendants(projectId: string, projects: Project[]): Project[] {
+export function getProjectDescendants(projectId: string, projects: ProjectDecrypted[]): ProjectDecrypted[] {
   if (!projects || !Array.isArray(projects)) {
     return [];
   }
   
-  const descendants: Project[] = [];
-  const children = projects.filter(p => p.parentId === projectId);
+  const descendants: ProjectDecrypted[] = [];
+  const children = projects.filter(p => p.parent_id === projectId);
   
   children.forEach(child => {
     descendants.push(child);
@@ -119,7 +119,7 @@ export function getProjectDescendants(projectId: string, projects: Project[]): P
 /**
  * Check if a project can be moved to a new parent (prevents circular references)
  */
-export function canMoveProject(projectId: string, newParentId: string | undefined, projects: Project[]): boolean {
+export function canMoveProject(projectId: string, newParentId: string | undefined, projects: ProjectDecrypted[]): boolean {
   if (!projects || !Array.isArray(projects)) {
     return true;
   }
@@ -135,9 +135,9 @@ export function canMoveProject(projectId: string, newParentId: string | undefine
  * Get available parent options for a project (excludes self and descendants)
  * Overloaded to handle both new projects and existing projects
  */
-export function getAvailableParents(projects: Project[]): Project[];
-export function getAvailableParents(projectId: string, projects: Project[]): Project[];
-export function getAvailableParents(projectIdOrProjects: string | Project[], projects?: Project[]): Project[] {
+export function getAvailableParents(projects: ProjectDecrypted[]): ProjectDecrypted[];
+export function getAvailableParents(projectId: string, projects: ProjectDecrypted[]): ProjectDecrypted[];
+export function getAvailableParents(projectIdOrProjects: string | ProjectDecrypted[], projects?: ProjectDecrypted[]): ProjectDecrypted[] {
   // Handle overload: if first param is array, it's for new projects
   if (Array.isArray(projectIdOrProjects)) {
     return projectIdOrProjects || [];

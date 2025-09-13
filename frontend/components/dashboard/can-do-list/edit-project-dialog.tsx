@@ -32,7 +32,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
-import { Project } from '@/utils/can-do-list/can-do-list-types';
+import { ProjectDecrypted } from '@/utils/api/types';
 import { getAvailableParents, canMoveProject } from '@/utils/can-do-list/project-hierarchy';
 import { Trash2 } from 'lucide-react';
 
@@ -60,13 +60,13 @@ const editProjectSchema = z.object({
 type EditProjectFormValues = z.infer<typeof editProjectSchema>;
 
 interface EditProjectDialogProps {
-  readonly project: Project | null;
+  readonly project: ProjectDecrypted | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly onSave: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   readonly onDelete: (id: string) => Promise<boolean>;
   readonly isLoading?: boolean;
-  readonly projects?: Project[];
+  readonly projects?: ProjectDecrypted[];
 }
 
 export default function EditProjectDialog({
@@ -96,8 +96,8 @@ export default function EditProjectDialog({
     if (project) {
       form.reset({
         name: project.name,
-        color: project.color,
-        parentId: project.parentId
+        color: project.color || PROJECT_COLORS[0],
+        parentId: project.parent_id
       });
     }
   }, [project, form]);
