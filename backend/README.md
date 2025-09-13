@@ -6,7 +6,7 @@ A high-performance Rust backend for the Streamline Scheduler application, built 
 
 - 🚀 **High Performance**: Built with Rust and Axum for maximum performance
 - 🗃️ **SeaORM**: Modern async ORM with type-safe database operations
-- 🔐 **JWT Authentication**: Supabase-compatible authentication system
+- 🔐 **JWT Authentication**: Custom JWT authentication system
 - 🔒 **End-to-End Encryption**: Backend stores encrypted data from frontend
 - ⚡ **Real-time Updates**: WebSocket support for live data synchronization
 - 🛡️ **Row Level Security**: Application-level RLS implementation
@@ -105,9 +105,9 @@ A high-performance Rust backend for the Streamline Scheduler application, built 
 
 The backend uses SeaORM for database operations with the following tables:
 
-### auth.users
+### users
 - User authentication and profile data
-- Compatible with Supabase auth schema
+- Custom authentication schema
 
 ### projects
 - Hierarchical project structure
@@ -159,13 +159,13 @@ RUST_LOG=info
 
 - **Axum Router**: High-performance web framework
 - **SeaORM**: Type-safe database operations with migrations
-- **JWT Authentication**: Supabase-compatible token system
+- **JWT Authentication**: Custom JWT token system
 - **WebSocket Manager**: Real-time data synchronization
 - **Middleware Stack**: Authentication, CORS, logging
 
 ## Security Features
 
-- JWT-based authentication compatible with Supabase
+- JWT-based authentication with custom token validation
 - Application-level Row Level Security (RLS)
 - CORS protection
 - Input validation and sanitization

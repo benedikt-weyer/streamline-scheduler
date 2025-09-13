@@ -18,8 +18,8 @@ pub struct Claims {
     pub email: String,
     pub exp: i64,     // Expiration time
     pub iat: i64,     // Issued at
-    pub aud: String,  // Audience - should match Supabase
-    pub iss: String,  // Issuer - should match Supabase
+    pub aud: String,  // Audience
+    pub iss: String,  // Issuer
 }
 
 #[derive(Clone)]
@@ -132,8 +132,8 @@ impl AuthService {
             email: user.email.clone(),
             exp: expiry.timestamp(),
             iat: now.timestamp(),
-            aud: "authenticated".to_string(),  // Supabase audience
-            iss: "supabase".to_string(),       // Supabase issuer
+            aud: "streamline-scheduler".to_string(),
+            iss: "streamline-scheduler".to_string(),
         };
 
         let token = encode(
@@ -147,8 +147,8 @@ impl AuthService {
 
     fn verify_token(&self, token: &str) -> Result<Claims> {
         let mut validation = Validation::new(Algorithm::HS256);
-        validation.set_audience(&["authenticated"]);
-        validation.set_issuer(&["supabase"]);
+        validation.set_audience(&["streamline-scheduler"]);
+        validation.set_issuer(&["streamline-scheduler"]);
 
         let token_data = decode::<Claims>(
             token,
