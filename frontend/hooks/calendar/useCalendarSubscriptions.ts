@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getBackend } from '@/utils/api/backend-interface';
-import { RealtimeSubscription, RealtimeMessage, Calendar, CalendarEvent } from '@/utils/api/types';
+import { RealtimeSubscription, RealtimeMessage, CalendarEncrypted, CalendarEventEncrypted } from '@/utils/api/types';
 
 export function useCalendarSubscriptions(
   encryptionKey: string | null,
@@ -24,7 +24,7 @@ export function useCalendarSubscriptions(
         const backend = getBackend();
 
         // Subscribe to calendars changes
-        calendarUnsubscribe = backend.calendars.subscribe(async (message: RealtimeMessage<Calendar>) => {
+        calendarUnsubscribe = backend.calendars.subscribe(async (message: RealtimeMessage<CalendarEncrypted>) => {
           // console.log('Calendar change detected:', message.event_type);
           
           // Reload calendars when a change is detected
@@ -36,7 +36,7 @@ export function useCalendarSubscriptions(
         });
 
         // Subscribe to calendar_events changes
-        eventUnsubscribe = backend.calendarEvents.subscribe(async (message: RealtimeMessage<CalendarEvent>) => {
+        eventUnsubscribe = backend.calendarEvents.subscribe(async (message: RealtimeMessage<CalendarEventEncrypted>) => {
           // console.log('Calendar event change detected:', message.event_type);
           
           // Skip reload if we're in the middle of a drag operation

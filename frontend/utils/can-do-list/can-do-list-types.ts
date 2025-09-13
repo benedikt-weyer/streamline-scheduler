@@ -1,7 +1,7 @@
-export interface Task {
-  id: string;
-  content: string;
-  completed: boolean;
+import { CanDoItemDecrypted, CanDoItemEncrypted, ProjectDecrypted, ProjectEncrypted } from '@/utils/api/types';
+
+// Domain-specific extensions for tasks and projects
+export interface Task extends Omit<CanDoItemDecrypted, 'created_at' | 'updated_at' | 'project_id' | 'display_order'> {
   createdAt: Date;
   updatedAt?: Date;
   estimatedDuration?: number; // in minutes
@@ -14,41 +14,16 @@ export interface Task {
   myDay?: boolean; // whether the task is added to My Day
 }
 
-export interface EncryptedTask {
-  id: string;
-  user_id: string;
-  encrypted_data: string;
-  iv: string;
-  salt: string;
-  created_at: string;
-  updated_at: string;
-  project_id?: string; // Reference to project
-  display_order: number;
-}
-
-export interface Project {
-  id: string;
-  name: string;
-  color: string;
+export interface Project extends Omit<ProjectDecrypted, 'created_at' | 'updated_at' | 'parent_id' | 'collapsed'> {
   parentId?: string;
-  displayOrder: number;
   isCollapsed: boolean;
   createdAt: Date;
   updatedAt?: Date;
 }
 
-export interface EncryptedProject {
-  id: string;
-  user_id: string;
-  encrypted_data: string;
-  iv: string;
-  salt: string;
-  created_at: string;
-  updated_at: string;
-  parent_id?: string;
-  display_order: number;
-  is_collapsed: boolean;
-}
+// Re-export encrypted types for convenience
+export type EncryptedTask = CanDoItemEncrypted;
+export type EncryptedProject = ProjectEncrypted;
 
 export interface CanDoList {
   tasks: Task[];

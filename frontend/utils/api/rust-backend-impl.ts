@@ -12,16 +12,20 @@ import {
   SignInRequest,
   ResetPasswordRequest,
   UpdatePasswordRequest,
-  CanDoItem,
+  CanDoItemDecrypted,
+  CanDoItemEncrypted,
   CreateCanDoItemRequest,
   UpdateCanDoItemRequest,
-  Project,
+  ProjectDecrypted,
+  ProjectEncrypted,
   CreateProjectRequest,
   UpdateProjectRequest,
-  Calendar,
+  CalendarDecrypted,
+  CalendarEncrypted,
   CreateCalendarRequest,
   UpdateCalendarRequest,
-  CalendarEvent,
+  CalendarEventDecrypted,
+  CalendarEventEncrypted,
   CreateCalendarEventRequest,
   UpdateCalendarEventRequest,
   RealtimeMessage,
@@ -492,32 +496,32 @@ class RustBackendImpl implements BackendInterface {
 
   // Can-do list methods
   canDoList = {
-    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CanDoItem>> => {
+    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CanDoItemDecrypted>> => {
       const params = new URLSearchParams();
       if (options?.limit) params.append('limit', options.limit.toString());
       if (options?.offset) params.append('offset', options.offset.toString());
       
-      return this.makeRequest<PaginatedResponse<CanDoItem>>(`/api/can-do-list?${params}`);
+      return this.makeRequest<PaginatedResponse<CanDoItemDecrypted>>(`/api/can-do-list?${params}`);
     },
 
     // Alias for getAll to match the expected interface
-    list: async (options?: QueryOptions): Promise<PaginatedResponse<CanDoItem>> => {
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<CanDoItemDecrypted>> => {
       return this.canDoList.getAll(options);
     },
 
-    getById: async (id: string): Promise<ApiResponse<CanDoItem>> => {
-      return this.makeRequest<ApiResponse<CanDoItem>>(`/api/can-do-list/${id}`);
+    getById: async (id: string): Promise<ApiResponse<CanDoItemDecrypted>> => {
+      return this.makeRequest<ApiResponse<CanDoItemDecrypted>>(`/api/can-do-list/${id}`);
     },
 
-    create: async (request: CreateCanDoItemRequest): Promise<ApiResponse<CanDoItem>> => {
-      return this.makeRequest<ApiResponse<CanDoItem>>('/api/can-do-list', {
+    create: async (request: CreateCanDoItemRequest): Promise<ApiResponse<CanDoItemDecrypted>> => {
+      return this.makeRequest<ApiResponse<CanDoItemDecrypted>>('/api/can-do-list', {
         method: 'POST',
         body: JSON.stringify(request),
       });
     },
 
-    update: async (request: UpdateCanDoItemRequest): Promise<ApiResponse<CanDoItem>> => {
-      return this.makeRequest<ApiResponse<CanDoItem>>(`/api/can-do-list/${request.id}`, {
+    update: async (request: UpdateCanDoItemRequest): Promise<ApiResponse<CanDoItemDecrypted>> => {
+      return this.makeRequest<ApiResponse<CanDoItemDecrypted>>(`/api/can-do-list/${request.id}`, {
         method: 'PUT',
         body: JSON.stringify(request),
       });
@@ -534,40 +538,40 @@ class RustBackendImpl implements BackendInterface {
       }
     },
 
-    subscribe: (callback: (payload: RealtimeMessage<CanDoItem>) => void): RealtimeSubscription => {
+    subscribe: (callback: (payload: RealtimeMessage<CanDoItemEncrypted>) => void): RealtimeSubscription => {
       return this.subscribe('can_do_list', callback);
     }
   };
 
   // Project methods
   projects = {
-    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<Project>> => {
+    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<ProjectDecrypted>> => {
       const params = new URLSearchParams();
       if (options?.limit) params.append('limit', options.limit.toString());
       if (options?.offset) params.append('offset', options.offset.toString());
       if (options?.all) params.append('all', 'true');
       
-      return this.makeRequest<PaginatedResponse<Project>>(`/api/projects?${params}`);
+      return this.makeRequest<PaginatedResponse<ProjectDecrypted>>(`/api/projects?${params}`);
     },
 
     // Alias for getAll to match the expected interface
-    list: async (options?: QueryOptions): Promise<PaginatedResponse<Project>> => {
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<ProjectDecrypted>> => {
       return this.projects.getAll(options);
     },
 
-    getById: async (id: string): Promise<ApiResponse<Project>> => {
-      return this.makeRequest<ApiResponse<Project>>(`/api/projects/${id}`);
+    getById: async (id: string): Promise<ApiResponse<ProjectDecrypted>> => {
+      return this.makeRequest<ApiResponse<ProjectDecrypted>>(`/api/projects/${id}`);
     },
 
-    create: async (request: CreateProjectRequest): Promise<ApiResponse<Project>> => {
-      return this.makeRequest<ApiResponse<Project>>('/api/projects', {
+    create: async (request: CreateProjectRequest): Promise<ApiResponse<ProjectDecrypted>> => {
+      return this.makeRequest<ApiResponse<ProjectDecrypted>>('/api/projects', {
         method: 'POST',
         body: JSON.stringify(request),
       });
     },
 
-    update: async (request: UpdateProjectRequest): Promise<ApiResponse<Project>> => {
-      return this.makeRequest<ApiResponse<Project>>(`/api/projects/${request.id}`, {
+    update: async (request: UpdateProjectRequest): Promise<ApiResponse<ProjectDecrypted>> => {
+      return this.makeRequest<ApiResponse<ProjectDecrypted>>(`/api/projects/${request.id}`, {
         method: 'PUT',
         body: JSON.stringify(request),
       });
@@ -584,39 +588,39 @@ class RustBackendImpl implements BackendInterface {
       }
     },
 
-    subscribe: (callback: (payload: RealtimeMessage<Project>) => void): RealtimeSubscription => {
+    subscribe: (callback: (payload: RealtimeMessage<ProjectEncrypted>) => void): RealtimeSubscription => {
       return this.subscribe('projects', callback);
     }
   };
 
   // Calendar methods
   calendars = {
-    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<Calendar>> => {
+    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarDecrypted>> => {
       const params = new URLSearchParams();
       if (options?.limit) params.append('limit', options.limit.toString());
       if (options?.offset) params.append('offset', options.offset.toString());
       
-      return this.makeRequest<PaginatedResponse<Calendar>>(`/api/calendars?${params}`);
+      return this.makeRequest<PaginatedResponse<CalendarDecrypted>>(`/api/calendars?${params}`);
     },
 
     // Alias for getAll to match the expected interface
-    list: async (options?: QueryOptions): Promise<PaginatedResponse<Calendar>> => {
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarDecrypted>> => {
       return this.calendars.getAll(options);
     },
 
-    getById: async (id: string): Promise<ApiResponse<Calendar>> => {
-      return this.makeRequest<ApiResponse<Calendar>>(`/api/calendars/${id}`);
+    getById: async (id: string): Promise<ApiResponse<CalendarDecrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarDecrypted>>(`/api/calendars/${id}`);
     },
 
-    create: async (request: CreateCalendarRequest): Promise<ApiResponse<Calendar>> => {
-      return this.makeRequest<ApiResponse<Calendar>>('/api/calendars', {
+    create: async (request: CreateCalendarRequest): Promise<ApiResponse<CalendarDecrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarDecrypted>>('/api/calendars', {
         method: 'POST',
         body: JSON.stringify(request),
       });
     },
 
-    update: async (request: UpdateCalendarRequest): Promise<ApiResponse<Calendar>> => {
-      return this.makeRequest<ApiResponse<Calendar>>(`/api/calendars/${request.id}`, {
+    update: async (request: UpdateCalendarRequest): Promise<ApiResponse<CalendarDecrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarDecrypted>>(`/api/calendars/${request.id}`, {
         method: 'PUT',
         body: JSON.stringify(request),
       });
@@ -633,23 +637,23 @@ class RustBackendImpl implements BackendInterface {
       }
     },
 
-    subscribe: (callback: (payload: RealtimeMessage<Calendar>) => void): RealtimeSubscription => {
+    subscribe: (callback: (payload: RealtimeMessage<CalendarEncrypted>) => void): RealtimeSubscription => {
       return this.subscribe('calendars', callback);
     }
   };
 
   // Calendar event methods
   calendarEvents = {
-    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEvent>> => {
+    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEventDecrypted>> => {
       const params = new URLSearchParams();
       if (options?.limit) params.append('limit', options.limit.toString());
       if (options?.offset) params.append('offset', options.offset.toString());
       
-      return this.makeRequest<PaginatedResponse<CalendarEvent>>(`/api/calendar-events?${params}`);
+      return this.makeRequest<PaginatedResponse<CalendarEventDecrypted>>(`/api/calendar-events?${params}`);
     },
 
     // Alias for getAll to match the expected interface
-    list: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEvent>> => {
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEventDecrypted>> => {
       return this.calendarEvents.getAll(options);
     },
 
@@ -657,7 +661,7 @@ class RustBackendImpl implements BackendInterface {
       startDate: string,
       endDate: string,
       calendarIds?: string[]
-    ): Promise<PaginatedResponse<CalendarEvent>> => {
+    ): Promise<PaginatedResponse<CalendarEventDecrypted>> => {
       const params = new URLSearchParams();
       params.append('start_date', startDate);
       params.append('end_date', endDate);
@@ -665,22 +669,22 @@ class RustBackendImpl implements BackendInterface {
         params.append('calendar_ids', calendarIds.join(','));
       }
       
-      return this.makeRequest<PaginatedResponse<CalendarEvent>>(`/api/calendar-events/range?${params}`);
+      return this.makeRequest<PaginatedResponse<CalendarEventDecrypted>>(`/api/calendar-events/range?${params}`);
     },
 
-    getById: async (id: string): Promise<ApiResponse<CalendarEvent>> => {
-      return this.makeRequest<ApiResponse<CalendarEvent>>(`/api/calendar-events/${id}`);
+    getById: async (id: string): Promise<ApiResponse<CalendarEventDecrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarEventDecrypted>>(`/api/calendar-events/${id}`);
     },
 
-    create: async (request: CreateCalendarEventRequest): Promise<ApiResponse<CalendarEvent>> => {
-      return this.makeRequest<ApiResponse<CalendarEvent>>('/api/calendar-events', {
+    create: async (request: CreateCalendarEventRequest): Promise<ApiResponse<CalendarEventDecrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarEventDecrypted>>('/api/calendar-events', {
         method: 'POST',
         body: JSON.stringify(request),
       });
     },
 
-    update: async (request: UpdateCalendarEventRequest): Promise<ApiResponse<CalendarEvent>> => {
-      return this.makeRequest<ApiResponse<CalendarEvent>>(`/api/calendar-events/${request.id}`, {
+    update: async (request: UpdateCalendarEventRequest): Promise<ApiResponse<CalendarEventDecrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarEventDecrypted>>(`/api/calendar-events/${request.id}`, {
         method: 'PUT',
         body: JSON.stringify(request),
       });
@@ -697,7 +701,7 @@ class RustBackendImpl implements BackendInterface {
       }
     },
 
-    subscribe: (callback: (payload: RealtimeMessage<CalendarEvent>) => void): RealtimeSubscription => {
+    subscribe: (callback: (payload: RealtimeMessage<CalendarEventEncrypted>) => void): RealtimeSubscription => {
       return this.subscribe('calendar_events', callback);
     }
   };
@@ -739,9 +743,6 @@ class RustBackendImpl implements BackendInterface {
       if (data.data?.projects) {
         for (const project of data.data.projects) {
           await this.projects.create({
-            name: project.name || 'Imported Project',
-            description: project.description,
-            color: project.color,
             encrypted_data: project.encrypted_data,
             iv: project.iv,
             salt: project.salt,
@@ -756,16 +757,11 @@ class RustBackendImpl implements BackendInterface {
       if (data.data?.can_do_list) {
         for (const task of data.data.can_do_list) {
           await this.canDoList.create({
-            content: task.content || 'Imported Task',
-            due_date: task.due_date,
-            priority: task.priority,
-            tags: task.tags,
-            duration_minutes: task.duration_minutes,
             encrypted_data: task.encrypted_data,
             iv: task.iv,
             salt: task.salt,
             project_id: task.project_id,
-            order: task.display_order || task.order || 0,
+            display_order: task.display_order || task.order || 0,
           });
         }
       }
@@ -778,13 +774,6 @@ class RustBackendImpl implements BackendInterface {
             iv: calendar.iv || 'placeholder_iv',
             salt: calendar.salt || 'placeholder_salt',
             is_default: calendar.is_default || false,
-            // Backward compatibility fields
-            name: calendar.name || 'Imported Calendar',
-            color: calendar.color || '#3b82f6',
-            is_visible: calendar.is_visible !== false,
-            type: calendar.type || 'regular',
-            ics_url: calendar.ics_url || calendar.icsUrl,
-            last_sync: calendar.last_sync || calendar.lastSync,
           });
         }
       }
@@ -793,14 +782,6 @@ class RustBackendImpl implements BackendInterface {
       if (data.data?.calendar_events) {
         for (const event of data.data.calendar_events) {
           await this.calendarEvents.create({
-            title: event.title || 'Imported Event',
-            description: event.description,
-            start_time: event.start_time || new Date().toISOString(),
-            end_time: event.end_time || new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-            all_day: event.all_day || false,
-            calendar_id: event.calendar_id,
-            recurrence_rule: event.recurrence_rule,
-            recurrence_exception: event.recurrence_exception,
             encrypted_data: event.encrypted_data,
             iv: event.iv,
             salt: event.salt,

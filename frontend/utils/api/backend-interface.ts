@@ -12,16 +12,20 @@ import {
   SignInRequest,
   ResetPasswordRequest,
   UpdatePasswordRequest,
-  CanDoItem,
+  CanDoItemDecrypted,
+  CanDoItemEncrypted,
   CreateCanDoItemRequest,
   UpdateCanDoItemRequest,
-  Project,
+  ProjectDecrypted,
+  ProjectEncrypted,
   CreateProjectRequest,
   UpdateProjectRequest,
-  Calendar,
+  CalendarDecrypted,
+  CalendarEncrypted,
   CreateCalendarRequest,
   UpdateCalendarRequest,
-  CalendarEvent,
+  CalendarEventDecrypted,
+  CalendarEventEncrypted,
   CreateCalendarEventRequest,
   UpdateCalendarEventRequest,
   RealtimeMessage,
@@ -82,22 +86,22 @@ export interface BackendInterface {
     /**
      * Get all can-do items for the current user
      */
-    getAll(options?: QueryOptions): Promise<PaginatedResponse<CanDoItem>>;
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<CanDoItemDecrypted>>;
 
     /**
      * Get a single can-do item by ID
      */
-    getById(id: string): Promise<ApiResponse<CanDoItem>>;
+    getById(id: string): Promise<ApiResponse<CanDoItemDecrypted>>;
 
     /**
      * Create a new can-do item
      */
-    create(request: CreateCanDoItemRequest): Promise<ApiResponse<CanDoItem>>;
+    create(request: CreateCanDoItemRequest): Promise<ApiResponse<CanDoItemDecrypted>>;
 
     /**
      * Update an existing can-do item
      */
-    update(request: UpdateCanDoItemRequest): Promise<ApiResponse<CanDoItem>>;
+    update(request: UpdateCanDoItemRequest): Promise<ApiResponse<CanDoItemDecrypted>>;
 
     /**
      * Delete a can-do item
@@ -107,7 +111,7 @@ export interface BackendInterface {
     /**
      * Subscribe to real-time changes for can-do items
      */
-    subscribe(callback: (payload: RealtimeMessage<CanDoItem>) => void): RealtimeSubscription;
+    subscribe(callback: (payload: RealtimeMessage<CanDoItemEncrypted>) => void): RealtimeSubscription;
   };
 
   // Project methods
@@ -115,22 +119,22 @@ export interface BackendInterface {
     /**
      * Get all projects for the current user
      */
-    getAll(options?: QueryOptions): Promise<PaginatedResponse<Project>>;
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<ProjectDecrypted>>;
 
     /**
      * Get a single project by ID
      */
-    getById(id: string): Promise<ApiResponse<Project>>;
+    getById(id: string): Promise<ApiResponse<ProjectDecrypted>>;
 
     /**
      * Create a new project
      */
-    create(request: CreateProjectRequest): Promise<ApiResponse<Project>>;
+    create(request: CreateProjectRequest): Promise<ApiResponse<ProjectDecrypted>>;
 
     /**
      * Update an existing project
      */
-    update(request: UpdateProjectRequest): Promise<ApiResponse<Project>>;
+    update(request: UpdateProjectRequest): Promise<ApiResponse<ProjectDecrypted>>;
 
     /**
      * Delete a project
@@ -140,7 +144,7 @@ export interface BackendInterface {
     /**
      * Subscribe to real-time changes for projects
      */
-    subscribe(callback: (payload: RealtimeMessage<Project>) => void): RealtimeSubscription;
+    subscribe(callback: (payload: RealtimeMessage<ProjectEncrypted>) => void): RealtimeSubscription;
   };
 
   // Calendar methods
@@ -148,22 +152,22 @@ export interface BackendInterface {
     /**
      * Get all calendars for the current user
      */
-    getAll(options?: QueryOptions): Promise<PaginatedResponse<Calendar>>;
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<CalendarDecrypted>>;
 
     /**
      * Get a single calendar by ID
      */
-    getById(id: string): Promise<ApiResponse<Calendar>>;
+    getById(id: string): Promise<ApiResponse<CalendarDecrypted>>;
 
     /**
      * Create a new calendar
      */
-    create(request: CreateCalendarRequest): Promise<ApiResponse<Calendar>>;
+    create(request: CreateCalendarRequest): Promise<ApiResponse<CalendarDecrypted>>;
 
     /**
      * Update an existing calendar
      */
-    update(request: UpdateCalendarRequest): Promise<ApiResponse<Calendar>>;
+    update(request: UpdateCalendarRequest): Promise<ApiResponse<CalendarDecrypted>>;
 
     /**
      * Delete a calendar
@@ -173,7 +177,7 @@ export interface BackendInterface {
     /**
      * Subscribe to real-time changes for calendars
      */
-    subscribe(callback: (payload: RealtimeMessage<Calendar>) => void): RealtimeSubscription;
+    subscribe(callback: (payload: RealtimeMessage<CalendarEncrypted>) => void): RealtimeSubscription;
   };
 
   // Calendar event methods
@@ -181,7 +185,7 @@ export interface BackendInterface {
     /**
      * Get all calendar events for the current user
      */
-    getAll(options?: QueryOptions): Promise<PaginatedResponse<CalendarEvent>>;
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<CalendarEventDecrypted>>;
 
     /**
      * Get calendar events within a date range
@@ -190,22 +194,22 @@ export interface BackendInterface {
       startDate: string,
       endDate: string,
       calendarIds?: string[]
-    ): Promise<PaginatedResponse<CalendarEvent>>;
+    ): Promise<PaginatedResponse<CalendarEventDecrypted>>;
 
     /**
      * Get a single calendar event by ID
      */
-    getById(id: string): Promise<ApiResponse<CalendarEvent>>;
+    getById(id: string): Promise<ApiResponse<CalendarEventDecrypted>>;
 
     /**
      * Create a new calendar event
      */
-    create(request: CreateCalendarEventRequest): Promise<ApiResponse<CalendarEvent>>;
+    create(request: CreateCalendarEventRequest): Promise<ApiResponse<CalendarEventDecrypted>>;
 
     /**
      * Update an existing calendar event
      */
-    update(request: UpdateCalendarEventRequest): Promise<ApiResponse<CalendarEvent>>;
+    update(request: UpdateCalendarEventRequest): Promise<ApiResponse<CalendarEventDecrypted>>;
 
     /**
      * Delete a calendar event
@@ -215,7 +219,7 @@ export interface BackendInterface {
     /**
      * Subscribe to real-time changes for calendar events
      */
-    subscribe(callback: (payload: RealtimeMessage<CalendarEvent>) => void): RealtimeSubscription;
+    subscribe(callback: (payload: RealtimeMessage<CalendarEventEncrypted>) => void): RealtimeSubscription;
   };
 
   // Data import/export methods

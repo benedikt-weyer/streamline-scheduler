@@ -1,3 +1,5 @@
+import { CalendarDecrypted, CalendarEncrypted, CalendarEventDecrypted, CalendarEventEncrypted } from '@/utils/api/types';
+
 // Define recurring event frequency options
 export enum RecurrenceFrequency {
   None = 'none',
@@ -14,10 +16,7 @@ export enum CalendarType {
   ICS = 'ics'
 }
 
-export interface Calendar {
-  id: string;
-  name: string;
-  color: string;
+export interface Calendar extends Omit<CalendarDecrypted, 'created_at' | 'updated_at' | 'is_visible' | 'is_default' | 'ics_url' | 'last_sync'> {
   isVisible: boolean;
   isDefault: boolean;
   type: CalendarType;
@@ -27,16 +26,8 @@ export interface Calendar {
   updatedAt?: Date;
 }
 
-export interface EncryptedCalendar {
-  id: string;
-  user_id: string;
-  encrypted_data: string;
-  iv: string;
-  salt: string;
-  is_default: boolean;
-  created_at: string;
-  updated_at: string;
-}
+// Re-export encrypted type for convenience
+export type EncryptedCalendar = CalendarEncrypted;
 
 export interface RecurrencePattern {
   frequency: RecurrenceFrequency;
@@ -45,11 +36,7 @@ export interface RecurrencePattern {
   daysOfWeek?: number[]; // For weekly/monthly recurrence (0 = Sunday, 6 = Saturday)
 }
 
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  description?: string;
-  location?: string;
+export interface CalendarEvent extends Omit<CalendarEventDecrypted, 'created_at' | 'updated_at' | 'start_time' | 'end_time' | 'all_day' | 'calendar_id'> {
   startTime: Date;
   endTime: Date;
   isAllDay?: boolean; // New property for all-day events
@@ -62,15 +49,8 @@ export interface CalendarEvent {
   clickedOccurrenceDate?: Date; // The start date of a specific occurrence that was interacted with
 }
 
-export interface EncryptedCalendarEvent {
-  id: string;
-  user_id: string;
-  encrypted_data: string;
-  iv: string;
-  salt: string;
-  created_at: string;
-  updated_at: string;
-}
+// Re-export encrypted type for convenience
+export type EncryptedCalendarEvent = CalendarEventEncrypted;
 
 export interface EventFormValues {
   id?: string;
