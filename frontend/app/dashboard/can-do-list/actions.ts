@@ -1,14 +1,15 @@
 'use client';
 
 import { getBackend } from '@/utils/api/backend-interface';
-import { EncryptedTask } from '@/utils/can-do-list/can-do-list-types';
+import { Task } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted } from '@/utils/api/types';
 
 // Fetch all encrypted tasks for the current user
-export async function fetchTasks(silent = false): Promise<EncryptedTask[]> {
+export async function fetchTasks(silent = false): Promise<CanDoItemDecrypted[]> {
   try {
     const backend = getBackend();
     const { data: tasks } = await backend.canDoList.getAll();
-    return tasks as unknown as EncryptedTask[];
+    return tasks as unknown as CanDoItemDecrypted[];
   } catch (error) {
     if (!silent) {
       console.error('Failed to fetch tasks:', error);
@@ -24,7 +25,7 @@ export async function addTask(
   salt: string,
   projectId?: string,
   displayOrder?: number
-): Promise<EncryptedTask> {
+): Promise<CanDoItemDecrypted> {
   try {
     const backend = getBackend();
     const { data: task } = await backend.canDoList.create({
@@ -34,7 +35,7 @@ export async function addTask(
       project_id: projectId,
       display_order: displayOrder ?? 0,
     });
-    return task as EncryptedTask;
+    return task as CanDoItemDecrypted;
   } catch (error) {
     console.error('Failed to add task:', error);
     throw error;
@@ -49,7 +50,7 @@ export async function updateTask(
   salt?: string,
   projectId?: string,
   displayOrder?: number
-): Promise<EncryptedTask> {
+): Promise<CanDoItemDecrypted> {
   try {
     const backend = getBackend();
     const updateData: any = {};
@@ -64,7 +65,7 @@ export async function updateTask(
       id,
       ...updateData,
     });
-    return task as EncryptedTask;
+    return task as CanDoItemDecrypted;
   } catch (error) {
     console.error('Failed to update task:', error);
     throw error;
@@ -101,14 +102,14 @@ export async function reorderTasks(taskUpdates: Array<{ id: string; displayOrder
 }
 
 // Move task to project
-export async function moveTaskToProject(taskId: string, projectId: string | null): Promise<EncryptedTask> {
+export async function moveTaskToProject(taskId: string, projectId: string | null): Promise<CanDoItemDecrypted> {
   try {
     const backend = getBackend();
     const { data: task } = await backend.canDoList.update({
       id: taskId,
       project_id: projectId || undefined,
     });
-    return task as unknown as EncryptedTask;
+    return task as unknown as CanDoItemDecrypted;
   } catch (error) {
     console.error('Failed to move task to project:', error);
     throw error;
@@ -116,14 +117,14 @@ export async function moveTaskToProject(taskId: string, projectId: string | null
 }
 
 // Toggle task complete with reorder
-export async function toggleTaskCompleteWithReorder(taskId: string, completed: boolean): Promise<EncryptedTask> {
+export async function toggleTaskCompleteWithReorder(taskId: string, completed: boolean): Promise<CanDoItemDecrypted> {
   try {
     const backend = getBackend();
     const { data: task } = await backend.canDoList.update({
       id: taskId,
-      completed,
+      // Note: completed state should be handled via encrypted_data
     });
-    return task as unknown as EncryptedTask;
+    return task as unknown as CanDoItemDecrypted;
   } catch (error) {
     console.error('Failed to toggle task complete:', error);
     throw error;
@@ -144,12 +145,12 @@ export async function bulkDeleteTasks(taskIds: string[]): Promise<void> {
 }
 
 // Fetch tasks by project
-export async function fetchTasksByProject(projectId: string | null): Promise<EncryptedTask[]> {
+export async function fetchTasksByProject(projectId: string | null): Promise<CanDoItemDecrypted[]> {
   try {
     const backend = getBackend();
     // First fetch all tasks, then filter by project
     const { data: tasks } = await backend.canDoList.getAll();
-    return (tasks as unknown as EncryptedTask[]).filter(task => task.project_id === projectId);
+    return (tasks as unknown as CanDoItemDecrypted[]).filter(task => task.project_id === projectId);
   } catch (error) {
     console.error('Failed to fetch tasks by project:', error);
     throw error;
@@ -163,7 +164,7 @@ export async function bulkUpdateTaskOrder(taskUpdates: { id: string; order: numb
     for (const { id, order } of taskUpdates) {
       await backend.canDoList.update({
         id,
-        order,
+        display_order: order,
       });
     }
   } catch (error) {

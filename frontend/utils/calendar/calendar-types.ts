@@ -26,8 +26,7 @@ export interface Calendar extends Omit<CalendarDecrypted, 'created_at' | 'update
   updatedAt?: Date;
 }
 
-// Re-export encrypted type for convenience
-export type EncryptedCalendar = CalendarEncrypted;
+
 
 export interface RecurrencePattern {
   frequency: RecurrenceFrequency;
@@ -49,8 +48,7 @@ export interface CalendarEvent extends Omit<CalendarEventDecrypted, 'created_at'
   clickedOccurrenceDate?: Date; // The start date of a specific occurrence that was interacted with
 }
 
-// Re-export encrypted type for convenience
-export type EncryptedCalendarEvent = CalendarEventEncrypted;
+
 
 export interface EventFormValues {
   id?: string;

@@ -1,14 +1,15 @@
 'use client';
 
 import { getBackend } from '@/utils/api/backend-interface';
-import { EncryptedCalendarEvent, EncryptedCalendar } from '@/utils/calendar/calendar-types';
+import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
+import { CalendarEventDecrypted, CalendarDecrypted } from '@/utils/api/types';
 
 // Fetch all encrypted calendar events for the current user
-export async function fetchCalendarEvents(): Promise<EncryptedCalendarEvent[]> {
+export async function fetchCalendarEvents(): Promise<CalendarEventDecrypted[]> {
   try {
     const backend = getBackend();
     const { data: events } = await backend.calendarEvents.getAll();
-    return events as EncryptedCalendarEvent[];
+    return events as CalendarEventDecrypted[];
   } catch (error) {
     console.error('Failed to fetch calendar events:', error);
     throw error;
@@ -20,7 +21,7 @@ export async function addCalendarEvent(
   encryptedData: string,
   iv: string,
   salt: string
-): Promise<EncryptedCalendarEvent> {
+): Promise<CalendarEventDecrypted> {
   try {
     const backend = getBackend();
     const { data: event } = await backend.calendarEvents.create({
@@ -28,7 +29,7 @@ export async function addCalendarEvent(
       iv,
       salt,
     });
-    return event as EncryptedCalendarEvent;
+    return event as CalendarEventDecrypted;
   } catch (error) {
     console.error('Failed to add calendar event:', error);
     throw error;
@@ -41,7 +42,7 @@ export async function updateCalendarEvent(
   encryptedData: string,
   iv: string,
   salt: string
-): Promise<EncryptedCalendarEvent> {
+): Promise<CalendarEventDecrypted> {
   try {
     const backend = getBackend();
     const { data: event } = await backend.calendarEvents.update({
@@ -50,7 +51,7 @@ export async function updateCalendarEvent(
       iv,
       salt,
     });
-    return event as EncryptedCalendarEvent;
+    return event as CalendarEventDecrypted;
   } catch (error) {
     console.error('Failed to update calendar event:', error);
     throw error;
@@ -69,11 +70,11 @@ export async function deleteCalendarEvent(id: string): Promise<void> {
 }
 
 // Fetch all encrypted calendars for the current user
-export async function fetchCalendars(): Promise<EncryptedCalendar[]> {
+export async function fetchCalendars(): Promise<CalendarDecrypted[]> {
   try {
     const backend = getBackend();
     const { data: calendars } = await backend.calendars.getAll();
-    return calendars as EncryptedCalendar[];
+    return calendars as CalendarDecrypted[];
   } catch (error) {
     console.error('Failed to fetch calendars:', error);
     throw error;
@@ -85,7 +86,7 @@ export async function addCalendar(
   encryptedData: string,
   iv: string,
   salt: string
-): Promise<EncryptedCalendar> {
+): Promise<CalendarDecrypted> {
   try {
     const backend = getBackend();
     const { data: calendar } = await backend.calendars.create({
@@ -93,7 +94,7 @@ export async function addCalendar(
       iv,
       salt,
     });
-    return calendar as EncryptedCalendar;
+    return calendar as CalendarDecrypted;
   } catch (error) {
     console.error('Failed to add calendar:', error);
     throw error;
@@ -107,7 +108,7 @@ export async function updateCalendar(
   iv: string,
   salt: string,
   isDefault?: boolean
-): Promise<EncryptedCalendar> {
+): Promise<CalendarDecrypted> {
   try {
     const backend = getBackend();
     const { data: calendar } = await backend.calendars.update({
@@ -117,7 +118,7 @@ export async function updateCalendar(
       salt,
       is_default: isDefault,
     });
-    return calendar as EncryptedCalendar;
+    return calendar as CalendarDecrypted;
   } catch (error) {
     console.error('Failed to update calendar:', error);
     throw error;
@@ -149,9 +150,6 @@ export async function setDefaultCalendar(id: string): Promise<void> {
     // Update it to be the default
     await backend.calendars.update({
       id,
-      encrypted_data: calendar.encrypted_data,
-      iv: calendar.iv,
-      salt: calendar.salt,
       is_default: true,
     });
   } catch (error) {

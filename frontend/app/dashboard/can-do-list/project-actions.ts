@@ -1,15 +1,16 @@
 'use client';
 
 import { getBackend } from '@/utils/api/backend-interface';
-import { EncryptedProject } from '@/utils/can-do-list/can-do-list-types';
+import { Project } from '@/utils/can-do-list/can-do-list-types';
+import { ProjectDecrypted } from '@/utils/api/types';
 
 // Fetch all encrypted projects for the current user
-export async function fetchProjects(): Promise<EncryptedProject[]> {
+export async function fetchProjects(): Promise<ProjectDecrypted[]> {
   try {
     const backend = getBackend();
     // Use all=true to fetch all projects regardless of hierarchy
     const { data: projects } = await backend.projects.getAll({ all: true });
-    return projects as unknown as EncryptedProject[];
+    return projects as unknown as ProjectDecrypted[];
   } catch (error) {
     console.error('Failed to fetch projects:', error);
     throw error;
@@ -24,11 +25,10 @@ export async function addProject(
   parentId?: string,
   displayOrder?: number,
   isCollapsed?: boolean
-): Promise<EncryptedProject> {
+): Promise<ProjectDecrypted> {
   try {
     const backend = getBackend();
     const { data: project } = await backend.projects.create({
-      name: 'Project', // Will be replaced by encrypted data
       encrypted_data: encryptedData,
       iv,
       salt,
@@ -36,7 +36,7 @@ export async function addProject(
       order: displayOrder || 0,
       collapsed: isCollapsed,
     });
-    return project as unknown as EncryptedProject;
+    return project as unknown as ProjectDecrypted;
   } catch (error) {
     console.error('Failed to add project:', error);
     throw error;
@@ -53,7 +53,7 @@ export async function updateProject(
   parentId?: string,
   displayOrder?: number,
   isCollapsed?: boolean
-): Promise<EncryptedProject> {
+): Promise<ProjectDecrypted> {
   try {
     const backend = getBackend();
     const updateData: any = {};
@@ -72,7 +72,7 @@ export async function updateProject(
       order: updateData.display_order,
       collapsed: updateData.is_collapsed
     });
-    return project as unknown as EncryptedProject;
+    return project as unknown as ProjectDecrypted;
   } catch (error) {
     console.error('Failed to update project:', error);
     throw error;
@@ -118,14 +118,14 @@ export async function reorderProjects(projectUpdates: Array<{ id: string; displa
 }
 
 // Toggle project collapse state
-export async function toggleProjectCollapse(id: string, isCollapsed: boolean): Promise<EncryptedProject> {
+export async function toggleProjectCollapse(id: string, isCollapsed: boolean): Promise<ProjectDecrypted> {
   try {
     const backend = getBackend();
     const { data: project } = await backend.projects.update({
       id,
       collapsed: isCollapsed,
     });
-    return project as unknown as EncryptedProject;
+    return project as unknown as ProjectDecrypted;
   } catch (error) {
     console.error('Failed to toggle project collapse:', error);
     throw error;

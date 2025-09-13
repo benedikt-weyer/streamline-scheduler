@@ -21,9 +21,7 @@ export interface Project extends Omit<ProjectDecrypted, 'created_at' | 'updated_
   updatedAt?: Date;
 }
 
-// Re-export encrypted types for convenience
-export type EncryptedTask = CanDoItemEncrypted;
-export type EncryptedProject = ProjectEncrypted;
+
 
 export interface CanDoList {
   tasks: Task[];
