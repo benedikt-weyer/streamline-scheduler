@@ -10,7 +10,7 @@ import {
   moveTaskToProject,
   bulkDeleteTasks,
   toggleTaskCompleteWithReorder
-} from '../../app/dashboard/can-do-list/actions';
+} from '../../app/dashboard/can-do-list/api';
 import { 
   encryptData, 
   generateIV, 

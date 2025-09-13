@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { Task } from '@/utils/can-do-list/can-do-list-types';
 import { TaskStateActions } from './types/taskHooks';
 import { useError } from '@/utils/context/ErrorContext';
-import { fetchTasks, fetchTasksByProject } from '../../app/dashboard/can-do-list/actions';
+import { fetchTasks, fetchTasksByProject } from '../../app/dashboard/can-do-list/api';
 import { 
   decryptData, 
   deriveKeyFromPassword 

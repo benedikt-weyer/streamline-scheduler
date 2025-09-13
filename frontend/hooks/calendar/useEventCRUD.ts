@@ -5,7 +5,7 @@ import {
   addCalendarEvent, 
   updateCalendarEvent, 
   deleteCalendarEvent
-} from '../../app/dashboard/calendar/actions';
+} from '../../app/dashboard/calendar/api';
 import { encryptEventData } from '../../utils/calendar/eventEncryption';
 import { processEventData } from '../../utils/calendar/eventDataProcessing';
 import { isValid } from 'date-fns';

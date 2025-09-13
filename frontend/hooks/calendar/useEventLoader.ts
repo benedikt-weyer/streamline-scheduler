@@ -1,7 +1,7 @@
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { EventStateActions } from './types/eventHooks';
 import { useError } from '@/utils/context/ErrorContext';
-import { fetchCalendarEvents } from '../../app/dashboard/calendar/actions';
+import { fetchCalendarEvents } from '../../app/dashboard/calendar/api';
 import { decryptEventData } from '../../utils/calendar/eventEncryption';
 import { validateDecryptedEvent } from '../../utils/calendar/eventValidation';
 import { processDecryptedEvent, sortEventsByStartTime } from '../../utils/calendar/eventDataProcessing';

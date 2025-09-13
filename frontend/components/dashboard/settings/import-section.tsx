@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useError } from '@/utils/context/ErrorContext';
-import { importUserData, importDecryptedUserData, type ExportedData, type DecryptedExportData } from '@/app/dashboard/settings/actions';
+import { importUserData, importDecryptedUserData, type ExportedData, type DecryptedExportData } from '@/app/dashboard/settings/api';
 import { decryptData, deriveKeyFromPassword } from '@/utils/cryptography/encryption';
 import { Upload, Eye, AlertTriangle, CheckCircle, Lock, Unlock, FileText } from 'lucide-react';
 // Remove unused import

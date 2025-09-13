@@ -1,4 +1,4 @@
-import { fetchCalendarEvents, addCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '@/app/dashboard/calendar/actions';
+import { fetchCalendarEvents, addCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '@/app/dashboard/calendar/api';
 
 // Mock the backend interface
 jest.mock('@/utils/api/backend-interface', () => {

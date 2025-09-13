@@ -4,7 +4,7 @@ import { useError } from '@/utils/context/ErrorContext';
 import { 
   updateCalendarEvent, 
   addCalendarEvent
-} from '../../app/dashboard/calendar/actions';
+} from '../../app/dashboard/calendar/api';
 import { encryptEventData } from '../../utils/calendar/eventEncryption';
 import { calculateNextOccurrence, calculatePreviousOccurrence } from '../../utils/calendar/recurrenceHelpers';
 import { 

@@ -4,7 +4,7 @@ import {
   addCalendar, 
   updateCalendar, 
   deleteCalendar,
-} from '../../app/dashboard/calendar/actions';
+} from '../../app/dashboard/calendar/api';
 import { Calendar, CalendarType } from '@/utils/calendar/calendar-types';
 import { 
   generateSalt, 
