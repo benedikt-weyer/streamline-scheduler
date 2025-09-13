@@ -71,7 +71,7 @@ export const useRecurrenceEventActions = (
     // it means we're trying to delete the first occurrence
     if (newEndOfOriginalEvent < eventToDelete.startTime) {
       // In this case, we should delete the entire original event instead of updating it
-      const { deleteCalendarEvent } = await import('../../app/dashboard/calendar/actions');
+      const { deleteCalendarEvent } = await import('../../app/dashboard/calendar/api');
       try {
         await deleteCalendarEvent(eventToDelete.id);
         return { success: true, newEndDate: newEndOfOriginalEvent, deletedOriginal: true };
@@ -527,7 +527,7 @@ export const useRecurrenceEventActions = (
         skipNextEventReload();
       }
       
-      const { deleteCalendarEvent } = await import('../../app/dashboard/calendar/actions');
+      const { deleteCalendarEvent } = await import('../../app/dashboard/calendar/api');
       await deleteCalendarEvent(id);
       
       eventActions.setEvents(prevEvents => 
