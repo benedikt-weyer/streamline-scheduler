@@ -11,12 +11,7 @@ import {
   bulkDeleteTasks,
   toggleTaskCompleteWithReorder
 } from '../../app/dashboard/can-do-list/api';
-import { 
-  encryptData, 
-  generateIV, 
-  generateSalt, 
-  deriveKeyFromPassword 
-} from '@/utils/cryptography/encryption';
+import { getCurrentUserId } from '@/utils/auth/current-user';
 
 /**
  * Hook for basic CRUD operations on can-do tasks
@@ -24,57 +19,69 @@ import {
 export const useTaskCRUD = (
   tasks: Task[],
   taskActions: TaskStateActions,
-  encryptionKey: string | null,
   skipNextTaskReload?: () => void
 ) => {
   const { setError } = useError();
 
   const handleAddTask = useCallback(async (content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string): Promise<boolean> => {
-    if (!encryptionKey) return false;
     try {
+      const userId = getCurrentUserId();
+      if (!userId) {
+        setError("User not authenticated");
+        return false;
+      }
+
       if (skipNextTaskReload) {
         skipNextTaskReload();
       }
-      const salt = generateSalt();
-      const iv = generateIV();
-      const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+
       const taskData = {
         content: content.trim(),
+        project_id: projectId,
         completed: false,
-        estimatedDuration: estimatedDuration,
+        due_date: dueDate?.toISOString(),
+        duration_minutes: estimatedDuration,
+        display_order: 0
+      };
+
+      const newTask = await addTask(taskData);
+      
+      // Convert to local Task type
+      const localTask: Task = {
+        id: newTask.id,
+        content: newTask.content,
+        completed: newTask.completed,
+        createdAt: new Date(newTask.created_at),
+        updatedAt: new Date(newTask.updated_at),
+        projectId: newTask.project_id,
+        displayOrder: newTask.display_order ?? 0,
+        user_id: newTask.user_id,
+        // Set values for properties not available in API
+        estimatedDuration: newTask.duration_minutes,
         impact: impact,
         urgency: urgency,
-        dueDate: dueDate,
-        blockedBy: blockedBy
+        dueDate: newTask.due_date ? new Date(newTask.due_date) : undefined,
+        blockedBy: blockedBy,
+        myDay: false
       };
-      const encryptedData = encryptData(taskData, derivedKey, iv);
-      const newEncryptedTask = await addTask(encryptedData, iv, salt, projectId);
-      const newTask: Task = {
-        id: newEncryptedTask.id,
-        content: taskData.content,
-        completed: taskData.completed,
-        createdAt: new Date(newEncryptedTask.created_at),
-        updatedAt: new Date(newEncryptedTask.updated_at),
-        estimatedDuration: estimatedDuration,
-        projectId: projectId,
-        displayOrder: newEncryptedTask.display_order ?? 0,
-        impact: impact,
-        urgency: urgency,
-        dueDate: dueDate,
-        blockedBy: blockedBy
-      };
-      taskActions.setTasks(prevTasks => [newTask, ...prevTasks]);
+      
+      taskActions.setTasks(prevTasks => [localTask, ...prevTasks]);
       return true;
     } catch (error) {
       console.error('Error adding task:', error);
       setError('Failed to add new task');
       return false;
     }
-  }, [encryptionKey, taskActions, setError, skipNextTaskReload]);
+  }, [taskActions, setError, skipNextTaskReload]);
 
   const handleUpdateTask = useCallback(async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean): Promise<boolean> => {
-    if (!encryptionKey) return false;
     try {
+      const userId = getCurrentUserId();
+      if (!userId) {
+        setError("User not authenticated");
+        return false;
+      }
+
       if (skipNextTaskReload) {
         skipNextTaskReload();
       }
@@ -83,21 +90,17 @@ export const useTaskCRUD = (
       const existingTask = tasks.find(task => task.id === id);
       if (!existingTask) return false;
       
-      const salt = generateSalt();
-      const iv = generateIV();
-      const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
       const taskData = {
+        id,
         content: content.trim(),
         completed: existingTask.completed, // Preserve completion status
-        estimatedDuration: estimatedDuration,
-        impact: impact,
-        urgency: urgency,
-        dueDate: dueDate,
-        blockedBy: blockedBy,
-        myDay: myDay
+        project_id: projectId,
+        due_date: dueDate?.toISOString(),
+        duration_minutes: estimatedDuration,
+        display_order: existingTask.displayOrder
       };
-      const encryptedData = encryptData(taskData, derivedKey, iv);
-      await updateTask(id, encryptedData, iv, salt, projectId);
+
+      const updatedTask = await updateTask(taskData);
       
       // Update local state
       taskActions.setTasks(prevTasks =>
@@ -105,15 +108,15 @@ export const useTaskCRUD = (
           task.id === id
             ? { 
                 ...task, 
-                content: taskData.content, 
-                estimatedDuration: estimatedDuration,
-                projectId: projectId,
+                content: updatedTask.content, 
+                estimatedDuration: updatedTask.duration_minutes,
+                projectId: updatedTask.project_id,
                 impact: impact,
                 urgency: urgency,
-                dueDate: dueDate,
+                dueDate: updatedTask.due_date ? new Date(updatedTask.due_date) : undefined,
                 blockedBy: blockedBy,
                 myDay: myDay,
-                updatedAt: new Date() 
+                updatedAt: new Date(updatedTask.updated_at) 
               }
             : task
         )
@@ -124,12 +127,16 @@ export const useTaskCRUD = (
       setError('Failed to update task');
       return false;
     }
-  }, [encryptionKey, tasks, taskActions, setError, skipNextTaskReload]);
+  }, [tasks, taskActions, setError, skipNextTaskReload]);
 
   const handleToggleComplete = useCallback(async (id: string, completed: boolean): Promise<boolean> => {
-    if (!encryptionKey) return false;
-    
     try {
+      const userId = getCurrentUserId();
+      if (!userId) {
+        setError("User not authenticated");
+        return false;
+      }
+      
       if (skipNextTaskReload) {
         skipNextTaskReload();
       }
@@ -137,58 +144,30 @@ export const useTaskCRUD = (
       const task = tasks.find(task => task.id === id);
       if (!task) return false;
       
-      // Find the corresponding encrypted task to get salt and IV
-      const encryptedTasks = await fetchTasks();
-      const encryptedTask = encryptedTasks.find(task => task.id === id);
-      if (!encryptedTask) return false;
-      
-      const salt = encryptedTask.salt;
-      const iv = encryptedTask.iv;
-      const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
-      
-      const updatedTaskData = {
-        content: task.content,
-        completed: completed,
-        estimatedDuration: task.estimatedDuration,
-        impact: task.impact,
-        urgency: task.urgency,
-        dueDate: task.dueDate,
-        blockedBy: task.blockedBy
-      };
-      
-      const encryptedData = encryptData(updatedTaskData, derivedKey, iv);
-      
       // Use the new action that handles display order and reordering
-      await toggleTaskCompleteWithReorder(id, completed);
+      const updatedTask = await toggleTaskCompleteWithReorder(id, completed);
       
-      if (completed) {
-        // When completing a task, update local state to show it as completed
-        // The backend will assign a negative display order
-        taskActions.setTasks(prevTasks =>
-          prevTasks.map(prevTask =>
-            prevTask.id === id
-              ? { ...prevTask, completed: completed, displayOrder: -1 }
-              : prevTask
-          )
-        );
-      } else {
-        // When uncompleting a task, it will get a new positive display order from the backend
-        // We'll let the subscription or next reload handle the proper ordering
-        taskActions.setTasks(prevTasks =>
-          prevTasks.map(prevTask =>
-            prevTask.id === id
-              ? { ...prevTask, completed: completed }
-              : prevTask
-          )
-        );
-      }
+      // Update local state with the updated task from API
+      taskActions.setTasks(prevTasks =>
+        prevTasks.map(prevTask =>
+          prevTask.id === id
+            ? { 
+                ...prevTask, 
+                completed: updatedTask.completed,
+                displayOrder: updatedTask.display_order ?? prevTask.displayOrder,
+                updatedAt: new Date(updatedTask.updated_at)
+              }
+            : prevTask
+        )
+      );
+      
       return true;
     } catch (error) {
       console.error('Error toggling task completion:', error);
       setError('Failed to update task');
       return false;
     }
-  }, [encryptionKey, tasks, taskActions, setError, skipNextTaskReload]);
+  }, [tasks, taskActions, setError, skipNextTaskReload]);
 
   const handleDeleteTask = useCallback(async (id: string): Promise<boolean> => {
     try {

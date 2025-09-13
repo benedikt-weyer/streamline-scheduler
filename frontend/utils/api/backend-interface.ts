@@ -86,22 +86,22 @@ export interface BackendInterface {
     /**
      * Get all can-do items for the current user
      */
-    getAll(options?: QueryOptions): Promise<PaginatedResponse<CanDoItemDecrypted>>;
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<CanDoItemEncrypted>>;
 
     /**
      * Get a single can-do item by ID
      */
-    getById(id: string): Promise<ApiResponse<CanDoItemDecrypted>>;
+    getById(id: string): Promise<ApiResponse<CanDoItemEncrypted>>;
 
     /**
      * Create a new can-do item
      */
-    create(request: CreateCanDoItemRequest): Promise<ApiResponse<CanDoItemDecrypted>>;
+    create(request: CreateCanDoItemRequest): Promise<ApiResponse<CanDoItemEncrypted>>;
 
     /**
      * Update an existing can-do item
      */
-    update(request: UpdateCanDoItemRequest): Promise<ApiResponse<CanDoItemDecrypted>>;
+    update(request: UpdateCanDoItemRequest): Promise<ApiResponse<CanDoItemEncrypted>>;
 
     /**
      * Delete a can-do item
@@ -119,22 +119,22 @@ export interface BackendInterface {
     /**
      * Get all projects for the current user
      */
-    getAll(options?: QueryOptions): Promise<PaginatedResponse<ProjectDecrypted>>;
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<ProjectEncrypted>>;
 
     /**
      * Get a single project by ID
      */
-    getById(id: string): Promise<ApiResponse<ProjectDecrypted>>;
+    getById(id: string): Promise<ApiResponse<ProjectEncrypted>>;
 
     /**
      * Create a new project
      */
-    create(request: CreateProjectRequest): Promise<ApiResponse<ProjectDecrypted>>;
+    create(request: CreateProjectRequest): Promise<ApiResponse<ProjectEncrypted>>;
 
     /**
      * Update an existing project
      */
-    update(request: UpdateProjectRequest): Promise<ApiResponse<ProjectDecrypted>>;
+    update(request: UpdateProjectRequest): Promise<ApiResponse<ProjectEncrypted>>;
 
     /**
      * Delete a project
@@ -152,22 +152,22 @@ export interface BackendInterface {
     /**
      * Get all calendars for the current user
      */
-    getAll(options?: QueryOptions): Promise<PaginatedResponse<CalendarDecrypted>>;
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<CalendarEncrypted>>;
 
     /**
      * Get a single calendar by ID
      */
-    getById(id: string): Promise<ApiResponse<CalendarDecrypted>>;
+    getById(id: string): Promise<ApiResponse<CalendarEncrypted>>;
 
     /**
      * Create a new calendar
      */
-    create(request: CreateCalendarRequest): Promise<ApiResponse<CalendarDecrypted>>;
+    create(request: CreateCalendarRequest): Promise<ApiResponse<CalendarEncrypted>>;
 
     /**
      * Update an existing calendar
      */
-    update(request: UpdateCalendarRequest): Promise<ApiResponse<CalendarDecrypted>>;
+    update(request: UpdateCalendarRequest): Promise<ApiResponse<CalendarEncrypted>>;
 
     /**
      * Delete a calendar
@@ -185,7 +185,7 @@ export interface BackendInterface {
     /**
      * Get all calendar events for the current user
      */
-    getAll(options?: QueryOptions): Promise<PaginatedResponse<CalendarEventDecrypted>>;
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<CalendarEventEncrypted>>;
 
     /**
      * Get calendar events within a date range
@@ -194,22 +194,22 @@ export interface BackendInterface {
       startDate: string,
       endDate: string,
       calendarIds?: string[]
-    ): Promise<PaginatedResponse<CalendarEventDecrypted>>;
+    ): Promise<PaginatedResponse<CalendarEventEncrypted>>;
 
     /**
      * Get a single calendar event by ID
      */
-    getById(id: string): Promise<ApiResponse<CalendarEventDecrypted>>;
+    getById(id: string): Promise<ApiResponse<CalendarEventEncrypted>>;
 
     /**
      * Create a new calendar event
      */
-    create(request: CreateCalendarEventRequest): Promise<ApiResponse<CalendarEventDecrypted>>;
+    create(request: CreateCalendarEventRequest): Promise<ApiResponse<CalendarEventEncrypted>>;
 
     /**
      * Update an existing calendar event
      */
-    update(request: UpdateCalendarEventRequest): Promise<ApiResponse<CalendarEventDecrypted>>;
+    update(request: UpdateCalendarEventRequest): Promise<ApiResponse<CalendarEventEncrypted>>;
 
     /**
      * Delete a calendar event

@@ -20,8 +20,8 @@ export function useCanDoList(
   const { loadTasks, loadTasksByProject } = useTaskLoader(taskActions);
   
   // Create a stable wrapper for loadTasks that returns void for subscription
-  const loadTasksForSubscription = useCallback(async (key: string): Promise<void> => {
-    await loadTasks(key);
+  const loadTasksForSubscription = useCallback(async (): Promise<void> => {
+    await loadTasks();
   }, [loadTasks]);
   
   const { isSubscribed, skipNextTaskReload } = useTaskSubscriptions(encryptionKey, loadTasksForSubscription);
@@ -29,18 +29,18 @@ export function useCanDoList(
   const { 
     handleAddTask, 
     handleUpdateTask,
-    handleToggleComplete, 
+    handleToggleComplete,
     handleDeleteTask,
     handleMoveTaskToProject,
     handleBulkDeleteCompleted
-  } = useTaskCRUD(tasks, taskActions, encryptionKey, skipNextTaskReload);
-
-  const { reorderTasks } = useTaskReorder(tasks, taskActions, skipNextTaskReload);
+  } = useTaskCRUD(tasks, taskActions, skipNextTaskReload);  const { reorderTasks } = useTaskReorder(tasks, taskActions, skipNextTaskReload);
 
   // Memoize the returned object to prevent unnecessary re-renders
   return useMemo(() => ({
     tasks,
+    selectedProject: null, // Not implemented in this hook
     isLoading,
+    error: null, // Error handling is done at component level
     loadTasks,
     loadTasksByProject,
     handleAddTask,
@@ -49,9 +49,7 @@ export function useCanDoList(
     handleDeleteTask,
     handleMoveTaskToProject,
     handleBulkDeleteCompleted,
-    handleReorderTasks: reorderTasks,
-    isSubscribed,
-    skipNextTaskReload
+    handleReorderTasks: reorderTasks
   }), [
     tasks,
     isLoading,
@@ -63,8 +61,6 @@ export function useCanDoList(
     handleDeleteTask,
     handleMoveTaskToProject,
     handleBulkDeleteCompleted,
-    reorderTasks,
-    isSubscribed,
-    skipNextTaskReload
+    reorderTasks
   ]);
 }

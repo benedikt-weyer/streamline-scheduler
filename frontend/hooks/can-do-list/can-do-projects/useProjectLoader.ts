@@ -3,66 +3,44 @@ import { Project } from '@/utils/can-do-list/can-do-list-types';
 import { ProjectStateActions } from './useProjectState';
 import { useError } from '@/utils/context/ErrorContext';
 import { fetchProjects } from '../../../app/dashboard/can-do-list/project-api';
-import { 
-  decryptData, 
-  deriveKeyFromPassword 
-} from '@/utils/cryptography/encryption';
 
 /**
- * Hook for loading and decrypting projects
+ * Hook for loading projects
  */
 export const useProjectLoader = (
   projectActions: ProjectStateActions
 ) => {
   const { setError } = useError();
 
-  const loadProjects = useCallback(async (key: string): Promise<Project[]> => {
+  const loadProjects = useCallback(async (): Promise<Project[]> => {
     try {
       projectActions.setIsLoading(true);
       console.log('[ProjectLoader] Starting to load projects...');
-      const encryptedProjects = await fetchProjects();
-      console.log('[ProjectLoader] Fetched encrypted projects:', encryptedProjects.length);
+      const decryptedProjects = await fetchProjects();
+      console.log('[ProjectLoader] Fetched projects:', decryptedProjects.length);
       
-      const decryptedProjects = encryptedProjects
-        .map(project => {
-          try {
-            console.log('[ProjectLoader] Decrypting project:', project.id);
-            const decryptionKey = deriveKeyFromPassword(key, project.salt);
-            const decryptedData = decryptData(project.encrypted_data, decryptionKey, project.iv);
-            
-            if (!decryptedData) {
-              console.warn('[ProjectLoader] Failed to decrypt project data for:', project.id);
-              return null;
-            }
-            
-            const decryptedProject = {
-              id: project.id,
-              name: decryptedData.name,
-              color: decryptedData.color,
-              parentId: project.parent_id,
-              displayOrder: project.display_order ?? 0,
-              isCollapsed: project.is_collapsed ?? false,
-              createdAt: new Date(project.created_at),
-              updatedAt: project.updated_at ? new Date(project.updated_at) : undefined
-            };
-            
-            console.log('[ProjectLoader] Successfully decrypted project:', decryptedProject.name);
-            return decryptedProject;
-          } catch (error) {
-            console.error('[ProjectLoader] Failed to decrypt project:', project.id, error);
-            return null;
-          }
-        })
-        .filter((project): project is NonNullable<typeof project> => project !== null);
+      // Convert from ProjectDecrypted to Project type
+      const projects: Project[] = decryptedProjects.map(project => ({
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        color: project.color || '#000000',
+        user_id: project.user_id,
+        order: project.order ?? 0,
+        parentId: project.parent_id,
+        isCollapsed: project.collapsed ?? false,
+        createdAt: new Date(project.created_at),
+        updatedAt: project.updated_at ? new Date(project.updated_at) : undefined
+      }));
       
-      console.log('[ProjectLoader] Decrypted projects:', decryptedProjects.length);
+      console.log('[ProjectLoader] Processed projects:', projects.length);
       // Debug: Log all projects with their parent relationships
-      decryptedProjects.forEach(p => {
+      projects.forEach(p => {
         console.log(`[ProjectLoader] Project: "${p.name}" (ID: ${p.id}, ParentID: ${p.parentId})`);
       });
-      projectActions.setProjects(decryptedProjects);
+      projectActions.setProjects(projects);
       projectActions.setIsLoading(false);
-      return decryptedProjects;
+      return projects;
     } catch (error) {
       console.error('Error loading projects:', error);
       setError('Failed to load projects');

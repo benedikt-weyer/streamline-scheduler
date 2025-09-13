@@ -9,79 +9,70 @@ import {
   bulkUpdateProjectOrder,
   updateProjectCollapsedState
 } from '../../../app/dashboard/can-do-list/project-api';
-import { 
-  encryptData, 
-  generateIV, 
-  generateSalt, 
-  deriveKeyFromPassword 
-} from '@/utils/cryptography/encryption';
+import { getCurrentUserId } from '@/utils/auth/current-user';
+import { CreateProjectDecryptedRequest, UpdateProjectDecryptedRequest } from '@/utils/api/types';
 
 /**
  * Hook for basic CRUD operations on projects
  */
 export const useProjectCRUD = (
   projects: Project[],
-  projectActions: ProjectStateActions,
-  encryptionKey: string | null
+  projectActions: ProjectStateActions
 ) => {
   const { setError } = useError();
 
   const handleAddProject = useCallback(async (name: string, color: string, parentId?: string): Promise<boolean> => {
-    if (!encryptionKey) return false;
-    
     try {
-      const salt = generateSalt();
-      const iv = generateIV();
-      const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
+      const userId = getCurrentUserId();
+      if (!userId) {
+        setError("User not authenticated");
+        return false;
+      }
       
-      const projectData = {
+      const projectData: CreateProjectDecryptedRequest = {
         name: name.trim(),
-        color: color
+        color: color,
+        parent_id: parentId,
+        order: 0,
+        collapsed: false
       };
       
-      const encryptedData = encryptData(projectData, derivedKey, iv);
-      const newEncryptedProject = await addProject(encryptedData, iv, salt, parentId);
+      const newProject = await addProject(projectData);
       
-      const newProject: Project = {
-        id: newEncryptedProject.id,
-        name: projectData.name,
-        color: projectData.color,
-        parentId: parentId,
-        displayOrder: newEncryptedProject.display_order ?? 0,
-        isCollapsed: newEncryptedProject.is_collapsed ?? false,
-        createdAt: new Date(newEncryptedProject.created_at),
-        updatedAt: new Date(newEncryptedProject.updated_at)
+      // Convert to local Project type
+      const localProject: Project = {
+        id: newProject.id,
+        name: newProject.name,
+        color: newProject.color || '#000000',
+        parentId: newProject.parent_id,
+        order: newProject.order ?? 0,
+        isCollapsed: newProject.collapsed ?? false,
+        createdAt: new Date(newProject.created_at),
+        updatedAt: new Date(newProject.updated_at),
+        user_id: newProject.user_id
       };
       
-      projectActions.setProjects(prevProjects => [newProject, ...prevProjects]);
+      projectActions.setProjects(prevProjects => [localProject, ...prevProjects]);
       return true;
     } catch (error) {
       console.error('Error adding project:', error);
       setError('Failed to add new project');
       return false;
     }
-  }, [encryptionKey, projectActions, setError]);
+  }, [projectActions, setError]);
 
   const handleUpdateProject = useCallback(async (id: string, name: string, color: string, parentId?: string): Promise<boolean> => {
-    if (!encryptionKey) return false;
-    
     try {
       const project = projects.find(p => p.id === id);
       if (!project) return false;
       
-      // For simplicity, we'll generate new salt and IV for updates
-      // In a production app, you might want to reuse the existing ones
-      const salt = generateSalt();
-      const iv = generateIV();
-      const derivedKey = deriveKeyFromPassword(encryptionKey, salt);
-      
-      const updatedProjectData = {
+      const updateData: Partial<UpdateProjectDecryptedRequest> = {
         name: name.trim(),
-        color: color
+        color: color,
+        parent_id: parentId
       };
       
-      const encryptedData = encryptData(updatedProjectData, derivedKey, iv);
-      await updateProject(id, encryptedData, iv, salt, undefined, parentId);
+      await updateProject(id, updateData);
       
       projectActions.setProjects(prevProjects =>
         prevProjects.map(project =>
@@ -96,7 +87,7 @@ export const useProjectCRUD = (
       setError('Failed to update project');
       return false;
     }
-  }, [encryptionKey, projects, projectActions, setError]);
+  }, [projects, projectActions, setError]);
 
   const handleDeleteProject = useCallback(async (id: string): Promise<boolean> => {
     try {
@@ -126,16 +117,16 @@ export const useProjectCRUD = (
           return update ? {
             ...project,
             parentId: update.parentId,
-            displayOrder: update.displayOrder
+            order: update.displayOrder
           } : project;
         });
         
-        // Sort by displayOrder within each parent group
+        // Sort by order within each parent group
         return updatedProjects.sort((a, b) => {
           if (a.parentId !== b.parentId) {
             return (a.parentId ?? '').localeCompare(b.parentId ?? '');
           }
-          return a.displayOrder - b.displayOrder;
+          return a.order - b.order;
         });
       });
       

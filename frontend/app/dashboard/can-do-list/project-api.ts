@@ -1,78 +1,53 @@
 'use client';
 
-import { getBackend } from '@/utils/api/backend-interface';
+import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { Project } from '@/utils/can-do-list/can-do-list-types';
-import { ProjectDecrypted } from '@/utils/api/types';
+import { ProjectDecrypted, CreateProjectDecryptedRequest, UpdateProjectDecryptedRequest } from '@/utils/api/types';
+import { getCurrentUserId } from '@/utils/auth/current-user';
 
-// Fetch all encrypted projects for the current user
+// Fetch all projects for the current user
 export async function fetchProjects(): Promise<ProjectDecrypted[]> {
   try {
-    const backend = getBackend();
-    // Use all=true to fetch all projects regardless of hierarchy
+    const backend = getDecryptedBackend();
     const { data: projects } = await backend.projects.getAll({ all: true });
-    return projects as unknown as ProjectDecrypted[];
+    return projects || [];
   } catch (error) {
     console.error('Failed to fetch projects:', error);
     throw error;
   }
 }
 
-// Add a new encrypted project
-export async function addProject(
-  encryptedData: string,
-  iv: string,
-  salt: string,
-  parentId?: string,
-  displayOrder?: number,
-  isCollapsed?: boolean
-): Promise<ProjectDecrypted> {
+// Add a new project
+export async function addProject(projectData: CreateProjectDecryptedRequest): Promise<ProjectDecrypted> {
   try {
-    const backend = getBackend();
-    const { data: project } = await backend.projects.create({
-      encrypted_data: encryptedData,
-      iv,
-      salt,
-      parent_id: parentId,
-      order: displayOrder || 0,
-      collapsed: isCollapsed,
-    });
-    return project as unknown as ProjectDecrypted;
+    const backend = getDecryptedBackend();
+    const { data: project } = await backend.projects.create(projectData);
+    if (!project) {
+      throw new Error('Failed to create project');
+    }
+    return project;
   } catch (error) {
     console.error('Failed to add project:', error);
     throw error;
   }
 }
 
-// Update an existing encrypted project
+// Update an existing project
 export async function updateProject(
   id: string,
-  encryptedData?: string,
-  iv?: string,
-  salt?: string,
-  isDefault?: boolean,
-  parentId?: string,
-  displayOrder?: number,
-  isCollapsed?: boolean
+  updateData: Partial<UpdateProjectDecryptedRequest>
 ): Promise<ProjectDecrypted> {
   try {
-    const backend = getBackend();
-    const updateData: any = {};
-    
-    if (encryptedData !== undefined) updateData.encrypted_data = encryptedData;
-    if (iv !== undefined) updateData.iv = iv;
-    if (salt !== undefined) updateData.salt = salt;
-    if (isDefault !== undefined) updateData.is_default = isDefault;
-    if (parentId !== undefined) updateData.parent_id = parentId;
-    if (displayOrder !== undefined) updateData.display_order = displayOrder;
-    if (isCollapsed !== undefined) updateData.is_collapsed = isCollapsed;
-
-    const { data: project } = await backend.projects.update({
+    const backend = getDecryptedBackend();
+    const requestData: UpdateProjectDecryptedRequest = {
       id,
-      ...updateData,
-      order: updateData.display_order,
-      collapsed: updateData.is_collapsed
-    });
-    return project as unknown as ProjectDecrypted;
+      ...updateData
+    };
+    const { data: project } = await backend.projects.update(requestData);
+    if (!project) {
+      throw new Error('Failed to update project');
+    }
+    return project;
   } catch (error) {
     console.error('Failed to update project:', error);
     throw error;
@@ -82,7 +57,7 @@ export async function updateProject(
 // Delete a project
 export async function deleteProject(id: string): Promise<void> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     await backend.projects.delete(id);
   } catch (error) {
     console.error('Failed to delete project:', error);
@@ -93,23 +68,17 @@ export async function deleteProject(id: string): Promise<void> {
 // Reorder projects
 export async function reorderProjects(projectUpdates: Array<{ id: string; displayOrder: number; parentId?: string }>): Promise<void> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     
     // Update each project's display order and parent
     for (const update of projectUpdates) {
-      const updateData: any = {
-        display_order: update.displayOrder,
-      };
-      if (update.parentId !== undefined) {
-        updateData.parent_id = update.parentId;
-      }
-      
-      await backend.projects.update({
+      const updateData: UpdateProjectDecryptedRequest = {
         id: update.id,
-        ...updateData,
-        order: updateData.display_order,
-        parent_id: updateData.parent_id
-      });
+        order: update.displayOrder,
+        parent_id: update.parentId
+      };
+      
+      await backend.projects.update(updateData);
     }
   } catch (error) {
     console.error('Failed to reorder projects:', error);
@@ -120,12 +89,16 @@ export async function reorderProjects(projectUpdates: Array<{ id: string; displa
 // Toggle project collapse state
 export async function toggleProjectCollapse(id: string, isCollapsed: boolean): Promise<ProjectDecrypted> {
   try {
-    const backend = getBackend();
-    const { data: project } = await backend.projects.update({
+    const backend = getDecryptedBackend();
+    const updateData: UpdateProjectDecryptedRequest = {
       id,
-      collapsed: isCollapsed,
-    });
-    return project as unknown as ProjectDecrypted;
+      collapsed: isCollapsed
+    };
+    const { data: project } = await backend.projects.update(updateData);
+    if (!project) {
+      throw new Error('Failed to update project collapse state');
+    }
+    return project;
   } catch (error) {
     console.error('Failed to toggle project collapse:', error);
     throw error;

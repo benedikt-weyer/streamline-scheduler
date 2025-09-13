@@ -1,15 +1,15 @@
 'use client';
 
-import { getBackend } from '@/utils/api/backend-interface';
+import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { Task } from '@/utils/can-do-list/can-do-list-types';
-import { CanDoItemDecrypted } from '@/utils/api/types';
+import { CanDoItemDecrypted, CreateCanDoItemDecryptedRequest, UpdateCanDoItemDecryptedRequest } from '@/utils/api/types';
 
-// Fetch all encrypted tasks for the current user
+// Fetch all tasks for the current user (automatically decrypted)
 export async function fetchTasks(silent = false): Promise<CanDoItemDecrypted[]> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     const { data: tasks } = await backend.canDoList.getAll();
-    return tasks as unknown as CanDoItemDecrypted[];
+    return tasks;
   } catch (error) {
     if (!silent) {
       console.error('Failed to fetch tasks:', error);
@@ -18,54 +18,34 @@ export async function fetchTasks(silent = false): Promise<CanDoItemDecrypted[]> 
   }
 }
 
-// Add a new encrypted task
+// Add a new task with decrypted data
 export async function addTask(
-  encryptedData: string,
-  iv: string,
-  salt: string,
-  projectId?: string,
-  displayOrder?: number
+  taskData: CreateCanDoItemDecryptedRequest
 ): Promise<CanDoItemDecrypted> {
   try {
-    const backend = getBackend();
-    const { data: task } = await backend.canDoList.create({
-      encrypted_data: encryptedData,
-      iv,
-      salt,
-      project_id: projectId,
-      display_order: displayOrder ?? 0,
-    });
-    return task as CanDoItemDecrypted;
+    const backend = getDecryptedBackend();
+    const { data: task } = await backend.canDoList.create(taskData);
+    if (!task) {
+      throw new Error('Failed to create task - no data returned');
+    }
+    return task;
   } catch (error) {
     console.error('Failed to add task:', error);
     throw error;
   }
 }
 
-// Update an existing encrypted task
+// Update an existing task with decrypted data
 export async function updateTask(
-  id: string,
-  encryptedData?: string,
-  iv?: string,
-  salt?: string,
-  projectId?: string,
-  displayOrder?: number
+  updateData: UpdateCanDoItemDecryptedRequest
 ): Promise<CanDoItemDecrypted> {
   try {
-    const backend = getBackend();
-    const updateData: any = {};
-    
-    if (encryptedData !== undefined) updateData.encrypted_data = encryptedData;
-    if (iv !== undefined) updateData.iv = iv;
-    if (salt !== undefined) updateData.salt = salt;
-    if (projectId !== undefined) updateData.project_id = projectId;
-    if (displayOrder !== undefined) updateData.display_order = displayOrder;
-
-    const { data: task } = await backend.canDoList.update({
-      id,
-      ...updateData,
-    });
-    return task as CanDoItemDecrypted;
+    const backend = getDecryptedBackend();
+    const { data: task } = await backend.canDoList.update(updateData);
+    if (!task) {
+      throw new Error('Failed to update task - no data returned');
+    }
+    return task;
   } catch (error) {
     console.error('Failed to update task:', error);
     throw error;
@@ -75,7 +55,7 @@ export async function updateTask(
 // Delete a task
 export async function deleteTask(id: string): Promise<void> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     await backend.canDoList.delete(id);
   } catch (error) {
     console.error('Failed to delete task:', error);
@@ -86,7 +66,7 @@ export async function deleteTask(id: string): Promise<void> {
 // Reorder tasks
 export async function reorderTasks(taskUpdates: Array<{ id: string; displayOrder: number }>): Promise<void> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     
     // Update each task's display order
     for (const update of taskUpdates) {
@@ -104,12 +84,15 @@ export async function reorderTasks(taskUpdates: Array<{ id: string; displayOrder
 // Move task to project
 export async function moveTaskToProject(taskId: string, projectId: string | null): Promise<CanDoItemDecrypted> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     const { data: task } = await backend.canDoList.update({
       id: taskId,
       project_id: projectId || undefined,
     });
-    return task as unknown as CanDoItemDecrypted;
+    if (!task) {
+      throw new Error('Failed to move task - no data returned');
+    }
+    return task;
   } catch (error) {
     console.error('Failed to move task to project:', error);
     throw error;
@@ -119,12 +102,15 @@ export async function moveTaskToProject(taskId: string, projectId: string | null
 // Toggle task complete with reorder
 export async function toggleTaskCompleteWithReorder(taskId: string, completed: boolean): Promise<CanDoItemDecrypted> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     const { data: task } = await backend.canDoList.update({
       id: taskId,
-      // Note: completed state should be handled via encrypted_data
+      completed: completed,
     });
-    return task as unknown as CanDoItemDecrypted;
+    if (!task) {
+      throw new Error('Failed to toggle task complete - no data returned');
+    }
+    return task;
   } catch (error) {
     console.error('Failed to toggle task complete:', error);
     throw error;
@@ -134,7 +120,7 @@ export async function toggleTaskCompleteWithReorder(taskId: string, completed: b
 // Bulk delete tasks
 export async function bulkDeleteTasks(taskIds: string[]): Promise<void> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     for (const taskId of taskIds) {
       await backend.canDoList.delete(taskId);
     }
@@ -147,10 +133,10 @@ export async function bulkDeleteTasks(taskIds: string[]): Promise<void> {
 // Fetch tasks by project
 export async function fetchTasksByProject(projectId: string | null): Promise<CanDoItemDecrypted[]> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     // First fetch all tasks, then filter by project
     const { data: tasks } = await backend.canDoList.getAll();
-    return (tasks as unknown as CanDoItemDecrypted[]).filter(task => task.project_id === projectId);
+    return tasks.filter(task => task.project_id === projectId);
   } catch (error) {
     console.error('Failed to fetch tasks by project:', error);
     throw error;
@@ -160,7 +146,7 @@ export async function fetchTasksByProject(projectId: string | null): Promise<Can
 // Bulk update task order
 export async function bulkUpdateTaskOrder(taskUpdates: { id: string; order: number }[]): Promise<void> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     for (const { id, order } of taskUpdates) {
       await backend.canDoList.update({
         id,

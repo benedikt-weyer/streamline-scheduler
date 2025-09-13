@@ -1,0 +1,146 @@
+/**
+ * Decrypted Backend Interface
+ * This interface provides the same API as BackendInterface but works with decrypted data types.
+ * It acts as a middleware layer that handles encryption/decryption automatically.
+ */
+
+import {
+  CanDoItemDecrypted,
+  ProjectDecrypted,
+  CalendarDecrypted,
+  CalendarEventDecrypted,
+  CreateCanDoItemDecryptedRequest,
+  UpdateCanDoItemDecryptedRequest,
+  CreateProjectDecryptedRequest,
+  UpdateProjectDecryptedRequest,
+  CreateCalendarDecryptedRequest,
+  UpdateCalendarDecryptedRequest,
+  CreateCalendarEventDecryptedRequest,
+  UpdateCalendarEventDecryptedRequest,
+  PaginatedResponse,
+  ApiResponse,
+  QueryOptions,
+} from './types';
+
+export interface DecryptedBackendInterface {
+  // Can-do list methods
+  canDoList: {
+    /**
+     * Get all can-do items for the current user (decrypted)
+     */
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<CanDoItemDecrypted>>;
+
+    /**
+     * Get a single can-do item by ID (decrypted)
+     */
+    getById(id: string): Promise<ApiResponse<CanDoItemDecrypted>>;
+
+    /**
+     * Create a new can-do item with decrypted data
+     */
+    create(request: CreateCanDoItemDecryptedRequest): Promise<ApiResponse<CanDoItemDecrypted>>;
+
+    /**
+     * Update an existing can-do item with decrypted data
+     */
+    update(request: UpdateCanDoItemDecryptedRequest): Promise<ApiResponse<CanDoItemDecrypted>>;
+
+    /**
+     * Delete a can-do item
+     */
+    delete(id: string): Promise<{ error: string | null }>;
+  };
+
+  // Project methods
+  projects: {
+    /**
+     * Get all projects for the current user (decrypted)
+     */
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<ProjectDecrypted>>;
+
+    /**
+     * Get a single project by ID (decrypted)
+     */
+    getById(id: string): Promise<ApiResponse<ProjectDecrypted>>;
+
+    /**
+     * Create a new project with decrypted data
+     */
+    create(request: CreateProjectDecryptedRequest): Promise<ApiResponse<ProjectDecrypted>>;
+
+    /**
+     * Update an existing project with decrypted data
+     */
+    update(request: UpdateProjectDecryptedRequest): Promise<ApiResponse<ProjectDecrypted>>;
+
+    /**
+     * Delete a project
+     */
+    delete(id: string): Promise<{ error: string | null }>;
+  };
+
+  // Calendar methods
+  calendars: {
+    /**
+     * Get all calendars for the current user (decrypted)
+     */
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<CalendarDecrypted>>;
+
+    /**
+     * Get a single calendar by ID (decrypted)
+     */
+    getById(id: string): Promise<ApiResponse<CalendarDecrypted>>;
+
+    /**
+     * Create a new calendar with decrypted data
+     */
+    create(request: CreateCalendarDecryptedRequest): Promise<ApiResponse<CalendarDecrypted>>;
+
+    /**
+     * Update an existing calendar with decrypted data
+     */
+    update(request: UpdateCalendarDecryptedRequest): Promise<ApiResponse<CalendarDecrypted>>;
+
+    /**
+     * Delete a calendar
+     */
+    delete(id: string): Promise<{ error: string | null }>;
+  };
+
+  // Calendar event methods
+  calendarEvents: {
+    /**
+     * Get all calendar events for the current user (decrypted)
+     */
+    getAll(options?: QueryOptions): Promise<PaginatedResponse<CalendarEventDecrypted>>;
+
+    /**
+     * Get calendar events within a date range (decrypted)
+     */
+    getByDateRange(
+      startDate: string,
+      endDate: string,
+      calendarIds?: string[]
+    ): Promise<PaginatedResponse<CalendarEventDecrypted>>;
+
+    /**
+     * Get a single calendar event by ID (decrypted)
+     */
+    getById(id: string): Promise<ApiResponse<CalendarEventDecrypted>>;
+
+    /**
+     * Create a new calendar event with decrypted data  
+     */
+    create(request: CreateCalendarEventDecryptedRequest): Promise<ApiResponse<CalendarEventDecrypted>>;
+
+    /**
+     * Update an existing calendar event with decrypted data
+     */
+    update(request: UpdateCalendarEventDecryptedRequest): Promise<ApiResponse<CalendarEventDecrypted>>;
+
+    /**
+     * Delete a calendar event
+     */
+    delete(id: string): Promise<{ error: string | null }>;
+  };
+}

@@ -90,6 +90,29 @@ export interface UpdateCanDoItemRequest {
   display_order?: number;
 }
 
+export interface CreateCanDoItemDecryptedRequest {
+  project_id?: string;
+  content: string;
+  completed?: boolean;
+  due_date?: string;
+  priority?: 'low' | 'medium' | 'high';
+  tags?: string[];
+  duration_minutes?: number;
+  display_order?: number;
+}
+
+export interface UpdateCanDoItemDecryptedRequest {
+  id: string;
+  project_id?: string;
+  content?: string;
+  completed?: boolean;
+  due_date?: string;
+  priority?: 'low' | 'medium' | 'high';
+  tags?: string[];
+  duration_minutes?: number;
+  display_order?: number;
+}
+
 // Project types
 export interface ProjectEncrypted {
   id: string;
@@ -138,6 +161,25 @@ export interface UpdateProjectRequest {
   salt?: string;
 }
 
+export interface CreateProjectDecryptedRequest {
+  name: string;
+  description?: string;
+  color?: string;
+  parent_id?: string;
+  order?: number;
+  collapsed?: boolean;
+}
+
+export interface UpdateProjectDecryptedRequest {
+  id: string;
+  name?: string;
+  description?: string;
+  color?: string;
+  parent_id?: string;
+  order?: number;
+  collapsed?: boolean;
+}
+
 // Calendar types
 export interface CalendarEncrypted {
   id: string;
@@ -181,6 +223,25 @@ export interface UpdateCalendarRequest {
   is_default?: boolean;
 }
 
+export interface CreateCalendarDecryptedRequest {
+  name: string;
+  color?: string;
+  is_visible?: boolean;
+  is_default?: boolean;
+  type?: 'regular' | 'ics';
+  ics_url?: string;
+}
+
+export interface UpdateCalendarDecryptedRequest {
+  id: string;
+  name?: string;
+  color?: string;
+  is_visible?: boolean;
+  is_default?: boolean;
+  type?: 'regular' | 'ics';
+  ics_url?: string;
+}
+
 export interface CalendarEventEncrypted {
   id: string;
   created_at: string;
@@ -220,6 +281,30 @@ export interface UpdateCalendarEventRequest {
   encrypted_data?: string;
   iv?: string;
   salt?: string;
+}
+
+export interface CreateCalendarEventDecryptedRequest {
+  title: string;
+  description?: string;
+  location?: string;
+  start_time: string;
+  end_time: string;
+  all_day?: boolean;
+  calendar_id: string;
+  recurrence_rule?: string;
+}
+
+export interface UpdateCalendarEventDecryptedRequest {
+  id: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  start_time?: string;
+  end_time?: string;
+  all_day?: boolean;
+  calendar_id?: string;
+  recurrence_rule?: string;
+  recurrence_exception?: string[];
 }
 
 // Real-time subscription types

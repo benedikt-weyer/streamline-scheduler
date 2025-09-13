@@ -7,7 +7,7 @@ import { useProjectCRUD } from './useProjectCRUD';
 export interface ProjectHook {
   projects: Project[];
   isLoading: boolean;
-  loadProjects: (key: string) => Promise<Project[]>;
+  loadProjects: () => Promise<Project[]>;
   handleAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
   handleUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
   handleDeleteProject: (id: string) => Promise<boolean>;
@@ -32,7 +32,7 @@ export function useProjects(encryptionKey: string | null): ProjectHook {
     handleDeleteProject,
     handleBulkReorderProjects,
     handleUpdateProjectCollapsedState
-  } = useProjectCRUD(projects, projectActions, encryptionKey);
+  } = useProjectCRUD(projects, projectActions);
 
   // Memoize the returned object to prevent unnecessary re-renders
   return useMemo(() => ({

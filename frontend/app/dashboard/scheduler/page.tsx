@@ -119,8 +119,8 @@ function SchedulerPageContent() {
   // Load tasks and projects when encryption key becomes available
   useEffect(() => {
     if (encryptionKey) {
-      loadProjects(encryptionKey);
-      loadTasks(encryptionKey);
+      loadProjects();
+      loadTasks();
     }
   }, [encryptionKey, loadTasks, loadProjects]);
 

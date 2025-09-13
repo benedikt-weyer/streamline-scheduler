@@ -6,7 +6,7 @@ import { getBackend } from '@/utils/api/backend-interface';
  */
 export function useTaskSubscriptions(
   encryptionKey: string | null,
-  taskLoadFn: (key: string) => Promise<void>
+  taskLoadFn: () => Promise<void>
 ) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const skipNextTaskReloadRef = useRef<boolean>(false);
@@ -35,7 +35,7 @@ export function useTaskSubscriptions(
           
           // Reload tasks when a change is detected
           try {
-            await taskLoadFn(encryptionKey);
+            await taskLoadFn();
           } catch (error) {
             console.error('Error reloading tasks after subscription update:', error);
           }

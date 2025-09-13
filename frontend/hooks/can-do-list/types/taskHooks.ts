@@ -1,4 +1,4 @@
-import { Task } from '@/utils/can-do-list/can-do-list-types';
+import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
 
 export interface TaskState {
   tasks: Task[];
@@ -11,7 +11,7 @@ export interface TaskStateActions {
 }
 
 export interface TaskLoaderHook {
-  loadTasks: (key: string) => Promise<Task[]>;
+  loadTasks: () => Promise<Task[]>;
 }
 
 export interface TaskCRUDHook {
@@ -29,9 +29,18 @@ export interface TaskSubscriptionHook {
   skipNextTaskReload: () => void;
 }
 
-export interface CanDoListHook extends TaskState, TaskCRUDHook {
-  loadTasks: (key: string) => Promise<Task[]>;
-  loadTasksByProject: (key: string, projectId?: string) => Promise<Task[]>;
-  isSubscribed: boolean;
-  skipNextTaskReload: () => void;
+export interface CanDoListHook {
+  tasks: Task[];
+  selectedProject: Project | null;
+  isLoading: boolean;
+  error: string | null;
+  loadTasks: () => Promise<Task[]>;
+  loadTasksByProject: (projectId?: string) => Promise<Task[]>;
+  handleAddTask: (content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<boolean>;
+  handleUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<boolean>;
+  handleToggleComplete: (id: string, completed: boolean) => Promise<boolean>;
+  handleDeleteTask: (id: string) => Promise<boolean>;
+  handleMoveTaskToProject: (id: string, projectId?: string) => Promise<boolean>;
+  handleBulkDeleteCompleted: (projectId?: string) => Promise<number>;
+  handleReorderTasks: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
 }

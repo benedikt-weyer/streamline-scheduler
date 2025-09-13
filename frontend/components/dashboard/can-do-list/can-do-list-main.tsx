@@ -94,9 +94,9 @@ export default function CanDoListMain() {
     console.log('[CanDoListMain] useEffect triggered with encryptionKey:', !!encryptionKey);
     if (encryptionKey) {
       console.log('[CanDoListMain] Loading projects and tasks...');
-      loadProjects(encryptionKey);
+      loadProjects();
       // Always load all tasks for count calculations
-      loadTasks(encryptionKey);
+      loadTasks();
     }
   }, [encryptionKey, loadTasks, loadProjects]);
 
