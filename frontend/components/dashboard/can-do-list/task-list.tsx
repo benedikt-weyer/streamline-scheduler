@@ -1,6 +1,6 @@
 'use client';
 
-import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import TaskListItem from './task-list-item';
 import {
   DndContext,
@@ -23,15 +23,19 @@ import {
 import { useState, useEffect } from 'react';
 
 interface TaskListProps {
-  tasks: Task[];
-  allTasks?: Task[]; // All tasks for blocking relationships
-  isLoading: boolean;
+  tasks: CanDoItemDecrypted[];
+  allTasks?: CanDoItemDecrypted[]; // All tasks for blocking relationships
+  isLoading?: boolean;
+  searchQuery?: string;
+  selectedProjectId?: string | null;
+  showProjectName?: boolean;
+  showCompleted?: boolean;
+  projects?: ProjectDecrypted[];
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
-  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
+  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
   onToggleMyDay?: (id: string) => Promise<void>;
-  onReorderTasks: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
-  projects?: Project[];
+  onReorderTasks?: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
   currentProjectId?: string;
 }
 

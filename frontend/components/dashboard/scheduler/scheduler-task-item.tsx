@@ -2,20 +2,20 @@
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import { useState } from 'react';
 import { Edit, Trash2, Clock, Zap } from 'lucide-react';
 import EditTaskDialog from '../can-do-list/edit-task-dialog';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from '@/utils/can-do-list/priority-utils';
+
 
 interface SchedulerTaskItemProps {
-  readonly task: Task;
+  readonly task: CanDoItemDecrypted;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number) => Promise<void>;
-  readonly projects?: Project[];
+  readonly onUpdateTask: (id: string, content: string, duration_minutes?: number, project_id?: string) => Promise<void>;
+  readonly projects?: ProjectDecrypted[];
   readonly isDragOverlay?: boolean;
 }
 
@@ -74,8 +74,8 @@ export function SchedulerTaskItem({
     await onDeleteTask(task.id);
   };
 
-  const handleUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number) => {
-    await onUpdateTask(id, content, estimatedDuration, projectId, impact, urgency);
+  const handleUpdateTask = async (id: string, content: string, duration_minutes?: number, project_id?: string) => {
+    await onUpdateTask(id, content, duration_minutes, project_id);
     setShowEdit(false);
   };
 
@@ -135,25 +135,22 @@ export function SchedulerTaskItem({
             </span>
             {!isDragOverlay && (
               <div className="flex items-center gap-2 mt-1">
-                {task.estimatedDuration && (
+                {task.duration_minutes && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
-                    <span>{formatDuration(task.estimatedDuration)}</span>
+                    <span>{formatDuration(task.duration_minutes)}</span>
                   </div>
                 )}
-                {(() => {
-                  const priority = calculatePriority(task.impact, task.urgency);
-                  const priorityText = getPriorityDisplayText(priority);
-                  if (priorityText) {
-                    return (
-                      <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${getUrgencyColorClass(task.urgency)}`}>
-                        <Zap className="h-3 w-3" />
-                        <span>{priorityText}</span>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
+                {task.priority && task.priority !== 'low' && (
+                  <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${
+                    task.priority === 'high' ? 'text-red-600 bg-red-50' : 
+                    task.priority === 'medium' ? 'text-orange-600 bg-orange-50' : 
+                    'text-gray-600 bg-gray-50'
+                  }`}>
+                    <Zap className="h-3 w-3" />
+                    <span>{task.priority}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

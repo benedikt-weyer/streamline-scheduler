@@ -3,7 +3,8 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Project, Task, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
+import { ProjectDecrypted, CanDoItemDecrypted } from '@/utils/api/types';
+import { DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
 import { Plus, Folder, FolderOpen, Star, List, Sun } from 'lucide-react';
 import AddProjectDialog from '../add-project-dialog';
 import EditProjectDialog from '../edit-project-dialog';
@@ -11,8 +12,8 @@ import { SortableTree, TreeItems } from 'dnd-kit-sortable-tree';
 import ProjectTreeItem from './project-tree-item';
 
 interface ProjectSidebarProps {
-  readonly projects: Project[];
-  readonly tasks?: Task[];
+  readonly projects: ProjectDecrypted[];
+  readonly tasks?: CanDoItemDecrypted[];
   readonly selectedProjectId?: string;
   readonly onProjectSelect: (projectId?: string) => void;
   readonly onRecommendedSelect: () => void;
@@ -66,7 +67,7 @@ export default function ProjectSidebarWithDragDrop({
   console.log('[ProjectSidebarWithDragDrop] Rendering with projects:', projects.length, projects.map(p => p.name));
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] = useState<ProjectDecrypted | null>(null);
   const [selectedParentForAdd, setSelectedParentForAdd] = useState<string | undefined>(undefined);
 
   const handleAddProject = async (name: string, color: string, parentId?: string) => {
@@ -109,7 +110,7 @@ export default function ProjectSidebarWithDragDrop({
     
     // Create callback functions outside the mapping to reduce nesting
     const createSelectHandler = (projectId: string) => () => onProjectSelect(projectId);
-    const createEditHandler = (project: Project) => () => setEditingProject(project);
+    const createEditHandler = (project: ProjectDecrypted) => () => setEditingProject(project);
     const createAddChildHandler = (projectId: string) => () => openAddDialogForParent(projectId);
 
     // Build tree structure
@@ -117,26 +118,26 @@ export default function ProjectSidebarWithDragDrop({
       const filteredProjects = projects
         .filter(p => {
           // Normalize null and undefined to be equivalent for comparison
-          const projectParentId = p.parentId ?? undefined;
+          const projectParentId = p.parent_id ?? undefined;
           const targetParentId = parentId ?? undefined;
           console.log('[ProjectSidebarWithDragDrop] Project parentId check:', p.name, 'parentId:', projectParentId, 'looking for:', targetParentId, 'match:', projectParentId === targetParentId);
           return projectParentId === targetParentId;
         })
-        .sort((a, b) => a.displayOrder - b.displayOrder);
+        .sort((a, b) => a.order - b.order);
       
       console.log('[ProjectSidebarWithDragDrop] Building tree for parentId:', parentId, 'found projects:', filteredProjects.length);
       
       return filteredProjects.map(project => ({
         id: project.id,
         name: project.name,
-        color: project.color,
+        color: project.color || '#6b7280',
         count: itemCounts[project.id] || 0,
         isSelected: selectedProjectId === project.id,
         onSelect: createSelectHandler(project.id),
         onEdit: createEditHandler(project),
         onAddChild: createAddChildHandler(project.id),
         children: buildTree(project.id),
-        collapsed: project.isCollapsed
+        collapsed: project.collapsed
       }));
     };
 
@@ -161,7 +162,7 @@ export default function ProjectSidebarWithDragDrop({
       };
 
       const treeItem = findItemById(newItems, project.id);
-      if (treeItem && project.isCollapsed !== (treeItem.collapsed ?? false)) {
+      if (treeItem && project.collapsed !== (treeItem.collapsed ?? false)) {
         // Update collapsed state in database
         onUpdateProjectCollapsedState(project.id, treeItem.collapsed ?? false);
       }
@@ -208,10 +209,10 @@ export default function ProjectSidebarWithDragDrop({
   }
 
   // Calculate recommended tasks count
-      const recommendedCount = tasks.filter(task => !task.completed && (task.impact || task.urgency || task.dueDate)).length;
+      const recommendedCount = tasks.filter(task => !task.completed && (task.priority && task.priority !== 'low' || task.due_date)).length;
 
   // Calculate My Day tasks count
-  const myDayCount = tasks.filter(task => !task.completed && task.myDay).length;
+  const myDayCount = tasks.filter(task => !task.completed && task.my_day).length;
 
   // Calculate all tasks count
   const allTasksCount = itemCounts['all'] || 0;

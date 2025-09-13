@@ -1,6 +1,6 @@
 'use client';
 
-import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import { SchedulerTaskItem } from './scheduler-task-item';
 import TaskListItem from '@/components/dashboard/can-do-list/task-list-item';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -11,18 +11,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TaskSearchWithFilter } from '@/components/dashboard/shared/task-search-input';
 
 interface SchedulerTaskListProps {
-  readonly organizedTasks: Array<{ type: 'project' | 'task'; data: Project | Task }>;
-  readonly filteredTasks?: Task[]; // For desktop view
+  readonly organizedTasks: Array<{ type: 'project' | 'task'; data: ProjectDecrypted | CanDoItemDecrypted }>;
+  readonly filteredTasks?: CanDoItemDecrypted[]; // For desktop view
   readonly selectedProjectId?: string; // For desktop view
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
   readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
   readonly onToggleMyDay?: (id: string) => Promise<void>;
-  readonly projects: Project[];
+  readonly projects: ProjectDecrypted[];
   readonly isCollapsed: boolean;
   readonly isLoading: boolean;
-  readonly baseTasks?: Task[]; // For search functionality
-  readonly onFilteredTasksChange?: (tasks: Task[], isSearchActive: boolean) => void; // For search functionality
+  readonly baseTasks?: CanDoItemDecrypted[]; // For search functionality
+  readonly onFilteredTasksChange?: (tasks: CanDoItemDecrypted[], isSearchActive: boolean) => void; // For search functionality
 }
 
 export function SchedulerTaskList({
@@ -55,7 +55,7 @@ export function SchedulerTaskList({
     }
     return organizedTasks
       .filter(item => item.type === 'task')
-      .map(item => item.data as Task);
+      .map(item => item.data as CanDoItemDecrypted);
   }, [organizedTasks, filteredTasks]);
 
   // Filter tasks for desktop tabs
@@ -121,7 +121,7 @@ export function SchedulerTaskList({
               ) : (
                 organizedTasks.map((item, index) => {
                   if (item.type === 'project') {
-                    const project = item.data as Project;
+                    const project = item.data as ProjectDecrypted;
                     return (
                       <div key={`project-${project.id}`} className={`py-2 ${index > 0 ? 'pt-4' : ''}`}>
                         <div className="flex justify-center">
@@ -134,7 +134,7 @@ export function SchedulerTaskList({
                       </div>
                     );
                   } else {
-                    const task = item.data as Task;
+                    const task = item.data as CanDoItemDecrypted;
                     return (
                       <div key={`task-${task.id}`} className="px-0">
                         <div
@@ -200,7 +200,7 @@ export function SchedulerTaskList({
               ) : (
                 organizedTasks.map((item, index) => {
                   if (item.type === 'project') {
-                    const project = item.data as Project;
+                    const project = item.data as ProjectDecrypted;
                     return (
                       <div key={`project-${project.id}`} className={`py-2 ${index > 0 ? 'pt-4' : ''}`}>
                         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground px-1">
@@ -213,7 +213,7 @@ export function SchedulerTaskList({
                       </div>
                     );
                   } else {
-                    const task = item.data as Task;
+                    const task = item.data as CanDoItemDecrypted;
                     return (
                       <div key={`task-${task.id}`}>
                         <SchedulerTaskItem

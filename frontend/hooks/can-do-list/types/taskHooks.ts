@@ -1,17 +1,17 @@
-import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 
 export interface TaskState {
-  tasks: Task[];
+  tasks: CanDoItemDecrypted[];
   isLoading: boolean;
 }
 
 export interface TaskStateActions {
-  setTasks: (tasks: Task[] | ((prev: Task[]) => Task[])) => void;
+  setTasks: (tasks: CanDoItemDecrypted[] | ((prev: CanDoItemDecrypted[]) => CanDoItemDecrypted[])) => void;
   setIsLoading: (loading: boolean) => void;
 }
 
 export interface TaskLoaderHook {
-  loadTasks: () => Promise<Task[]>;
+  loadTasks: () => Promise<CanDoItemDecrypted[]>;
 }
 
 export interface TaskCRUDHook {
@@ -30,12 +30,12 @@ export interface TaskSubscriptionHook {
 }
 
 export interface CanDoListHook {
-  tasks: Task[];
-  selectedProject: Project | null;
+  tasks: CanDoItemDecrypted[];
+  selectedProject: ProjectDecrypted | null;
   isLoading: boolean;
   error: string | null;
-  loadTasks: () => Promise<Task[]>;
-  loadTasksByProject: (projectId?: string) => Promise<Task[]>;
+  loadTasks: () => Promise<CanDoItemDecrypted[]>;
+  loadTasksByProject: (projectId?: string) => Promise<CanDoItemDecrypted[]>;
   handleAddTask: (content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<boolean>;
   handleUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<boolean>;
   handleToggleComplete: (id: string, completed: boolean) => Promise<boolean>;

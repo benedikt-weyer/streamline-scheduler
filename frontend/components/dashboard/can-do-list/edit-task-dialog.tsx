@@ -28,7 +28,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
-import { Task, Project, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
+import { DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
@@ -61,13 +62,13 @@ const editTaskSchema = z.object({
 type EditTaskFormValues = z.infer<typeof editTaskSchema>;
 
 interface EditTaskDialogProps {
-  readonly task: Task | null;
+  readonly task: CanDoItemDecrypted | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
   readonly isLoading?: boolean;
-  readonly projects?: Project[];
-  readonly tasks?: Task[];
+  readonly projects?: ProjectDecrypted[];
+  readonly tasks?: CanDoItemDecrypted[];
 }
 
 export default function EditTaskDialog({ 
@@ -96,13 +97,13 @@ export default function EditTaskDialog({
     if (task && isOpen) {
       form.reset({
         content: task.content,
-        estimatedDuration: task.estimatedDuration?.toString() ?? '',
-        projectId: task.projectId ?? '',
-        impact: task.impact ?? 0,
-        urgency: task.urgency ?? 0,
-        dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : '',
-        blockedBy: task.blockedBy ?? '',
-        myDay: task.myDay ?? false
+        estimatedDuration: task.duration_minutes?.toString() ?? '',
+        projectId: task.project_id ?? '',
+        impact: 0, // Default since not available in API
+        urgency: 0, // Default since not available in API
+        dueDate: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '',
+        blockedBy: task.blocked_by ?? '',
+        myDay: task.my_day ?? false
       });
     }
   }, [task, isOpen, form]);
@@ -117,13 +118,13 @@ export default function EditTaskDialog({
     
     if (
       values.content.trim() === task.content.trim() &&
-      duration === task.estimatedDuration &&
-      values.projectId === task.projectId &&
-      impact === task.impact &&
-      urgency === task.urgency &&
-      dueDate?.getTime() === task.dueDate?.getTime() &&
-      blockedBy === task.blockedBy &&
-      values.myDay === task.myDay
+      duration === task.duration_minutes &&
+      values.projectId === task.project_id &&
+      impact === 0 && // Always 0 since not available in API
+      urgency === 0 && // Always 0 since not available in API
+      dueDate?.getTime() === (task.due_date ? new Date(task.due_date).getTime() : undefined) &&
+      blockedBy === task.blocked_by &&
+      values.myDay === task.my_day
     ) {
       onClose();
       return;
@@ -305,9 +306,9 @@ export default function EditTaskDialog({
                           >
                             <div className="flex items-center gap-2">
                               <span className="truncate max-w-64">{blockingTask.content}</span>
-                              {blockingTask.projectId && (
+                              {blockingTask.project_id && (
                                 <span className="text-xs text-muted-foreground">
-                                  ({projects.find(p => p.id === blockingTask.projectId)?.name || 'Unknown'})
+                                  ({projects.find(p => p.id === blockingTask.project_id)?.name || 'Unknown'})
                                 </span>
                               )}
                             </div>

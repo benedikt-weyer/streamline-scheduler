@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Task } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted } from '@/utils/api/types';
 import { TaskStateActions } from './types/taskHooks';
 import { useError } from '@/utils/context/ErrorContext';
 import { bulkUpdateTaskOrder } from '../../app/dashboard/can-do-list/api';
@@ -8,7 +8,7 @@ import { bulkUpdateTaskOrder } from '../../app/dashboard/can-do-list/api';
  * Hook for handling task reordering via drag and drop
  */
 export const useTaskReorder = (
-  tasks: Task[],
+  tasks: CanDoItemDecrypted[],
   taskActions: TaskStateActions,
   skipNextTaskReload?: () => void
 ) => {
@@ -26,7 +26,7 @@ export const useTaskReorder = (
 
       // Filter tasks for the current project
       const projectTasks = tasks.filter(task => 
-        projectId ? task.projectId === projectId : !task.projectId
+        projectId ? task.project_id === projectId : !task.project_id
       );
 
       if (sourceIndex < 0 || sourceIndex >= projectTasks.length ||
@@ -50,27 +50,27 @@ export const useTaskReorder = (
 
       // Update local state - merge the reordered project tasks back into the full task list
       const otherTasks = tasks.filter(task => 
-        projectId ? task.projectId !== projectId : !!task.projectId
+        projectId ? task.project_id !== projectId : !!task.project_id
       );
 
       const updatedProjectTasks = reorderedTasks.map((task, index) => ({
         ...task,
-        displayOrder: index
+        display_order: index
       }));
 
       // Combine and sort all tasks by project and display order
       const allUpdatedTasks = [...otherTasks, ...updatedProjectTasks].sort((a, b) => {
         // First sort by project (null/undefined projects first, then by projectId)
-        if (!a.projectId && !b.projectId) {
-          return a.displayOrder - b.displayOrder;
+        if (!a.project_id && !b.project_id) {
+          return a.display_order - b.display_order;
         }
-        if (!a.projectId) return -1;
-        if (!b.projectId) return 1;
-        if (a.projectId !== b.projectId) {
-          return a.projectId.localeCompare(b.projectId);
+        if (!a.project_id) return -1;
+        if (!b.project_id) return 1;
+        if (a.project_id !== b.project_id) {
+          return a.project_id.localeCompare(b.project_id);
         }
         // Within the same project, sort by display order
-        return a.displayOrder - b.displayOrder;
+        return a.display_order - b.display_order;
       });
 
       taskActions.setTasks(allUpdatedTasks);

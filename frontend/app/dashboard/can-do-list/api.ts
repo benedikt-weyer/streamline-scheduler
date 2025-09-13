@@ -1,7 +1,6 @@
 'use client';
 
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
-import { Task } from '@/utils/can-do-list/can-do-list-types';
 import { CanDoItemDecrypted, CreateCanDoItemDecryptedRequest, UpdateCanDoItemDecryptedRequest } from '@/utils/api/types';
 
 // Fetch all tasks for the current user (automatically decrypted)

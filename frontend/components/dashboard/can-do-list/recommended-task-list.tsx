@@ -1,6 +1,6 @@
 'use client';
 
-import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import { getRecommendedTasks, getRecommendationReason, calculateRecommendationScore } from '@/utils/can-do-list/recommendation-utils';
 import { formatDueDate, getDueDateColorClass } from '@/utils/can-do-list/due-date-utils';
 import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from '@/utils/can-do-list/priority-utils';
@@ -11,8 +11,8 @@ import Fuse from 'fuse.js';
 import { useMemo } from 'react';
 
 interface RecommendedTaskListProps {
-  tasks: Task[];
-  projects: Project[];
+  tasks: CanDoItemDecrypted[];
+  projects: ProjectDecrypted[];
   isLoading?: boolean;
   searchQuery?: string;
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
@@ -49,8 +49,8 @@ export default function RecommendedTaskList({
       // Add project names and original index to tasks for search
       const searchableTasks = recommendedTasks.map((task, originalIndex) => ({
         ...task,
-        projectName: task.projectId 
-          ? projects.find(p => p.id === task.projectId)?.name || ''
+        projectName: task.project_id 
+          ? projects.find(p => p.id === task.project_id)?.name || ''
           : 'Inbox',
         originalIndex: originalIndex // Preserve original ranking position
       }));
@@ -68,16 +68,16 @@ export default function RecommendedTaskList({
   }, [tasks, projects, searchQuery]);
   
   // Get project name for a task
-  const getProjectName = (task: Task): string => {
-    if (!task.projectId) return 'Inbox';
-    const project = projects.find(p => p.id === task.projectId);
+  const getProjectName = (task: CanDoItemDecrypted): string => {
+    if (!task.project_id) return 'Inbox';
+    const project = projects.find(p => p.id === task.project_id);
     return project?.name || 'Unknown Project';
   };
   
   // Get project color for a task
-  const getProjectColor = (task: Task): string => {
-    if (!task.projectId) return '#6b7280'; // gray-500 for inbox
-    const project = projects.find(p => p.id === task.projectId);
+  const getProjectColor = (task: CanDoItemDecrypted): string => {
+    if (!task.project_id) return '#6b7280'; // gray-500 for inbox
+    const project = projects.find(p => p.id === task.project_id);
     return project?.color || '#6b7280';
   };
 
@@ -127,7 +127,7 @@ export default function RecommendedTaskList({
 
       {/* Task List */}
       <div className="space-y-2">
-        {filteredRecommendedTasks.map((task: Task & { originalIndex?: number }, index: number) => {
+        {filteredRecommendedTasks.map((task: CanDoItemDecrypted & { originalIndex?: number }, index: number) => {
           const score = calculateRecommendationScore(task, tasks);
           const reason = getRecommendationReason(task, tasks);
           const rankNumber = (task.originalIndex ?? index) + 1; // Use original index if available

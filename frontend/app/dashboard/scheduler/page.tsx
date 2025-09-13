@@ -6,7 +6,7 @@ import { useProjects } from '@/hooks/can-do-list/can-do-projects/useProjects';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { useCalendar } from '@/hooks/calendar/useCalendar';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
-import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, pointerWithin } from '@dnd-kit/core';
 import { SchedulerTaskList, SchedulerCalendar, SchedulerTaskItem, SchedulerMobile } from '@/components/dashboard/scheduler';
@@ -62,16 +62,16 @@ function SchedulerPageContent() {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
     
-    const newMyDayStatus = !task.myDay;
+    const newMyDayStatus = !task.my_day;
     await updateTask(
       id, 
       task.content, 
-      task.estimatedDuration, 
-      task.projectId, 
-      task.impact, 
-      task.urgency, 
-      task.dueDate, 
-      task.blockedBy, 
+      task.duration_minutes, 
+      task.project_id, 
+      undefined, // impact 
+      undefined, // urgency
+      task.due_date ? new Date(task.due_date) : undefined, 
+      task.blocked_by, 
       newMyDayStatus
     );
   };
@@ -96,7 +96,7 @@ function SchedulerPageContent() {
   } = useCalendar(encryptionKey);
 
   // Drag and drop state
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [activeTask, setActiveTask] = useState<CanDoItemDecrypted | null>(null);
   const [isTaskbarCollapsed, setIsTaskbarCollapsed] = useState(false);
   
   // Project selection state for desktop view
@@ -105,11 +105,11 @@ function SchedulerPageContent() {
   const [isMyDaySelected, setIsMyDaySelected] = useState(false);
   
   // Search state - for the filtered tasks from search component
-  const [searchFilteredTasks, setSearchFilteredTasks] = useState<Task[]>([]);
+  const [searchFilteredTasks, setSearchFilteredTasks] = useState<CanDoItemDecrypted[]>([]);
   const [isSearchActive, setIsSearchActive] = useState(false);
 
   // Handle filtered tasks change from search component
-  const handleFilteredTasksChange = (filteredTasks: Task[], searchActive: boolean) => {
+  const handleFilteredTasksChange = (filteredTasks: CanDoItemDecrypted[], searchActive: boolean) => {
     setSearchFilteredTasks(filteredTasks);
     setIsSearchActive(searchActive);
   };
@@ -153,18 +153,18 @@ function SchedulerPageContent() {
     const counts: Record<string, number> = {};
     
     // Count inbox tasks (tasks without project) - only active tasks
-    counts['inbox'] = tasks.filter(task => !task.projectId && !task.completed).length;
+    counts['inbox'] = tasks.filter(task => !task.project_id && !task.completed).length;
     
     // Count active tasks per project
     projects.forEach(project => {
-      counts[project.id] = tasks.filter(task => task.projectId === project.id && !task.completed).length;
+      counts[project.id] = tasks.filter(task => task.project_id === project.id && !task.completed).length;
     });
     
     // Count all active tasks
     counts['all'] = tasks.filter(task => !task.completed).length;
     
     // Count My Day tasks
-    counts['myDay'] = tasks.filter(task => task.myDay && !task.completed).length;
+    counts['myDay'] = tasks.filter(task => task.my_day && !task.completed).length;
     
     return counts;
   }, [tasks, projects]);
@@ -172,14 +172,14 @@ function SchedulerPageContent() {
   // Base tasks filtering (without search) - search will be handled by TaskSearchWithFilter component
   const baseTasks = useMemo(() => {
     if (isMyDaySelected) {
-      return tasks.filter(task => task.myDay && !task.completed);
+      return tasks.filter(task => task.my_day && !task.completed);
     } else if (isAllTasksSelected) {
       return tasks.filter(task => !task.completed);
     } else if (selectedProjectId) {
-      return tasks.filter(task => task.projectId === selectedProjectId && !task.completed);
+      return tasks.filter(task => task.project_id === selectedProjectId && !task.completed);
     } else {
       // Show tasks without project (inbox)
-      return tasks.filter(task => !task.projectId && !task.completed);
+      return tasks.filter(task => !task.project_id && !task.completed);
     }
   }, [tasks, selectedProjectId, isAllTasksSelected, isMyDaySelected]);
 
@@ -204,19 +204,19 @@ function SchedulerPageContent() {
       const project = projects.find(p => p.id === projectId);
       if (!project) return 'Unknown Project';
       
-      if (!project.parentId) {
+      if (!project.parent_id) {
         return project.name;
       }
       
-      const parentPath = getProjectPath(project.parentId);
+      const parentPath = getProjectPath(project.parent_id);
       return `${parentPath} > ${project.name}`;
     };
 
     // Group filtered tasks by project
-    const tasksByProject = new Map<string | undefined, Task[]>();
+    const tasksByProject = new Map<string | undefined, CanDoItemDecrypted[]>();
     filteredTasks.forEach(task => {
       // Normalize null and undefined to be the same key for inbox tasks
-      const projectId = task.projectId || undefined;
+      const projectId = task.project_id || undefined;
       if (!tasksByProject.has(projectId)) {
         tasksByProject.set(projectId, []);
       }
@@ -224,14 +224,14 @@ function SchedulerPageContent() {
     });
 
     // Create organized structure with project headers
-    const organized: Array<{ type: 'project-header' | 'task'; data: Project | Task }> = [];
+    const organized: Array<{ type: 'project-header' | 'task'; data: ProjectDecrypted | CanDoItemDecrypted }> = [];
 
     // Add inbox section if there are inbox tasks
     const inboxTasks = tasksByProject.get(undefined) || [];
     if (inboxTasks.length > 0) {
       organized.push({ 
         type: 'project-header', 
-        data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as Project 
+        data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as ProjectDecrypted 
       });
       inboxTasks.forEach(task => organized.push({ type: 'task', data: task }));
     }
@@ -255,15 +255,15 @@ function SchedulerPageContent() {
 
   // Organize tasks by project for flat hierarchy display (mobile view)
   const organizedTasks = useMemo(() => {
-    const organized: Array<{ type: 'project' | 'task'; data: Project | Task }> = [];
+    const organized: Array<{ type: 'project' | 'task'; data: ProjectDecrypted | CanDoItemDecrypted }> = [];
     
     // Get active (non-completed) tasks only
     const activeTasks = tasks.filter(task => !task.completed);
     
     // Group tasks by project
-    const tasksByProject = new Map<string | undefined, Task[]>();
+    const tasksByProject = new Map<string | undefined, CanDoItemDecrypted[]>();
     activeTasks.forEach(task => {
-      const projectId = task.projectId;
+      const projectId = task.project_id;
       if (!tasksByProject.has(projectId)) {
         tasksByProject.set(projectId, []);
       }
@@ -273,7 +273,7 @@ function SchedulerPageContent() {
     // Add inbox tasks (tasks without project)
     const inboxTasks = tasksByProject.get(undefined) || [];
     if (inboxTasks.length > 0) {
-      organized.push({ type: 'project', data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as Project });
+      organized.push({ type: 'project', data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as ProjectDecrypted });
       inboxTasks.forEach(task => organized.push({ type: 'task', data: task }));
     }
 
@@ -319,8 +319,8 @@ function SchedulerPageContent() {
     console.log('Drag end event:', {
       overId: over.id,
       overData: over.data?.current,
-      activeTaskId: activeTask.id,
-      activeTaskContent: activeTask.content
+      activeTaskId: activeTask?.id,
+      activeTaskContent: activeTask?.content
     });
 
     // Check if dropped on a quarter-hour time slot
@@ -336,12 +336,12 @@ function SchedulerPageContent() {
       
       // Create calendar event from task directly
       const startTime = new Date(dropTime);
-      const duration = activeTask.estimatedDuration || 60; // Default 1 hour in minutes
+      const duration = activeTask?.duration_minutes || 60; // Default 1 hour in minutes
       const endTime = addMinutes(startTime, duration);
 
       const eventData = {
-        title: activeTask.content,
-        description: `Scheduled from task: ${activeTask.content}`,
+        title: activeTask?.content || '',
+        description: `Scheduled from task: ${activeTask?.content || ''}`,
         startDate: format(startTime, 'yyyy-MM-dd'),
         startTime: format(startTime, 'HH:mm'),
         endDate: format(endTime, 'yyyy-MM-dd'),
@@ -471,7 +471,7 @@ function SchedulerPageContent() {
                   <div className="space-y-4">
                     {groupedTasksScheduler.map((item, index) => {
                       if (item.type === 'project-header') {
-                        const project = item.data as Project;
+                        const project = item.data as ProjectDecrypted;
                         return (
                           <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
                             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
@@ -484,7 +484,7 @@ function SchedulerPageContent() {
                           </div>
                         );
                       } else {
-                        const task = item.data as Task;
+                        const task = item.data as CanDoItemDecrypted;
                         return (
                           <div key={`task-${task.id}`} className="ml-4">
                             <TaskListItem

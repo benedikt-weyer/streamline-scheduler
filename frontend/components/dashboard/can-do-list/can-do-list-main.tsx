@@ -29,7 +29,7 @@ import AuthenticationRequired from './authentication-required';
 import ProjectSidebarDynamic from './project-bar/project-sidebar-dynamic';
 import ProjectSelectorMobile from './project-selector-mobile';
 import TaskListItem from './task-list-item';
-import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 
 // Define schema for new task validation
 const addTaskSchema = z.object({
@@ -144,16 +144,16 @@ export default function CanDoListMain() {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
     
-    const newMyDayStatus = !task.myDay;
+    const newMyDayStatus = !task.my_day;
     await handleUpdateTask(
       id, 
       task.content, 
-      task.estimatedDuration, 
-      task.projectId, 
-      task.impact, 
-      task.urgency, 
-      task.dueDate, 
-      task.blockedBy, 
+      task.duration_minutes, 
+      task.project_id, 
+      undefined, // impact
+      undefined, // urgency
+      task.due_date ? new Date(task.due_date) : undefined, 
+      task.blocked_by, 
       newMyDayStatus
     );
   };
@@ -174,15 +174,15 @@ export default function CanDoListMain() {
     let baseTasks;
     if (isMyDaySelected) {
       // Show only My Day tasks
-      baseTasks = tasks.filter(task => task.myDay);
+      baseTasks = tasks.filter(task => task.my_day);
     } else if (isAllTasksSelected) {
       // Show all tasks regardless of project
       baseTasks = tasks;
     } else if (selectedProjectId) {
-      baseTasks = tasks.filter(task => task.projectId === selectedProjectId);
+      baseTasks = tasks.filter(task => task.project_id === selectedProjectId);
     } else {
       // Show tasks without project (inbox)
-      baseTasks = tasks.filter(task => !task.projectId);
+      baseTasks = tasks.filter(task => !task.project_id);
     }
     
     // Filter by tab
@@ -199,8 +199,8 @@ export default function CanDoListMain() {
       // Add project names to tasks for search
       const searchableTasks = tabFilteredTasks.map(task => ({
         ...task,
-        projectName: task.projectId 
-          ? projects.find(p => p.id === task.projectId)?.name || ''
+        projectName: task.project_id 
+          ? projects.find(p => p.id === task.project_id)?.name || ''
           : 'Inbox'
       }));
 
@@ -223,19 +223,19 @@ export default function CanDoListMain() {
       const project = projects.find(p => p.id === projectId);
       if (!project) return 'Unknown Project';
       
-      if (!project.parentId) {
+      if (!project.parent_id) {
         return project.name;
       }
       
-      const parentPath = getProjectPath(project.parentId);
+      const parentPath = getProjectPath(project.parent_id);
       return `${parentPath} > ${project.name}`;
     };
 
     // Group filtered tasks by project
-    const tasksByProject = new Map<string | undefined, Task[]>();
+    const tasksByProject = new Map<string | undefined, CanDoItemDecrypted[]>();
     filteredTasks.forEach(task => {
       // Normalize null and undefined to be the same key for inbox tasks
-      const projectId = task.projectId || undefined;
+      const projectId = task.project_id || undefined;
       if (!tasksByProject.has(projectId)) {
         tasksByProject.set(projectId, []);
       }
@@ -243,14 +243,14 @@ export default function CanDoListMain() {
     });
 
     // Create organized structure with project headers
-    const organized: Array<{ type: 'project-header' | 'task'; data: Project | Task }> = [];
+    const organized: Array<{ type: 'project-header' | 'task'; data: ProjectDecrypted | CanDoItemDecrypted }> = [];
 
     // Add inbox section if there are inbox tasks
     const inboxTasks = tasksByProject.get(undefined) || [];
     if (inboxTasks.length > 0) {
       organized.push({ 
         type: 'project-header', 
-        data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as Project 
+        data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as ProjectDecrypted 
       });
       inboxTasks.forEach(task => organized.push({ type: 'task', data: task }));
     }
@@ -279,9 +279,9 @@ export default function CanDoListMain() {
       // Show all tasks regardless of project
       baseTasks = tasks;
     } else if (selectedProjectId) {
-      baseTasks = tasks.filter(task => task.projectId === selectedProjectId);
+      baseTasks = tasks.filter(task => task.project_id === selectedProjectId);
     } else {
-      baseTasks = tasks.filter(task => !task.projectId);
+      baseTasks = tasks.filter(task => !task.project_id);
     }
     
     const active = baseTasks.filter(task => !task.completed).length;
@@ -295,11 +295,11 @@ export default function CanDoListMain() {
     const counts: Record<string, number> = {};
     
     // Count inbox tasks (tasks without project) - only active tasks
-    counts['inbox'] = tasks.filter(task => !task.projectId && !task.completed).length;
+    counts['inbox'] = tasks.filter(task => !task.project_id && !task.completed).length;
     
     // Count active tasks per project
     projects.forEach(project => {
-      counts[project.id] = tasks.filter(task => task.projectId === project.id && !task.completed).length;
+      counts[project.id] = tasks.filter(task => task.project_id === project.id && !task.completed).length;
     });
     
     // Count all active tasks
@@ -494,7 +494,7 @@ export default function CanDoListMain() {
                         <div className="space-y-4">
                           {groupedTasks.map((item, index) => {
                             if (item.type === 'project-header') {
-                              const project = item.data as Project;
+                              const project = item.data as ProjectDecrypted;
                               return (
                                 <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
                                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
@@ -507,7 +507,7 @@ export default function CanDoListMain() {
                                 </div>
                               );
                             } else {
-                              const task = item.data as Task;
+                              const task = item.data as CanDoItemDecrypted;
                               return (
                                 <div key={`task-${task.id}`} className="ml-4">
                                   <TaskListItem
@@ -548,7 +548,7 @@ export default function CanDoListMain() {
                         <div className="space-y-4">
                           {groupedTasks.map((item, index) => {
                             if (item.type === 'project-header') {
-                              const project = item.data as Project;
+                              const project = item.data as ProjectDecrypted;
                               return (
                                 <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
                                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
@@ -561,7 +561,7 @@ export default function CanDoListMain() {
                                 </div>
                               );
                             } else {
-                              const task = item.data as Task;
+                              const task = item.data as CanDoItemDecrypted;
                               return (
                                 <div key={`task-${task.id}`} className="ml-4">
                                   <TaskListItem
@@ -737,7 +737,7 @@ export default function CanDoListMain() {
                         <div className="space-y-4">
                           {groupedTasks.map((item, index) => {
                             if (item.type === 'project-header') {
-                              const project = item.data as Project;
+                              const project = item.data as ProjectDecrypted;
                               return (
                                 <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
                                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
@@ -750,7 +750,7 @@ export default function CanDoListMain() {
                                 </div>
                               );
                             } else {
-                              const task = item.data as Task;
+                              const task = item.data as CanDoItemDecrypted;
                               return (
                                 <div key={`task-${task.id}`} className="ml-4">
                                   <TaskListItem
@@ -791,7 +791,7 @@ export default function CanDoListMain() {
                         <div className="space-y-4">
                           {groupedTasks.map((item, index) => {
                             if (item.type === 'project-header') {
-                              const project = item.data as Project;
+                              const project = item.data as ProjectDecrypted;
                               return (
                                 <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
                                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
@@ -804,7 +804,7 @@ export default function CanDoListMain() {
                                 </div>
                               );
                             } else {
-                              const task = item.data as Task;
+                              const task = item.data as CanDoItemDecrypted;
                               return (
                                 <div key={`task-${task.id}`} className="ml-4">
                                   <TaskListItem

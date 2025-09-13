@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { Project, Task } from '@/utils/can-do-list/can-do-list-types';
+import { ProjectDecrypted, CanDoItemDecrypted } from '@/utils/api/types';
 
 // Dynamic import of the drag and drop sidebar to prevent SSR issues
 const ProjectSidebarWithDragDrop = dynamic(
@@ -33,8 +33,8 @@ const ProjectSidebarWithDragDrop = dynamic(
 );
 
 interface ProjectSidebarDynamicProps {
-  readonly projects: Project[];
-  readonly tasks?: Task[];
+  readonly projects: ProjectDecrypted[];
+  readonly tasks?: CanDoItemDecrypted[];
   readonly selectedProjectId?: string;
   readonly onProjectSelect: (projectId?: string) => void;
   readonly onRecommendedSelect: () => void;

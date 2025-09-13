@@ -2,26 +2,27 @@
  * Utility functions for calculating task recommendations
  */
 
-import { Task } from './can-do-list-types';
+import { CanDoItemDecrypted } from '../api/types';
 
 /**
  * Calculate a recommendation score for a task based on impact, urgency, due date, and blocking relationships
  * Higher scores indicate higher priority tasks that should be recommended
  */
-export function calculateRecommendationScore(task: Task, allTasks: Task[]): number {
+export function calculateRecommendationScore(task: CanDoItemDecrypted, allTasks: CanDoItemDecrypted[]): number {
   let score = 0;
   
   // Base score from impact and urgency (0-10 each, max 20)
-  const impact = task.impact || 0;
-  const urgency = task.urgency || 0;
+  // Note: impact and urgency are not yet implemented in the API, so we use default values
+  const impact = 5; // Default medium impact
+  const urgency = 5; // Default medium urgency
   score += impact + urgency;
   
   // Due date multiplier (adds urgency based on how soon the task is due)
-  if (task.dueDate) {
+  if (task.due_date) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const dueDate = new Date(task.dueDate);
+    const dueDate = new Date(task.due_date);
     dueDate.setHours(0, 0, 0, 0);
     
     const diffTime = dueDate.getTime() - today.getTime();
@@ -47,20 +48,20 @@ export function calculateRecommendationScore(task: Task, allTasks: Task[]): numb
   }
   
   // Blocking task bonus: if this task blocks other important tasks, boost its score
-  const blockedTasks = allTasks.filter(t => t.blockedBy === task.id && !t.completed);
+  const blockedTasks = allTasks.filter(t => t.blocked_by === task.id && !t.completed);
   if (blockedTasks.length > 0) {
     // Calculate the highest score among blocked tasks
     const maxBlockedScore = Math.max(...blockedTasks.map(blockedTask => {
       // Calculate blocked task's base score (without blocking bonus to avoid recursion)
-      const blockedImpact = blockedTask.impact || 0;
-      const blockedUrgency = blockedTask.urgency || 0;
+      const blockedImpact = 5; // Default medium impact
+      const blockedUrgency = 5; // Default medium urgency
       let blockedScore = blockedImpact + blockedUrgency;
       
       // Add due date bonus for blocked task
-      if (blockedTask.dueDate) {
+      if (blockedTask.due_date) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const dueDate = new Date(blockedTask.dueDate);
+        const dueDate = new Date(blockedTask.due_date);
         dueDate.setHours(0, 0, 0, 0);
         const diffTime = dueDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -89,7 +90,7 @@ export function calculateRecommendationScore(task: Task, allTasks: Task[]): numb
  * @param limit - Maximum number of tasks to return (default: 20)
  * @returns Top recommended tasks sorted by score (highest first)
  */
-export function getRecommendedTasks(tasks: Task[], limit: number = 20): Task[] {
+export function getRecommendedTasks(tasks: CanDoItemDecrypted[], limit: number = 20): CanDoItemDecrypted[] {
   // Only consider active (non-completed) tasks
   const activeTasks = tasks.filter(task => !task.completed);
   
@@ -104,7 +105,7 @@ export function getRecommendedTasks(tasks: Task[], limit: number = 20): Task[] {
     if (b.score !== a.score) {
       return b.score - a.score;
     }
-    return b.task.createdAt.getTime() - a.task.createdAt.getTime();
+    return new Date(b.task.created_at).getTime() - new Date(a.task.created_at).getTime();
   });
   
   // Return top tasks up to the limit
@@ -114,21 +115,21 @@ export function getRecommendedTasks(tasks: Task[], limit: number = 20): Task[] {
 /**
  * Get a human-readable explanation of why a task is recommended
  */
-export function getRecommendationReason(task: Task, allTasks: Task[]): string {
-  const impact = task.impact || 0;
-  const urgency = task.urgency || 0;
+export function getRecommendationReason(task: CanDoItemDecrypted, allTasks: CanDoItemDecrypted[]): string {
+  const impact = 5; // Default medium impact (API doesn't support impact yet)
+  const urgency = 5; // Default medium urgency (API doesn't support urgency yet)
   const reasons: string[] = [];
   
   // Check if this task blocks important tasks
-  const blockedTasks = allTasks.filter(t => t.blockedBy === task.id && !t.completed);
+  const blockedTasks = allTasks.filter(t => t.blocked_by === task.id && !t.completed);
   if (blockedTasks.length > 0) {
-    const highImpactBlocked = blockedTasks.some(t => (t.impact || 0) >= 8);
-    const highUrgencyBlocked = blockedTasks.some(t => (t.urgency || 0) >= 8);
+    const highImpactBlocked = blockedTasks.some(t => 5 >= 8); // Always false since we use default values
+    const highUrgencyBlocked = blockedTasks.some(t => 5 >= 8); // Always false since we use default values
     const overdueTasks = blockedTasks.filter(t => {
-      if (!t.dueDate) return false;
+      if (!t.due_date) return false;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const dueDate = new Date(t.dueDate);
+      const dueDate = new Date(t.due_date);
       dueDate.setHours(0, 0, 0, 0);
       return dueDate.getTime() < today.getTime();
     });
@@ -154,11 +155,11 @@ export function getRecommendationReason(task: Task, allTasks: Task[]): string {
     reasons.push('Medium urgency');
   }
   
-  if (task.dueDate) {
+  if (task.due_date) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const dueDate = new Date(task.dueDate);
+    const dueDate = new Date(task.due_date);
     dueDate.setHours(0, 0, 0, 0);
     
     const diffTime = dueDate.getTime() - today.getTime();

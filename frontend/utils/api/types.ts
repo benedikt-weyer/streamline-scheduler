@@ -69,6 +69,8 @@ export interface CanDoItemDecrypted {
   priority?: 'low' | 'medium' | 'high';
   tags?: string[];
   duration_minutes?: number;
+  blocked_by?: string;
+  my_day?: boolean;
 }
 
 
@@ -99,6 +101,8 @@ export interface CreateCanDoItemDecryptedRequest {
   tags?: string[];
   duration_minutes?: number;
   display_order?: number;
+  blocked_by?: string;
+  my_day?: boolean;
 }
 
 export interface UpdateCanDoItemDecryptedRequest {
@@ -111,6 +115,8 @@ export interface UpdateCanDoItemDecryptedRequest {
   tags?: string[];
   duration_minutes?: number;
   display_order?: number;
+  blocked_by?: string;
+  my_day?: boolean;
 }
 
 // Project types

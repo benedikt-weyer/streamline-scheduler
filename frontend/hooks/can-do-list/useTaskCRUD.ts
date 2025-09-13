@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Task } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted } from '@/utils/api/types';
 import { TaskStateActions } from './types/taskHooks';
 import { useError } from '@/utils/context/ErrorContext';
 import { 
@@ -17,7 +17,7 @@ import { getCurrentUserId } from '@/utils/auth/current-user';
  * Hook for basic CRUD operations on can-do tasks
  */
 export const useTaskCRUD = (
-  tasks: Task[],
+  tasks: CanDoItemDecrypted[],
   taskActions: TaskStateActions,
   skipNextTaskReload?: () => void
 ) => {
@@ -46,24 +46,8 @@ export const useTaskCRUD = (
 
       const newTask = await addTask(taskData);
       
-      // Convert to local Task type
-      const localTask: Task = {
-        id: newTask.id,
-        content: newTask.content,
-        completed: newTask.completed,
-        createdAt: new Date(newTask.created_at),
-        updatedAt: new Date(newTask.updated_at),
-        projectId: newTask.project_id,
-        displayOrder: newTask.display_order ?? 0,
-        user_id: newTask.user_id,
-        // Set values for properties not available in API
-        estimatedDuration: newTask.duration_minutes,
-        impact: impact,
-        urgency: urgency,
-        dueDate: newTask.due_date ? new Date(newTask.due_date) : undefined,
-        blockedBy: blockedBy,
-        myDay: false
-      };
+      // Use the task directly from API (it's already the correct type)
+      const localTask: CanDoItemDecrypted = newTask;
       
       taskActions.setTasks(prevTasks => [localTask, ...prevTasks]);
       return true;
@@ -97,7 +81,7 @@ export const useTaskCRUD = (
         project_id: projectId,
         due_date: dueDate?.toISOString(),
         duration_minutes: estimatedDuration,
-        display_order: existingTask.displayOrder
+        display_order: existingTask.display_order
       };
 
       const updatedTask = await updateTask(taskData);
@@ -154,7 +138,7 @@ export const useTaskCRUD = (
             ? { 
                 ...prevTask, 
                 completed: updatedTask.completed,
-                displayOrder: updatedTask.display_order ?? prevTask.displayOrder,
+                display_order: updatedTask.display_order ?? prevTask.display_order,
                 updatedAt: new Date(updatedTask.updated_at)
               }
             : prevTask
@@ -218,11 +202,11 @@ export const useTaskCRUD = (
       const completedTasks = tasks.filter(task => {
         const isCompleted = task.completed;
         if (projectId === undefined) {
-          // If no project is selected, include tasks without projectId
-          return isCompleted && !task.projectId;
+          // If no project is selected, include tasks without project_id
+          return isCompleted && !task.project_id;
         } else {
-          // If project is selected, include tasks with matching projectId
-          return isCompleted && task.projectId === projectId;
+          // If project is selected, include tasks with matching project_id
+          return isCompleted && task.project_id === projectId;
         }
       });
       

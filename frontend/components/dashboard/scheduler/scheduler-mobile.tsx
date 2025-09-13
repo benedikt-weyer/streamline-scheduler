@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckSquare, Calendar as CalendarIcon, Plus, Clock, Sun } from 'lucide-react';
@@ -12,8 +12,8 @@ import { CalendarEventDialog, EventFormValues } from '@/components/dashboard/cal
 import { TaskSearchWithFilter } from '@/components/dashboard/shared/task-search-input';
 
 interface SchedulerMobileProps {
-  readonly tasks: Task[];
-  readonly projects: Project[];
+  readonly tasks: CanDoItemDecrypted[];
+  readonly projects: ProjectDecrypted[];
   readonly events: CalendarEvent[];
   readonly calendars: Calendar[];
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
@@ -45,12 +45,12 @@ export function SchedulerMobile({
   const [activeTab, setActiveTab] = useState<'tasks' | 'calendar'>('tasks');
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [searchFilteredTasks, setSearchFilteredTasks] = useState<Task[]>([]);
+  const [searchFilteredTasks, setSearchFilteredTasks] = useState<CanDoItemDecrypted[]>([]);
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const [taskToSchedule, setTaskToSchedule] = useState<Task | null>(null);
+  const [taskToSchedule, setTaskToSchedule] = useState<CanDoItemDecrypted | null>(null);
 
   // Handle filtered tasks change from search component
-  const handleFilteredTasksChange = (filteredTasks: Task[], searchActive: boolean) => {
+  const handleFilteredTasksChange = (filteredTasks: CanDoItemDecrypted[], searchActive: boolean) => {
     setSearchFilteredTasks(filteredTasks);
     setIsSearchActive(searchActive);
   };
@@ -72,21 +72,21 @@ export function SchedulerMobile({
 
   // Organize tasks by project
   const organizedTasks = useMemo(() => {
-    const tasksByProject = new Map<string | undefined, Task[]>();
+    const tasksByProject = new Map<string | undefined, CanDoItemDecrypted[]>();
     finalFilteredTasks.forEach(task => {
-      const projectId = task.projectId;
+      const projectId = task.project_id;
       if (!tasksByProject.has(projectId)) {
         tasksByProject.set(projectId, []);
       }
       tasksByProject.get(projectId)!.push(task);
     });
 
-    const organized: Array<{ type: 'project' | 'task'; data: Project | Task }> = [];
+    const organized: Array<{ type: 'project' | 'task'; data: ProjectDecrypted | CanDoItemDecrypted }> = [];
 
     // Add inbox tasks (tasks without project)
     const inboxTasks = tasksByProject.get(undefined) || [];
     if (inboxTasks.length > 0) {
-      organized.push({ type: 'project', data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as Project });
+      organized.push({ type: 'project', data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as ProjectDecrypted });
       inboxTasks.forEach(task => organized.push({ type: 'task', data: task }));
     }
 
@@ -123,7 +123,7 @@ export function SchedulerMobile({
   }, [events, calendars]);
 
   // Handle scheduling a task
-  const handleScheduleTask = useCallback((task: Task | null) => {
+  const handleScheduleTask = useCallback((task: CanDoItemDecrypted | null) => {
     setTaskToSchedule(task);
     
     // Create a temporary event with task details
@@ -131,7 +131,7 @@ export function SchedulerMobile({
     const startTime = new Date(now);
     startTime.setMinutes(0, 0, 0); // Round to the hour
     
-    const duration = task?.estimatedDuration || 60;
+    const duration = task?.duration_minutes || 60;
     const endTime = addMinutes(startTime, duration);
 
     const dummyEvent: CalendarEvent = {
@@ -141,7 +141,8 @@ export function SchedulerMobile({
       calendarId: defaultCalendar?.id || '',
       startTime,
       endTime,
-      createdAt: new Date()
+      createdAt: new Date(),
+      user_id: 'placeholder'
     };
 
     setSelectedEvent(dummyEvent);
@@ -257,7 +258,7 @@ export function SchedulerMobile({
               <div className="space-y-1 p-4">
                 {organizedTasks.map((item, index) => {
                   if (item.type === 'project') {
-                    const project = item.data as Project;
+                    const project = item.data as ProjectDecrypted;
                     return (
                       <div key={`project-${project.id}`} className={`py-3 ${index > 0 ? 'pt-6' : ''}`}>
                         <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
@@ -270,8 +271,8 @@ export function SchedulerMobile({
                       </div>
                     );
                   } else {
-                    const task = item.data as Task;
-                    const project = projects.find(p => p.id === task.projectId);
+                    const task = item.data as CanDoItemDecrypted;
+                    const project = projects.find(p => p.id === task.project_id);
                     
                     return (
                       <div
@@ -288,10 +289,10 @@ export function SchedulerMobile({
                           <div className="font-medium text-sm line-clamp-2">
                             {task.content}
                           </div>
-                          {task.estimatedDuration && (
+                          {task.duration_minutes && (
                             <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                               <Clock className="h-3 w-3" />
-                              <span>{task.estimatedDuration}m</span>
+                              <span>{task.duration_minutes}m</span>
                             </div>
                           )}
                         </div>
@@ -302,11 +303,11 @@ export function SchedulerMobile({
                               size="sm"
                               variant="ghost"
                               onClick={() => onToggleMyDay(task.id)}
-                              className={`flex-shrink-0 h-8 px-2 ${task.myDay ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'}`}
-                              title={task.myDay ? 'Remove from My Day' : 'Add to My Day'}
+                              className={`flex-shrink-0 h-8 px-2 ${task.my_day ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'}`}
+                              title={task.my_day ? 'Remove from My Day' : 'Add to My Day'}
                             >
                               <Sun className="h-4 w-4" />
-                              <span className="sr-only">{task.myDay ? 'Remove from My Day' : 'Add to My Day'}</span>
+                              <span className="sr-only">{task.my_day ? 'Remove from My Day' : 'Add to My Day'}</span>
                             </Button>
                           )}
                           <Button

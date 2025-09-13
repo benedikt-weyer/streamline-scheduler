@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Search, X } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import Fuse from 'fuse.js';
-import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 
 interface TaskSearchInputProps {
   searchQuery: string;
@@ -14,11 +14,11 @@ interface TaskSearchInputProps {
 }
 
 interface TaskSearchWithFilterProps {
-  tasks: Task[];
-  projects: Project[];
+  tasks: CanDoItemDecrypted[];
+  projects: ProjectDecrypted[];
   placeholder?: string;
   className?: string;
-  onFilteredTasksChange: (filteredTasks: Task[], isSearchActive: boolean) => void;
+  onFilteredTasksChange: (filteredTasks: CanDoItemDecrypted[], isSearchActive: boolean) => void;
 }
 
 // Simple search input component (existing functionality)
@@ -77,8 +77,8 @@ export function TaskSearchWithFilter({
       // Add project names to tasks for search
       const searchableTasks = tasks.map(task => ({
         ...task,
-        projectName: task.projectId 
-          ? projects.find(p => p.id === task.projectId)?.name || ''
+        projectName: task.project_id 
+          ? projects.find(p => p.id === task.project_id)?.name || ''
           : 'Inbox'
       }));
 

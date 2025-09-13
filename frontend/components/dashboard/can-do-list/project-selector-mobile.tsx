@@ -9,12 +9,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Project, Task, DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
+import { ProjectDecrypted, CanDoItemDecrypted } from '@/utils/api/types';
+import { DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
 import { ChevronDown, Folder, Star, List, Sun } from 'lucide-react';
 
 interface ProjectSelectorMobileProps {
-  readonly projects: Project[];
-  readonly tasks?: Task[];
+  readonly projects: ProjectDecrypted[];
+  readonly tasks?: CanDoItemDecrypted[];
   readonly selectedProjectId?: string;
   readonly onProjectSelect: (projectId?: string) => void;
   readonly onRecommendedSelect?: () => void;
@@ -26,7 +27,7 @@ interface ProjectSelectorMobileProps {
   readonly isMyDaySelected?: boolean;
 }
 
-interface FlattenedProject extends Project {
+interface FlattenedProject extends ProjectDecrypted {
   depth: number;
 }
 
@@ -72,11 +73,11 @@ export default function ProjectSelectorMobile({
     const addProjectsRecursively = (parentId?: string, depth: number = 0) => {
       const childProjects = projects
         .filter(p => {
-          const projectParentId = p.parentId ?? undefined;
+          const projectParentId = p.parent_id ?? undefined;
           const targetParentId = parentId ?? undefined;
           return projectParentId === targetParentId;
         })
-        .sort((a, b) => a.displayOrder - b.displayOrder);
+        .sort((a, b) => a.order - b.order);
       
       childProjects.forEach(project => {
         flattened.push({ ...project, depth });
@@ -89,10 +90,10 @@ export default function ProjectSelectorMobile({
   }, [projects]);
 
   // Calculate recommended tasks count
-      const recommendedCount = tasks.filter(task => !task.completed && (task.impact || task.urgency || task.dueDate)).length;
+      const recommendedCount = tasks.filter(task => !task.completed && (task.priority && task.priority !== 'low' || task.due_date)).length;
 
   // Calculate My Day tasks count
-  const myDayCount = tasks.filter(task => !task.completed && task.myDay).length;
+  const myDayCount = tasks.filter(task => !task.completed && task.my_day).length;
 
   // Get current project name and task count
   const currentProject = selectedProjectId 

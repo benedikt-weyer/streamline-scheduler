@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Task, Project } from '@/utils/can-do-list/can-do-list-types';
+import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import { useState } from 'react';
 import { Edit, Trash2, Clock, Zap, Calendar, Copy, Shield, AlertCircle, Lock, Sun } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,13 +15,13 @@ import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from 
 import { formatDueDate, getDueDateColorClass } from '@/utils/can-do-list/due-date-utils';
 
 interface TaskListItemProps {
-  readonly task: Task;
+  readonly task: CanDoItemDecrypted;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
   readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
   readonly onToggleMyDay?: (id: string) => Promise<void>;
-  readonly projects?: Project[];
-  readonly tasks?: Task[];
+  readonly projects?: ProjectDecrypted[];
+  readonly tasks?: CanDoItemDecrypted[];
 }
 
 export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, onToggleMyDay, projects = [], tasks = [] }: TaskListItemProps) {
@@ -76,11 +76,11 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   };
 
   // Check if task is blocked and find the blocking task
-  const isBlocked = task.blockedBy && !task.completed;
-  const blockingTask = isBlocked ? tasks.find(t => t.id === task.blockedBy) : null;
+  const isBlocked = task.blocked_by && !task.completed;
+  const blockingTask = isBlocked ? tasks.find(t => t.id === task.blocked_by) : null;
 
   // Check if task is blocking other tasks and find the blocked tasks
-  const blockedTasks = tasks.filter(t => t.blockedBy === task.id && !t.completed);
+  const blockedTasks = tasks.filter(t => t.blocked_by === task.id && !t.completed);
   const isBlocking = blockedTasks.length > 0 && !task.completed;
 
   const handleToggleCompleteClick = async () => {
@@ -182,7 +182,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           </div>
           
           {/* Badges row - only show on mobile when there are badges */}
-          {(task.estimatedDuration || task.impact || task.urgency || task.dueDate || isBlocked || isBlocking) && (
+          {(task.duration_minutes || task.due_date || isBlocked || isBlocking) && (
             <div className="md:hidden flex items-center space-x-1 pl-12 pr-3 pb-3">
               {isBlocked && (
                 <span className="text-xs text-red-800 dark:text-red-200 bg-red-100 dark:bg-red-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
@@ -214,18 +214,19 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
                   </Tooltip>
                 </TooltipProvider>
               )}
-              {task.estimatedDuration && (
+              {task.duration_minutes && (
                 <span className="text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  {formatDuration(task.estimatedDuration)}
+                  {formatDuration(task.duration_minutes)}
                 </span>
               )}
               {(() => {
-                const priority = calculatePriority(task.impact, task.urgency);
+                // Use default values since impact and urgency are not yet implemented in API
+                const priority = calculatePriority(5, 5); // Default medium priority
                 const priorityText = getPriorityDisplayText(priority);
                 if (priorityText) {
                   return (
-                    <span className={`text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(task.urgency)}`}>
+                    <span className={`text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(5)}`}>
                       <Zap className="h-3 w-3" />
                       {priorityText}
                     </span>
@@ -233,10 +234,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
                 }
                 return null;
               })()}
-              {task.dueDate && (
-                <span className={`text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getDueDateColorClass(task.dueDate)}`}>
+              {task.due_date && (
+                <span className={`text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getDueDateColorClass(new Date(task.due_date))}`}>
                   <Calendar className="h-3 w-3" />
-                  {formatDueDate(task.dueDate)}
+                  {formatDueDate(new Date(task.due_date))}
                 </span>
               )}
             </div>
@@ -277,18 +278,19 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
                 </Tooltip>
               </TooltipProvider>
             )}
-            {task.estimatedDuration && (
+            {task.duration_minutes && (
               <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {formatDuration(task.estimatedDuration)}
+                {formatDuration(task.duration_minutes)}
               </span>
             )}
             {(() => {
-              const priority = calculatePriority(task.impact, task.urgency);
+              // Use default values since impact and urgency are not yet implemented in API
+              const priority = calculatePriority(5, 5); // Default medium priority
               const priorityText = getPriorityDisplayText(priority);
               if (priorityText) {
                 return (
-                  <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(task.urgency)}`}>
+                  <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(5)}`}>
                     <Zap className="h-3 w-3" />
                     {priorityText}
                   </span>
@@ -296,10 +298,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
               }
               return null;
             })()}
-            {task.dueDate && (
-              <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getDueDateColorClass(task.dueDate)}`}>
+            {task.due_date && (
+              <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getDueDateColorClass(new Date(task.due_date))}`}>
                 <Calendar className="h-3 w-3" />
-                {formatDueDate(task.dueDate)}
+                {formatDueDate(new Date(task.due_date))}
               </span>
             )}
           </div>
@@ -311,11 +313,11 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
               size="sm"
               onClick={() => onToggleMyDay(task.id)}
               onPointerDown={(e) => e.stopPropagation()}
-              className={`p-2 ${task.myDay ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'}`}
-              title={task.myDay ? 'Remove from My Day' : 'Add to My Day'}
+              className={`p-2 ${task.my_day ? 'text-amber-500 hover:text-amber-600' : 'text-muted-foreground hover:text-foreground'}`}
+              title={task.my_day ? 'Remove from My Day' : 'Add to My Day'}
             >
               <Sun className="h-4 w-4" />
-              <span className="sr-only">{task.myDay ? 'Remove from My Day' : 'Add to My Day'}</span>
+              <span className="sr-only">{task.my_day ? 'Remove from My Day' : 'Add to My Day'}</span>
             </Button>
           )}
           <Button
