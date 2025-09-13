@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Project } from '@/utils/can-do-list/can-do-list-types';
+import { ProjectDecrypted } from '@/utils/api/types';
 import { ProjectStateActions } from './useProjectState';
 import { useError } from '@/utils/context/ErrorContext';
 import { 
@@ -16,7 +16,7 @@ import { CreateProjectDecryptedRequest, UpdateProjectDecryptedRequest } from '@/
  * Hook for basic CRUD operations on projects
  */
 export const useProjectCRUD = (
-  projects: Project[],
+  projects: ProjectDecrypted[],
   projectActions: ProjectStateActions
 ) => {
   const { setError } = useError();
@@ -39,20 +39,7 @@ export const useProjectCRUD = (
       
       const newProject = await addProject(projectData);
       
-      // Convert to local Project type
-      const localProject: Project = {
-        id: newProject.id,
-        name: newProject.name,
-        color: newProject.color || '#000000',
-        parentId: newProject.parent_id,
-        order: newProject.order ?? 0,
-        isCollapsed: newProject.collapsed ?? false,
-        createdAt: new Date(newProject.created_at),
-        updatedAt: new Date(newProject.updated_at),
-        user_id: newProject.user_id
-      };
-      
-      projectActions.setProjects(prevProjects => [localProject, ...prevProjects]);
+      projectActions.setProjects(prevProjects => [newProject, ...prevProjects]);
       return true;
     } catch (error) {
       console.error('Error adding project:', error);
@@ -123,10 +110,10 @@ export const useProjectCRUD = (
         
         // Sort by order within each parent group
         return updatedProjects.sort((a, b) => {
-          if (a.parentId !== b.parentId) {
-            return (a.parentId ?? '').localeCompare(b.parentId ?? '');
+          if (a.parent_id !== b.parent_id) {
+            return (a.parent_id ?? '').localeCompare(b.parent_id ?? '');
           }
-          return a.order - b.order;
+          return a.display_order - b.display_order;
         });
       });
       
@@ -146,7 +133,7 @@ export const useProjectCRUD = (
       projectActions.setProjects(prevProjects =>
         prevProjects.map(project =>
           project.id === id
-            ? { ...project, isCollapsed }
+            ? { ...project, collapsed: isCollapsed }
             : project
         )
       );

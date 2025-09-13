@@ -142,7 +142,7 @@ export interface ProjectDecrypted {
   updated_at: string;
   user_id: string;
   parent_id?: string;
-  order: number;
+  display_order: number;
   collapsed: boolean;
 }
 
