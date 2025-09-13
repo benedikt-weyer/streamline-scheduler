@@ -143,17 +143,16 @@ export default function CanDoListMain() {
   const handleToggleMyDay = async (id: string) => {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
-    
     const newMyDayStatus = !task.my_day;
     await handleUpdateTask(
-      id, 
-      task.content, 
-      task.duration_minutes, 
-      task.project_id, 
+      id,
+      task.content,
+      task.duration_minutes,
+      task.project_id,
       undefined, // impact
       undefined, // urgency
-      task.due_date ? new Date(task.due_date) : undefined, 
-      task.blocked_by, 
+      task.due_date ? new Date(task.due_date) : undefined,
+      task.blocked_by,
       newMyDayStatus
     );
   };
@@ -331,7 +330,17 @@ export default function CanDoListMain() {
   };
 
   // Handle update action
-  const onUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => {
+  const onUpdateTask = async (
+    id: string,
+    content: string,
+    estimatedDuration?: number,
+    projectId?: string,
+    impact?: number,
+    urgency?: number,
+    dueDate?: Date,
+    blockedBy?: string,
+    myDay?: boolean
+  ) => {
     await handleUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay);
   };
 
