@@ -219,30 +219,32 @@ docker-compose logs -f frontend
 
 #### Option 1: Using Nix (Recommended)
 
-The project includes a comprehensive `shell.nix` file that sets up a complete development environment with all necessary dependencies.
+The project includes a comprehensive `shell.nix` file that sets up a complete development environment with all necessary dependencies, including cargo-watch for hot reload functionality.
 
 1. **Install Nix**:
    - Follow the [official Nix installation guide](https://nixos.org/download.html)
 
 2. **Enter the development environment**:
+
    ```bash
    cd streamline-scheduler
    nix-shell
    ```
 
-3. **Start development servers**:
+3. **Start development servers with convenient commands**:
 
    ```bash
-   # Start PostgreSQL database
-   docker-compose up -d db
+   # Start the full stack (database, backend with hot reload, frontend)
+   start
    
-   # Start Rust backend (in one terminal)
-   cd backend
-   cargo run
+   # Or start services individually:
+   start:db    # Start PostgreSQL database
+   start:be    # Start Rust backend with cargo-watch hot reload
+   start:fe    # Start Next.js frontend
    
-   # Start Next.js frontend (in another terminal)
-   cd frontend
-   pnpm dev
+   # Other useful commands:
+   logs:be     # Follow backend logs
+   stop        # Stop all services
    ```
 
 #### Option 2: Manual Setup

@@ -11,6 +11,7 @@ pkgs.mkShell {
     # Rust toolchain for backend
     rustc
     cargo
+    cargo-watch
     rustfmt
     clippy
     rust-analyzer
@@ -45,11 +46,12 @@ pkgs.mkShell {
     # Print welcome message
     echo "🚀 Welcome to Streamline Scheduler development environment"
     echo "Architecture: Rust Backend + Next.js Frontend + E2E Encryption"
+    echo "🔥 Hot reload enabled for Rust backend with cargo-watch"
     echo "-----------------------------------------------------"
     echo "Available commands:"
     echo "  start         - Start full stack (database, backend, frontend)"
     echo "  start:db      - Start only PostgreSQL database"
-    echo "  start:be      - Start only Rust backend"
+    echo "  start:be      - Start only Rust backend (with hot reload)"
     echo "  start:fe      - Start only Next.js frontend"
     echo "  stop          - Stop all development servers"
     echo "  stop:db       - Stop only database"
@@ -147,9 +149,10 @@ pkgs.mkShell {
         echo "🔗 Updated backend configuration from main .env"
       fi
       
-      nohup cargo run > /tmp/backend.log 2>&1 &
+      nohup cargo watch -x run > /tmp/backend.log 2>&1 &
       echo $! > "$TEMP_DIR/backend.pid"
-      echo "Backend server started in background (logs at /tmp/backend.log)"
+      echo "Backend server started with hot reload (logs at /tmp/backend.log)"
+      echo "🔥 Hot reload enabled - changes will trigger automatic restart"
       echo "🔗 API available at http://localhost:$BACKEND_PORT"
       cd "$PROJECT_DIR"
     }
@@ -198,6 +201,7 @@ pkgs.mkShell {
         kill $(cat "$TEMP_DIR/backend.pid") 2>/dev/null || true
         rm "$TEMP_DIR/backend.pid"
       fi
+      pkill -f "cargo watch" || true
       pkill -f "cargo run" || true
       echo "✅ Backend server stopped"
     }
