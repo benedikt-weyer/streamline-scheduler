@@ -26,7 +26,7 @@ export const useProjectState = (): [ProjectDecrypted[], boolean, ProjectStateAct
           return (a.parent_id ?? '').localeCompare(b.parent_id ?? '');
         }
         // Then sort by display_order within the same parent
-        return a.display_order - b.display_order;
+        return a.order - b.order;
       });
     });
   }, []);

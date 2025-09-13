@@ -123,7 +123,7 @@ export default function ProjectSidebarWithDragDrop({
           console.log('[ProjectSidebarWithDragDrop] Project parentId check:', p.name, 'parentId:', projectParentId, 'looking for:', targetParentId, 'match:', projectParentId === targetParentId);
           return projectParentId === targetParentId;
         })
-        .sort((a, b) => a.display_order - b.display_order);
+        .sort((a, b) => a.order - b.order);
       
       console.log('[ProjectSidebarWithDragDrop] Building tree for parentId:', parentId, 'found projects:', filteredProjects.length);
       

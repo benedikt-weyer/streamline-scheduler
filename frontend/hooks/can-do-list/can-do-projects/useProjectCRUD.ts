@@ -113,7 +113,7 @@ export const useProjectCRUD = (
           if (a.parent_id !== b.parent_id) {
             return (a.parent_id ?? '').localeCompare(b.parent_id ?? '');
           }
-          return a.display_order - b.display_order;
+          return a.order - b.order;
         });
       });
       
