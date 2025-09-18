@@ -905,10 +905,31 @@ export class CalendarEventsService {
     }
 
     try {
+      // Handle different data formats - either from form (startDate/startTime) or direct (start_time)
+      let newStartTime: Date;
+      let newEndTime: Date;
+      
+      if (modifiedEventData.startDate && modifiedEventData.startTime) {
+        // Form data format with separate date and time fields
+        newStartTime = new Date(`${modifiedEventData.startDate}T${modifiedEventData.startTime}`);
+        newEndTime = new Date(`${modifiedEventData.endDate}T${modifiedEventData.endTime}`);
+      } else if (modifiedEventData.start_time && modifiedEventData.end_time) {
+        // Direct format with combined datetime fields
+        newStartTime = new Date(modifiedEventData.start_time);
+        newEndTime = new Date(modifiedEventData.end_time);
+      } else {
+        // Fallback to original event times if no new times provided
+        newStartTime = new Date(masterEvent.start_time);
+        newEndTime = new Date(masterEvent.end_time);
+      }
+      
+      // Validate the parsed dates
+      if (!isValid(newStartTime) || !isValid(newEndTime)) {
+        return { success: false, error: 'Invalid date/time values provided' };
+      }
+      
       // For "modify all in series", preserve the original start date but update the time
       const originalStartDate = new Date(masterEvent.start_time);
-      const newStartTime = new Date(modifiedEventData.start_time);
-      const newEndTime = new Date(modifiedEventData.end_time);
       
       // Calculate the time difference to apply to the master event
       const timeDifference = newEndTime.getTime() - newStartTime.getTime();
@@ -930,19 +951,21 @@ export class CalendarEventsService {
       const recurrencePattern = getRecurrencePattern(masterEvent);
       const eventData = {
         id: masterEvent.id,
-        title: modifiedEventData.title,
-        description: modifiedEventData.description ?? '',
-        location: modifiedEventData.location ?? '',
-        calendar_id: modifiedEventData.calendar_id ?? masterEvent.calendar_id,
+        title: modifiedEventData.title ?? masterEvent.title,
+        description: modifiedEventData.description ?? masterEvent.description ?? '',
+        location: modifiedEventData.location ?? masterEvent.location ?? '',
+        calendar_id: modifiedEventData.calendarId ?? modifiedEventData.calendar_id ?? masterEvent.calendar_id,
         start_time: updatedStartTime.toISOString(),
         end_time: updatedEndTime.toISOString(),
-        all_day: modifiedEventData.all_day || false,
-        recurrence_rule: recurrencePattern ? JSON.stringify({
-          frequency: recurrencePattern.frequency,
-          end_date: recurrencePattern.endDate,
-          interval: recurrencePattern.interval,
-          days_of_week: recurrencePattern.daysOfWeek
-        }) : undefined
+        all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
+        recurrence_rule: JSON.stringify({
+          frequency: modifiedEventData.recurrenceFrequency ?? recurrencePattern?.frequency ?? 'none',
+          end_date: modifiedEventData.recurrenceEndDate && modifiedEventData.recurrenceEndDate.trim() !== '' 
+            ? new Date(modifiedEventData.recurrenceEndDate).toISOString() 
+            : undefined,
+          interval: modifiedEventData.recurrenceInterval ?? recurrencePattern?.interval ?? 1,
+          days_of_week: recurrencePattern?.daysOfWeek
+        })
       };
 
       await this.backend.calendarEvents.update(eventData);
@@ -951,12 +974,21 @@ export class CalendarEventsService {
       const updatedEvents = allEvents.map(event =>
         event.id === masterEvent.id ? {
           ...event,
-          title: modifiedEventData.title,
-          description: modifiedEventData.description ?? '',
-          location: modifiedEventData.location ?? '',
-          calendar_id: modifiedEventData.calendar_id ?? masterEvent.calendar_id,
+          title: modifiedEventData.title ?? masterEvent.title,
+          description: modifiedEventData.description ?? masterEvent.description ?? '',
+          location: modifiedEventData.location ?? masterEvent.location ?? '',
+          calendar_id: modifiedEventData.calendarId ?? modifiedEventData.calendar_id ?? masterEvent.calendar_id,
           start_time: updatedStartTime.toISOString(),
           end_time: updatedEndTime.toISOString(),
+          all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
+          recurrence_rule: JSON.stringify({
+            frequency: modifiedEventData.recurrenceFrequency ?? recurrencePattern?.frequency ?? 'none',
+            end_date: modifiedEventData.recurrenceEndDate && modifiedEventData.recurrenceEndDate.trim() !== '' 
+              ? new Date(modifiedEventData.recurrenceEndDate).toISOString() 
+              : undefined,
+            interval: modifiedEventData.recurrenceInterval ?? recurrencePattern?.interval ?? 1,
+            days_of_week: recurrencePattern?.daysOfWeek
+          }),
           updated_at: new Date().toISOString()
         } : event
       );

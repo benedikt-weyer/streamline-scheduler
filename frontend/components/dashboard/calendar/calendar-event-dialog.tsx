@@ -252,7 +252,30 @@ export function CalendarEventDialog({
 
       if (isEditingExistingEvent && isRecurringEvent && 
           (onModifyAllInSeries || onModifyThisAndFuture || onModifyThisOccurrence)) {
-        // Store the modification data and show the modification choice modal
+        
+        // Check if recurrence settings have been changed
+        const originalFrequency = recurrencePattern?.frequency || RecurrenceFrequency.None;
+        const originalInterval = recurrencePattern?.interval || 1;
+        const originalEndDate = recurrencePattern?.endDate;
+        
+        // Normalize end dates for comparison
+        const normalizedOriginalEndDate = originalEndDate ? format(new Date(originalEndDate), "yyyy-MM-dd") : '';
+        const normalizedNewEndDate = values.recurrenceEndDate || '';
+        
+        const hasRecurrenceChanges = 
+          values.recurrenceFrequency !== originalFrequency ||
+          values.recurrenceInterval !== originalInterval ||
+          normalizedNewEndDate !== normalizedOriginalEndDate;
+        
+        if (hasRecurrenceChanges) {
+          // For recurrence setting changes, automatically modify all in series
+          if (onModifyAllInSeries) {
+            await onModifyAllInSeries(selectedEvent, values);
+            return;
+          }
+        }
+        
+        // For other changes, show the modification choice modal
         setPendingModificationData(values);
         setIsModificationConfirmOpen(true);
         return;
