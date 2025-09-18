@@ -1,18 +1,9 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { useEffect, useCallback, useRef } from 'react';
 
-import { CalendarHeader } from '@/components/dashboard/calendar/calendar-header';
-import { CalendarGrid } from '@/components/dashboard/calendar/calendar-grid';
-import { CalendarEventDialog, EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
-import { RecurringEventModificationDialog } from '@/components/dashboard/calendar/recurring-event-modification-dialog';
-import { CalendarSidebar } from '@/components/dashboard/calendar/calendar-sidebar';
-import { CalendarHeaderMobile } from '@/components/dashboard/calendar/calendar-header-mobile';
-import { CalendarGridMobile } from '@/components/dashboard/calendar/calendar-grid-mobile';
+import { CalendarFullControlCrossPlatform } from '@/components/dashboard/calendar/calendar-full-control-cross-platform';
 
-import { CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 
 // Import our custom hooks
@@ -20,16 +11,9 @@ import { useCalendars } from '../../../hooks/calendar/useCalendars';
 import { useCalendarEvents } from '../../../hooks/calendar/useCalendarEvents';
 import { useCalendarSubscriptions } from '../../../hooks/calendar/useCalendarSubscriptions';
 import { useICSEvents } from '../../../hooks/calendar/useICSEvents';
-import { getDaysOfWeek, getEventsInWeek } from '../../../utils/calendar/calendarHelpers';
-import { startOfWeek } from 'date-fns';
 
 function CalendarContent() {
   const { error, setError } = useError();
-  const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [shouldSelectToday, setShouldSelectToday] = useState<boolean>(false);
   
   // Use ref to store loadEvents function to avoid circular dependency
   const loadEventsRef = useRef<(() => Promise<any>) | null>(null);
@@ -86,42 +70,6 @@ function CalendarContent() {
   
   // Store loadEvents in ref for subscription hook
   loadEventsRef.current = loadEvents;
-
-  // Calculate derived data using useMemo to avoid unnecessary recalculations
-  const daysOfWeek = useMemo(() => 
-    getDaysOfWeek(currentWeek), [currentWeek]
-  );
-  
-  // Combine regular events and ICS events
-  const allEvents = useMemo(() => [...events, ...icsEvents], [events, icsEvents]);
-
-  // First filter events by visible calendars, then get events for current week
-  const visibleEvents = useMemo(() => 
-    allEvents.filter(event => 
-      // Only include events from visible calendars
-      calendars.find(cal => cal.id === event.calendarId)?.isVisible ?? false
-    ), [allEvents, calendars]
-  );
-  
-  const eventsInCurrentWeek = useMemo(() => 
-    getEventsInWeek(visibleEvents, daysOfWeek[0]), [visibleEvents, daysOfWeek]
-  );
-
-  // Memoize filtered visible calendars to avoid recalculating on each render
-  const visibleCalendars = useMemo(() => 
-    calendars.filter(cal => cal.isVisible), [calendars]
-  );
-
-  // Memoize default calendar ID lookup
-  const defaultCalendarId = useMemo(() => 
-    calendars.find(cal => cal.isDefault)?.id, [calendars]
-  );
-
-  // Memoize fallback calendar ID for new events
-  const fallbackCalendarId = useMemo(() => 
-    defaultCalendarId ?? (calendars.length > 0 ? calendars[0].id : ''), 
-    [defaultCalendarId, calendars]
-  );
   
   // Load data when component mounts
   useEffect(() => {
@@ -153,419 +101,54 @@ function CalendarContent() {
           await moveEventToCalendar(event.id, targetCalendarId);
         }
       }
+      return targetCalendarId;
     } catch (error) {
       console.error('Error in handleCalendarDeleteWithEvents:', error);
       setError('Failed to delete calendar and move events');
+      throw error;
     }
   }, [handleCalendarDelete, moveEventToCalendar, events, setError]);
 
-  // Handle ICS calendar refresh
-  const handleICSCalendarRefreshWrapper = useCallback(async (calendarId: string) => {
-    try {
-      await handleICSCalendarRefresh(calendarId);
-      await refreshICSCalendar(calendarId);
-    } catch (error) {
-      console.error('Error refreshing ICS calendar:', error);
-      setError('Failed to refresh ICS calendar');
-    }
-  }, [handleICSCalendarRefresh, refreshICSCalendar, setError]);
-
-  // Open dialog for editing an event
-  const openEditDialog = useCallback((event: CalendarEvent) => {
-    // Allow viewing ICS events in read-only mode
-    setSelectedEvent(event);
-    setIsDialogOpen(true);
-  }, []);
-
-  // Open dialog for creating a new event
-  const openNewEventDialog = useCallback((day?: Date, isAllDay?: boolean, calendarId?: string) => {
-    // If a specific calendar is provided, check if it's read-only
-    if (calendarId && isReadOnlyCalendar(calendarId)) {
-      setError('Cannot create events in ICS calendars');
-      return;
-    }
-    
-    setSelectedEvent(null);
-    
-    // If a day is provided, set the start time to the clicked time
-    if (day) {
-      const startTime = new Date(day);
-      
-      // For all-day events, set to start of day and end at end of day
-      // For timed events, set end time to be 1 hour after start time
-      const endTime = new Date(startTime);
-      if (isAllDay) {
-        // For all-day events, set start to beginning of day and end to end of day
-        startTime.setHours(0, 0, 0, 0);
-        endTime.setDate(endTime.getDate());
-        endTime.setHours(23, 59, 59, 999);
-      } else {
-        endTime.setHours(endTime.getHours() + 1);
-      }
-      
-      // Create a temporary "dummy" event to pass to the form
-      const dummyEvent: CalendarEvent = {
-        id: 'new', // This ID will never be used, it's just for the temporary object
-        title: '',
-        description: '',
-        calendarId: calendarId ?? fallbackCalendarId,
-        startTime: startTime,
-        endTime: endTime,
-        isAllDay: isAllDay ?? false,
-        user_id: '', // Temporary value for dummy event
-        createdAt: new Date()
-      };
-      
-      // Set as selected event to prefill the form with these times
-      setSelectedEvent(dummyEvent);
-    }
-    
-    setIsDialogOpen(true);
-  }, [fallbackCalendarId, isReadOnlyCalendar, setError]);
-
-  // Handle submit event and close dialog
-  const onSubmitEvent = useCallback(async (values: EventFormValues) => {
-    // Prevent editing ICS events
-    if (values.id && isICSEvent({ id: values.id } as CalendarEvent)) {
-      setError('Events from ICS calendars cannot be edited');
-      return;
-    }
-    // Prevent creating events in ICS calendars
-    if (isReadOnlyCalendar(values.calendarId)) {
-      setError('Cannot create events in ICS calendars');
-      return;
-    }
-    const success = await handleSubmitEvent(values);
-    if (success) {
-      setSelectedEvent(null);
-      setIsDialogOpen(false);
-    }
-  }, [handleSubmitEvent, isICSEvent, isReadOnlyCalendar, setError]);
-
-  // Handle delete event and close dialog
-  const onDeleteEvent = useCallback(async (id: string) => {
-    // Prevent deleting ICS events
-    if (isICSEvent({ id } as CalendarEvent)) {
-      setError('Events from ICS calendars cannot be deleted');
-      return;
-    }
-    const success = await handleDeleteEvent(id);
-    if (success && selectedEvent?.id === id) {
-      setSelectedEvent(null);
-      setIsDialogOpen(false);
-    }
-  }, [handleDeleteEvent, selectedEvent, isICSEvent, setError]);
-
-  // Handle clone event and open edit dialog with cloned event
-  const onCloneEvent = useCallback(async (eventToClone: CalendarEvent) => {
-    // Prevent cloning ICS events
-    if (isICSEvent(eventToClone)) {
-      setError('Events from ICS calendars cannot be cloned');
-      return;
-    }
-    const success = await handleCloneEvent(eventToClone);
-    if (success) {
-      // Close the current dialog since the event has been cloned
-      setSelectedEvent(null);
-      setIsDialogOpen(false);
-    }
-  }, [handleCloneEvent, isICSEvent, setError]);
-
-  // Callback for deleting a single occurrence
-  const onDeleteThisOccurrenceHandler = useCallback(async (event: CalendarEvent) => {
-    if (!handleDeleteThisOccurrence) return; // Guard if function is not available
-    const success = await handleDeleteThisOccurrence(event);
-    if (success) {
-      setSelectedEvent(null);
-      setIsDialogOpen(false);
-    }
-  }, [handleDeleteThisOccurrence, setIsDialogOpen, setSelectedEvent]);
-
-  // Callback for deleting this and future occurrences
-  const onDeleteThisAndFutureHandler = useCallback(async (event: CalendarEvent) => {
-    if (!handleDeleteThisAndFuture) return; // Guard if function is not available
-    const success = await handleDeleteThisAndFuture(event);
-    if (success) {
-      setSelectedEvent(null);
-      setIsDialogOpen(false);
-    }
-  }, [handleDeleteThisAndFuture, setIsDialogOpen, setSelectedEvent]);
-
-  // Callback for deleting all events in a series
-  const onDeleteAllInSeriesHandler = useCallback(async (event: CalendarEvent) => {
-    // handleDeleteEvent from the hook expects an ID.
-    const success = await handleDeleteEvent(event.id);
-    if (success) {
-      setSelectedEvent(null);
-      setIsDialogOpen(false);
-    }
-  }, [handleDeleteEvent, setIsDialogOpen, setSelectedEvent]);
-
-  // Callbacks for modifying recurring events
-  const onModifyThisOccurrenceHandler = useCallback(async (event: CalendarEvent, modifiedData: any) => {
-    if (!handleModifyThisOccurrence) return;
-    const success = await handleModifyThisOccurrence(event, modifiedData);
-    if (success) {
-      setSelectedEvent(null);
-      setIsDialogOpen(false);
-    }
-  }, [handleModifyThisOccurrence, setIsDialogOpen, setSelectedEvent]);
-
-  const onModifyThisAndFutureHandler = useCallback(async (event: CalendarEvent, modifiedData: any) => {
-    if (!handleModifyThisAndFuture) return;
-    const success = await handleModifyThisAndFuture(event, modifiedData);
-    if (success) {
-      setSelectedEvent(null);
-      setIsDialogOpen(false);
-    }
-  }, [handleModifyThisAndFuture, setIsDialogOpen, setSelectedEvent]);
-
-  const onModifyAllInSeriesHandler = useCallback(async (event: CalendarEvent, modifiedData: any) => {
-    if (!handleModifyAllInSeries) return;
-    const success = await handleModifyAllInSeries(event, modifiedData);
-    if (success) {
-      setSelectedEvent(null);
-      setIsDialogOpen(false);
-    }
-  }, [handleModifyAllInSeries, setIsDialogOpen, setSelectedEvent]);
-
-  // State for drag/resize modification modal
-  const [isDragModificationModalOpen, setIsDragModificationModalOpen] = useState(false);
-  const [pendingDraggedEvent, setPendingDraggedEvent] = useState<CalendarEvent | null>(null);
-
-  // Handler for drag/resize operations that checks for recurring events
-  const handleEventUpdateWithRecurrenceCheck = useCallback(async (updatedEvent: CalendarEvent) => {
-    // Check if this is a recurring event
-    const isRecurringEvent = updatedEvent.recurrencePattern && 
-      updatedEvent.recurrencePattern.frequency !== RecurrenceFrequency.None;
-
-    if (isRecurringEvent) {
-      // Store the updated event and show the modification choice modal
-      setPendingDraggedEvent(updatedEvent);
-      setIsDragModificationModalOpen(true);
-      return;
-    }
-
-    // For non-recurring events, update directly
-    await handleEventUpdate(updatedEvent);
-  }, [handleEventUpdate, handleModifyAllInSeries, handleModifyThisAndFuture, handleModifyThisOccurrence]);
-
-  // Handlers for drag/resize modification choices
-  const handleDragModifyThisOccurrence = useCallback(async (event: CalendarEvent) => {
-    if (pendingDraggedEvent && handleModifyThisOccurrence) {
-      const modifiedData = {
-        title: pendingDraggedEvent.title,
-        description: pendingDraggedEvent.description,
-        location: pendingDraggedEvent.location,
-        startTime: pendingDraggedEvent.startTime,
-        endTime: pendingDraggedEvent.endTime
-      };
-      await handleModifyThisOccurrence(event, modifiedData);
-      setPendingDraggedEvent(null);
-    }
-  }, [pendingDraggedEvent, handleModifyThisOccurrence]);
-
-  const handleDragModifyThisAndFuture = useCallback(async (event: CalendarEvent) => {
-    if (pendingDraggedEvent && handleModifyThisAndFuture) {
-      const modifiedData = {
-        title: pendingDraggedEvent.title,
-        description: pendingDraggedEvent.description,
-        location: pendingDraggedEvent.location,
-        startTime: pendingDraggedEvent.startTime,
-        endTime: pendingDraggedEvent.endTime
-      };
-      await handleModifyThisAndFuture(event, modifiedData);
-      setPendingDraggedEvent(null);
-    }
-  }, [pendingDraggedEvent, handleModifyThisAndFuture]);
-
-  const handleDragModifyAllInSeries = useCallback(async (event: CalendarEvent) => {
-    if (pendingDraggedEvent && handleModifyAllInSeries) {
-      const modifiedData = {
-        title: pendingDraggedEvent.title,
-        description: pendingDraggedEvent.description,
-        location: pendingDraggedEvent.location,
-        startTime: pendingDraggedEvent.startTime,
-        endTime: pendingDraggedEvent.endTime
-      };
-      await handleModifyAllInSeries(event, modifiedData);
-      setPendingDraggedEvent(null);
-    }
-  }, [pendingDraggedEvent, handleModifyAllInSeries]);
-
-  const handleDragModificationConfirmed = () => {
-    setPendingDraggedEvent(null);
-  };
-
-  // Memoized handlers for JSX props to prevent unnecessary re-renders
-  const openNewEventDialogHandler = useCallback(() => {
-    openNewEventDialog();
-  }, [openNewEventDialog]);
-
-  const openNewEventDialogWithDayHandler = useCallback((day: Date, isAllDay?: boolean) => {
-    openNewEventDialog(day, isAllDay);
-  }, [openNewEventDialog]);
-
-  // Handle today selection from mobile header
-  const handleTodaySelected = useCallback(() => {
-    setShouldSelectToday(true);
-    // Reset the flag after a brief delay to allow the effect to trigger
-    setTimeout(() => setShouldSelectToday(false), 100);
-  }, []);
-
-  // Handle date selection from month overview
-  const handleDateSelect = useCallback((date: Date) => {
-    setSelectedDate(date);
-    // Navigate to the week containing the selected date (Monday as start of week)
-    const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-    setCurrentWeek(weekStart);
-  }, []);
-
-  // Update selected date when current week changes (from header navigation)
-  useEffect(() => {
-    // Only update if the selected date is not in the current week
-    const currentWeekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
-    const selectedDateWeekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-    
-    if (currentWeekStart.getTime() !== selectedDateWeekStart.getTime()) {
-      // Set selected date to the first day of the current week
-      setSelectedDate(currentWeekStart);
-    }
-  }, [currentWeek, selectedDate]);
-
-  // Handle month change from month overview
-  const handleMonthChange = useCallback((date: Date) => {
-    // Optional: You could navigate to the first week of the month
-    // For now, just keep the current week unless it's outside the new month
-  }, []);
-
-
   return (
-    <div className="flex w-full h-full">
-      {/* Mobile Layout */}
-      <div className="md:hidden w-full flex flex-col h-screen">
-        {/* Mobile Header */}
-        <div className="border-b p-4 flex-shrink-0">
-          <CalendarHeaderMobile 
-            currentWeek={currentWeek}
-            setCurrentWeek={setCurrentWeek}
-            openNewEventDialog={openNewEventDialogHandler}
-            calendars={calendars}
-            onCalendarToggle={handleCalendarToggle}
-            onCalendarCreate={handleCalendarCreate}
-            onICSCalendarCreate={handleICSCalendarCreate}
-            onICSCalendarRefresh={handleICSCalendarRefreshWrapper}
-            onCalendarEdit={handleCalendarEdit}
-            onCalendarDelete={handleCalendarDeleteWithEvents}
-            onSetDefaultCalendar={setCalendarAsDefault}
-            onTodaySelected={handleTodaySelected}
-          />
-        </div>
-
-        {/* Mobile Calendar Content */}
-        <div className="flex-1 p-4 overflow-hidden">
-          {error && (
-            <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4">
-              {error}
-            </div>
-          )}
-          
-          {/* Display loading or calendar grid */}
-          {isLoadingEvents ? (
-            <div className="text-center py-8">Loading your encrypted calendar...</div>
-          ) : (
-            <CalendarGridMobile 
-              days={daysOfWeek}
-              events={eventsInCurrentWeek}
-              calendars={calendars.map(cal => ({ ...cal, color: cal.color || '#3b82f6' }))}
-              openEditDialog={openEditDialog}
-              openNewEventDialog={openNewEventDialogWithDayHandler}
-              onEventUpdate={handleEventUpdateWithRecurrenceCheck}
-              shouldSelectToday={shouldSelectToday}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Desktop Layout */}
-      <div className="hidden md:flex w-full h-full">
-        {/* Calendar Sidebar */}
-        <CalendarSidebar
-          calendars={calendars}
-          onCalendarToggle={handleCalendarToggle}
-          onCalendarCreate={handleCalendarCreate}
-          onICSCalendarCreate={handleICSCalendarCreate}
-          onICSCalendarRefresh={handleICSCalendarRefreshWrapper}
-          onCalendarEdit={handleCalendarEdit}
-          onCalendarDelete={handleCalendarDeleteWithEvents}
-          onSetDefaultCalendar={setCalendarAsDefault}
-          selectedDate={selectedDate}
-          currentWeek={currentWeek}
-          onDateSelect={handleDateSelect}
-          onMonthChange={handleMonthChange}
-        />
-        
-        {/* Main Calendar Content */}
-        <div className="flex-1 px-4">
-          <CalendarHeader 
-            currentWeek={currentWeek}
-            setCurrentWeek={setCurrentWeek}
-            openNewEventDialog={openNewEventDialogHandler}
-          />
-          
-          {error && (
-            <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4">
-              {error}
-            </div>
-          )}
-          
-          {/* Display loading or calendar grid */}
-          {isLoadingEvents ? (
-            <div className="text-center py-8">Loading your encrypted calendar...</div>
-          ) : (
-              <CalendarGrid 
-                days={daysOfWeek}
-                events={eventsInCurrentWeek}
-                calendars={calendars.map(cal => ({ ...cal, color: cal.color || '#3b82f6' }))}
-                openEditDialog={openEditDialog}
-                openNewEventDialog={openNewEventDialogWithDayHandler}
-                onEventUpdate={handleEventUpdateWithRecurrenceCheck}
-              />
-          )}
-        </div>
-      </div>
-
-      {/* Event dialog */}
-      <CalendarEventDialog 
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        selectedEvent={selectedEvent}
-        calendars={visibleCalendars}
-        defaultCalendarId={defaultCalendarId}
-        onSubmit={onSubmitEvent}
-        onDelete={onDeleteEvent}
-        onClone={onCloneEvent}
-        onDeleteThisOccurrence={onDeleteThisOccurrenceHandler}
-        onDeleteThisAndFuture={onDeleteThisAndFutureHandler}
-        onDeleteAllInSeries={onDeleteAllInSeriesHandler}
-        onModifyThisOccurrence={onModifyThisOccurrenceHandler}
-        onModifyThisAndFuture={onModifyThisAndFutureHandler}
-        onModifyAllInSeries={onModifyAllInSeriesHandler}
-      />
-
-      {/* Drag/Resize Modification Dialog */}
-      {pendingDraggedEvent && (
-        <RecurringEventModificationDialog
-          isOpen={isDragModificationModalOpen}
-          onOpenChange={setIsDragModificationModalOpen}
-          selectedEvent={pendingDraggedEvent}
-          onModifyThisOccurrence={handleDragModifyThisOccurrence}
-          onModifyThisAndFuture={handleDragModifyThisAndFuture}
-          onModifyAllInSeries={handleDragModifyAllInSeries}
-          onModificationConfirmed={handleDragModificationConfirmed}
-        />
-      )}
-    </div>
+    <CalendarFullControlCrossPlatform
+      // Data
+      calendars={calendars}
+      events={events}
+      icsEvents={icsEvents}
+      isLoading={isLoadingEvents || isLoadingICSEvents}
+      error={error}
+      
+      // Calendar handlers
+      onCalendarToggle={handleCalendarToggle}
+      onCalendarCreate={handleCalendarCreate}
+      onICSCalendarCreate={(name: string, color: string, icsUrl: string) => handleICSCalendarCreate(name, color, icsUrl)}
+      onICSCalendarRefresh={handleICSCalendarRefresh}
+      onCalendarEdit={handleCalendarEdit}
+      onCalendarDelete={handleCalendarDeleteWithEvents}
+      onSetDefaultCalendar={setCalendarAsDefault}
+      
+      // Event handlers
+      onSubmitEvent={handleSubmitEvent}
+      onDeleteEvent={handleDeleteEvent}
+      onCloneEvent={handleCloneEvent}
+      onEventUpdate={handleEventUpdate}
+      moveEventToCalendar={moveEventToCalendar}
+      
+      // Recurrence event handlers
+      onDeleteThisOccurrence={handleDeleteThisOccurrence}
+      onDeleteThisAndFuture={handleDeleteThisAndFuture}
+      onModifyThisOccurrence={handleModifyThisOccurrence}
+      onModifyThisAndFuture={handleModifyThisAndFuture}
+      onModifyAllInSeries={handleModifyAllInSeries}
+      
+      // ICS handlers
+      onRefreshICSCalendar={refreshICSCalendar}
+      isICSEvent={isICSEvent}
+      isReadOnlyCalendar={isReadOnlyCalendar}
+      
+      // Custom loading text
+      loadingText="Loading your encrypted calendar..."
+    />
   );
 }
 
