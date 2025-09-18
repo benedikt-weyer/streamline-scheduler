@@ -7,9 +7,9 @@ import { CalendarEvent, Calendar, EventFormValues } from '@/utils/calendar/calen
 /**
  * Combined calendar hook that provides all calendar functionality
  */
-export function useCalendar(encryptionKey: string | null) {
+export function useCalendar() {
   // Use ref to store loadEvents function to avoid circular dependency
-  const loadEventsRef = useRef<((key: string) => Promise<any>) | null>(null);
+  const loadEventsRef = useRef<(() => Promise<any>) | null>(null);
   
   // Calendar management
   const { 
@@ -22,18 +22,16 @@ export function useCalendar(encryptionKey: string | null) {
     handleCalendarDelete,
     setCalendarAsDefault,
     loadCalendarsAndSetState
-  } = useCalendars(encryptionKey);
+  } = useCalendars();
   
   // Subscribe to real-time updates
   const { skipNextEventReload } = useCalendarSubscriptions(
     async () => {
-      if (encryptionKey) {
-        await loadCalendarsAndSetState(encryptionKey);
-      }
+      await loadCalendarsAndSetState();
     },
     async () => {
-      if (encryptionKey && loadEventsRef.current) {
-        await loadEventsRef.current(encryptionKey);
+      if (loadEventsRef.current) {
+        await loadEventsRef.current();
       }
     }
   );
@@ -50,28 +48,26 @@ export function useCalendar(encryptionKey: string | null) {
     moveEventToCalendar,
     handleDeleteThisOccurrence,
     handleDeleteThisAndFuture
-  } = useCalendarEvents(encryptionKey, calendars, skipNextEventReload);
+  } = useCalendarEvents(calendars, skipNextEventReload);
   
   // Store loadEvents in ref for subscription hook
   loadEventsRef.current = loadEvents;
 
-  // Load data when encryption key is available
+  // Load data when component mounts
   useEffect(() => {
     const loadData = async () => {
-      if (encryptionKey) {
-        try {
-          // First load calendars
-          await loadCalendarsAndSetState(encryptionKey);
-          // Then load events
-          await loadEvents(encryptionKey);
-        } catch (error) {
-          console.error('Error loading calendar data:', error);
-        }
+      try {
+        // First load calendars
+        await loadCalendarsAndSetState();
+        // Then load events
+        await loadEvents();
+      } catch (error) {
+        console.error('Error loading calendar data:', error);
       }
     };
     
     loadData();
-  }, [encryptionKey]); // Remove function dependencies to prevent infinite loop
+  }, []); // Load on mount
 
   // Handlers with proper callbacks
   const handleSetDefaultCalendar = useCallback((calendarId: string) => {

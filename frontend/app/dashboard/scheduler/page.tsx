@@ -93,7 +93,7 @@ function SchedulerPageContent() {
     handleCalendarDelete,
     handleSetDefaultCalendar,
     onEventUpdate
-  } = useCalendar(encryptionKey);
+  } = useCalendar();
 
   // Drag and drop state
   const [activeTask, setActiveTask] = useState<CanDoItemDecrypted | null>(null);
