@@ -25,7 +25,7 @@ export function useCalendar() {
   } = useCalendars();
   
   // Subscribe to real-time updates
-  const { skipNextEventReload } = useCalendarSubscriptions(
+  const {} = useCalendarSubscriptions(
     async () => {
       await loadCalendarsAndSetState();
     },
@@ -48,7 +48,7 @@ export function useCalendar() {
     moveEventToCalendar,
     handleDeleteThisOccurrence,
     handleDeleteThisAndFuture
-  } = useCalendarEvents(calendars, skipNextEventReload);
+  } = useCalendarEvents(calendars);
   
   // Store loadEvents in ref for subscription hook
   loadEventsRef.current = loadEvents;
