@@ -317,15 +317,15 @@ export class CalendarEventsService {
       }
     }
 
-    const endTime = new Date(eventToDelete.end_time);
+    // Only update the recurrence rule, not the original event's start/end times
     const updatedOriginalEventData = {
       id: eventToDelete.id,
       title: eventToDelete.title,
       description: eventToDelete.description,
       location: eventToDelete.location,
       calendar_id: eventToDelete.calendar_id,
-      start_time: startTime.toISOString(), 
-      end_time: endTime.toISOString(),
+      start_time: eventToDelete.start_time, // Keep original start time
+      end_time: eventToDelete.end_time,     // Keep original end time
       all_day: eventToDelete.all_day || false,
       recurrence_rule: JSON.stringify({
         frequency: recurrencePattern.frequency,
@@ -493,10 +493,18 @@ export class CalendarEventsService {
       if (updateResult.deletedOriginal) {
         updatedEventsList = allEvents.filter(e => e.id !== masterEvent.id);
       } else {
-        // Otherwise, update it with the new end date
+        // Otherwise, update it with the new recurrence rule end date
+        const updatedRecurrenceRule = recurrencePattern ? JSON.stringify({
+          frequency: recurrencePattern.frequency,
+          interval: recurrencePattern.interval,
+          end_date: endOfDay(newEndOfOriginalEvent).toISOString(),
+          days_of_week: recurrencePattern.daysOfWeek,
+        }) : masterEvent.recurrence_rule;
+
         const modifiedOriginalEvent: CalendarEvent = {
           ...masterEvent,
           id: masterEvent.id,
+          recurrence_rule: updatedRecurrenceRule,
           updated_at: new Date().toISOString(),
         };
 
