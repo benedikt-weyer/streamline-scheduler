@@ -107,7 +107,7 @@ export default function EditProjectDialog({
     
     setIsSaving(true);
     try {
-      const success = await onSave(project.id, values.name.trim(), values.color, values.parentId);
+      const success = await onSave(project.id, (values.name || '').trim(), values.color, values.parentId);
       if (success) {
         onClose();
       }

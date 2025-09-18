@@ -21,7 +21,7 @@ export default function AddTaskForm({ form, onSubmit, isLoading }: AddTaskFormPr
 
   const handleSubmit = async (values: AddTaskFormValues) => {
     // Combine content with tags for submission
-    let submissionContent = values.content.trim();
+    let submissionContent = (values.content || '').trim();
     
     // Add tag information back as hashtags for the backend
     tags.forEach(tag => {

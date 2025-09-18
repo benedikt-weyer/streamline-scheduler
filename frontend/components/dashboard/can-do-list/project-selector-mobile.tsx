@@ -90,7 +90,7 @@ export default function ProjectSelectorMobile({
   }, [projects]);
 
   // Calculate recommended tasks count
-      const recommendedCount = tasks.filter(task => !task.completed && (task.priority && task.priority !== 'low' || task.due_date)).length;
+      const recommendedCount = tasks.filter(task => !task.completed && ((task.impact || 0) > 3 || (task.urgency || 0) > 3 || task.due_date)).length;
 
   // Calculate My Day tasks count
   const myDayCount = tasks.filter(task => !task.completed && task.my_day).length;

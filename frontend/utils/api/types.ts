@@ -66,7 +66,8 @@ export interface CanDoItemDecrypted {
   content: string;
   completed: boolean;
   due_date?: string;
-  priority?: 'low' | 'medium' | 'high';
+  impact?: number; // 0-10 scale
+  urgency?: number; // 0-10 scale
   tags?: string[];
   duration_minutes?: number;
   blocked_by?: string;
@@ -97,7 +98,8 @@ export interface CreateCanDoItemDecryptedRequest {
   content: string;
   completed?: boolean;
   due_date?: string;
-  priority?: 'low' | 'medium' | 'high';
+  impact?: number; // 0-10 scale
+  urgency?: number; // 0-10 scale
   tags?: string[];
   duration_minutes?: number;
   display_order?: number;
@@ -111,7 +113,8 @@ export interface UpdateCanDoItemDecryptedRequest {
   content?: string;
   completed?: boolean;
   due_date?: string;
-  priority?: 'low' | 'medium' | 'high';
+  impact?: number; // 0-10 scale
+  urgency?: number; // 0-10 scale
   tags?: string[];
   duration_minutes?: number;
   display_order?: number;

@@ -68,7 +68,8 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
       content: string;
       completed: boolean;
       due_date?: string;
-      priority?: 'low' | 'medium' | 'high';
+      impact?: number;
+      urgency?: number;
       tags?: string[];
       duration_minutes?: number;
     }>(encrypted);
@@ -168,7 +169,8 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
         content: request.content,
         completed: request.completed ?? false,
         due_date: request.due_date,
-        priority: request.priority,
+        impact: request.impact,
+        urgency: request.urgency,
         tags: request.tags,
         duration_minutes: request.duration_minutes,
       });
@@ -195,13 +197,15 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
 
       // Only encrypt if we have content to update
       if (request.content !== undefined || request.completed !== undefined || 
-          request.due_date !== undefined || request.priority !== undefined ||
-          request.tags !== undefined || request.duration_minutes !== undefined) {
+          request.due_date !== undefined || request.impact !== undefined || 
+          request.urgency !== undefined || request.tags !== undefined || 
+          request.duration_minutes !== undefined) {
         const encrypted = this.encryptItemData({
           content: request.content,
           completed: request.completed,
           due_date: request.due_date,
-          priority: request.priority,
+          impact: request.impact,
+          urgency: request.urgency,
           tags: request.tags,
           duration_minutes: request.duration_minutes,
         });

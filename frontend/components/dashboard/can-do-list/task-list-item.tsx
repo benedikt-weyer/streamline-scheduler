@@ -221,12 +221,14 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
                 </span>
               )}
               {(() => {
-                // Use default values since impact and urgency are not yet implemented in API
-                const priority = calculatePriority(5, 5); // Default medium priority
+                // Use actual impact and urgency values from task
+                const priority = calculatePriority(task.impact, task.urgency);
                 const priorityText = getPriorityDisplayText(priority);
-                if (priorityText) {
+                const urgencyForColor = task.urgency || task.impact || 0;
+                
+                if (priorityText && priority) {
                   return (
-                    <span className={`text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(5)}`}>
+                    <span className={`text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(urgencyForColor)}`}>
                       <Zap className="h-3 w-3" />
                       {priorityText}
                     </span>
@@ -285,12 +287,14 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
               </span>
             )}
             {(() => {
-              // Use default values since impact and urgency are not yet implemented in API
-              const priority = calculatePriority(5, 5); // Default medium priority
+              // Use actual impact and urgency values from task
+              const priority = calculatePriority(task.impact, task.urgency);
               const priorityText = getPriorityDisplayText(priority);
-              if (priorityText) {
+              const urgencyForColor = task.urgency || task.impact || 0;
+              
+              if (priorityText && priority) {
                 return (
-                  <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(5)}`}>
+                  <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getUrgencyColorClass(urgencyForColor)}`}>
                     <Zap className="h-3 w-3" />
                     {priorityText}
                   </span>

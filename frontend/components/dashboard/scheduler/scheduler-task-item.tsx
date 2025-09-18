@@ -8,6 +8,7 @@ import { Edit, Trash2, Clock, Zap } from 'lucide-react';
 import EditTaskDialog from '../can-do-list/edit-task-dialog';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { calculatePriority, getPriorityDisplayText, getUrgencyColorClass } from '@/utils/can-do-list/priority-utils';
 
 
 interface SchedulerTaskItemProps {
@@ -141,16 +142,21 @@ export function SchedulerTaskItem({
                     <span>{formatDuration(task.duration_minutes)}</span>
                   </div>
                 )}
-                {task.priority && task.priority !== 'low' && (
-                  <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${
-                    task.priority === 'high' ? 'text-red-600 bg-red-50' : 
-                    task.priority === 'medium' ? 'text-orange-600 bg-orange-50' : 
-                    'text-gray-600 bg-gray-50'
-                  }`}>
-                    <Zap className="h-3 w-3" />
-                    <span>{task.priority}</span>
-                  </div>
-                )}
+                {(() => {
+                  const priority = calculatePriority(task.impact, task.urgency);
+                  const priorityText = getPriorityDisplayText(priority);
+                  const urgencyForColor = task.urgency || task.impact || 0;
+                  
+                  if (priorityText && priority) {
+                    return (
+                      <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded ${getUrgencyColorClass(urgencyForColor)}`}>
+                        <Zap className="h-3 w-3" />
+                        <span>{priorityText}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
           </div>

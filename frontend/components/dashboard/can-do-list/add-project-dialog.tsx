@@ -97,7 +97,7 @@ export default function AddProjectDialog({
   const handleSubmit = async (values: AddProjectFormValues) => {
     setIsSaving(true);
     try {
-      const success = await onSave(values.name.trim(), values.color, values.parentId);
+      const success = await onSave((values.name || '').trim(), values.color, values.parentId);
       if (success) {
         form.reset();
         onClose();

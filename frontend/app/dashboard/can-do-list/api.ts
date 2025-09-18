@@ -23,7 +23,15 @@ export async function addTask(
 ): Promise<CanDoItemDecrypted> {
   try {
     const backend = getDecryptedBackend();
-    const { data: task } = await backend.canDoList.create(taskData);
+    
+    // Convert empty strings to undefined for UUID fields
+    const cleanedTaskData = {
+      ...taskData,
+      project_id: taskData.project_id || undefined,
+      blocked_by: taskData.blocked_by || undefined,
+    };
+    
+    const { data: task } = await backend.canDoList.create(cleanedTaskData);
     if (!task) {
       throw new Error('Failed to create task - no data returned');
     }
@@ -40,7 +48,15 @@ export async function updateTask(
 ): Promise<CanDoItemDecrypted> {
   try {
     const backend = getDecryptedBackend();
-    const { data: task } = await backend.canDoList.update(updateData);
+    
+    // Convert empty strings to undefined for UUID fields
+    const cleanedUpdateData = {
+      ...updateData,
+      project_id: updateData.project_id || undefined,
+      blocked_by: updateData.blocked_by || undefined,
+    };
+    
+    const { data: task } = await backend.canDoList.update(cleanedUpdateData);
     if (!task) {
       throw new Error('Failed to update task - no data returned');
     }

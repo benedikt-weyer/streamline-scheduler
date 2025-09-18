@@ -96,11 +96,11 @@ export default function EditTaskDialog({
   useEffect(() => {
     if (task && isOpen) {
       form.reset({
-        content: task.content,
+        content: task.content || '',
         estimatedDuration: task.duration_minutes?.toString() ?? '',
         projectId: task.project_id ?? '',
-        impact: 0, // Default since not available in API
-        urgency: 0, // Default since not available in API
+        impact: task.impact ?? 0,
+        urgency: task.urgency ?? 0,
         dueDate: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '',
         blockedBy: task.blocked_by ?? '',
         myDay: task.my_day ?? false
@@ -111,17 +111,22 @@ export default function EditTaskDialog({
   const onSubmit = async (values: EditTaskFormValues) => {
     if (!task) return;
     const duration = values.estimatedDuration ? Number(values.estimatedDuration) : undefined;
-    const impact = values.impact === 0 ? undefined : values.impact;
-    const urgency = values.urgency === 0 ? undefined : values.urgency;
+    const impact = values.impact;
+    const urgency = values.urgency;
     const dueDate = values.dueDate ? new Date(values.dueDate + 'T00:00:00.000Z') : undefined;
     const blockedBy = values.blockedBy || undefined;
+    const projectId = values.projectId || undefined; // Convert empty string to undefined
+    
+    // Safely handle content comparison with null/undefined checks
+    const currentContent = (values.content || '').trim();
+    const originalContent = (task.content || '').trim();
     
     if (
-      values.content.trim() === task.content.trim() &&
+      currentContent === originalContent &&
       duration === task.duration_minutes &&
-      values.projectId === task.project_id &&
-      impact === 0 && // Always 0 since not available in API
-      urgency === 0 && // Always 0 since not available in API
+      projectId === task.project_id &&
+      impact === task.impact &&
+      urgency === task.urgency &&
       dueDate?.getTime() === (task.due_date ? new Date(task.due_date).getTime() : undefined) &&
       blockedBy === task.blocked_by &&
       values.myDay === task.my_day
@@ -129,7 +134,7 @@ export default function EditTaskDialog({
       onClose();
       return;
     }
-    await onSave(task.id, values.content, duration, values.projectId, impact, urgency, dueDate, blockedBy, values.myDay);
+    await onSave(task.id, currentContent, duration, projectId, impact, urgency, dueDate, blockedBy, values.myDay);
     onClose();
   };
 
