@@ -114,7 +114,7 @@ export function parseICSData(icsData: string, calendarId: string): CalendarEvent
 function convertICSEventToCalendarEvent(icsEvent: ICSEvent, calendarId: string): CalendarEvent | null {
   try {
     const startTime = parseICSDateTime(icsEvent.dtstart);
-    const endTime = parseICSDateTime(icsEvent.dtend);
+    let endTime = parseICSDateTime(icsEvent.dtend);
     
     if (!startTime || !endTime) {
       return null;
@@ -122,6 +122,20 @@ function convertICSEventToCalendarEvent(icsEvent: ICSEvent, calendarId: string):
     
     // Detect if this is an all-day event
     const isAllDay = icsEvent.isAllDay || isDateOnlyFormat(icsEvent.dtstart);
+    
+    // For all-day events, the end date in ICS is exclusive (e.g., an event on May 5th has DTEND on May 6th)
+    // We need to subtract one day from the end time for all-day events to get the correct display
+    if (isAllDay) {
+      const adjustedEndTime = new Date(endTime);
+      adjustedEndTime.setDate(adjustedEndTime.getDate() - 1);
+      
+      // Set the end time to the end of the day (23:59:59.999) for proper all-day event handling
+      adjustedEndTime.setHours(23, 59, 59, 999);
+      endTime = adjustedEndTime;
+      
+      // For all-day events, also ensure start time is at beginning of day
+      startTime.setHours(0, 0, 0, 0);
+    }
     
     const event: CalendarEvent = {
       id: `ics-${calendarId}-${icsEvent.uid}`, // Prefix with 'ics-' and calendar ID
@@ -185,21 +199,48 @@ function isDateOnlyFormat(dateTimeString: string): boolean {
 }
 
 /**
- * Fetch ICS calendar from URL
+ * Fetch ICS calendar from URL (client-side)
+ * Note: This requires CORS-enabled URLs. The calendar provider must allow cross-origin requests.
  */
 export async function fetchICSCalendar(url: string): Promise<string> {
   try {
-    // Use a CORS proxy or server-side endpoint to fetch the ICS file
-    const response = await fetch(`/api/ics-proxy?url=${encodeURIComponent(url)}`);
+    // Fetch directly from the ICS URL (requires CORS support)
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/calendar, application/ics, text/plain',
+      },
+      // Add a reasonable timeout
+      signal: AbortSignal.timeout(30000) // 30 second timeout
+    });
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch ICS calendar: ${response.status}`);
+      if (response.status === 0 || response.type === 'opaque') {
+        throw new Error('CORS_ERROR: The calendar URL does not allow cross-origin requests. Please use a CORS-enabled calendar URL or contact your calendar provider.');
+      }
+      throw new Error(`Failed to fetch ICS calendar: ${response.status} ${response.statusText}`);
     }
     
     const icsData = await response.text();
+    
+    // Basic validation to ensure it's actually ICS data
+    if (!icsData.includes('BEGIN:VCALENDAR')) {
+      throw new Error('Invalid ICS file format - the URL does not point to a valid calendar file');
+    }
+    
     return icsData;
   } catch (error) {
     console.error('Error fetching ICS calendar:', error);
+    
+    // Handle network errors that might be CORS-related
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error('CORS_ERROR: Unable to fetch calendar - this is likely due to CORS restrictions. Please ensure your calendar URL supports cross-origin requests.');
+    }
+    
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout - calendar URL took too long to respond');
+    }
+    
     throw error;
   }
 }

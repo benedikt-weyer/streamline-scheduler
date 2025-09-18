@@ -287,9 +287,16 @@ export function CalendarSidebar({
                   onChange={(e) => setNewCalendarICSUrl(e.target.value)}
                   placeholder="https://calendar.example.com/calendar.ics"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Enter the URL of an ICS calendar file. Events from this calendar will be read-only.
-                </p>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    Enter the URL of an ICS calendar file. Events from this calendar will be read-only.
+                  </p>
+                  <div className="text-xs text-amber-600 bg-amber-50 rounded-md p-2">
+                    <strong>Note:</strong> The calendar URL must support CORS (cross-origin requests). 
+                    Many calendar providers like Google Calendar, Outlook, and most calendar applications 
+                    provide CORS-enabled URLs. If you encounter connection issues, contact your calendar provider.
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Color</label>

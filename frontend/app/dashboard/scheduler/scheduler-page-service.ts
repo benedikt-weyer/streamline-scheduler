@@ -55,7 +55,14 @@ export class SchedulerPageService {
         user_id: calendar.user_id
       }));
     } catch (error) {
-      console.error(`Failed to fetch ICS events for calendar ${calendar.id}:`, error);
+      console.error(`Failed to fetch ICS events for calendar ${calendar.name || calendar.id}:`, error);
+      
+      // Check if it's a CORS error and provide helpful message
+      if (error instanceof Error && error.message.includes('CORS_ERROR')) {
+        console.warn(`CORS Error for calendar "${calendar.name || calendar.id}": The calendar does not allow cross-origin requests. Please contact your calendar provider to enable CORS.`);
+      }
+      
+      // Return empty array instead of throwing to prevent breaking the entire scheduler
       return [];
     }
   }

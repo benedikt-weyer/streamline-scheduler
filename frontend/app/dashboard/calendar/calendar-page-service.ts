@@ -444,7 +444,23 @@ export class CalendarPageService {
       }));
     } catch (error) {
       console.error(`Error fetching ICS events for calendar ${calendar.name}:`, error);
-      throw new Error(`Failed to fetch events for calendar: ${calendar.name}`);
+      
+      // Check if it's a CORS error and provide helpful message
+      if (error instanceof Error && error.message.includes('CORS_ERROR')) {
+        throw new Error(`CORS Error: The calendar "${calendar.name}" does not allow cross-origin requests. Please contact your calendar provider to enable CORS, or use a different calendar URL.`);
+      }
+      
+      // Handle other specific errors
+      if (error instanceof Error && error.message.includes('timeout')) {
+        throw new Error(`Timeout: The calendar "${calendar.name}" took too long to respond. Please check the URL and try again.`);
+      }
+      
+      if (error instanceof Error && error.message.includes('Invalid ICS file format')) {
+        throw new Error(`Invalid Format: The URL for calendar "${calendar.name}" does not point to a valid ICS calendar file.`);
+      }
+      
+      // Generic fallback
+      throw new Error(`Failed to fetch events for calendar "${calendar.name}": ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
