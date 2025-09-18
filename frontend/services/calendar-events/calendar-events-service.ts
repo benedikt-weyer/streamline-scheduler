@@ -695,14 +695,39 @@ export class CalendarEventsService {
       }
 
       // Step 3: Create the modified single event
+      // Handle different data formats - either from form (startDate/startTime) or direct (start_time)
+      let newStartTime: Date;
+      let newEndTime: Date;
+      
+      if (modifiedEventData.startDate && modifiedEventData.startTime) {
+        // Form data format with separate date and time fields
+        newStartTime = new Date(`${modifiedEventData.startDate}T${modifiedEventData.startTime}`);
+        newEndTime = new Date(`${modifiedEventData.endDate}T${modifiedEventData.endTime}`);
+      } else if (modifiedEventData.start_time && modifiedEventData.end_time) {
+        // Direct format with combined datetime fields
+        newStartTime = new Date(modifiedEventData.start_time);
+        newEndTime = new Date(modifiedEventData.end_time);
+      } else {
+        // Fallback to the occurrence time if no new times provided
+        newStartTime = new Date(occurrenceStartTime);
+        // Calculate end time based on original event duration
+        const originalDuration = new Date(masterEvent.end_time).getTime() - new Date(masterEvent.start_time).getTime();
+        newEndTime = new Date(newStartTime.getTime() + originalDuration);
+      }
+      
+      // Validate the parsed dates
+      if (!isValid(newStartTime) || !isValid(newEndTime)) {
+        return { success: false, error: 'Invalid date/time values provided' };
+      }
+
       const singleEventData = {
-        title: modifiedEventData.title,
-        description: modifiedEventData.description ?? '',
-        location: modifiedEventData.location ?? '',
-        calendar_id: modifiedEventData.calendar_id ?? masterEvent.calendar_id,
-        start_time: new Date(modifiedEventData.start_time).toISOString(),
-        end_time: new Date(modifiedEventData.end_time).toISOString(),
-        all_day: modifiedEventData.all_day || false
+        title: modifiedEventData.title ?? masterEvent.title,
+        description: modifiedEventData.description ?? masterEvent.description ?? '',
+        location: modifiedEventData.location ?? masterEvent.location ?? '',
+        calendar_id: modifiedEventData.calendarId ?? modifiedEventData.calendar_id ?? masterEvent.calendar_id,
+        start_time: newStartTime.toISOString(),
+        end_time: newEndTime.toISOString(),
+        all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false
       };
 
       const rawSingleEventRecord = await this.backend.calendarEvents.create(singleEventData);
@@ -728,14 +753,14 @@ export class CalendarEventsService {
       // Add the single modified event
       const newSingleEvent: CalendarEvent = {
         id: singleEventRecord.id,
-        title: modifiedEventData.title,
-        description: modifiedEventData.description ?? '',
-        location: modifiedEventData.location ?? '',
-        start_time: new Date(modifiedEventData.start_time).toISOString(),
-        end_time: new Date(modifiedEventData.end_time).toISOString(),
-        calendar_id: modifiedEventData.calendar_id ?? masterEvent.calendar_id,
+        title: modifiedEventData.title ?? masterEvent.title,
+        description: modifiedEventData.description ?? masterEvent.description ?? '',
+        location: modifiedEventData.location ?? masterEvent.location ?? '',
+        start_time: newStartTime.toISOString(),
+        end_time: newEndTime.toISOString(),
+        calendar_id: modifiedEventData.calendarId ?? modifiedEventData.calendar_id ?? masterEvent.calendar_id,
         user_id: singleEventRecord.user_id,
-        all_day: modifiedEventData.all_day || false,
+        all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
         created_at: singleEventRecord.created_at,
         updated_at: singleEventRecord.updated_at || new Date().toISOString()
       };
@@ -814,17 +839,39 @@ export class CalendarEventsService {
       }
 
       // Step 2: Create new recurring event with modified data starting from this occurrence
-      const newSeriesStartTime = new Date(modifiedEventData.start_time);
-      const newSeriesEndTime = new Date(modifiedEventData.end_time);
+      // Handle different data formats - either from form (startDate/startTime) or direct (start_time)
+      let newSeriesStartTime: Date;
+      let newSeriesEndTime: Date;
+      
+      if (modifiedEventData.startDate && modifiedEventData.startTime) {
+        // Form data format with separate date and time fields
+        newSeriesStartTime = new Date(`${modifiedEventData.startDate}T${modifiedEventData.startTime}`);
+        newSeriesEndTime = new Date(`${modifiedEventData.endDate}T${modifiedEventData.endTime}`);
+      } else if (modifiedEventData.start_time && modifiedEventData.end_time) {
+        // Direct format with combined datetime fields
+        newSeriesStartTime = new Date(modifiedEventData.start_time);
+        newSeriesEndTime = new Date(modifiedEventData.end_time);
+      } else {
+        // Fallback to the occurrence time if no new times provided
+        newSeriesStartTime = new Date(occurrenceStartTime);
+        // Calculate end time based on original event duration
+        const originalDuration = new Date(masterEvent.end_time).getTime() - new Date(masterEvent.start_time).getTime();
+        newSeriesEndTime = new Date(newSeriesStartTime.getTime() + originalDuration);
+      }
+      
+      // Validate the parsed dates
+      if (!isValid(newSeriesStartTime) || !isValid(newSeriesEndTime)) {
+        return { success: false, error: 'Invalid date/time values provided' };
+      }
 
       const newRecurringEventData = {
-        title: modifiedEventData.title,
-        description: modifiedEventData.description ?? '',
-        location: modifiedEventData.location ?? '',
-        calendar_id: modifiedEventData.calendar_id ?? masterEvent.calendar_id,
+        title: modifiedEventData.title ?? masterEvent.title,
+        description: modifiedEventData.description ?? masterEvent.description ?? '',
+        location: modifiedEventData.location ?? masterEvent.location ?? '',
+        calendar_id: modifiedEventData.calendarId ?? modifiedEventData.calendar_id ?? masterEvent.calendar_id,
         start_time: newSeriesStartTime.toISOString(),
         end_time: newSeriesEndTime.toISOString(),
-        all_day: modifiedEventData.all_day || false,
+        all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
         recurrence_rule: JSON.stringify({
           frequency: recurrencePattern!.frequency,
           interval: recurrencePattern!.interval,
@@ -856,14 +903,14 @@ export class CalendarEventsService {
       // Add the new modified recurring event
       const newRecurringEvent: CalendarEvent = {
         id: newEventRecord.id,
-        title: modifiedEventData.title,
-        description: modifiedEventData.description ?? '',
-        location: modifiedEventData.location ?? '',
+        title: modifiedEventData.title ?? masterEvent.title,
+        description: modifiedEventData.description ?? masterEvent.description ?? '',
+        location: modifiedEventData.location ?? masterEvent.location ?? '',
         start_time: newSeriesStartTime.toISOString(),
         end_time: newSeriesEndTime.toISOString(),
-        calendar_id: modifiedEventData.calendar_id ?? masterEvent.calendar_id,
+        calendar_id: modifiedEventData.calendarId ?? modifiedEventData.calendar_id ?? masterEvent.calendar_id,
         user_id: newEventRecord.user_id,
-        all_day: modifiedEventData.all_day || false,
+        all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
         recurrence_rule: newRecurringEventData.recurrence_rule,
         created_at: newEventRecord.created_at,
         updated_at: newEventRecord.updated_at || new Date().toISOString()
