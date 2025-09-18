@@ -17,7 +17,8 @@ interface RecommendedTaskListProps {
   searchQuery?: string;
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
-  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
+  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
+  onToggleMyDay?: (id: string) => Promise<void>;
 }
 
 export default function RecommendedTaskList({
@@ -27,7 +28,8 @@ export default function RecommendedTaskList({
   searchQuery = '',
   onToggleComplete,
   onDeleteTask,
-  onUpdateTask
+  onUpdateTask,
+  onToggleMyDay
 }: RecommendedTaskListProps) {
   // Configure Fuse.js for fuzzy search
   const fuseOptions = {
@@ -164,6 +166,7 @@ export default function RecommendedTaskList({
                     onToggleComplete={onToggleComplete}
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
+                    onToggleMyDay={onToggleMyDay}
                     projects={projects}
                     tasks={tasks}
                   />

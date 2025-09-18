@@ -491,6 +491,7 @@ export default function CanDoListMain() {
                     onToggleComplete={onToggleComplete}
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
+                    onToggleMyDay={handleToggleMyDay}
                   />
                 ) : (
                   // Show regular project/inbox view on mobile
@@ -734,6 +735,7 @@ export default function CanDoListMain() {
                     onToggleComplete={onToggleComplete}
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
+                    onToggleMyDay={handleToggleMyDay}
                   />
                 ) : (
                   // Show regular project/inbox view
