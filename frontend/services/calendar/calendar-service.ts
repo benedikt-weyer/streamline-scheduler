@@ -184,62 +184,11 @@ export class CalendarService {
   }
 
   /**
-   * Map CalendarDecrypted to Calendar type with normalization
+   * Map CalendarDecrypted to Calendar type
    */
   private mapCalendarDecryptedToCalendar(calendarDecrypted: CalendarDecrypted): Calendar {
-    // Normalize the calendar data (handle legacy camelCase properties and provide defaults)
-    const normalized: Calendar = {
-      id: calendarDecrypted.id,
-      created_at: calendarDecrypted.created_at,
-      updated_at: calendarDecrypted.updated_at,
-      user_id: calendarDecrypted.user_id,
-      is_default: calendarDecrypted.is_default,
-      // Handle both new snake_case and legacy camelCase properties, with fallback defaults
-      name: calendarDecrypted.name || (calendarDecrypted as any).name || `Calendar ${calendarDecrypted.id.slice(0, 8)}`,
-      color: calendarDecrypted.color || (calendarDecrypted as any).color || '#3b82f6',
-      is_visible: calendarDecrypted.is_visible ?? (calendarDecrypted as any).isVisible ?? true,
-      type: (calendarDecrypted.type || (calendarDecrypted as any).type || 'regular') as 'regular' | 'ics',
-      ics_url: calendarDecrypted.ics_url || (calendarDecrypted as any).icsUrl,
-      last_sync: calendarDecrypted.last_sync || (calendarDecrypted as any).lastSync,
-    };
-
-    // Auto-fix corrupted data in the background if legacy properties or missing essential fields detected
-    const hasLegacyProps = (calendarDecrypted as any).isVisible !== undefined || 
-                           (calendarDecrypted as any).icsUrl !== undefined || 
-                           (calendarDecrypted as any).lastSync !== undefined;
-    
-    const hasMissingEssentialFields = !calendarDecrypted.name || !calendarDecrypted.color;
-    
-    if (hasLegacyProps || hasMissingEssentialFields) {
-      this.autoFixCalendar(calendarDecrypted.id, normalized).catch(error => 
-        console.warn('Background calendar fix failed:', error)
-      );
-    }
-
-    return normalized;
-  }
-
-  /**
-   * Auto-fix corrupted calendar data in the background
-   */
-  private async autoFixCalendar(id: string, normalizedData: Calendar): Promise<void> {
-    try {
-      // Use direct backend update to avoid recursion in getCalendarById
-      const updateData: UpdateCalendarDecryptedRequest = {
-        id,
-        name: normalizedData.name,
-        color: normalizedData.color,
-        is_visible: normalizedData.is_visible,
-        is_default: normalizedData.is_default,
-        type: normalizedData.type,
-        ics_url: normalizedData.ics_url,
-        last_sync: normalizedData.last_sync,
-      };
-
-      await this.backend.calendars.update(updateData);
-    } catch (error) {
-      console.warn(`Failed to auto-fix calendar ${id}:`, error);
-    }
+    // Simply return the calendar as-is since Calendar is a type alias for CalendarDecrypted
+    return calendarDecrypted;
   }
 }
 

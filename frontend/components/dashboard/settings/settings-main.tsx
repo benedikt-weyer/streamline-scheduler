@@ -6,6 +6,7 @@ import { useError } from '@/utils/context/ErrorContext';
 import { ExportSection } from './export-section';
 import { ImportSection } from './import-section';
 import { DeleteSection } from './delete-section';
+import { FixSection } from './fix-section';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function SettingsMain() {
@@ -36,9 +37,10 @@ export function SettingsMain() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="export" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="export">Export Data</TabsTrigger>
           <TabsTrigger value="import">Import Data</TabsTrigger>
+          <TabsTrigger value="fix">Fix Data</TabsTrigger>
           <TabsTrigger value="delete">Delete Data</TabsTrigger>
         </TabsList>
         
@@ -48,6 +50,10 @@ export function SettingsMain() {
         
         <TabsContent value="import" className="space-y-4">
           <ImportSection encryptionKey={encryptionKey} />
+        </TabsContent>
+        
+        <TabsContent value="fix" className="space-y-4">
+          <FixSection encryptionKey={encryptionKey} />
         </TabsContent>
         
         <TabsContent value="delete" className="space-y-4">

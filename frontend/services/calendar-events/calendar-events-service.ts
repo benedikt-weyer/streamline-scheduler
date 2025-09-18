@@ -244,65 +244,11 @@ export class CalendarEventsService {
   }
 
   /**
-   * Map CalendarEventDecrypted to CalendarEvent type with normalization
+   * Map CalendarEventDecrypted to CalendarEvent type
    */
   private mapCalendarEventDecryptedToCalendarEvent(eventDecrypted: CalendarEventDecrypted): CalendarEvent {
-    // Normalize the event data (handle legacy camelCase properties)
-    const normalized: CalendarEvent = {
-      id: eventDecrypted.id,
-      created_at: eventDecrypted.created_at,
-      updated_at: eventDecrypted.updated_at,
-      user_id: eventDecrypted.user_id,
-      // Handle both new snake_case and legacy camelCase properties
-      title: eventDecrypted.title || (eventDecrypted as any).title,
-      description: eventDecrypted.description || (eventDecrypted as any).description,
-      location: eventDecrypted.location || (eventDecrypted as any).location,
-      start_time: eventDecrypted.start_time || (eventDecrypted as any).startTime,
-      end_time: eventDecrypted.end_time || (eventDecrypted as any).endTime,
-      all_day: eventDecrypted.all_day ?? (eventDecrypted as any).isAllDay ?? false,
-      calendar_id: eventDecrypted.calendar_id || (eventDecrypted as any).calendarId,
-      recurrence_rule: eventDecrypted.recurrence_rule || (eventDecrypted as any).recurrenceRule,
-      recurrence_exception: eventDecrypted.recurrence_exception || (eventDecrypted as any).recurrenceException,
-    };
-
-    // Auto-fix corrupted data in the background if legacy properties were detected
-    const hasLegacyProps = (eventDecrypted as any).startTime !== undefined || 
-                           (eventDecrypted as any).endTime !== undefined || 
-                           (eventDecrypted as any).isAllDay !== undefined ||
-                           (eventDecrypted as any).calendarId !== undefined;
-    
-    if (hasLegacyProps) {
-      this.autoFixCalendarEvent(eventDecrypted.id, normalized).catch(error => 
-        console.warn('Background event fix failed:', error)
-      );
-    }
-
-    return normalized;
-  }
-
-  /**
-   * Auto-fix corrupted calendar event data in the background
-   */
-  private async autoFixCalendarEvent(id: string, normalizedData: CalendarEvent): Promise<void> {
-    try {
-      console.log(`Auto-fixing event ${id} with normalized data`);
-      await this.updateCalendarEvent(id, {
-        title: normalizedData.title,
-        description: normalizedData.description,
-        location: normalizedData.location,
-        calendarId: normalizedData.calendar_id,
-        startTime: new Date(normalizedData.start_time),
-        endTime: new Date(normalizedData.end_time),
-        isAllDay: normalizedData.all_day,
-        recurrenceRule: normalizedData.recurrence_rule,
-        recurrenceException: normalizedData.recurrence_exception ? 
-          (Array.isArray(normalizedData.recurrence_exception) ? 
-            normalizedData.recurrence_exception : 
-            String(normalizedData.recurrence_exception).split(',')) : undefined,
-      });
-    } catch (error) {
-      console.warn(`Failed to auto-fix event ${id}:`, error);
-    }
+    // Simply return the event as-is since CalendarEvent is a type alias for CalendarEventDecrypted
+    return eventDecrypted;
   }
 
   // ===== RECURRENCE OPERATIONS =====
