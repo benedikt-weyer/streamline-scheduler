@@ -459,9 +459,12 @@ export function CalendarFullControlCrossPlatform({
 
   // Handle month change from month overview
   const handleMonthChange = useCallback((date: Date) => {
-    // Optional: You could navigate to the first week of the month
-    // For now, just keep the current week unless it's outside the new month
-  }, []);
+    // Navigate to the first week of the selected month
+    const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    const weekStart = startOfWeek(firstDayOfMonth, { weekStartsOn: 1 });
+    setCurrentWeek(weekStart);
+    setSelectedDate(firstDayOfMonth);
+  }, [setCurrentWeek, setSelectedDate]);
 
   return (
     <div className={`flex w-full h-full ${className}`}>
