@@ -16,7 +16,6 @@ import {
 export const useRecurrenceEventActions = (
   events: CalendarEvent[],
   eventActions: EventStateActions,
-  skipNextEventReload?: () => void
 ) => {
   const { setError } = useError();
 
@@ -193,10 +192,6 @@ export const useRecurrenceEventActions = (
   };
 
   const handleDeleteThisOccurrence = async (eventToDelete: CalendarEvent): Promise<boolean> => {
-    if (skipNextEventReload) {
-      skipNextEventReload(); 
-    }
-
     // If this is a recurrence instance, find the master event
     let masterEvent = eventToDelete;
     if (eventToDelete.isRecurrenceInstance && eventToDelete.id.includes('-recurrence-')) {
@@ -376,8 +371,7 @@ export const useRecurrenceEventActions = (
         ).filter(event => isValid(event.startTime))
       );
       
-      if (skipNextEventReload) skipNextEventReload();
-      return true;
+     return true;
     } catch (error) {
       console.error('Error deleting this and future events:', error);
       setError('Failed to delete this and future events.');
@@ -466,9 +460,6 @@ export const useRecurrenceEventActions = (
           }) : undefined
         };
         
-        if (skipNextEventReload) {
-          skipNextEventReload();
-        }
         
         const backend = getDecryptedBackend();
         await backend.calendarEvents.update(offsetEventData);
@@ -502,10 +493,6 @@ export const useRecurrenceEventActions = (
           }) : undefined
         };
         
-        if (skipNextEventReload) {
-          skipNextEventReload();
-        }
-        
         const backend = getDecryptedBackend();
         await backend.calendarEvents.update(eventData);
         
@@ -532,10 +519,6 @@ export const useRecurrenceEventActions = (
   // We need to include handleDeleteEvent from CRUD for the delete all logic
   const handleDeleteEvent = async (id: string): Promise<boolean> => {
     try {
-      if (skipNextEventReload) {
-        skipNextEventReload();
-      }
-      
       const backend = getDecryptedBackend();
       await backend.calendarEvents.delete(id);
       
@@ -560,10 +543,6 @@ export const useRecurrenceEventActions = (
     eventToModify: CalendarEvent,
     modifiedEventData: any
   ): Promise<boolean> => {
-    if (skipNextEventReload) {
-      skipNextEventReload();
-    }
-
     // If this is a recurrence instance, find the master event
     let masterEvent = eventToModify;
     if (eventToModify.isRecurrenceInstance && eventToModify.id.includes('-recurrence-')) {
@@ -698,10 +677,6 @@ export const useRecurrenceEventActions = (
     eventToModify: CalendarEvent,
     modifiedEventData: any
   ): Promise<boolean> => {
-    if (skipNextEventReload) {
-      skipNextEventReload();
-    }
-
     // If this is a recurrence instance, find the master event
     let masterEvent = eventToModify;
     if (eventToModify.isRecurrenceInstance && eventToModify.id.includes('-recurrence-')) {
@@ -835,9 +810,6 @@ export const useRecurrenceEventActions = (
     }
 
     try {
-      if (skipNextEventReload) {
-        skipNextEventReload();
-      }
 
       // For "modify all in series", preserve the original start date but update the time
       const originalStartDate = new Date(masterEvent.startTime);

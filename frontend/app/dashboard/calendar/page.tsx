@@ -15,9 +15,6 @@ import { useICSEvents } from '../../../hooks/calendar/useICSEvents';
 function CalendarContent() {
   const { error, setError } = useError();
   
-  // Use ref to store loadEvents function to avoid circular dependency
-  const loadEventsRef = useRef<(() => Promise<any>) | null>(null);
-  
   // Use our custom hooks
   const { 
     calendars, 
@@ -32,14 +29,12 @@ function CalendarContent() {
   } = useCalendars();
   
   // Subscribe to real-time updates (need to get skipNextEventReload before useCalendarEvents)
-  const { skipNextEventReload } = useCalendarSubscriptions(
+  const {} = useCalendarSubscriptions(
     async () => {
       await loadCalendarsAndSetState();
     },
     async () => {
-      if (loadEventsRef.current) {
-        await loadEventsRef.current();
-      }
+      await loadEvents();
     }
   );
   
@@ -57,7 +52,7 @@ function CalendarContent() {
     handleModifyThisOccurrence,
     handleModifyThisAndFuture,
     handleModifyAllInSeries
-  } = useCalendarEvents(calendars, skipNextEventReload);
+  } = useCalendarEvents(calendars);
 
   // ICS events hook
   const {
@@ -67,9 +62,6 @@ function CalendarContent() {
     isICSEvent,
     isReadOnlyCalendar
   } = useICSEvents(calendars);
-  
-  // Store loadEvents in ref for subscription hook
-  loadEventsRef.current = loadEvents;
   
   // Load data when component mounts
   useEffect(() => {

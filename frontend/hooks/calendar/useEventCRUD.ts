@@ -12,7 +12,6 @@ export const useEventCRUD = (
   events: CalendarEvent[],
   calendars: Calendar[],
   eventActions: EventStateActions,
-  skipNextEventReload?: () => void
 ) => {
   const { setError } = useError();
 
@@ -23,9 +22,6 @@ export const useEventCRUD = (
       
       if (values.id && values.id !== 'new') {
         // Update existing event
-        if (skipNextEventReload) {
-          skipNextEventReload();
-        }
         await backend.calendarEvents.update({
           id: values.id,
           title: eventData.title,
@@ -60,9 +56,6 @@ export const useEventCRUD = (
           );
       } else {
         // Create new event
-        if (skipNextEventReload) {
-          skipNextEventReload();
-        }
         const { data: newEventRecord } = await backend.calendarEvents.create({
           title: eventData.title,
           description: eventData.description,
@@ -106,9 +99,6 @@ export const useEventCRUD = (
 
   const handleDeleteEvent = async (id: string): Promise<boolean> => {
     try {
-      if (skipNextEventReload) {
-        skipNextEventReload();
-      }
       const backend = getDecryptedBackend();
       await backend.calendarEvents.delete(id);
       
@@ -135,10 +125,6 @@ export const useEventCRUD = (
       }
 
       const backend = getDecryptedBackend();
-      
-      if (skipNextEventReload) {
-        skipNextEventReload();
-      }
       
       const { data: newEventRecord } = await backend.calendarEvents.create({
         title: `${eventToClone.title} (Copy)`,
@@ -195,11 +181,7 @@ export const useEventCRUD = (
       }
       
       const backend = getDecryptedBackend();
-      
-      if (skipNextEventReload) {
-        skipNextEventReload();
-      }
-      
+
       await backend.calendarEvents.update({
         id: eventId,
         title: event.title,

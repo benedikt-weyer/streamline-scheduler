@@ -12,7 +12,6 @@ import { useEventCalendarSync } from './useEventCalendarSync';
  */
 export function useCalendarEvents(
   calendars: Calendar[], 
-  skipNextEventReload?: () => void
 ): CalendarEventsHook {
   // Initialize event state management
   const [events, isLoading, eventActions] = useEventState();
@@ -24,7 +23,6 @@ export function useCalendarEvents(
     events, 
     calendars, 
     eventActions, 
-    skipNextEventReload
   );
   
   const { 
@@ -37,7 +35,6 @@ export function useCalendarEvents(
   } = useRecurrenceEventActions(
     events, 
     eventActions, 
-    skipNextEventReload
   );
 
   // Synchronize event calendar details with the main calendars list

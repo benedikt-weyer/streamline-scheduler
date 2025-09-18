@@ -7,7 +7,6 @@ export function useCalendarSubscriptions(
   eventLoadFn: () => Promise<void>
 ) {
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
-  const skipNextEventReloadRef = useRef<boolean>(false);
 
   useEffect(() => {
     let calendarUnsubscribe: RealtimeSubscription | null = null;
@@ -33,16 +32,6 @@ export function useCalendarSubscriptions(
         eventUnsubscribe = backend.calendarEvents.subscribe(async (message: RealtimeMessage<CalendarEventDecrypted>) => {
           // console.log('Calendar event change detected:', message.event_type);
           
-          // Skip reload if we're in the middle of a drag operation
-          if (skipNextEventReloadRef.current) {
-            // console.log('Skipping event reload due to local update');
-            // Reset the flag after a short delay to allow multi-step operations to complete
-            setTimeout(() => {
-              skipNextEventReloadRef.current = false;
-              // console.log('skipNextEventReloadRef reset after delay');
-            }, 500); // 500ms delay
-            return;
-          }
           
           // Reload events when a change is detected
           try {
@@ -74,10 +63,6 @@ export function useCalendarSubscriptions(
     };
   }, [calendarLoadFn, eventLoadFn]);
 
-  // Function to skip the next event reload (useful for drag operations)
-  const skipNextEventReload = () => {
-    skipNextEventReloadRef.current = true;
-  };
 
-  return { isSubscribed, skipNextEventReload };
+  return { isSubscribed };
 }
