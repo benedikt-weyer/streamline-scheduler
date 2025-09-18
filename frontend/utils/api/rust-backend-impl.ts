@@ -93,8 +93,6 @@ class RustBackendImpl implements BackendInterface {
     }
   }
 
-
-
   private storeAuthToken(token: string): void {
     this.authToken = token;
     
@@ -496,32 +494,32 @@ class RustBackendImpl implements BackendInterface {
 
   // Can-do list methods
   canDoList = {
-    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CanDoItemDecrypted>> => {
+    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CanDoItemEncrypted>> => {
       const params = new URLSearchParams();
       if (options?.limit) params.append('limit', options.limit.toString());
       if (options?.offset) params.append('offset', options.offset.toString());
       
-      return this.makeRequest<PaginatedResponse<CanDoItemDecrypted>>(`/api/can-do-list?${params}`);
+      return this.makeRequest<PaginatedResponse<CanDoItemEncrypted>>(`/api/can-do-list?${params}`);
     },
 
     // Alias for getAll to match the expected interface
-    list: async (options?: QueryOptions): Promise<PaginatedResponse<CanDoItemDecrypted>> => {
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<CanDoItemEncrypted>> => {
       return this.canDoList.getAll(options);
     },
 
-    getById: async (id: string): Promise<ApiResponse<CanDoItemDecrypted>> => {
-      return this.makeRequest<ApiResponse<CanDoItemDecrypted>>(`/api/can-do-list/${id}`);
+    getById: async (id: string): Promise<ApiResponse<CanDoItemEncrypted>> => {
+      return this.makeRequest<ApiResponse<CanDoItemEncrypted>>(`/api/can-do-list/${id}`);
     },
 
-    create: async (request: CreateCanDoItemRequest): Promise<ApiResponse<CanDoItemDecrypted>> => {
-      return this.makeRequest<ApiResponse<CanDoItemDecrypted>>('/api/can-do-list', {
+    create: async (request: CreateCanDoItemRequest): Promise<ApiResponse<CanDoItemEncrypted>> => {
+      return this.makeRequest<ApiResponse<CanDoItemEncrypted>>('/api/can-do-list', {
         method: 'POST',
         body: JSON.stringify(request),
       });
     },
 
-    update: async (request: UpdateCanDoItemRequest): Promise<ApiResponse<CanDoItemDecrypted>> => {
-      return this.makeRequest<ApiResponse<CanDoItemDecrypted>>(`/api/can-do-list/${request.id}`, {
+    update: async (request: UpdateCanDoItemRequest): Promise<ApiResponse<CanDoItemEncrypted>> => {
+      return this.makeRequest<ApiResponse<CanDoItemEncrypted>>(`/api/can-do-list/${request.id}`, {
         method: 'PUT',
         body: JSON.stringify(request),
       });
@@ -545,33 +543,33 @@ class RustBackendImpl implements BackendInterface {
 
   // Project methods
   projects = {
-    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<ProjectDecrypted>> => {
+    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<ProjectEncrypted>> => {
       const params = new URLSearchParams();
       if (options?.limit) params.append('limit', options.limit.toString());
       if (options?.offset) params.append('offset', options.offset.toString());
       if (options?.all) params.append('all', 'true');
       
-      return this.makeRequest<PaginatedResponse<ProjectDecrypted>>(`/api/projects?${params}`);
+      return this.makeRequest<PaginatedResponse<ProjectEncrypted>>(`/api/projects?${params}`);
     },
 
     // Alias for getAll to match the expected interface
-    list: async (options?: QueryOptions): Promise<PaginatedResponse<ProjectDecrypted>> => {
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<ProjectEncrypted>> => {
       return this.projects.getAll(options);
     },
 
-    getById: async (id: string): Promise<ApiResponse<ProjectDecrypted>> => {
-      return this.makeRequest<ApiResponse<ProjectDecrypted>>(`/api/projects/${id}`);
+    getById: async (id: string): Promise<ApiResponse<ProjectEncrypted>> => {
+      return this.makeRequest<ApiResponse<ProjectEncrypted>>(`/api/projects/${id}`);
     },
 
-    create: async (request: CreateProjectRequest): Promise<ApiResponse<ProjectDecrypted>> => {
-      return this.makeRequest<ApiResponse<ProjectDecrypted>>('/api/projects', {
+    create: async (request: CreateProjectRequest): Promise<ApiResponse<ProjectEncrypted>> => {
+      return this.makeRequest<ApiResponse<ProjectEncrypted>>('/api/projects', {
         method: 'POST',
         body: JSON.stringify(request),
       });
     },
 
-    update: async (request: UpdateProjectRequest): Promise<ApiResponse<ProjectDecrypted>> => {
-      return this.makeRequest<ApiResponse<ProjectDecrypted>>(`/api/projects/${request.id}`, {
+    update: async (request: UpdateProjectRequest): Promise<ApiResponse<ProjectEncrypted>> => {
+      return this.makeRequest<ApiResponse<ProjectEncrypted>>(`/api/projects/${request.id}`, {
         method: 'PUT',
         body: JSON.stringify(request),
       });
@@ -595,32 +593,32 @@ class RustBackendImpl implements BackendInterface {
 
   // Calendar methods
   calendars = {
-    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarDecrypted>> => {
+    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEncrypted>> => {
       const params = new URLSearchParams();
       if (options?.limit) params.append('limit', options.limit.toString());
       if (options?.offset) params.append('offset', options.offset.toString());
       
-      return this.makeRequest<PaginatedResponse<CalendarDecrypted>>(`/api/calendars?${params}`);
+      return this.makeRequest<PaginatedResponse<CalendarEncrypted>>(`/api/calendars?${params}`);
     },
 
     // Alias for getAll to match the expected interface
-    list: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarDecrypted>> => {
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEncrypted>> => {
       return this.calendars.getAll(options);
     },
 
-    getById: async (id: string): Promise<ApiResponse<CalendarDecrypted>> => {
-      return this.makeRequest<ApiResponse<CalendarDecrypted>>(`/api/calendars/${id}`);
+    getById: async (id: string): Promise<ApiResponse<CalendarEncrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarEncrypted>>(`/api/calendars/${id}`);
     },
 
-    create: async (request: CreateCalendarRequest): Promise<ApiResponse<CalendarDecrypted>> => {
-      return this.makeRequest<ApiResponse<CalendarDecrypted>>('/api/calendars', {
+    create: async (request: CreateCalendarRequest): Promise<ApiResponse<CalendarEncrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarEncrypted>>('/api/calendars', {
         method: 'POST',
         body: JSON.stringify(request),
       });
     },
 
-    update: async (request: UpdateCalendarRequest): Promise<ApiResponse<CalendarDecrypted>> => {
-      return this.makeRequest<ApiResponse<CalendarDecrypted>>(`/api/calendars/${request.id}`, {
+    update: async (request: UpdateCalendarRequest): Promise<ApiResponse<CalendarEncrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarEncrypted>>(`/api/calendars/${request.id}`, {
         method: 'PUT',
         body: JSON.stringify(request),
       });
@@ -644,16 +642,16 @@ class RustBackendImpl implements BackendInterface {
 
   // Calendar event methods
   calendarEvents = {
-    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEventDecrypted>> => {
+    getAll: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEventEncrypted>> => {
       const params = new URLSearchParams();
       if (options?.limit) params.append('limit', options.limit.toString());
       if (options?.offset) params.append('offset', options.offset.toString());
       
-      return this.makeRequest<PaginatedResponse<CalendarEventDecrypted>>(`/api/calendar-events?${params}`);
+      return this.makeRequest<PaginatedResponse<CalendarEventEncrypted>>(`/api/calendar-events?${params}`);
     },
 
     // Alias for getAll to match the expected interface
-    list: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEventDecrypted>> => {
+    list: async (options?: QueryOptions): Promise<PaginatedResponse<CalendarEventEncrypted>> => {
       return this.calendarEvents.getAll(options);
     },
 
@@ -661,7 +659,7 @@ class RustBackendImpl implements BackendInterface {
       startDate: string,
       endDate: string,
       calendarIds?: string[]
-    ): Promise<PaginatedResponse<CalendarEventDecrypted>> => {
+    ): Promise<PaginatedResponse<CalendarEventEncrypted>> => {
       const params = new URLSearchParams();
       params.append('start_date', startDate);
       params.append('end_date', endDate);
@@ -669,22 +667,22 @@ class RustBackendImpl implements BackendInterface {
         params.append('calendar_ids', calendarIds.join(','));
       }
       
-      return this.makeRequest<PaginatedResponse<CalendarEventDecrypted>>(`/api/calendar-events/range?${params}`);
+      return this.makeRequest<PaginatedResponse<CalendarEventEncrypted>>(`/api/calendar-events/range?${params}`);
     },
 
-    getById: async (id: string): Promise<ApiResponse<CalendarEventDecrypted>> => {
-      return this.makeRequest<ApiResponse<CalendarEventDecrypted>>(`/api/calendar-events/${id}`);
+    getById: async (id: string): Promise<ApiResponse<CalendarEventEncrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarEventEncrypted>>(`/api/calendar-events/${id}`);
     },
 
-    create: async (request: CreateCalendarEventRequest): Promise<ApiResponse<CalendarEventDecrypted>> => {
-      return this.makeRequest<ApiResponse<CalendarEventDecrypted>>('/api/calendar-events', {
+    create: async (request: CreateCalendarEventRequest): Promise<ApiResponse<CalendarEventEncrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarEventEncrypted>>('/api/calendar-events', {
         method: 'POST',
         body: JSON.stringify(request),
       });
     },
 
-    update: async (request: UpdateCalendarEventRequest): Promise<ApiResponse<CalendarEventDecrypted>> => {
-      return this.makeRequest<ApiResponse<CalendarEventDecrypted>>(`/api/calendar-events/${request.id}`, {
+    update: async (request: UpdateCalendarEventRequest): Promise<ApiResponse<CalendarEventEncrypted>> => {
+      return this.makeRequest<ApiResponse<CalendarEventEncrypted>>(`/api/calendar-events/${request.id}`, {
         method: 'PUT',
         body: JSON.stringify(request),
       });
