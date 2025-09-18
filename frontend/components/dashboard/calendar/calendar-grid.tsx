@@ -5,6 +5,7 @@ import { format, isSameDay, differenceInMinutes } from 'date-fns';
 import { CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { generateTimeSlots } from '@/utils/calendar/calendar';
 import { calculateCalendarDimensions, calculateEventRendering, groupOverlappingEvents } from '@/utils/calendar/calendar-render';
+import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 import { 
   DraggedEvent, 
   DragPosition, 
@@ -193,9 +194,9 @@ export function CalendarGrid({
       // Create updated event
       const updatedEvent: CalendarEvent = {
         ...activeEvent.event,
-        startTime: result.startTime,
-        endTime: result.endTime,
-        updatedAt: new Date()
+        start_time: result.startTime.toISOString(),
+        end_time: result.endTime.toISOString(),
+        updated_at: new Date().toISOString()
       };
       
       // Update the event
@@ -315,17 +316,17 @@ export function CalendarGrid({
       if (masterEvent) {
         openEditDialog({
           ...masterEvent,
-          clickedOccurrenceDate: event.startTime, // startTime of the clicked instance
+          clickedOccurrenceDate: event.start_time, // start_time of the clicked instance
           isRecurrenceInstance: true // Keep this to inform the dialog it's an instance context
-        });
+        } as CalendarEvent);
       } else {
         // Fallback if master not found (should ideally not happen)
         // Open the instance itself, marking its own start time as the clicked date
         openEditDialog({
           ...event, 
-          clickedOccurrenceDate: event.startTime,
+          clickedOccurrenceDate: event.start_time,
           isRecurrenceInstance: true
-        });
+        } as CalendarEvent);
       }
     } else {
       // For regular events or when clicking the master event directly from some other UI (not an instance on grid)
@@ -333,34 +334,22 @@ export function CalendarGrid({
     }
   };
 
-  // Function to debug calendar events 
+  // Debug events received by CalendarGrid
   useEffect(() => {
-    // Log calendar info for debugging
-    if (events.length > 0) {
-      console.log(`Calendar Grid received ${events.length} events`);
-      events.forEach(event => {
-        console.log(`Event ${event.id}: has calendar? ${!!event.calendar}, calendarId: ${event.calendarId}`);
-        if (event.calendar) {
-          console.log(`- Calendar details: ${event.calendar.name}, color: ${event.calendar.color}`);
-        }
-      });
-    }
   }, [events]);
 
   // Every time events or calendars change, ensure calendar colors are properly attached
   useEffect(() => {
     // Every time events or calendars change, ensure calendar colors are properly attached
     if (events.length > 0 && calendars && calendars.length > 0) {
-      console.log('Calendar Grid: Ensuring calendar colors are preserved on re-render');
-      
       // Create a local copy of events with calendar colors attached
       // Instead of trying to update the events prop directly
       const updatedEvents = events.map(event => {
         // If the event already has a calendar with color, don't change it
-        if (event.calendar?.color) return event;
+        if ((event as any).calendar?.color) return event;
         
         // Find the matching calendar and ensure it's attached
-        const calendar = calendars.find(cal => cal.id === event.calendarId);
+        const calendar = calendars.find(cal => cal.id === event.calendar_id);
         if (calendar) {
           return {
             ...event,
@@ -371,10 +360,6 @@ export function CalendarGrid({
         }
         return event;
       });
-      
-      // Log how many events have colors attached
-      const eventsWithCalendarColors = updatedEvents.filter(e => e.calendar?.color).length;
-      console.log(`Calendar Grid: ${eventsWithCalendarColors}/${events.length} events have calendar colors`);
       
       // We don't need to update state since we're using the local variable
       // inside this component for rendering
@@ -387,27 +372,31 @@ export function CalendarGrid({
     const { eventStyles, startTime, endTime } = calculateEventRendering(event, day, slotHeight, zIndex, opacity, columnIndex, totalColumns);
     
     // Check if this is a recurring event or a recurring instance
-    const isRecurring = event.recurrencePattern?.frequency !== undefined && 
-                        event.recurrencePattern.frequency !== RecurrenceFrequency.None;
+    const recurrencePattern = getRecurrencePattern(event);
+    const isRecurring = recurrencePattern?.frequency !== undefined && 
+                        recurrencePattern.frequency !== RecurrenceFrequency.None;
     
-    const isRecurrenceInstance = 'isRecurrenceInstance' in event && event.isRecurrenceInstance;
+    const isRecurrenceInstance = event.id.includes('-recurrence-');
 
     // Determine calendar color with improved fallback mechanism
     let calendarColor = null;
     
     // First try to get color from the calendar object directly
-    if (event.calendar && event.calendar.color) {
-      calendarColor = event.calendar.color;
+    if ((event as any).calendar && (event as any).calendar.color) {
+      calendarColor = (event as any).calendar.color;
     }
     
-    // Set default colors based on event type
-    const defaultColor = isRecurring || isRecurrenceInstance 
-      ? 'rgb(20, 184, 166)'  // teal-500 for recurring events
-      : 'rgb(99, 102, 241)'; // indigo-500 for regular events
+    // If not found, look up the calendar from the calendars prop
+    if (!calendarColor && calendars) {
+      const calendar = calendars.find(cal => cal.id === event.calendar_id);
+      if (calendar && calendar.color) {
+        calendarColor = calendar.color;
+      }
+    }
     
-    const defaultBorderColor = isRecurring || isRecurrenceInstance
-      ? 'rgb(13, 148, 136)'  // teal-600 for recurring events
-      : 'rgb(79, 70, 229)';  // indigo-600 for regular events
+    // Set default colors (same for all event types)
+    const defaultColor = 'rgb(99, 102, 241)'; // indigo-500 for all events
+    const defaultBorderColor = 'rgb(79, 70, 229)'; // indigo-600 for all events
     
     // Use calendar color or fall back to defaults
     const bgColor = calendarColor || defaultColor;
@@ -440,14 +429,14 @@ export function CalendarGrid({
         )}
         
         <div className="font-medium truncate flex items-center gap-1">
-          {(isRecurring || isRecurrenceInstance) && (
+          {(isRecurring || isRecurrenceInstance) ? (
             <span className="inline-flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"></path>
                 <path d="M12 7v5l2.5 2.5"></path>
               </svg>
             </span>
-          )}
+          ) : null}
           {event.title}
         </div>
         <div className="text-xs truncate">
@@ -475,15 +464,16 @@ export function CalendarGrid({
   const renderEvents = (day: Date, dayIndex: number) => {
     // Only render timed events in the main grid
     const dayEvents = events.filter(event => 
-      (isSameDay(event.startTime, day) || isSameDay(event.endTime, day)) && !event.isAllDay
+      (isSameDay(new Date(event.start_time), day) || isSameDay(new Date(event.end_time), day)) && !event.all_day
     );
+    
     
     if (!dayEvents.length) return null;
 
     // Group overlapping events
     const eventGroups = groupOverlappingEvents(dayEvents);
     
-    return eventGroups.flatMap(group => {
+    const renderedEvents = eventGroups.flatMap(group => {
       // For non-overlapping events (group of 1), render normally
       if (group.length === 1) {
         return renderSingleEvent(group[0], day, dayIndex);
@@ -494,17 +484,19 @@ export function CalendarGrid({
         renderSingleEvent(event, day, dayIndex, 10, 100, columnIndex, group.length)
       );
     });
+    
+    return renderedEvents;
   };
 
   // Render all-day events for a specific day
   const renderAllDayEvents = (day: Date) => {
     const allDayEvents = events.filter(event => {
-      if (!event.isAllDay) return false;
+      if (!event.all_day) return false;
       
       // Check if this day falls within the event's date range
-      const eventStart = new Date(event.startTime);
+      const eventStart = new Date(event.start_time);
       eventStart.setHours(0, 0, 0, 0);
-      const eventEnd = new Date(event.endTime);
+      const eventEnd = new Date(event.end_time);
       eventEnd.setHours(23, 59, 59, 999);
       const dayStart = new Date(day);
       dayStart.setHours(0, 0, 0, 0);
@@ -514,10 +506,11 @@ export function CalendarGrid({
       return dayStart <= eventEnd && dayEnd >= eventStart;
     });
 
+
     if (!allDayEvents.length) return null;
 
     return allDayEvents.map(event => {
-      const calendar = calendars?.find(cal => cal.id === event.calendarId);
+      const calendar = calendars?.find(cal => cal.id === event.calendar_id);
       const eventColor = calendar?.color || '#3B82F6';
       
       return (
@@ -618,8 +611,8 @@ export function CalendarGrid({
     // Create a temporary event with the dragged position data
     const draggedEvent: CalendarEvent = {
       ...activeEvent.event,
-      startTime: dragPosition.startTime,
-      endTime: dragPosition.endTime
+      start_time: dragPosition.startTime.toISOString(),
+      end_time: dragPosition.endTime.toISOString()
     };
     
     // Use a wrapper div to apply the opacity and prevent pointer events

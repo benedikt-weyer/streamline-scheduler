@@ -85,8 +85,8 @@ export function CalendarSidebar({
   const openEditDialog = (calendar: Calendar) => {
     setSelectedCalendar(calendar);
     setNewCalendarName(calendar.name);
-    setNewCalendarColor(calendar.color);
-    setNewCalendarICSUrl(calendar.icsUrl || ''); // Set ICS URL if it exists
+    setNewCalendarColor(calendar.color || '');
+    setNewCalendarICSUrl(calendar.ics_url || ''); // Set ICS URL if it exists
     setIsEditDialogOpen(true);
   };
 
@@ -113,7 +113,7 @@ export function CalendarSidebar({
   };
 
   const handleSetDefaultCalendar = () => {
-    if (selectedCalendar && !selectedCalendar.isDefault) {
+    if (selectedCalendar && !selectedCalendar.is_default) {
       onSetDefaultCalendar(selectedCalendar.id);
       setIsEditDialogOpen(false);
     }
@@ -144,30 +144,36 @@ export function CalendarSidebar({
       </div>
 
       <div className="space-y-2">
+        {console.log('Rendering calendars in sidebar:', calendars.map(cal => ({id: cal.id, name: cal.name, is_visible: cal.is_visible})))}
         {calendars.map((calendar) => (
           <div key={calendar.id} className="flex items-center justify-between group">
             <div 
               className="flex items-center gap-2 cursor-pointer flex-grow overflow-hidden"
-              onClick={() => onCalendarToggle(calendar.id, !calendar.isVisible)}
+              onClick={() => {
+                console.log('Sidebar: Clicking calendar toggle for', calendar.id, 'current is_visible:', calendar.is_visible, 'will set to:', !calendar.is_visible);
+                console.log('Calendar object:', calendar);
+                onCalendarToggle(calendar.id, !calendar.is_visible);
+              }}
             >
               <button
                 className="rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500 flex-shrink-0"
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent triggering the parent onClick
-                  onCalendarToggle(calendar.id, !calendar.isVisible);
+                  console.log('Sidebar button: Clicking calendar toggle for', calendar.id, 'current is_visible:', calendar.is_visible, 'will set to:', !calendar.is_visible);
+                  onCalendarToggle(calendar.id, !calendar.is_visible);
                 }}
               >
                 <div 
                   className={`w-3 h-3 rounded-full border-2 flex items-center justify-center`}
                   style={{ 
                     borderColor: calendar.color,
-                    backgroundColor: calendar.isVisible ? calendar.color : 'transparent'
+                    backgroundColor: calendar.is_visible ? calendar.color : 'transparent'
                   }}
                 ></div>
               </button>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1">
-                  <span className={`${calendar.isVisible ? 'text-foreground' : 'text-gray-500'} truncate block`}>
+                  <span className={`${calendar.is_visible ? 'text-foreground' : 'text-gray-500'} truncate block`}>
                     {calendar.name}
                   </span>
                   {calendar.type === CalendarType.ICS && (
@@ -328,7 +334,7 @@ export function CalendarSidebar({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Calendar</DialogTitle>
-            {selectedCalendar?.isDefault && (
+            {selectedCalendar?.is_default && (
               <div className="text-sm text-amber-600 mt-1 px-2 py-1 bg-amber-50 rounded-md">
                 This is your default calendar. It will be pre-selected when creating new events.
               </div>
@@ -390,16 +396,16 @@ export function CalendarSidebar({
                       <Button 
                         variant="destructive" 
                         onClick={handleDeleteCalendar}
-                        disabled={selectedCalendar?.isDefault || calendars.length <= 1}
+                        disabled={selectedCalendar?.is_default || calendars.length <= 1}
                       >
                         <Trash className="h-4 w-4 mr-2" />
                         Delete
                       </Button>
                     </span>
                   </TooltipTrigger>
-                  {(selectedCalendar?.isDefault || calendars.length <= 1) && (
+                  {(selectedCalendar?.is_default || calendars.length <= 1) && (
                     <TooltipContent>
-                      {selectedCalendar?.isDefault 
+                      {selectedCalendar?.is_default 
                         ? "Default calendars cannot be deleted. Set another calendar as default first."
                         : "You must have at least one calendar."
                       }
@@ -407,7 +413,7 @@ export function CalendarSidebar({
                   )}
                 </Tooltip>
               </TooltipProvider>
-              {!selectedCalendar?.isDefault && (
+              {!selectedCalendar?.is_default && (
                 <Button
                   variant="outline"
                   onClick={handleSetDefaultCalendar}

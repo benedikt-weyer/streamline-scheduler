@@ -1,5 +1,55 @@
 import { CalendarEvent, Calendar, RecurrencePattern, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { isValid } from 'date-fns';
+
+/**
+ * Parse an RFC 5545 RRULE string into a RecurrencePattern
+ */
+const parseRRULE = (rrule: string): RecurrencePattern | null => {
+  const parts = rrule.split(';');
+  const ruleData: Record<string, string> = {};
+  
+  // Parse RRULE parts into key-value pairs
+  for (const part of parts) {
+    const [key, value] = part.split('=');
+    if (key && value) {
+      ruleData[key] = value;
+    }
+  }
+  
+  // Convert FREQ to our RecurrenceFrequency enum
+  let frequency: RecurrenceFrequency;
+  switch (ruleData.FREQ) {
+    case 'DAILY':
+      frequency = RecurrenceFrequency.Daily;
+      break;
+    case 'WEEKLY':
+      frequency = RecurrenceFrequency.Weekly;
+      break;
+    case 'MONTHLY':
+      frequency = RecurrenceFrequency.Monthly;
+      break;
+    case 'YEARLY':
+      frequency = RecurrenceFrequency.Yearly;
+      break;
+    default:
+      return null;
+  }
+  
+  const pattern: RecurrencePattern = {
+    frequency,
+    interval: ruleData.INTERVAL ? parseInt(ruleData.INTERVAL, 10) : 1,
+    endDate: ruleData.UNTIL ? new Date(ruleData.UNTIL) : undefined,
+    daysOfWeek: ruleData.BYDAY ? ruleData.BYDAY.split(',').map(day => {
+      // Convert RRULE day names to day numbers (0=Sunday)
+      const dayMap: Record<string, number> = {
+        'SU': 0, 'MO': 1, 'TU': 2, 'WE': 3, 'TH': 4, 'FR': 5, 'SA': 6
+      };
+      return dayMap[day] ?? 0;
+    }) : undefined
+  };
+  
+  return pattern;
+};
 import { combineDateAndTime, createRecurrencePattern } from './recurrenceHelpers';
 
 /**
@@ -64,10 +114,11 @@ export const processDecryptedEvent = (
   
   let recurrencePattern: RecurrencePattern | undefined;
   
-  // Parse recurrence rule from JSON string (new format)
+  // Parse recurrence rule from JSON string or RRULE format
   const recurrenceRule = decryptedData.recurrence_rule || decryptedData.recurrenceRule;
   if (recurrenceRule) {
     try {
+      // First try to parse as JSON (new format)
       const rule = typeof recurrenceRule === 'string' ? JSON.parse(recurrenceRule) : recurrenceRule;
       if (rule.frequency && rule.frequency !== RecurrenceFrequency.None) {
         recurrencePattern = {
@@ -77,8 +128,18 @@ export const processDecryptedEvent = (
           daysOfWeek: rule.days_of_week
         };
       }
-    } catch (error) {
-      console.error('Failed to parse recurrence rule:', recurrenceRule, error);
+    } catch (jsonError) {
+      // If JSON parsing fails, try to parse as RRULE format
+      try {
+        if (typeof recurrenceRule === 'string' && recurrenceRule.startsWith('FREQ=')) {
+          const rrulePattern = parseRRULE(recurrenceRule);
+          if (rrulePattern) {
+            recurrencePattern = rrulePattern;
+          }
+        }
+      } catch (rruleError) {
+        console.error('Failed to parse recurrence rule as both JSON and RRULE:', recurrenceRule, { jsonError, rruleError });
+      }
     }
   }
   
@@ -97,7 +158,6 @@ export const processDecryptedEvent = (
   const calendar = calendars.find(cal => cal.id === calendarId);
   
   return {
-    // Base CalendarEventDecrypted properties
     id: rawEvent.id,
     title: decryptedData.title,
     description: decryptedData.description,
@@ -110,18 +170,7 @@ export const processDecryptedEvent = (
     recurrence_exception: decryptedData.recurrence_exception,
     created_at: rawEvent.created_at,
     updated_at: rawEvent.updated_at,
-    user_id: rawEvent.user_id,
-    
-    // UI-specific properties
-    recurrencePattern,
-    calendar: calendar,
-    isRecurrenceInstance: false,
-    
-    // Convenience properties for backward compatibility
-    startTime: startTime,
-    endTime: endTime,
-    calendarId: calendarId,
-    isAllDay: decryptedData.isAllDay ?? decryptedData.all_day ?? false
+    user_id: rawEvent.user_id
   };
 };
 
@@ -130,6 +179,50 @@ export const processDecryptedEvent = (
  */
 export const sortEventsByStartTime = (events: CalendarEvent[]): CalendarEvent[] => {
   return events
-    .filter(event => isValid(event.startTime))
-    .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+    .filter(event => isValid(new Date(event.start_time)))
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+};
+
+/**
+ * Extract recurrence pattern from a CalendarEvent
+ */
+export const getRecurrencePattern = (event: CalendarEvent): RecurrencePattern | undefined => {
+  if (!event.recurrence_rule) {
+    return undefined;
+  }
+
+  try {
+    // First try to parse as JSON
+    const rule = typeof event.recurrence_rule === 'string' ? JSON.parse(event.recurrence_rule) : event.recurrence_rule;
+    if (rule.frequency && rule.frequency !== RecurrenceFrequency.None) {
+      return {
+        frequency: rule.frequency,
+        interval: rule.interval ?? 1,
+        endDate: rule.end_date ? new Date(rule.end_date) : undefined,
+        daysOfWeek: rule.days_of_week
+      };
+    }
+  } catch (jsonError) {
+    // If JSON parsing fails, try to parse as RRULE format
+    try {
+      if (typeof event.recurrence_rule === 'string' && event.recurrence_rule.startsWith('FREQ=')) {
+        const rrulePattern = parseRRULE(event.recurrence_rule);
+        if (rrulePattern) {
+          return rrulePattern;
+        }
+      }
+    } catch (rruleError) {
+      console.error('Failed to parse recurrence rule as both JSON and RRULE:', event.recurrence_rule, { jsonError, rruleError });
+    }
+  }
+  
+  return undefined;
+};
+
+/**
+ * Check if an event has recurrence
+ */
+export const hasRecurrence = (event: CalendarEvent): boolean => {
+  const pattern = getRecurrencePattern(event);
+  return pattern !== undefined && pattern.frequency !== RecurrenceFrequency.None;
 };

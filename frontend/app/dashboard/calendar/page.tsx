@@ -32,6 +32,7 @@ function CalendarContent() {
     }
     return null;
   });
+
   
   // Load data when component mounts
   useEffect(() => {
@@ -71,7 +72,11 @@ function CalendarContent() {
     
     try {
       const updatedCalendar = await calendarPageService!.toggleCalendarVisibility(calendarId, isVisible);
-      setCalendars(prev => prev.map(cal => cal.id === calendarId ? updatedCalendar : cal));
+      setCalendars(prev => prev.map(cal => 
+        cal.id === calendarId 
+          ? { ...cal, ...updatedCalendar } // Merge the update with existing calendar data
+          : cal
+      ));
     } catch (error) {
       console.error('Failed to toggle calendar visibility:', error);
       setError('Failed to update calendar visibility');
@@ -135,7 +140,11 @@ function CalendarContent() {
   const handleCalendarEdit = useCallback(async (id: string, name: string, color: string): Promise<void> => {
     try {
       const updatedCalendar = await calendarPageService!.editCalendar(id, name, color);
-      setCalendars(prev => prev.map(cal => cal.id === id ? updatedCalendar : cal));
+      setCalendars(prev => prev.map(cal => 
+        cal.id === id 
+          ? { ...cal, ...updatedCalendar } // Merge the update with existing calendar data
+          : cal
+      ));
     } catch (error) {
       console.error('Failed to edit calendar:', error);
       setError('Failed to edit calendar');
@@ -259,69 +268,99 @@ function CalendarContent() {
 
   // Recurrence handlers (placeholder implementations - would need proper recurrence logic)
   const handleDeleteThisOccurrence = useCallback(async (event: CalendarEvent): Promise<boolean> => {
+    if (!calendarPageService) return false;
+    
     try {
-      // This would need specific recurrence logic from useRecurrenceEventActions
-      console.log('Delete this occurrence:', event);
-      setError('Recurrence operations not yet implemented');
-      return false;
+      const result = await calendarPageService.calendarEventsService.deleteThisOccurrence(event, calendarEvents);
+      if (result.success && result.updatedEvents) {
+        setCalendarEvents(result.updatedEvents);
+        return true;
+      } else {
+        setError(result.error || 'Failed to delete occurrence');
+        return false;
+      }
     } catch (error) {
       console.error('Failed to delete occurrence:', error);
       setError('Failed to delete occurrence');
       return false;
     }
-  }, [setError]);
+  }, [calendarPageService, calendarEvents, setError]);
 
   const handleDeleteThisAndFuture = useCallback(async (event: CalendarEvent): Promise<boolean> => {
+    if (!calendarPageService) return false;
+    
     try {
-      // This would need specific recurrence logic
-      console.log('Delete this and future:', event);
-      setError('Recurrence operations not yet implemented');
-      return false;
+      const result = await calendarPageService.calendarEventsService.deleteThisAndFuture(event, calendarEvents);
+      if (result.success && result.updatedEvents) {
+        setCalendarEvents(result.updatedEvents);
+        return true;
+      } else {
+        setError(result.error || 'Failed to delete this and future');
+        return false;
+      }
     } catch (error) {
       console.error('Failed to delete this and future:', error);
       setError('Failed to delete occurrences');
       return false;
     }
-  }, [setError]);
+  }, [calendarPageService, calendarEvents, setError]);
 
   const handleModifyThisOccurrence = useCallback(async (event: CalendarEvent, modifiedData: any): Promise<boolean> => {
+    if (!calendarPageService) return false;
+    
     try {
-      // This would need specific recurrence logic
-      console.log('Modify this occurrence:', event, modifiedData);
-      setError('Recurrence operations not yet implemented');
-      return false;
+      const result = await calendarPageService.calendarEventsService.modifyThisOccurrence(event, modifiedData, calendarEvents);
+      if (result.success && result.updatedEvents) {
+        setCalendarEvents(result.updatedEvents);
+        return true;
+      } else {
+        setError(result.error || 'Failed to modify occurrence');
+        return false;
+      }
     } catch (error) {
       console.error('Failed to modify occurrence:', error);
       setError('Failed to modify occurrence');
       return false;
     }
-  }, [setError]);
+  }, [calendarPageService, calendarEvents, setError]);
 
   const handleModifyThisAndFuture = useCallback(async (event: CalendarEvent, modifiedData: any): Promise<boolean> => {
+    if (!calendarPageService) return false;
+    
     try {
-      // This would need specific recurrence logic
-      console.log('Modify this and future:', event, modifiedData);
-      setError('Recurrence operations not yet implemented');
-      return false;
+      const result = await calendarPageService.calendarEventsService.modifyThisAndFuture(event, modifiedData, calendarEvents);
+      if (result.success && result.updatedEvents) {
+        setCalendarEvents(result.updatedEvents);
+        return true;
+      } else {
+        setError(result.error || 'Failed to modify this and future');
+        return false;
+      }
     } catch (error) {
       console.error('Failed to modify this and future:', error);
       setError('Failed to modify occurrences');
       return false;
     }
-  }, [setError]);
+  }, [calendarPageService, calendarEvents, setError]);
 
   const handleModifyAllInSeries = useCallback(async (event: CalendarEvent, modifiedData: any): Promise<boolean> => {
+    if (!calendarPageService) return false;
+    
     try {
-      // This would need specific recurrence logic
-      console.log('Modify all in series:', event, modifiedData);
-      setError('Recurrence operations not yet implemented');
-      return false;
+      const result = await calendarPageService.calendarEventsService.modifyAllInSeries(event, modifiedData, calendarEvents);
+      if (result.success && result.updatedEvents) {
+        setCalendarEvents(result.updatedEvents);
+        return true;
+      } else {
+        setError(result.error || 'Failed to modify all in series');
+        return false;
+      }
     } catch (error) {
       console.error('Failed to modify series:', error);
       setError('Failed to modify event series');
       return false;
     }
-  }, [setError]);
+  }, [calendarPageService, calendarEvents, setError]);
 
   // ICS helpers
   const isICSEvent = useCallback((event: CalendarEvent): boolean => {

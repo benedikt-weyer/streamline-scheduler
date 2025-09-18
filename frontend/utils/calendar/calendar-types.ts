@@ -25,18 +25,7 @@ export interface RecurrencePattern {
   daysOfWeek?: number[]; // For weekly/monthly recurrence (0 = Sunday, 6 = Saturday)
 }
 
-export interface CalendarEvent extends CalendarEventDecrypted {
-  // UI-specific properties that are computed from the database fields
-  recurrencePattern?: RecurrencePattern;
-  isRecurrenceInstance?: boolean; // Flag for generated recurrence instances
-  calendar?: Calendar; // Associated calendar object for easy access
-  
-  // Convenience getters for backward compatibility
-  startTime: Date;
-  endTime: Date;
-  calendarId: string;
-  isAllDay: boolean;
-}
+export type CalendarEvent = CalendarEventDecrypted;
 
 
 

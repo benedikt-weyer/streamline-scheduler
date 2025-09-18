@@ -13,7 +13,7 @@ import { DecryptedBackendInterface } from '@/utils/api/decrypted-backend-interfa
  */
 export class CalendarPageService {
   private calendarService: CalendarService;
-  private calendarEventsService: CalendarEventsService;
+  public calendarEventsService: CalendarEventsService;
 
   constructor(backend: DecryptedBackendInterface) {
     this.calendarService = new CalendarService(backend);

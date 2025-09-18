@@ -53,12 +53,12 @@ export function CalendarGridMobile({
 
   // Get events for the selected day
   const dayEvents = events.filter(event => 
-    isSameDay(event.startTime, selectedDay) || isSameDay(event.endTime, selectedDay)
+    isSameDay(new Date(event.start_time), selectedDay) || isSameDay(new Date(event.end_time), selectedDay)
   );
 
   // Separate all-day and timed events
-  const allDayEvents = dayEvents.filter(event => event.isAllDay);
-  const timedEvents = dayEvents.filter(event => !event.isAllDay);
+  const allDayEvents = dayEvents.filter(event => event.all_day);
+  const timedEvents = dayEvents.filter(event => !event.all_day);
 
   // Navigate to previous day
   const goToPreviousDay = () => {
@@ -103,8 +103,8 @@ export function CalendarGridMobile({
 
   // Calculate event position and height
   const getEventStyle = (event: CalendarEvent) => {
-    const eventStart = new Date(event.startTime);
-    const eventEnd = new Date(event.endTime);
+    const eventStart = new Date(event.start_time);
+    const eventEnd = new Date(event.end_time);
     
     // Calculate start position (midnight = 0%)
     const dayStart = new Date(selectedDay);
@@ -125,16 +125,16 @@ export function CalendarGridMobile({
 
   // Get calendar color for event
   const getEventColor = (event: CalendarEvent) => {
-    const calendar = calendars?.find(cal => cal.id === event.calendarId);
+    const calendar = calendars?.find(cal => cal.id === event.calendar_id);
     return calendar?.color || '#4f46e5';
   };
 
   // Check if two events overlap
   const eventsOverlap = (event1: CalendarEvent, event2: CalendarEvent): boolean => {
-    const start1 = new Date(event1.startTime);
-    const end1 = new Date(event1.endTime);
-    const start2 = new Date(event2.startTime);
-    const end2 = new Date(event2.endTime);
+    const start1 = new Date(event1.start_time);
+    const end1 = new Date(event1.end_time);
+    const start2 = new Date(event2.start_time);
+    const end2 = new Date(event2.end_time);
     
     return start1 < end2 && start2 < end1;
   };
@@ -305,7 +305,7 @@ export function CalendarGridMobile({
                       {event.title}
                     </div>
                     <div className="text-white text-xs opacity-90">
-                      {format(event.startTime, 'HH:mm')} - {format(event.endTime, 'HH:mm')}
+                      {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')}
                     </div>
                     {event.location && (
                       <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
@@ -348,7 +348,7 @@ export function CalendarGridMobile({
                       {event.title}
                     </div>
                     <div className="text-white text-xs opacity-90">
-                      {format(event.startTime, 'HH:mm')} - {format(event.endTime, 'HH:mm')}
+                      {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')}
                     </div>
                     {event.location && (
                       <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">

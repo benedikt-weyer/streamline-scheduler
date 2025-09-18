@@ -546,4 +546,54 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
       });
     },
   };
+
+
+  // Utility method to fix corrupted data in the database
+  async fixCorruptedData(): Promise<{ calendarsFixed: number; eventsFixed: number }> {
+    let calendarsFixed = 0;
+    let eventsFixed = 0;
+
+    try {
+      // Fix calendars
+      const calendarsResponse = await this.calendars.getAll();
+      for (const calendar of calendarsResponse.data) {
+        // Re-save the calendar to normalize the encrypted data
+        await this.calendars.update({
+          id: calendar.id,
+          name: calendar.name,
+          color: calendar.color,
+          is_visible: calendar.is_visible,
+          type: calendar.type,
+          ics_url: calendar.ics_url,
+          last_sync: calendar.last_sync,
+        });
+        calendarsFixed++;
+      }
+
+      // Fix calendar events
+      const eventsResponse = await this.calendarEvents.getAll();
+      for (const event of eventsResponse.data) {
+        // Re-save the event to normalize the encrypted data
+        await this.calendarEvents.update({
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          location: event.location,
+          start_time: event.start_time,
+          end_time: event.end_time,
+          all_day: event.all_day,
+          calendar_id: event.calendar_id,
+          recurrence_rule: event.recurrence_rule,
+          recurrence_exception: event.recurrence_exception,
+        });
+        eventsFixed++;
+      }
+
+      console.log(`Data corruption fix completed: ${calendarsFixed} calendars, ${eventsFixed} events fixed`);
+      return { calendarsFixed, eventsFixed };
+    } catch (error) {
+      console.error('Error fixing corrupted data:', error);
+      throw error;
+    }
+  }
 }

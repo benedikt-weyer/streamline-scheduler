@@ -66,12 +66,13 @@ export const calculateDraggingEventDateTime = (
       newStartTime.setHours(hours, minutes, 0, 0);
       
       // Ensure start time doesn't go beyond end time
-      if (newStartTime >= activeEvent.event.endTime) {
-        newStartTime = new Date(activeEvent.event.endTime);
+      const eventEndTime = new Date(activeEvent.event.end_time);
+      if (newStartTime >= eventEndTime) {
+        newStartTime = new Date(eventEndTime);
         newStartTime.setMinutes(newStartTime.getMinutes() - 15);
       }
       
-      newEndTime = new Date(activeEvent.event.endTime);
+      newEndTime = eventEndTime;
       break;
     }
       
@@ -81,12 +82,13 @@ export const calculateDraggingEventDateTime = (
       newEndTime.setHours(hours, minutes, 0, 0);
       
       // Ensure end time doesn't go before start time
-      if (newEndTime <= activeEvent.event.startTime) {
-        newEndTime = new Date(activeEvent.event.startTime);
+      const eventStartTime = new Date(activeEvent.event.start_time);
+      if (newEndTime <= eventStartTime) {
+        newEndTime = new Date(eventStartTime);
         newEndTime.setMinutes(newEndTime.getMinutes() + 15);
       }
       
-      newStartTime = new Date(activeEvent.event.startTime);
+      newStartTime = eventStartTime;
       break;
     }
       
@@ -97,10 +99,9 @@ export const calculateDraggingEventDateTime = (
       newStartTime.setHours(hours, minutes, 0, 0);
       
       // Calculate duration for maintaining event length
-      const duration = differenceInMinutes(
-        activeEvent.event.endTime, 
-        activeEvent.event.startTime
-      );
+      const eventStartTime = new Date(activeEvent.event.start_time);
+      const eventEndTime = new Date(activeEvent.event.end_time);
+      const duration = differenceInMinutes(eventEndTime, eventStartTime);
       
       newEndTime = new Date(newStartTime);
       newEndTime.setMinutes(newEndTime.getMinutes() + duration);

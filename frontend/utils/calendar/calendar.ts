@@ -19,6 +19,7 @@ import {
   getDay
 } from 'date-fns';
 import { CalendarEvent, Calendar, RecurrenceFrequency, RecurrencePattern } from './calendar-types';
+import { getRecurrencePattern } from './eventDataProcessing';
 
 // Generate time slots for the calendar (hourly intervals)
 export const generateTimeSlots = (startHour = 0, endHour = 24) => {
@@ -53,20 +54,24 @@ export const filterEventsForWeek = (events: CalendarEvent[], currentWeek: Date) 
   
   events.forEach(event => {
     // Check if the original event is in the current week
-    const originalEventInWeek = isWithinInterval(event.startTime, { start: weekStart, end: weekEnd }) ||
-      isWithinInterval(event.endTime, { start: weekStart, end: weekEnd }) ||
-      (event.startTime < weekStart && event.endTime > weekEnd);
+    const eventStartTime = new Date(event.start_time);
+    const eventEndTime = new Date(event.end_time);
+    const originalEventInWeek = isWithinInterval(eventStartTime, { start: weekStart, end: weekEnd }) ||
+      isWithinInterval(eventEndTime, { start: weekStart, end: weekEnd }) ||
+      (eventStartTime < weekStart && eventEndTime > weekEnd);
     
     if (originalEventInWeek) {
       allEventsForWeek.push(event);
     }
     
     // If this is a recurring event, check for instances in the current week
-    if (event.recurrencePattern && event.recurrencePattern.frequency !== RecurrenceFrequency.None) {
+    const recurrencePattern = getRecurrencePattern(event);
+    if (recurrencePattern && recurrencePattern.frequency !== RecurrenceFrequency.None) {
       const recurrenceInstances = generateRecurrenceInstancesInRange(
         event, 
         weekStart, 
-        weekEnd
+        weekEnd,
+        recurrencePattern
       );
       
       allEventsForWeek.push(...recurrenceInstances);
@@ -82,25 +87,23 @@ export const filterEventsForWeek = (events: CalendarEvent[], currentWeek: Date) 
 export const generateRecurrenceInstancesInRange = (
   baseEvent: CalendarEvent,
   rangeStart: Date,
-  rangeEnd: Date
+  rangeEnd: Date,
+  recurrencePattern: RecurrencePattern
 ): CalendarEvent[] => {
   const instances: CalendarEvent[] = [];
-  
-  // If no recurrence pattern or set to None, return empty array
-  if (!baseEvent.recurrencePattern || 
-      baseEvent.recurrencePattern.frequency === RecurrenceFrequency.None) {
-    return instances;
-  }
   
   const { 
     frequency, 
     endDate, 
     interval = 1,
     daysOfWeek 
-  } = baseEvent.recurrencePattern;
+  } = recurrencePattern;
   
   // If the original event is after the range end, no need to continue
-  if (baseEvent.startTime > rangeEnd) {
+  const baseEventStartTime = new Date(baseEvent.start_time);
+  const baseEventEndTime = new Date(baseEvent.end_time);
+  
+  if (baseEventStartTime > rangeEnd) {
     return instances;
   }
   
@@ -110,17 +113,15 @@ export const generateRecurrenceInstancesInRange = (
   }
   
   // Calculate the event duration in milliseconds to maintain for each instance
-  const eventDuration = baseEvent.endTime.getTime() - baseEvent.startTime.getTime();
+  const eventDuration = baseEventEndTime.getTime() - baseEventStartTime.getTime();
   
-  if (!baseEvent.startTime || !isValid(baseEvent.startTime) || 
-      !baseEvent.endTime || !isValid(baseEvent.endTime) || 
-      eventDuration <= 0) {
+  if (!isValid(baseEventStartTime) || !isValid(baseEventEndTime) || eventDuration <= 0) {
     console.error(
       '[generateRecurrenceInstancesInRange] Invalid baseEvent startTime, endTime, or duration:',
       JSON.stringify({
         id: baseEvent.id,
-        startTime: baseEvent.startTime,
-        endTime: baseEvent.endTime,
+        startTime: baseEvent.start_time,
+        endTime: baseEvent.end_time,
         duration: eventDuration,
       })
     );
@@ -131,12 +132,12 @@ export const generateRecurrenceInstancesInRange = (
   const latestDate = endDate ? new Date(Math.min(rangeEnd.getTime(), endDate.getTime())) : rangeEnd;
   
   // Generate instances based on frequency
-  let currentDate = new Date(baseEvent.startTime);
+  let currentDate = new Date(baseEventStartTime);
   
   if (!isValid(currentDate)) {
     console.error(
-      '[generateRecurrenceInstancesInRange] Initial currentDate is invalid, derived from baseEvent.startTime:',
-      baseEvent.startTime
+      '[generateRecurrenceInstancesInRange] Initial currentDate is invalid, derived from baseEvent.start_time:',
+      baseEvent.start_time
     );
     return instances;
   }
@@ -155,7 +156,7 @@ export const generateRecurrenceInstancesInRange = (
     const previousCurrentDate = new Date(currentDate); // Store before advancing
 
     // Skip the original event occurrence
-    if (!isSameDay(currentDate, baseEvent.startTime)) {
+    if (!isSameDay(currentDate, baseEventStartTime)) {
       // Only include if it falls in our desired range
       if (currentDate >= rangeStart && currentDate <= rangeEnd) {
         // For weekly recurrences, check if this day of week should be included
@@ -179,10 +180,8 @@ export const generateRecurrenceInstancesInRange = (
           instances.push({
             ...baseEvent,
             id: `${baseEvent.id}-recurrence-${format(startTime, 'yyyy-MM-dd')}`,
-            startTime,
-            endTime,
-            // Flag to identify it's a recurrence instance (not stored in database)
-            isRecurrenceInstance: true
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString()
           });
         }
       }
@@ -237,30 +236,8 @@ export const ensureCalendarPropertiesOnEvents = (
   if (!events.length || !calendars.length) return events;
   
   return events.map(event => {
-    // Skip if event already has a calendar with color
-    if (event.calendar?.color) return event;
-    
-    // Find the matching calendar
-    const calendar = calendars.find(cal => cal.id === event.calendarId);
-    
-    if (calendar) {
-      return {
-        ...event,
-        calendar: {
-          id: calendar.id,
-          name: calendar.name,
-          color: calendar.color,
-          isVisible: calendar.isVisible,
-          isDefault: calendar.isDefault,
-          type: calendar.type,
-          icsUrl: calendar.icsUrl,
-          lastSync: calendar.lastSync,
-          createdAt: calendar.createdAt,
-          updatedAt: calendar.updatedAt
-        }
-      };
-    }
-    
+    // Since CalendarEvent is now CalendarEventDecrypted, we don't need to add calendar objects
+    // The calendar information should be looked up separately when needed
     return event;
   });
 };

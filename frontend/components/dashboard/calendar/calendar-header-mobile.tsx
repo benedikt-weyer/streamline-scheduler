@@ -73,7 +73,7 @@ export function CalendarHeaderMobile({
     onCalendarToggle(calendarId, !currentVisibility);
   };
 
-  const visibleCalendarsCount = calendars.filter(cal => cal.isVisible).length;
+  const visibleCalendarsCount = calendars.filter(cal => cal.is_visible).length;
 
   return (
     <div className="space-y-3">
@@ -124,7 +124,7 @@ export function CalendarHeaderMobile({
             {calendars.map((calendar) => (
               <DropdownMenuItem
                 key={calendar.id}
-                onClick={() => handleCalendarToggle(calendar.id, calendar.isVisible)}
+                onClick={() => handleCalendarToggle(calendar.id, calendar.is_visible)}
                 className="flex items-center justify-between"
               >
                 <div className="flex items-center gap-2">
@@ -132,13 +132,13 @@ export function CalendarHeaderMobile({
                     className={`w-3 h-3 rounded-full border-2`}
                     style={{ 
                       borderColor: calendar.color,
-                      backgroundColor: calendar.isVisible ? calendar.color : 'transparent'
+                      backgroundColor: calendar.is_visible ? calendar.color : 'transparent'
                     }}
                   />
-                  <span className={calendar.isVisible ? 'text-foreground' : 'text-muted-foreground'}>
+                  <span className={calendar.is_visible ? 'text-foreground' : 'text-muted-foreground'}>
                     {calendar.name}
                   </span>
-                  {calendar.isDefault && (
+                  {calendar.is_default && (
                     <span className="text-xs bg-amber-100 text-amber-800 px-1 rounded">
                       Default
                     </span>

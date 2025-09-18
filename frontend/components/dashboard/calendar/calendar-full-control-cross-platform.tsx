@@ -11,6 +11,7 @@ import { CalendarGridMobile } from './calendar-grid-mobile';
 
 import { CalendarEvent, Calendar, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { getDaysOfWeek, getEventsInWeek } from '@/utils/calendar/calendarHelpers';
+import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 import { startOfWeek } from 'date-fns';
 
 export interface CalendarFullControlCrossPlatformProps {
@@ -150,28 +151,35 @@ export function CalendarFullControlCrossPlatform({
   );
   
   // Combine regular events and ICS events
-  const allEvents = useMemo(() => [...events, ...icsEvents], [events, icsEvents]);
+  const allEvents = useMemo(() => {
+    return [...events, ...icsEvents];
+  }, [events, icsEvents]);
 
   // First filter events by visible calendars, then get events for current week
-  const visibleEvents = useMemo(() => 
-    allEvents.filter(event => 
-      // Only include events from visible calendars
-      calendars.find(cal => cal.id === event.calendarId)?.isVisible ?? false
-    ), [allEvents, calendars]
-  );
+  const visibleEvents = useMemo(() => {
+    
+    const filtered = allEvents.filter(event => {
+      const calendar = calendars.find(cal => cal.id === event.calendar_id);
+      const isVisible = calendar?.is_visible ?? false;
+      return isVisible;
+    });
+    
+    return filtered;
+  }, [allEvents, calendars]);
   
-  const eventsInCurrentWeek = useMemo(() => 
-    getEventsInWeek(visibleEvents, daysOfWeek[0]), [visibleEvents, daysOfWeek]
-  );
+  const eventsInCurrentWeek = useMemo(() => {
+    const weekEvents = getEventsInWeek(visibleEvents, daysOfWeek[0]);
+    return weekEvents;
+  }, [visibleEvents, daysOfWeek]);
 
   // Memoize filtered visible calendars to avoid recalculating on each render
   const visibleCalendars = useMemo(() => 
-    calendars.filter(cal => cal.isVisible), [calendars]
+    calendars.filter(cal => cal.is_visible), [calendars]
   );
 
   // Memoize default calendar ID lookup
   const defaultCalendarId = useMemo(() => 
-    calendars.find(cal => cal.isDefault)?.id, [calendars]
+    calendars.find(cal => cal.is_default)?.id, [calendars]
   );
 
   // Memoize fallback calendar ID for new events
@@ -188,7 +196,7 @@ export function CalendarFullControlCrossPlatform({
       
       if (targetCalendarId) {
         // Move all events from this calendar to the target calendar
-        const eventsToMove = events.filter(event => event.calendarId === calendarId);
+        const eventsToMove = events.filter(event => event.calendar_id === calendarId);
         for (const event of eventsToMove) {
           await moveEventToCalendar(event.id, targetCalendarId);
         }
@@ -248,12 +256,13 @@ export function CalendarFullControlCrossPlatform({
         id: 'new', // This ID will never be used, it's just for the temporary object
         title: '',
         description: '',
-        calendarId: calendarId ?? fallbackCalendarId,
-        startTime: startTime,
-        endTime: endTime,
-        isAllDay: isAllDay ?? false,
+        calendar_id: calendarId ?? fallbackCalendarId,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        all_day: isAllDay ?? false,
         user_id: '', // Temporary value for dummy event
-        createdAt: new Date()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       
       // Set as selected event to prefill the form with these times
@@ -372,8 +381,9 @@ export function CalendarFullControlCrossPlatform({
   // Handler for drag/resize operations that checks for recurring events
   const handleEventUpdateWithRecurrenceCheck = useCallback(async (updatedEvent: CalendarEvent) => {
     // Check if this is a recurring event
-    const isRecurringEvent = updatedEvent.recurrencePattern && 
-      updatedEvent.recurrencePattern.frequency !== RecurrenceFrequency.None;
+    const recurrencePattern = getRecurrencePattern(updatedEvent);
+    const isRecurringEvent = recurrencePattern && 
+      recurrencePattern.frequency !== RecurrenceFrequency.None;
 
     if (isRecurringEvent) {
       // Store the updated event and show the modification choice modal
@@ -393,8 +403,8 @@ export function CalendarFullControlCrossPlatform({
         title: pendingDraggedEvent.title,
         description: pendingDraggedEvent.description,
         location: pendingDraggedEvent.location,
-        startTime: pendingDraggedEvent.startTime,
-        endTime: pendingDraggedEvent.endTime
+        start_time: pendingDraggedEvent.start_time,
+        end_time: pendingDraggedEvent.end_time
       };
       await onModifyThisOccurrence(event, modifiedData);
       setPendingDraggedEvent(null);
@@ -407,8 +417,8 @@ export function CalendarFullControlCrossPlatform({
         title: pendingDraggedEvent.title,
         description: pendingDraggedEvent.description,
         location: pendingDraggedEvent.location,
-        startTime: pendingDraggedEvent.startTime,
-        endTime: pendingDraggedEvent.endTime
+        start_time: pendingDraggedEvent.start_time,
+        end_time: pendingDraggedEvent.end_time
       };
       await onModifyThisAndFuture(event, modifiedData);
       setPendingDraggedEvent(null);
@@ -421,8 +431,8 @@ export function CalendarFullControlCrossPlatform({
         title: pendingDraggedEvent.title,
         description: pendingDraggedEvent.description,
         location: pendingDraggedEvent.location,
-        startTime: pendingDraggedEvent.startTime,
-        endTime: pendingDraggedEvent.endTime
+        start_time: pendingDraggedEvent.start_time,
+        end_time: pendingDraggedEvent.end_time
       };
       await onModifyAllInSeries(event, modifiedData);
       setPendingDraggedEvent(null);
@@ -505,7 +515,11 @@ export function CalendarFullControlCrossPlatform({
             <CalendarGridMobile 
               days={daysOfWeek}
               events={eventsInCurrentWeek}
-              calendars={calendars.map(cal => ({ ...cal, color: cal.color || '#3b82f6' }))}
+              calendars={calendars.map(cal => ({ 
+                ...cal, 
+                color: cal.color || '#3b82f6',
+                isVisible: cal.is_visible 
+              }))}
               openEditDialog={openEditDialog}
               openNewEventDialog={openNewEventDialogWithDayHandler}
               onEventUpdate={handleEventUpdateWithRecurrenceCheck}
@@ -554,8 +568,14 @@ export function CalendarFullControlCrossPlatform({
           ) : (
               <CalendarGrid 
                 days={daysOfWeek}
-                events={eventsInCurrentWeek}
-                calendars={calendars.map(cal => ({ ...cal, color: cal.color || '#3b82f6' }))}
+                events={(() => {
+                  return eventsInCurrentWeek;
+                })()}
+                calendars={calendars.map(cal => ({ 
+                  ...cal, 
+                  color: cal.color || '#3b82f6',
+                  isVisible: cal.is_visible 
+                }))}
                 openEditDialog={openEditDialog}
                 openNewEventDialog={openNewEventDialogWithDayHandler}
                 onEventUpdate={handleEventUpdateWithRecurrenceCheck}

@@ -27,12 +27,15 @@ export const calculateEventRendering = (
   totalColumns: number = 1
 ): CalendarEventRendering => {
   // Adjust times for events that cross days
-  const eventStart = isSameDay(event.startTime, day) 
-    ? event.startTime 
+  const startTime = new Date(event.start_time);
+  const endTime = new Date(event.end_time);
+  
+  const eventStart = isSameDay(startTime, day) 
+    ? startTime 
     : setHours(setMinutes(new Date(day), 0), 0); // Start of day if crossing from previous day
   
-  const eventEnd = isSameDay(event.endTime, day) 
-    ? event.endTime 
+  const eventEnd = isSameDay(endTime, day) 
+    ? endTime 
     : setHours(setMinutes(new Date(day), 0), 24); // End of day if crossing to next day
   
   // Calculate position from top (based on start time)
@@ -66,7 +69,12 @@ export const calculateEventRendering = (
  * Checks if two events overlap in time
  */
 export const doEventsOverlap = (event1: CalendarEvent, event2: CalendarEvent): boolean => {
-  return event1.startTime < event2.endTime && event2.startTime < event1.endTime;
+  const start1 = new Date(event1.start_time);
+  const end1 = new Date(event1.end_time);
+  const start2 = new Date(event2.start_time);
+  const end2 = new Date(event2.end_time);
+  
+  return start1 < end2 && start2 < end1;
 };
 
 /**
@@ -77,19 +85,22 @@ export const groupOverlappingEvents = (
 ): CalendarEvent[][] => {
   if (!events.length) return [];
   
-  // Filter out events with invalid startTime or endTime
-  const validEvents = events.filter(event => 
-    event.startTime instanceof Date && 
-    event.endTime instanceof Date && 
-    !isNaN(event.startTime.getTime()) && 
-    !isNaN(event.endTime.getTime())
-  );
+  // Filter out events with invalid start_time or end_time
+  const validEvents = events.filter(event => {
+    try {
+      const startTime = new Date(event.start_time);
+      const endTime = new Date(event.end_time);
+      return !isNaN(startTime.getTime()) && !isNaN(endTime.getTime());
+    } catch {
+      return false;
+    }
+  });
   
   if (validEvents.length === 0) return [];
   
   // Sort events by start time
   const sortedEvents = [...validEvents].sort((a, b) => 
-    a.startTime.getTime() - b.startTime.getTime()
+    new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
   );
   
   const groups: CalendarEvent[][] = [];

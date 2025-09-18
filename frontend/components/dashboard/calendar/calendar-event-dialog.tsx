@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Calendar, CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
+import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 import { format, parse, isValid, addMinutes } from 'date-fns';
 
 import { z } from 'zod';
@@ -147,8 +148,8 @@ export function CalendarEventDialog({
   onModifyThisOccurrence
 }: CalendarEventDialogProps) {
   // Determine which calendar ID to use
-  const initialCalendarId = selectedEvent?.calendarId ?? defaultCalendarId ?? 
-    (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id ?? calendars[0].id : '');
+  const initialCalendarId = selectedEvent?.calendar_id ?? defaultCalendarId ?? 
+    (calendars.length > 0 ? calendars.find(cal => cal.is_default)?.id ?? calendars[0].id : '');
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isModificationConfirmOpen, setIsModificationConfirmOpen] = useState(false);
@@ -156,7 +157,7 @@ export function CalendarEventDialog({
   
   // Check if this is an ICS event (read-only)
   const isICSEvent = selectedEvent?.id?.startsWith('ics-') ?? false;
-  const selectedCalendar = calendars.find(cal => cal.id === selectedEvent?.calendarId);
+  const selectedCalendar = calendars.find(cal => cal.id === selectedEvent?.calendar_id);
   const isReadOnly = isICSEvent;
 
   // Initialize form with react-hook-form and zod validation
@@ -168,23 +169,23 @@ export function CalendarEventDialog({
       description: selectedEvent?.description ?? '',
       location: selectedEvent?.location ?? '',
       calendarId: initialCalendarId,
-      isAllDay: selectedEvent?.isAllDay ?? false,
-      startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
-      endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      endTime: selectedEvent ? format(selectedEvent.endTime, "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm"),
-      recurrenceFrequency: selectedEvent?.recurrencePattern?.frequency ?? RecurrenceFrequency.None,
-      recurrenceEndDate: selectedEvent?.recurrencePattern?.endDate 
-        ? format(selectedEvent.recurrencePattern.endDate, "yyyy-MM-dd") 
+      isAllDay: selectedEvent?.all_day ?? false,
+      startDate: selectedEvent ? format(new Date(selectedEvent.start_time), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      startTime: selectedEvent ? format(new Date(selectedEvent.start_time), "HH:mm") : format(new Date(), "HH:mm"),
+      endDate: selectedEvent ? format(new Date(selectedEvent.end_time), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      endTime: selectedEvent ? format(new Date(selectedEvent.end_time), "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm"),
+      recurrenceFrequency: selectedEvent ? (getRecurrencePattern(selectedEvent)?.frequency ?? RecurrenceFrequency.None) : RecurrenceFrequency.None,
+      recurrenceEndDate: selectedEvent && getRecurrencePattern(selectedEvent)?.endDate 
+        ? format(getRecurrencePattern(selectedEvent)!.endDate!, "yyyy-MM-dd") 
         : '',
-      recurrenceInterval: selectedEvent?.recurrencePattern?.interval ?? 1
+      recurrenceInterval: selectedEvent ? (getRecurrencePattern(selectedEvent)?.interval ?? 1) : 1
     }
   });
 
   // Reset form when selected event changes
   useEffect(() => {
-    const calendarId = selectedEvent?.calendarId ?? defaultCalendarId ?? 
-      (calendars.length > 0 ? calendars.find(cal => cal.isDefault)?.id ?? calendars[0].id : '');
+    const calendarId = selectedEvent?.calendar_id ?? defaultCalendarId ?? 
+      (calendars.length > 0 ? calendars.find(cal => cal.is_default)?.id ?? calendars[0].id : '');
       
     form.reset({
       id: selectedEvent?.id,
@@ -192,16 +193,16 @@ export function CalendarEventDialog({
       description: selectedEvent?.description ?? '',
       location: selectedEvent?.location ?? '',
       calendarId,
-      isAllDay: selectedEvent?.isAllDay ?? false,
-      startDate: selectedEvent ? format(selectedEvent.startTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      startTime: selectedEvent ? format(selectedEvent.startTime, "HH:mm") : format(new Date(), "HH:mm"),
-      endDate: selectedEvent ? format(selectedEvent.endTime, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      endTime: selectedEvent ? format(selectedEvent.endTime, "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm"),
-      recurrenceFrequency: selectedEvent?.recurrencePattern?.frequency ?? RecurrenceFrequency.None,
-      recurrenceEndDate: selectedEvent?.recurrencePattern?.endDate 
-        ? format(selectedEvent.recurrencePattern.endDate, "yyyy-MM-dd") 
+      isAllDay: selectedEvent?.all_day ?? false,
+      startDate: selectedEvent ? format(new Date(selectedEvent.start_time), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      startTime: selectedEvent ? format(new Date(selectedEvent.start_time), "HH:mm") : format(new Date(), "HH:mm"),
+      endDate: selectedEvent ? format(new Date(selectedEvent.end_time), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+      endTime: selectedEvent ? format(new Date(selectedEvent.end_time), "HH:mm") : format(new Date(new Date().getTime() + 60 * 60 * 1000), "HH:mm"),
+      recurrenceFrequency: selectedEvent ? (getRecurrencePattern(selectedEvent)?.frequency ?? RecurrenceFrequency.None) : RecurrenceFrequency.None,
+      recurrenceEndDate: selectedEvent && getRecurrencePattern(selectedEvent)?.endDate 
+        ? format(getRecurrencePattern(selectedEvent)!.endDate!, "yyyy-MM-dd") 
         : '',
-      recurrenceInterval: selectedEvent?.recurrencePattern?.interval ?? 1
+      recurrenceInterval: selectedEvent ? (getRecurrencePattern(selectedEvent)?.interval ?? 1) : 1
     });
   }, [selectedEvent, form, calendars, defaultCalendarId]);
 
@@ -244,8 +245,9 @@ export function CalendarEventDialog({
       }
 
       // Check if this is a modification of a recurring event
-      const isRecurringEvent = selectedEvent?.recurrencePattern && 
-        selectedEvent.recurrencePattern.frequency !== RecurrenceFrequency.None;
+      const recurrencePattern = selectedEvent ? getRecurrencePattern(selectedEvent) : null;
+      const isRecurringEvent = recurrencePattern && 
+        recurrencePattern.frequency !== RecurrenceFrequency.None;
       const isEditingExistingEvent = selectedEvent && selectedEvent.id && selectedEvent.id !== 'new';
 
       if (isEditingExistingEvent && isRecurringEvent && 
@@ -375,7 +377,7 @@ export function CalendarEventDialog({
               <p>This event is from an ICS calendar and cannot be edited.</p>
             </div>
           )}
-          {selectedEvent?.isRecurrenceInstance && !isReadOnly && (
+          {selectedEvent?.id?.includes('-recurrence-') && !isReadOnly && (
             <div className="mt-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
               <p>This is a recurring event instance. Changes will affect the entire series.</p>
             </div>
@@ -655,7 +657,7 @@ export function CalendarEventDialog({
               )}
               {selectedEvent && !isReadOnly && (
                 <>
-                  {selectedEvent.recurrencePattern && selectedEvent.recurrencePattern.frequency !== RecurrenceFrequency.None ? (
+                  {getRecurrencePattern(selectedEvent)?.frequency !== RecurrenceFrequency.None ? (
                     // This event is part of a recurrence series (either master or an instance view of master)
                     <Button
                       type="button"
