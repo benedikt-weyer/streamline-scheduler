@@ -239,6 +239,7 @@ export interface CreateCalendarDecryptedRequest {
   is_default?: boolean;
   type?: 'regular' | 'ics';
   ics_url?: string;
+  last_sync?: string;
 }
 
 export interface UpdateCalendarDecryptedRequest {
@@ -249,6 +250,7 @@ export interface UpdateCalendarDecryptedRequest {
   is_default?: boolean;
   type?: 'regular' | 'ics';
   ics_url?: string;
+  last_sync?: string;
 }
 
 export interface CalendarEventEncrypted {

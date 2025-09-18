@@ -1,11 +1,7 @@
 import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { EventStateActions } from './types/eventHooks';
 import { useError } from '@/utils/context/ErrorContext';
-import { 
-  updateCalendarEvent, 
-  addCalendarEvent
-} from '../../app/dashboard/calendar/api';
-import { encryptEventData } from '../../utils/calendar/eventEncryption';
+import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { calculateNextOccurrence, calculatePreviousOccurrence } from '../../utils/calendar/recurrenceHelpers';
 import { 
   subDays,
@@ -20,7 +16,6 @@ import {
 export const useRecurrenceEventActions = (
   events: CalendarEvent[],
   eventActions: EventStateActions,
-  encryptionKey: string | null,
   skipNextEventReload?: () => void
 ) => {
   const { setError } = useError();
@@ -33,8 +28,8 @@ export const useRecurrenceEventActions = (
     occurrenceStartTime?: Date; 
     error?: string; 
   } => {
-    if (!encryptionKey || !eventToDelete.recurrencePattern) {
-      return { isValid: false, error: 'Missing encryption key or recurrence pattern' };
+    if (!eventToDelete.recurrencePattern) {
+      return { isValid: false, error: 'Missing recurrence pattern' };
     }
 
     const occurrenceStartTime = eventToDelete.clickedOccurrenceDate ?? eventToDelete.startTime;
@@ -71,9 +66,9 @@ export const useRecurrenceEventActions = (
     // it means we're trying to delete the first occurrence
     if (newEndOfOriginalEvent < eventToDelete.startTime) {
       // In this case, we should delete the entire original event instead of updating it
-      const { deleteCalendarEvent } = await import('../../app/dashboard/calendar/api');
+      const backend = getDecryptedBackend();
       try {
-        await deleteCalendarEvent(eventToDelete.id);
+        await backend.calendarEvents.delete(eventToDelete.id);
         return { success: true, newEndDate: newEndOfOriginalEvent, deletedOriginal: true };
       } catch (error) {
         console.error('Failed to delete original event:', error);
@@ -82,20 +77,25 @@ export const useRecurrenceEventActions = (
     }
 
     const updatedOriginalEventData = {
+      id: eventToDelete.id,
       title: eventToDelete.title,
       description: eventToDelete.description,
-      calendarId: eventToDelete.calendarId,
-      startTime: eventToDelete.startTime.toISOString(), 
-      endTime: eventToDelete.endTime.toISOString(), 
-      recurrenceFrequency: eventToDelete.recurrencePattern!.frequency,
-      recurrenceInterval: eventToDelete.recurrencePattern!.interval,
-      recurrenceEndDate: endOfDay(newEndOfOriginalEvent).toISOString(),
-      daysOfWeek: eventToDelete.recurrencePattern!.daysOfWeek,
+      location: eventToDelete.location,
+      calendar_id: eventToDelete.calendarId,
+      start_time: eventToDelete.startTime.toISOString(), 
+      end_time: eventToDelete.endTime.toISOString(),
+      all_day: eventToDelete.isAllDay || false,
+      recurrence_rule: JSON.stringify({
+        frequency: eventToDelete.recurrencePattern!.frequency,
+        interval: eventToDelete.recurrencePattern!.interval,
+        end_date: endOfDay(newEndOfOriginalEvent).toISOString(),
+        days_of_week: eventToDelete.recurrencePattern!.daysOfWeek,
+      }),
     };
     
     try {
-      const { encryptedData: encryptedOriginalEventData, salt, iv } = encryptEventData(updatedOriginalEventData, encryptionKey!);
-      await updateCalendarEvent(eventToDelete.id, encryptedOriginalEventData, iv, salt);
+      const backend = getDecryptedBackend();
+      await backend.calendarEvents.update(updatedOriginalEventData);
       return { success: true, newEndDate: newEndOfOriginalEvent };
     } catch (error) {
       console.error('Failed to update original event:', error);
@@ -153,31 +153,28 @@ export const useRecurrenceEventActions = (
     const newRecurringEventData = {
       title: eventToDelete.title,
       description: eventToDelete.description,
-      calendarId: eventToDelete.calendarId,
-      startTime: newSeriesStartTime.toISOString(),
-      endTime: newSeriesEndTime.toISOString(),
-      recurrenceFrequency: eventToDelete.recurrencePattern!.frequency,
-      recurrenceInterval: eventToDelete.recurrencePattern!.interval,
-      recurrenceEndDate: originalRecurrenceEndDate ? originalRecurrenceEndDate.toISOString() : undefined,
-      daysOfWeek: eventToDelete.recurrencePattern!.daysOfWeek,
+      location: eventToDelete.location,
+      calendar_id: eventToDelete.calendarId,
+      start_time: newSeriesStartTime.toISOString(),
+      end_time: newSeriesEndTime.toISOString(),
+      all_day: eventToDelete.isAllDay || false,
+      recurrence_rule: JSON.stringify({
+        frequency: eventToDelete.recurrencePattern!.frequency,
+        interval: eventToDelete.recurrencePattern!.interval,
+        end_date: originalRecurrenceEndDate ? originalRecurrenceEndDate.toISOString() : undefined,
+        days_of_week: eventToDelete.recurrencePattern!.daysOfWeek,
+      }),
     };
 
     try {
-      const { encryptedData: encryptedNewEventData, salt: newSalt, iv: newIv } = encryptEventData(newRecurringEventData, encryptionKey!);
-      const rawNewEventRecord = await addCalendarEvent(encryptedNewEventData, newIv, newSalt);
+      const backend = getDecryptedBackend();
+      const rawNewEventRecord = await backend.calendarEvents.create(newRecurringEventData);
 
-      let newEventRecord: any; 
-      if (Array.isArray(rawNewEventRecord) && rawNewEventRecord.length > 0) {
-        newEventRecord = rawNewEventRecord[0];
-      } else if (rawNewEventRecord && typeof rawNewEventRecord === 'object' && !Array.isArray(rawNewEventRecord)) {
-        newEventRecord = rawNewEventRecord;
-      } else {
+      if (!rawNewEventRecord || !rawNewEventRecord.data) {
         return { success: false, error: "Failed to process event creation: invalid response from server." };
       }
 
-      if (!newEventRecord || typeof newEventRecord.id === 'undefined' || typeof newEventRecord.created_at === 'undefined') {
-        return { success: false, error: "Failed to process event creation: essential data missing from server response." };
-      }
+      const newEventRecord = rawNewEventRecord.data;
 
       return { 
         success: true, 
@@ -276,6 +273,7 @@ export const useRecurrenceEventActions = (
             description: data.description,
             calendarId: data.calendarId,
             calendar: undefined,
+            user_id: record.user_id,
             startTime, 
             endTime,   
             recurrencePattern: {
@@ -303,7 +301,7 @@ export const useRecurrenceEventActions = (
   };
 
   const handleDeleteThisAndFuture = async (eventToDelete: CalendarEvent): Promise<boolean> => {
-    if (!encryptionKey || !eventToDelete.recurrencePattern) return false;
+    if (!eventToDelete.recurrencePattern) return false;
 
     // If this is a recurrence instance, find the master event
     let masterEvent = eventToDelete;
@@ -342,20 +340,24 @@ export const useRecurrenceEventActions = (
 
     try {
       const eventData = {
+        id: masterEventId,
         title: masterEvent.title,
         description: masterEvent.description,
         location: masterEvent.location,
-        calendarId: masterEvent.calendarId,
-        startTime: masterEvent.startTime.toISOString(),
-        endTime: masterEvent.endTime.toISOString(),
-        recurrenceFrequency: masterEvent.recurrencePattern!.frequency,
-        recurrenceInterval: masterEvent.recurrencePattern!.interval,
-        recurrenceEndDate: endOfDay(newEndDate).toISOString(),
-        daysOfWeek: masterEvent.recurrencePattern!.daysOfWeek,
+        calendar_id: masterEvent.calendarId,
+        start_time: masterEvent.startTime.toISOString(),
+        end_time: masterEvent.endTime.toISOString(),
+        all_day: masterEvent.isAllDay || false,
+        recurrence_rule: JSON.stringify({
+          frequency: masterEvent.recurrencePattern!.frequency,
+          interval: masterEvent.recurrencePattern!.interval,
+          end_date: endOfDay(newEndDate).toISOString(),
+          days_of_week: masterEvent.recurrencePattern!.daysOfWeek,
+        }),
       };
       
-      const { encryptedData, salt, iv } = encryptEventData(eventData, encryptionKey);
-      await updateCalendarEvent(masterEventId, encryptedData, iv, salt);
+      const backend = getDecryptedBackend();
+      await backend.calendarEvents.update(eventData);
 
       eventActions.setEvents(prevEvents =>
         prevEvents.map(e =>
@@ -382,7 +384,6 @@ export const useRecurrenceEventActions = (
   };
 
   const handleEventUpdate = async (updatedEvent: CalendarEvent): Promise<boolean> => {
-    if (!encryptionKey) return false;
     
     try {
       // Check if this is a recurring event instance
@@ -447,25 +448,28 @@ export const useRecurrenceEventActions = (
         const newMasterEndTime = new Date(originalEvent.endTime.getTime() + endTimeOffsetMs);
         
         const offsetEventData = {
+          id: eventIdToUpdate,
           title: updatedEvent.title,
           description: updatedEvent.description ?? '',
           location: updatedEvent.location ?? '',
-          calendarId: originalEvent.calendarId,
-          startTime: newMasterStartTime.toISOString(),
-          endTime: newMasterEndTime.toISOString(),
-          recurrenceFrequency: recurrencePattern?.frequency,
-          recurrenceEndDate: recurrencePattern?.endDate?.toISOString(),
-          recurrenceInterval: recurrencePattern?.interval,
-          daysOfWeek: recurrencePattern?.daysOfWeek
+          calendar_id: originalEvent.calendarId,
+          start_time: newMasterStartTime.toISOString(),
+          end_time: newMasterEndTime.toISOString(),
+          all_day: updatedEvent.isAllDay || false,
+          recurrence_rule: recurrencePattern ? JSON.stringify({
+            frequency: recurrencePattern.frequency,
+            end_date: recurrencePattern.endDate?.toISOString(),
+            interval: recurrencePattern.interval,
+            days_of_week: recurrencePattern.daysOfWeek
+          }) : undefined
         };
-        
-        const { encryptedData: offsetEncryptedData, salt, iv } = encryptEventData(offsetEventData, encryptionKey);
         
         if (skipNextEventReload) {
           skipNextEventReload();
         }
         
-        await updateCalendarEvent(eventIdToUpdate, offsetEncryptedData, iv, salt);
+        const backend = getDecryptedBackend();
+        await backend.calendarEvents.update(offsetEventData);
         
         eventActions.setEvents(prevEvents =>
           prevEvents.map(event =>
@@ -480,25 +484,28 @@ export const useRecurrenceEventActions = (
       } else {
         // For regular events, update normally
         const eventData = {
+          id: eventIdToUpdate,
           title: updatedEvent.title,
           description: updatedEvent.description ?? '',
           location: updatedEvent.location ?? '',
-          calendarId: originalEvent.calendarId,
-          startTime: updatedEvent.startTime.toISOString(),
-          endTime: updatedEvent.endTime.toISOString(),
-          recurrenceFrequency: recurrencePattern?.frequency,
-          recurrenceEndDate: recurrencePattern?.endDate?.toISOString(),
-          recurrenceInterval: recurrencePattern?.interval,
-          daysOfWeek: recurrencePattern?.daysOfWeek
+          calendar_id: originalEvent.calendarId,
+          start_time: updatedEvent.startTime.toISOString(),
+          end_time: updatedEvent.endTime.toISOString(),
+          all_day: updatedEvent.isAllDay || false,
+          recurrence_rule: recurrencePattern ? JSON.stringify({
+            frequency: recurrencePattern.frequency,
+            end_date: recurrencePattern.endDate?.toISOString(),
+            interval: recurrencePattern.interval,
+            days_of_week: recurrencePattern.daysOfWeek
+          }) : undefined
         };
-        
-        const { encryptedData, salt, iv } = encryptEventData(eventData, encryptionKey);
         
         if (skipNextEventReload) {
           skipNextEventReload();
         }
         
-        await updateCalendarEvent(eventIdToUpdate, encryptedData, iv, salt);
+        const backend = getDecryptedBackend();
+        await backend.calendarEvents.update(eventData);
         
         eventActions.setEvents(prevEvents =>
           prevEvents.map(event =>
@@ -527,8 +534,8 @@ export const useRecurrenceEventActions = (
         skipNextEventReload();
       }
       
-      const { deleteCalendarEvent } = await import('../../app/dashboard/calendar/api');
-      await deleteCalendarEvent(id);
+      const backend = getDecryptedBackend();
+      await backend.calendarEvents.delete(id);
       
       eventActions.setEvents(prevEvents => 
         prevEvents
@@ -600,32 +607,21 @@ export const useRecurrenceEventActions = (
         title: modifiedEventData.title,
         description: modifiedEventData.description ?? '',
         location: modifiedEventData.location ?? '',
-        calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
-        startTime: modifiedEventData.startTime.toISOString(),
-        endTime: modifiedEventData.endTime.toISOString(),
-        recurrenceFrequency: 'none', // This is a single event
-        recurrenceEndDate: undefined,
-        recurrenceInterval: undefined,
-        daysOfWeek: undefined
+        calendar_id: modifiedEventData.calendarId ?? masterEvent.calendarId,
+        start_time: modifiedEventData.startTime.toISOString(),
+        end_time: modifiedEventData.endTime.toISOString(),
+        all_day: modifiedEventData.isAllDay || false
       };
 
-      const { encryptedData: encryptedSingleEventData, salt: singleSalt, iv: singleIv } = encryptEventData(singleEventData, encryptionKey!);
-      const rawSingleEventRecord = await addCalendarEvent(encryptedSingleEventData, singleIv, singleSalt);
+      const backend = getDecryptedBackend();
+      const rawSingleEventRecord = await backend.calendarEvents.create(singleEventData);
 
-      let singleEventRecord: any;
-      if (Array.isArray(rawSingleEventRecord) && rawSingleEventRecord.length > 0) {
-        singleEventRecord = rawSingleEventRecord[0];
-      } else if (rawSingleEventRecord && typeof rawSingleEventRecord === 'object' && !Array.isArray(rawSingleEventRecord)) {
-        singleEventRecord = rawSingleEventRecord;
-      } else {
+      if (!rawSingleEventRecord || !rawSingleEventRecord.data) {
         setError("Failed to process single event creation: invalid response from server.");
         return false;
       }
 
-      if (!singleEventRecord || typeof singleEventRecord.id === 'undefined') {
-        setError("Failed to process single event creation: essential data missing from server response.");
-        return false;
-      }
+      const singleEventRecord = rawSingleEventRecord.data;
 
       // Update state with all changes
       eventActions.setEvents(prevEvents => {
@@ -654,6 +650,8 @@ export const useRecurrenceEventActions = (
           endTime: modifiedEventData.endTime,
           calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
           calendar: masterEvent.calendar,
+          user_id: singleEventRecord.user_id,
+          isAllDay: modifiedEventData.isAllDay || false,
           createdAt: new Date(singleEventRecord.created_at),
           updatedAt: undefined
         };
@@ -670,6 +668,8 @@ export const useRecurrenceEventActions = (
             endTime: createResult.newEvent.endTime,
             calendarId: masterEvent.calendarId,
             calendar: masterEvent.calendar,
+            user_id: createResult.newEvent.record.user_id,
+            isAllDay: masterEvent.isAllDay || false,
             recurrencePattern: masterEvent.recurrencePattern,
             createdAt: new Date(createResult.newEvent.record.created_at),
             updatedAt: undefined
@@ -742,32 +742,27 @@ export const useRecurrenceEventActions = (
         title: modifiedEventData.title,
         description: modifiedEventData.description ?? '',
         location: modifiedEventData.location ?? '',
-        calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
-        startTime: newSeriesStartTime.toISOString(),
-        endTime: newSeriesEndTime.toISOString(),
-        recurrenceFrequency: masterEvent.recurrencePattern!.frequency,
-        recurrenceInterval: masterEvent.recurrencePattern!.interval,
-        recurrenceEndDate: originalRecurrenceEndDate ? originalRecurrenceEndDate.toISOString() : undefined,
-        daysOfWeek: masterEvent.recurrencePattern!.daysOfWeek,
+        calendar_id: modifiedEventData.calendarId ?? masterEvent.calendarId,
+        start_time: newSeriesStartTime.toISOString(),
+        end_time: newSeriesEndTime.toISOString(),
+        all_day: modifiedEventData.isAllDay || false,
+        recurrence_rule: JSON.stringify({
+          frequency: masterEvent.recurrencePattern!.frequency,
+          interval: masterEvent.recurrencePattern!.interval,
+          end_date: originalRecurrenceEndDate ? originalRecurrenceEndDate.toISOString() : undefined,
+          days_of_week: masterEvent.recurrencePattern!.daysOfWeek,
+        }),
       };
 
-      const { encryptedData: encryptedNewEventData, salt: newSalt, iv: newIv } = encryptEventData(newRecurringEventData, encryptionKey!);
-      const rawNewEventRecord = await addCalendarEvent(encryptedNewEventData, newIv, newSalt);
+      const backend = getDecryptedBackend();
+      const rawNewEventRecord = await backend.calendarEvents.create(newRecurringEventData);
 
-      let newEventRecord: any;
-      if (Array.isArray(rawNewEventRecord) && rawNewEventRecord.length > 0) {
-        newEventRecord = rawNewEventRecord[0];
-      } else if (rawNewEventRecord && typeof rawNewEventRecord === 'object' && !Array.isArray(rawNewEventRecord)) {
-        newEventRecord = rawNewEventRecord;
-      } else {
+      if (!rawNewEventRecord || !rawNewEventRecord.data) {
         setError("Failed to process event creation: invalid response from server.");
         return false;
       }
 
-      if (!newEventRecord || typeof newEventRecord.id === 'undefined') {
-        setError("Failed to process event creation: essential data missing from server response.");
-        return false;
-      }
+      const newEventRecord = rawNewEventRecord.data;
 
       // Update state with all changes
       eventActions.setEvents(prevEvents => {
@@ -796,6 +791,8 @@ export const useRecurrenceEventActions = (
           endTime: newSeriesEndTime,
           calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
           calendar: masterEvent.calendar,
+          user_id: newEventRecord.user_id,
+          isAllDay: modifiedEventData.isAllDay || false,
           recurrencePattern: masterEvent.recurrencePattern,
           createdAt: new Date(newEventRecord.created_at),
           updatedAt: undefined
@@ -821,10 +818,6 @@ export const useRecurrenceEventActions = (
     eventToModify: CalendarEvent,
     modifiedEventData: any
   ): Promise<boolean> => {
-    if (!encryptionKey) {
-      setError('Missing encryption key');
-      return false;
-    }
 
     // If this is a recurrence instance, find the master event
     let masterEvent = eventToModify;
@@ -867,20 +860,24 @@ export const useRecurrenceEventActions = (
       const updatedEndTime = new Date(updatedStartTime.getTime() + timeDifference);
 
       const eventData = {
+        id: masterEvent.id,
         title: modifiedEventData.title,
         description: modifiedEventData.description ?? '',
         location: modifiedEventData.location ?? '',
-        calendarId: modifiedEventData.calendarId ?? masterEvent.calendarId,
-        startTime: updatedStartTime.toISOString(),
-        endTime: updatedEndTime.toISOString(),
-        recurrenceFrequency: masterEvent.recurrencePattern?.frequency,
-        recurrenceEndDate: masterEvent.recurrencePattern?.endDate?.toISOString(),
-        recurrenceInterval: masterEvent.recurrencePattern?.interval,
-        daysOfWeek: masterEvent.recurrencePattern?.daysOfWeek
+        calendar_id: modifiedEventData.calendarId ?? masterEvent.calendarId,
+        start_time: updatedStartTime.toISOString(),
+        end_time: updatedEndTime.toISOString(),
+        all_day: modifiedEventData.isAllDay || false,
+        recurrence_rule: masterEvent.recurrencePattern ? JSON.stringify({
+          frequency: masterEvent.recurrencePattern.frequency,
+          end_date: masterEvent.recurrencePattern.endDate?.toISOString(),
+          interval: masterEvent.recurrencePattern.interval,
+          days_of_week: masterEvent.recurrencePattern.daysOfWeek
+        }) : undefined
       };
 
-      const { encryptedData, salt, iv } = encryptEventData(eventData, encryptionKey);
-      await updateCalendarEvent(masterEvent.id, encryptedData, iv, salt);
+      const backend = getDecryptedBackend();
+      await backend.calendarEvents.update(eventData);
 
       // Update state
       eventActions.setEvents(prevEvents =>

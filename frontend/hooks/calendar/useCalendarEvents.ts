@@ -11,7 +11,6 @@ import { useEventCalendarSync } from './useEventCalendarSync';
  * Coordinates all event-related operations through smaller, focused hooks
  */
 export function useCalendarEvents(
-  encryptionKey: string | null, 
   calendars: Calendar[], 
   skipNextEventReload?: () => void
 ): CalendarEventsHook {
@@ -25,7 +24,6 @@ export function useCalendarEvents(
     events, 
     calendars, 
     eventActions, 
-    encryptionKey, 
     skipNextEventReload
   );
   
@@ -39,7 +37,6 @@ export function useCalendarEvents(
   } = useRecurrenceEventActions(
     events, 
     eventActions, 
-    encryptionKey, 
     skipNextEventReload
   );
 

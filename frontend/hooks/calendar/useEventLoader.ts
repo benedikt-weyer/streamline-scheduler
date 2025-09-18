@@ -1,9 +1,8 @@
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { EventStateActions } from './types/eventHooks';
 import { useError } from '@/utils/context/ErrorContext';
-import { fetchCalendarEvents } from '../../app/dashboard/calendar/api';
-import { decryptEventData } from '../../utils/calendar/eventEncryption';
-import { validateDecryptedEvent } from '../../utils/calendar/eventValidation';
+import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
+import { CalendarEventDecrypted } from '@/utils/api/types';
 import { processDecryptedEvent, sortEventsByStartTime } from '../../utils/calendar/eventDataProcessing';
 
 /**
@@ -15,16 +14,18 @@ export const useEventLoader = (
 ) => {
   const { setError } = useError();
 
-  const loadEvents = async (key: string): Promise<CalendarEvent[]> => {
+  const loadEvents = async (): Promise<CalendarEvent[]> => {
     try {
       eventActions.setIsLoading(true);
-      const encryptedEvents = await fetchCalendarEvents();
-      if (encryptedEvents.length === 0) {
+      const backend = getDecryptedBackend();
+      const { data: decryptedEvents } = await backend.calendarEvents.getAll();
+      
+      if (decryptedEvents.length === 0) {
         eventActions.setEvents([]);
         eventActions.setIsLoading(false);
         return [];
       }
-      return await loadEventsWithCalendars(key, encryptedEvents);
+      return await loadEventsWithCalendars(decryptedEvents);
     } catch (error) {
       console.error('Error loading events:', error);
       setError('Failed to load your Calendar events');
@@ -33,35 +34,26 @@ export const useEventLoader = (
     }
   };
 
-  const loadEventsWithCalendars = async (key: string, encryptedEvents: any[] = []): Promise<CalendarEvent[]> => {
+  const loadEventsWithCalendars = async (decryptedEvents: CalendarEventDecrypted[] = []): Promise<CalendarEvent[]> => {
     try {
-      if (encryptedEvents.length === 0) {
-        encryptedEvents = await fetchCalendarEvents();
+      if (decryptedEvents.length === 0) {
+        const backend = getDecryptedBackend();
+        const { data: events } = await backend.calendarEvents.getAll();
+        decryptedEvents = events;
       }
       
-      const decryptedEvents = encryptedEvents
+      const processedEvents = decryptedEvents
         .map(event => {
           try {
-            if (!validateDecryptedEvent(event)) {
-              console.error('Event data is invalid for event:', event.id);
-              return null;
-            }
-
-            const decryptedData = decryptEventData(event.encrypted_data, key, event.salt, event.iv);
-            if (!decryptedData) {
-              console.error('Failed to decrypt event data for event:', event.id);
-              return null;
-            }
-
-            return processDecryptedEvent(event, decryptedData, calendars);
+            return processDecryptedEvent(event, event, calendars);
           } catch (error) {
-            console.error('Error decrypting event:', error);
+            console.error('Error processing event:', error);
             return null;
           }
         })
         .filter((event): event is NonNullable<typeof event> => event !== null);
       
-      const sortedEvents = sortEventsByStartTime(decryptedEvents);
+      const sortedEvents = sortEventsByStartTime(processedEvents);
       eventActions.setEvents(sortedEvents);
       eventActions.setIsLoading(false);
       return sortedEvents;

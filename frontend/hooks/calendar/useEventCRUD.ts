@@ -1,12 +1,7 @@
 import { CalendarEvent, Calendar, EventFormValues } from '@/utils/calendar/calendar-types';
 import { EventStateActions } from './types/eventHooks';
 import { useError } from '@/utils/context/ErrorContext';
-import { 
-  addCalendarEvent, 
-  updateCalendarEvent, 
-  deleteCalendarEvent
-} from '../../app/dashboard/calendar/api';
-import { encryptEventData } from '../../utils/calendar/eventEncryption';
+import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { processEventData } from '../../utils/calendar/eventDataProcessing';
 import { isValid } from 'date-fns';
 
@@ -17,24 +12,32 @@ export const useEventCRUD = (
   events: CalendarEvent[],
   calendars: Calendar[],
   eventActions: EventStateActions,
-  encryptionKey: string | null,
   skipNextEventReload?: () => void
 ) => {
   const { setError } = useError();
 
   const handleSubmitEvent = async (values: EventFormValues): Promise<boolean> => {
-    if (!encryptionKey) return false;
-    
     try {
       const { eventData, startDateTime, endDateTime, recurrencePattern, calendar } = processEventData(values, calendars);
-      const { encryptedData, salt, iv } = encryptEventData(eventData, encryptionKey);
+      const backend = getDecryptedBackend();
       
       if (values.id && values.id !== 'new') {
         // Update existing event
         if (skipNextEventReload) {
           skipNextEventReload();
         }
-        await updateCalendarEvent(values.id, encryptedData, iv, salt);
+        await backend.calendarEvents.update({
+          id: values.id,
+          title: eventData.title,
+          description: eventData.description,
+          location: eventData.location,
+          calendar_id: eventData.calendarId,
+          start_time: eventData.startTime,
+          end_time: eventData.endTime,
+          all_day: eventData.isAllDay,
+          recurrence_rule: recurrencePattern ? JSON.stringify(recurrencePattern) : undefined,
+          recurrence_exception: undefined
+        });
         
                   eventActions.setEvents(prevEvents => 
             prevEvents.map(event => 
@@ -60,18 +63,33 @@ export const useEventCRUD = (
         if (skipNextEventReload) {
           skipNextEventReload();
         }
-        const newEventRecord = await addCalendarEvent(encryptedData, iv, salt);
+        const { data: newEventRecord } = await backend.calendarEvents.create({
+          title: eventData.title,
+          description: eventData.description,
+          location: eventData.location,
+          calendar_id: eventData.calendarId,
+          start_time: eventData.startTime,
+          end_time: eventData.endTime,
+          all_day: eventData.isAllDay,
+          recurrence_rule: recurrencePattern ? JSON.stringify(recurrencePattern) : undefined
+        });
+        
+        if (!newEventRecord) {
+          throw new Error('Failed to create event - no data returned');
+        }
+        
         const newEvent: CalendarEvent = {
           id: newEventRecord.id,
-          title: values.title.trim(),
-          description: values.description?.trim() ?? '',
-          location: values.location?.trim() ?? '',
-          calendarId: values.calendarId,
+          title: newEventRecord.title,
+          description: newEventRecord.description ?? '',
+          location: newEventRecord.location ?? '',
+          calendarId: newEventRecord.calendar_id,
           calendar: calendar,
-          isAllDay: values.isAllDay ?? false,
+          isAllDay: newEventRecord.all_day ?? false,
           startTime: startDateTime,
           endTime: endDateTime,
           recurrencePattern,
+          user_id: newEventRecord.user_id,
           createdAt: new Date(newEventRecord.created_at),
           updatedAt: newEventRecord.updated_at ? new Date(newEventRecord.updated_at) : undefined
         };
@@ -91,7 +109,8 @@ export const useEventCRUD = (
       if (skipNextEventReload) {
         skipNextEventReload();
       }
-      await deleteCalendarEvent(id);
+      const backend = getDecryptedBackend();
+      await backend.calendarEvents.delete(id);
       
       eventActions.setEvents(prevEvents => 
         prevEvents
@@ -107,25 +126,7 @@ export const useEventCRUD = (
   };
 
   const handleCloneEvent = async (eventToClone: CalendarEvent): Promise<boolean> => {
-    if (!encryptionKey) return false;
-    
     try {
-      // Create a new event based on the original, but without the ID
-      const clonedEventData = {
-        title: `${eventToClone.title} (Copy)`,
-        description: eventToClone.description || '',
-        location: eventToClone.location || '',
-        calendarId: eventToClone.calendarId,
-        isAllDay: eventToClone.isAllDay || false,
-        startTime: eventToClone.startTime.toISOString(),
-        endTime: eventToClone.endTime.toISOString(),
-        // Don't clone recurrence patterns to avoid confusion
-        recurrenceFrequency: 'none' as const,
-        recurrenceInterval: 1,
-        recurrenceEndDate: undefined,
-        daysOfWeek: undefined
-      };
-
       // Find the calendar for the event
       const calendar = calendars.find(cal => cal.id === eventToClone.calendarId);
       if (!calendar) {
@@ -133,26 +134,40 @@ export const useEventCRUD = (
         return false;
       }
 
-      // Encrypt and save the cloned event
-      const { encryptedData, salt, iv } = encryptEventData(clonedEventData, encryptionKey);
+      const backend = getDecryptedBackend();
       
       if (skipNextEventReload) {
         skipNextEventReload();
       }
       
-      const newEventRecord = await addCalendarEvent(encryptedData, iv, salt);
+      const { data: newEventRecord } = await backend.calendarEvents.create({
+        title: `${eventToClone.title} (Copy)`,
+        description: eventToClone.description || '',
+        location: eventToClone.location || '',
+        calendar_id: eventToClone.calendarId,
+        all_day: eventToClone.isAllDay || false,
+        start_time: eventToClone.startTime.toISOString(),
+        end_time: eventToClone.endTime.toISOString(),
+        // Don't clone recurrence patterns to avoid confusion
+        recurrence_rule: undefined
+      });
+      
+      if (!newEventRecord) {
+        throw new Error('Failed to clone event - no data returned');
+      }
       
       // Create the new event object
       const newEvent: CalendarEvent = {
         id: newEventRecord.id,
-        title: clonedEventData.title,
-        description: clonedEventData.description,
-        location: clonedEventData.location,
-        calendarId: clonedEventData.calendarId,
+        title: newEventRecord.title,
+        description: newEventRecord.description || '',
+        location: newEventRecord.location || '',
+        calendarId: newEventRecord.calendar_id,
         calendar: calendar,
-        isAllDay: clonedEventData.isAllDay,
+        isAllDay: newEventRecord.all_day || false,
         startTime: eventToClone.startTime,
         endTime: eventToClone.endTime,
+        user_id: newEventRecord.user_id,
         createdAt: new Date(newEventRecord.created_at),
         updatedAt: newEventRecord.updated_at ? new Date(newEventRecord.updated_at) : undefined
       };
@@ -168,8 +183,6 @@ export const useEventCRUD = (
   };
 
   const moveEventToCalendar = async (eventId: string, targetCalendarId: string): Promise<void> => {
-    if (!encryptionKey) return;
-    
     try {
       const event = events.find(e => e.id === eventId);
       if (!event) {
@@ -181,26 +194,24 @@ export const useEventCRUD = (
         throw new Error('Target calendar not found');
       }
       
-      const eventData = {
-        title: event.title,
-        description: event.description ?? '',
-        location: event.location ?? '',
-        calendarId: targetCalendarId,
-        startTime: event.startTime.toISOString(),
-        endTime: event.endTime.toISOString(),
-        recurrenceFrequency: event.recurrencePattern?.frequency,
-        recurrenceEndDate: event.recurrencePattern?.endDate?.toISOString(),
-        recurrenceInterval: event.recurrencePattern?.interval,
-        daysOfWeek: event.recurrencePattern?.daysOfWeek
-      };
-      
-      const { encryptedData, salt, iv } = encryptEventData(eventData, encryptionKey);
+      const backend = getDecryptedBackend();
       
       if (skipNextEventReload) {
         skipNextEventReload();
       }
       
-      await updateCalendarEvent(eventId, encryptedData, iv, salt);
+      await backend.calendarEvents.update({
+        id: eventId,
+        title: event.title,
+        description: event.description ?? '',
+        location: event.location ?? '',
+        calendar_id: targetCalendarId,
+        start_time: event.startTime.toISOString(),
+        end_time: event.endTime.toISOString(),
+        all_day: event.isAllDay,
+        recurrence_rule: event.recurrencePattern ? JSON.stringify(event.recurrencePattern) : undefined,
+        recurrence_exception: undefined
+      });
       
       eventActions.setEvents(prevEvents =>
         prevEvents.map(e =>

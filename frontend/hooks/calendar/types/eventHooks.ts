@@ -1,4 +1,5 @@
 import { CalendarEvent, EventFormValues } from '@/utils/calendar/calendar-types';
+import { CalendarEventDecrypted } from '@/utils/api/types';
 
 export interface EventState {
   events: CalendarEvent[];
@@ -36,8 +37,8 @@ export interface EventCalendarSyncHook {
 }
 
 export interface CalendarEventsHook extends EventState, EventCRUDHook, RecurrenceEventActionsHook {
-  loadEvents: (key: string) => Promise<CalendarEvent[]>;
-  loadEventsWithCalendars: (key: string, encryptedEvents?: any[]) => Promise<CalendarEvent[]>;
+  loadEvents: () => Promise<CalendarEvent[]>;
+  loadEventsWithCalendars: (decryptedEvents?: CalendarEventDecrypted[]) => Promise<CalendarEvent[]>;
   handleCloneEvent: (event: CalendarEvent) => Promise<boolean>;
   moveEventToCalendar: (eventId: string, targetCalendarId: string) => Promise<void>;
 }

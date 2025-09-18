@@ -13,7 +13,6 @@ import { CalendarHeaderMobile } from '@/components/dashboard/calendar/calendar-h
 import { CalendarGridMobile } from '@/components/dashboard/calendar/calendar-grid-mobile';
 
 import { CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
-import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 
 // Import our custom hooks
@@ -25,7 +24,6 @@ import { getDaysOfWeek, getEventsInWeek } from '../../../utils/calendar/calendar
 import { startOfWeek } from 'date-fns';
 
 function CalendarContent() {
-  const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
   const { error, setError } = useError();
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -34,7 +32,7 @@ function CalendarContent() {
   const [shouldSelectToday, setShouldSelectToday] = useState<boolean>(false);
   
   // Use ref to store loadEvents function to avoid circular dependency
-  const loadEventsRef = useRef<((key: string) => Promise<any>) | null>(null);
+  const loadEventsRef = useRef<(() => Promise<any>) | null>(null);
   
   // Use our custom hooks
   const { 
@@ -47,18 +45,16 @@ function CalendarContent() {
     handleCalendarDelete,
     setCalendarAsDefault,
     loadCalendarsAndSetState
-  } = useCalendars(encryptionKey);
+  } = useCalendars();
   
   // Subscribe to real-time updates (need to get skipNextEventReload before useCalendarEvents)
   const { skipNextEventReload } = useCalendarSubscriptions(
     async () => {
-      if (encryptionKey) {
-        await loadCalendarsAndSetState(encryptionKey);
-      }
+      await loadCalendarsAndSetState();
     },
     async () => {
-      if (encryptionKey && loadEventsRef.current) {
-        await loadEventsRef.current(encryptionKey);
+      if (loadEventsRef.current) {
+        await loadEventsRef.current();
       }
     }
   );
@@ -77,7 +73,7 @@ function CalendarContent() {
     handleModifyThisOccurrence,
     handleModifyThisAndFuture,
     handleModifyAllInSeries
-  } = useCalendarEvents(encryptionKey, calendars, skipNextEventReload);
+  } = useCalendarEvents(calendars, skipNextEventReload);
 
   // ICS events hook
   const {
@@ -127,24 +123,22 @@ function CalendarContent() {
     [defaultCalendarId, calendars]
   );
   
-  // Load data when encryption key is available
+  // Load data when component mounts
   useEffect(() => {
     const loadData = async () => {
-      if (encryptionKey) {
-        try {
-          // First load calendars
-          await loadCalendarsAndSetState(encryptionKey);
-          // Then load events
-          await loadEvents(encryptionKey);
-        } catch (error) {
-          console.error('Error loading calendar data:', error);
-          setError('Failed to load calendar data');
-        }
+      try {
+        // First load calendars
+        await loadCalendarsAndSetState();
+        // Then load events
+        await loadEvents();
+      } catch (error) {
+        console.error('Error loading calendar data:', error);
+        setError('Failed to load calendar data');
       }
     };
     
     loadData();
-  }, [encryptionKey]);
+  }, []);
 
   // Function to handle calendar deletion with event moving
   const handleCalendarDeleteWithEvents = useCallback(async (calendarId: string) => {
@@ -218,6 +212,7 @@ function CalendarContent() {
         startTime: startTime,
         endTime: endTime,
         isAllDay: isAllDay ?? false,
+        user_id: '', // Temporary value for dummy event
         createdAt: new Date()
       };
       
@@ -444,24 +439,6 @@ function CalendarContent() {
     // For now, just keep the current week unless it's outside the new month
   }, []);
 
-  // Show loading or auth required message
-  if (isLoadingKey) {
-    return <div className="text-center py-8">Loading...</div>;
-  }
-
-  if (!encryptionKey && !isLoadingKey) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4">
-        <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-        <p className="text-center mb-4">
-          You need to log in first to access your encrypted Calendar.
-        </p>
-        <Link href="/sign-in">
-          <Button>Sign In</Button>
-        </Link>
-      </div>
-    );
-  }
 
   return (
     <div className="flex w-full h-full">
@@ -500,7 +477,7 @@ function CalendarContent() {
             <CalendarGridMobile 
               days={daysOfWeek}
               events={eventsInCurrentWeek}
-              calendars={calendars}
+              calendars={calendars.map(cal => ({ ...cal, color: cal.color || '#3b82f6' }))}
               openEditDialog={openEditDialog}
               openNewEventDialog={openNewEventDialogWithDayHandler}
               onEventUpdate={handleEventUpdateWithRecurrenceCheck}
@@ -549,7 +526,7 @@ function CalendarContent() {
               <CalendarGrid 
                 days={daysOfWeek}
                 events={eventsInCurrentWeek}
-                calendars={calendars}
+                calendars={calendars.map(cal => ({ ...cal, color: cal.color || '#3b82f6' }))}
                 openEditDialog={openEditDialog}
                 openNewEventDialog={openNewEventDialogWithDayHandler}
                 onEventUpdate={handleEventUpdateWithRecurrenceCheck}
