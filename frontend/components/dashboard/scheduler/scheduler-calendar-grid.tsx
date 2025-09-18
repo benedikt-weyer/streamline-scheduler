@@ -5,6 +5,7 @@ import { format, isSameDay, differenceInMinutes, addMinutes } from 'date-fns';
 import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { generateTimeSlots } from '@/utils/calendar/calendar';
 import { calculateCalendarDimensions, calculateEventRendering, groupOverlappingEvents } from '@/utils/calendar/calendar-render';
+import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 import { useDroppable } from '@dnd-kit/core';
 import { 
   DraggedEvent, 
@@ -439,11 +440,74 @@ export function SchedulerCalendarGrid({
     );
   };
 
-  // Render events for a day
+  // Render all-day events for a specific day
+  const renderAllDayEvents = (day: Date) => {
+    const allDayEvents = events.filter(event => {
+      if (!event.all_day) return false;
+      
+      // Check if this day falls within the event's date range
+      const eventStart = new Date(event.start_time);
+      eventStart.setHours(0, 0, 0, 0);
+      const eventEnd = new Date(event.end_time);
+      eventEnd.setHours(23, 59, 59, 999);
+      const dayStart = new Date(day);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(day);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      return dayStart <= eventEnd && dayEnd >= eventStart;
+    });
+
+    if (!allDayEvents.length) return null;
+
+    return allDayEvents.map(event => {
+      const calendar = calendars?.find(cal => cal.id === event.calendar_id);
+      const eventColor = calendar?.color || '#3B82F6';
+      
+      // Check if this is a recurring event or recurrence instance
+      const recurrencePattern = getRecurrencePattern(event);
+      const isRecurring = !!recurrencePattern;
+      const isRecurrenceInstance = event.id.includes('-recurrence-');
+      
+      return (
+        <div
+          key={event.id}
+          data-event-id={event.id}
+          className="px-2 py-1 mb-1 rounded text-xs text-white cursor-pointer hover:opacity-90 transition-opacity group relative overflow-hidden"
+          style={{ backgroundColor: eventColor }}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent triggering the all-day section click
+            handleEventClick(e, event);
+          }}
+        >
+          <div className="font-medium truncate flex items-center gap-1">
+            {(isRecurring || isRecurrenceInstance) ? (
+              <span className="inline-flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"></path>
+                  <path d="M12 7v5l2.5 2.5"></path>
+                </svg>
+              </span>
+            ) : null}
+            {event.title}
+          </div>
+          {event.location && (
+            <div className="text-xs opacity-90 truncate">
+              📍 {event.location}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
+
+  // Render timed events for a day
   const renderEvents = (day: Date, dayIndex: number) => {
-    const dayEvents = events.filter(event => 
-      isSameDay(new Date(event.start_time), day) || isSameDay(new Date(event.end_time), day)
-    );
+    const dayEvents = events.filter(event => {
+      // Only include timed events (not all-day)
+      if (event.all_day) return false;
+      return isSameDay(new Date(event.start_time), day) || isSameDay(new Date(event.end_time), day);
+    });
     
     if (!dayEvents.length) return null;
     
@@ -543,6 +607,31 @@ export function SchedulerCalendarGrid({
               <div className={`text-lg ${isSameDay(day, new Date()) ? 'bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center' : ''}`}>
                 {format(day, "d")}
               </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* All-day events section */}
+      <div className="grid grid-cols-[60px_1fr] border-b">
+        <div className="border-r p-2 text-xs text-muted-foreground text-right">
+          All day
+        </div>
+        <div className="grid grid-cols-7">
+          {days.map(day => (
+            <div 
+              key={`allday-${day.toString()}`}
+              className="border-r last:border-r-0 p-2 min-h-[40px]"
+              onClick={(e) => {
+                // Check if click was on an existing event
+                const target = e.target as HTMLElement;
+                if (target.closest('[data-event-id]')) {
+                  return; // Don't create new event if clicking on existing one
+                }
+                openNewEventDialog(day, true);
+              }}
+            >
+              {renderAllDayEvents(day)}
             </div>
           ))}
         </div>
