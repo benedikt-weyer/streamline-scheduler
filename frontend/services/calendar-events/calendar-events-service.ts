@@ -620,10 +620,19 @@ export class CalendarEventsService {
       
       await this.backend.calendarEvents.update(eventData);
 
+      // Create the updated recurrence rule that was saved to the database
+      const updatedRecurrenceRule = JSON.stringify({
+        frequency: recurrencePattern.frequency,
+        interval: recurrencePattern.interval,
+        end_date: endOfDay(newEndDate).toISOString(),
+        days_of_week: recurrencePattern.daysOfWeek,
+      });
+
       const updatedEvents = allEvents.map(e =>
         e.id === masterEventId
           ? {
               ...e,
+              recurrence_rule: updatedRecurrenceRule,
               updated_at: new Date().toISOString(),
             }
           : e
