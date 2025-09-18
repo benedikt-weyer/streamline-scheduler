@@ -2,7 +2,7 @@
 
 import { Input } from '@/components/ui/input';
 import { Search, X } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Fuse from 'fuse.js';
 import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 
@@ -91,7 +91,7 @@ export function TaskSearchWithFilter({
   }, [tasks, projects, searchQuery, fuseOptions]);
 
   // Call the callback whenever filtered tasks change
-  useMemo(() => {
+  useEffect(() => {
     onFilteredTasksChange(filteredTasks.results, filteredTasks.isSearchActive);
   }, [filteredTasks, onFilteredTasksChange]);
 
