@@ -4,8 +4,9 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useCanDoList } from '@/hooks/can-do-list/useCanDoList';
 import { useProjects } from '@/hooks/can-do-list/can-do-projects/useProjects';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
-import { useCalendar } from '@/hooks/calendar/useCalendar';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
+import { SchedulerPageService } from './scheduler-page-service';
+import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, pointerWithin } from '@dnd-kit/core';
@@ -20,6 +21,20 @@ import { TaskSearchInput, TaskSearchWithFilter } from '@/components/dashboard/sh
 function SchedulerPageContent() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
   const { setError } = useError();
+
+  // Initialize scheduler service (only in browser)
+  const [schedulerPageService] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return new SchedulerPageService(getDecryptedBackend());
+    }
+    return null;
+  });
+
+  // Calendar state
+  const [calendars, setCalendars] = useState<Calendar[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [icsEvents, setIcsEvents] = useState<CalendarEvent[]>([]);
+  const [isLoadingCalendar, setIsLoadingCalendar] = useState(false);
 
   // Can-do list hooks
   const {
@@ -76,24 +91,241 @@ function SchedulerPageContent() {
     );
   };
 
-  // Calendar hooks
-  const {
-    events,
-    calendars,
-    isLoading: isLoadingCalendar,
-    handleSubmitEvent,
-    handleDeleteEvent,
-    handleCloneEvent,
-    moveEventToCalendar,
-    handleCalendarToggle,
-    handleCalendarCreate,
-    handleICSCalendarCreate,
-    handleICSCalendarRefresh,
-    handleCalendarEdit,
-    handleCalendarDelete,
-    handleSetDefaultCalendar,
-    onEventUpdate
-  } = useCalendar();
+  // Load calendar data
+  useEffect(() => {
+    const loadCalendarData = async () => {
+      if (!schedulerPageService) {
+        console.error('Scheduler page service not initialized');
+        return;
+      }
+
+      try {
+        setIsLoadingCalendar(true);
+        
+        // Load all calendar and event data together
+        const { calendars, events } = await schedulerPageService.loadSchedulerData();
+        setCalendars(calendars);
+        setCalendarEvents(events);
+        
+        // Load ICS events
+        const icsEventsData = await schedulerPageService.fetchAllICSEvents(calendars);
+        setIcsEvents(icsEventsData);
+      } catch (error) {
+        console.error('Failed to load calendar data:', error);
+        setError('Failed to load calendar data');
+      } finally {
+        setIsLoadingCalendar(false);
+      }
+    };
+    
+    loadCalendarData();
+  }, [schedulerPageService, setError]);
+
+  // Calendar handlers
+  const handleCalendarToggle = useCallback(async (calendarId: string, isVisible: boolean): Promise<void> => {
+    if (!schedulerPageService) return;
+    
+    try {
+      const updatedCalendar = await schedulerPageService.toggleCalendarVisibility(calendarId, isVisible);
+      setCalendars(prev => prev.map(cal => 
+        cal.id === calendarId 
+          ? { ...cal, ...updatedCalendar }
+          : cal
+      ));
+    } catch (error) {
+      setError('Failed to update calendar visibility');
+    }
+  }, [schedulerPageService, setError]);
+
+  const handleCalendarCreate = useCallback(async (name: string, color: string): Promise<Calendar> => {
+    if (!schedulerPageService) throw new Error('Service not available');
+    
+    try {
+      const { calendar, shouldRefreshEvents } = await schedulerPageService.createCalendar(name, color);
+      setCalendars(prev => [...prev, calendar]);
+      
+      if (shouldRefreshEvents) {
+        const { events } = await schedulerPageService.loadSchedulerData();
+        setCalendarEvents(events);
+      }
+      
+      return calendar;
+    } catch (error) {
+      setError('Failed to create calendar');
+      throw error;
+    }
+  }, [schedulerPageService, setError]);
+
+  const handleICSCalendarCreate = useCallback(async (name: string, color: string, icsUrl: string): Promise<Calendar> => {
+    if (!schedulerPageService) throw new Error('Service not available');
+    
+    try {
+      const { calendar, shouldRefreshEvents } = await schedulerPageService.createICSCalendar(name, color, icsUrl);
+      setCalendars(prev => [...prev, calendar]);
+      
+      if (shouldRefreshEvents) {
+        const icsEventsData = await schedulerPageService.fetchICSEventsForCalendar(calendar);
+        setIcsEvents(prev => [...prev, ...icsEventsData]);
+      }
+      
+      return calendar;
+    } catch (error) {
+      setError('Failed to create ICS calendar');
+      throw error;
+    }
+  }, [schedulerPageService, setError]);
+
+  const handleICSCalendarRefresh = useCallback(async (calendarId: string): Promise<void> => {
+    if (!schedulerPageService) return;
+    
+    try {
+      const { events, calendar } = await schedulerPageService.refreshICSEventsForCalendar(calendarId, calendars);
+      setCalendars(prev => prev.map(cal => cal.id === calendarId ? calendar : cal));
+      
+      // Update ICS events
+      setIcsEvents(prev => [
+        ...prev.filter(event => event.calendar_id !== calendarId),
+        ...events
+      ]);
+    } catch (error) {
+      setError('Failed to refresh ICS calendar');
+    }
+  }, [schedulerPageService, calendars, setError]);
+
+  const handleCalendarEdit = useCallback(async (id: string, name: string, color: string): Promise<void> => {
+    if (!schedulerPageService) return;
+    
+    try {
+      const updatedCalendar = await schedulerPageService.editCalendar(id, name, color);
+      setCalendars(prev => prev.map(cal => 
+        cal.id === id 
+          ? { ...cal, ...updatedCalendar }
+          : cal
+      ));
+    } catch (error) {
+      setError('Failed to update calendar');
+    }
+  }, [schedulerPageService, setError]);
+
+  const handleCalendarDelete = useCallback(async (calendarId: string): Promise<string | undefined> => {
+    if (!schedulerPageService) return undefined;
+    
+    try {
+      const targetCalendarId = await schedulerPageService.deleteCalendarWithEvents(
+        calendarId,
+        async (eventId: string, targetCalId: string) => {
+          // Move event to target calendar (implementation depends on your requirements)
+          await schedulerPageService.moveEventToCalendar(eventId, targetCalId);
+        }
+      );
+      
+      // Remove calendar from state
+      setCalendars(prev => prev.filter(cal => cal.id !== calendarId));
+      
+      // Remove events for deleted calendar and refresh events from target calendar
+      if (targetCalendarId) {
+        const { events: updatedEvents } = await schedulerPageService.loadSchedulerData();
+        setCalendarEvents(updatedEvents);
+      }
+      
+      return targetCalendarId;
+    } catch (error) {
+      setError('Failed to delete calendar');
+      return undefined;
+    }
+  }, [schedulerPageService, setError]);
+
+  const handleSetDefaultCalendar = useCallback(async (calendarId: string): Promise<void> => {
+    if (!schedulerPageService) return;
+    
+    try {
+      await schedulerPageService.setDefaultCalendar(calendarId);
+      // Update all calendars - unset previous default and set new one
+      setCalendars(prev => prev.map(cal => ({
+        ...cal,
+        is_default: cal.id === calendarId
+      })));
+    } catch (error) {
+      setError('Failed to set default calendar');
+    }
+  }, [schedulerPageService, setError]);
+
+  const handleSubmitEvent = useCallback(async (values: any): Promise<boolean> => {
+    if (!schedulerPageService) return false;
+    
+    try {
+      const { event, isUpdate } = await schedulerPageService.submitEvent(values);
+      
+      if (isUpdate) {
+        setCalendarEvents(prev => prev.map(e => e.id === event.id ? event : e));
+      } else {
+        setCalendarEvents(prev => [...prev, event]);
+      }
+      
+      return true;
+    } catch (error) {
+      setError('Failed to save event');
+      return false;
+    }
+  }, [schedulerPageService, setError]);
+
+  const handleDeleteEvent = useCallback(async (eventId: string): Promise<boolean> => {
+    if (!schedulerPageService) return false;
+    
+    try {
+      await schedulerPageService.deleteEvent(eventId);
+      setCalendarEvents(prev => prev.filter(event => event.id !== eventId));
+      return true;
+    } catch (error) {
+      setError('Failed to delete event');
+      return false;
+    }
+  }, [schedulerPageService, setError]);
+
+  const handleCloneEvent = useCallback(async (event: CalendarEvent): Promise<boolean> => {
+    if (!schedulerPageService) return false;
+    
+    try {
+      const clonedEvent = await schedulerPageService.cloneEvent(event);
+      setCalendarEvents(prev => [...prev, clonedEvent]);
+      return true;
+    } catch (error) {
+      setError('Failed to clone event');
+      return false;
+    }
+  }, [schedulerPageService, setError]);
+
+  const onEventUpdate = useCallback(async (updatedEvent: CalendarEvent): Promise<boolean> => {
+    if (!schedulerPageService) return false;
+    
+    try {
+      const eventWithUpdates = await schedulerPageService.updateEvent(updatedEvent.id, {
+        title: updatedEvent.title,
+        description: updatedEvent.description,
+        location: updatedEvent.location,
+        startTime: new Date(updatedEvent.start_time),
+        endTime: new Date(updatedEvent.end_time),
+        isAllDay: updatedEvent.all_day
+      });
+      
+      setCalendarEvents(prev => prev.map(event => event.id === updatedEvent.id ? eventWithUpdates : event));
+      return true;
+    } catch (error) {
+      setError('Failed to update event');
+      return false;
+    }
+  }, [schedulerPageService, setError]);
+
+  const moveEventToCalendar = useCallback(async (eventId: string, targetCalendarId: string): Promise<void> => {
+    if (!schedulerPageService) return;
+    
+    try {
+      const updatedEvent = await schedulerPageService.moveEventToCalendar(eventId, targetCalendarId);
+      setCalendarEvents(prev => prev.map(event => event.id === eventId ? updatedEvent : event));
+    } catch (error) {
+      setError('Failed to move event');
+    }
+  }, [schedulerPageService, setError]);
 
   // Drag and drop state
   const [activeTask, setActiveTask] = useState<CanDoItemDecrypted | null>(null);
@@ -125,7 +357,7 @@ function SchedulerPageContent() {
   }, [encryptionKey, loadTasks, loadProjects]);
 
   // Get default calendar for creating events from tasks
-  const defaultCalendar = calendars.find((cal: Calendar) => cal.isDefault) || calendars[0];
+  const defaultCalendar = calendars.find((cal: Calendar) => cal.is_default) || calendars[0];
 
   // Handle project selection for desktop view
   const handleProjectSelect = (projectId?: string) => {
@@ -402,7 +634,7 @@ function SchedulerPageContent() {
         <SchedulerMobile
           tasks={tasks}
           projects={projects}  
-          events={events}
+          events={[...calendarEvents, ...icsEvents]}
           calendars={calendars}
           onToggleComplete={handleToggleComplete}
           onDeleteTask={handleDeleteTask}
@@ -523,7 +755,7 @@ function SchedulerPageContent() {
           {/* Calendar - Desktop */}
           <div className="flex-1 overflow-hidden">
             <SchedulerCalendar
-              events={events}
+              events={[...calendarEvents, ...icsEvents]}
               calendars={calendars}
               onEventUpdate={onEventUpdate}
               onCalendarToggle={handleCalendarToggle}

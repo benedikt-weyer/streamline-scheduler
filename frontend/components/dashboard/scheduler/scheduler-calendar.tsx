@@ -56,7 +56,7 @@ export function SchedulerCalendar({
   const visibleEvents = useMemo(() => 
     events.filter(event => 
       // Only include events from visible calendars
-      calendars.find(cal => cal.id === event.calendarId)?.isVisible ?? false
+      calendars.find(cal => cal.id === event.calendar_id)?.is_visible ?? false
     ), [events, calendars]
   );
   
@@ -66,12 +66,12 @@ export function SchedulerCalendar({
 
   // Memoize filtered visible calendars to avoid recalculating on each render
   const visibleCalendars = useMemo(() => 
-    calendars.filter(cal => cal.isVisible), [calendars]
+    calendars.filter(cal => cal.is_visible), [calendars]
   );
 
   // Memoize default calendar ID lookup
   const defaultCalendarId = useMemo(() => 
-    calendars.find(cal => cal.isDefault)?.id, [calendars]
+    calendars.find(cal => cal.is_default)?.id, [calendars]
   );
 
   // Memoize fallback calendar ID for new events

@@ -62,19 +62,23 @@ export class CalendarEventsService {
     description?: string;
     location?: string;
     calendarId: string;
-    startTime: Date;
-    endTime: Date;
+    startTime: Date | string;
+    endTime: Date | string;
     isAllDay?: boolean;
     recurrenceRule?: string;
   }): Promise<CalendarEvent> {
     try {
+      // Ensure dates are Date objects
+      const startTime = eventData.startTime instanceof Date ? eventData.startTime : new Date(eventData.startTime);
+      const endTime = eventData.endTime instanceof Date ? eventData.endTime : new Date(eventData.endTime);
+
       const createData: CreateCalendarEventDecryptedRequest = {
         title: eventData.title.trim(),
         description: eventData.description?.trim() || '',
         location: eventData.location?.trim() || '',
         calendar_id: eventData.calendarId,
-        start_time: eventData.startTime.toISOString(),
-        end_time: eventData.endTime.toISOString(),
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
         all_day: eventData.isAllDay || false,
         recurrence_rule: eventData.recurrenceRule,
       };
@@ -100,8 +104,8 @@ export class CalendarEventsService {
     description?: string;
     location?: string;
     calendarId?: string;
-    startTime?: Date;
-    endTime?: Date;
+    startTime?: Date | string;
+    endTime?: Date | string;
     isAllDay?: boolean;
     recurrenceRule?: string;
     recurrenceException?: string[];
@@ -113,8 +117,16 @@ export class CalendarEventsService {
         ...(updates.description !== undefined && { description: updates.description.trim() }),
         ...(updates.location !== undefined && { location: updates.location.trim() }),
         ...(updates.calendarId && { calendar_id: updates.calendarId }),
-        ...(updates.startTime && { start_time: updates.startTime.toISOString() }),
-        ...(updates.endTime && { end_time: updates.endTime.toISOString() }),
+        ...(updates.startTime && { 
+          start_time: updates.startTime instanceof Date ? 
+            updates.startTime.toISOString() : 
+            new Date(updates.startTime).toISOString() 
+        }),
+        ...(updates.endTime && { 
+          end_time: updates.endTime instanceof Date ? 
+            updates.endTime.toISOString() : 
+            new Date(updates.endTime).toISOString() 
+        }),
         ...(updates.isAllDay !== undefined && { all_day: updates.isAllDay }),
         ...(updates.recurrenceRule !== undefined && { recurrence_rule: updates.recurrenceRule }),
         ...(updates.recurrenceException && { recurrence_exception: updates.recurrenceException }),

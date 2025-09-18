@@ -113,13 +113,13 @@ export function SchedulerMobile({
     const todayStr = format(today, 'yyyy-MM-dd');
     return events
       .filter(event => {
-        const eventDate = format(event.startTime, 'yyyy-MM-dd');
+        const eventDate = format(new Date(event.start_time), 'yyyy-MM-dd');
         return eventDate === todayStr;
       })
       .filter(event => 
-        calendars.find(cal => cal.id === event.calendarId)?.isVisible ?? false
+        calendars.find(cal => cal.id === event.calendar_id)?.is_visible ?? false
       )
-      .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
   }, [events, calendars]);
 
   // Handle scheduling a task
@@ -356,7 +356,7 @@ export function SchedulerMobile({
                 </div>
               ) : (
                 todayEvents.map(event => {
-                  const calendar = calendars.find(cal => cal.id === event.calendarId);
+                  const calendar = calendars.find(cal => cal.id === event.calendar_id);
                   
                   return (
                     <div
@@ -373,7 +373,7 @@ export function SchedulerMobile({
                           {event.title}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {format(event.startTime, 'h:mm a')} - {format(event.endTime, 'h:mm a')}
+                          {format(new Date(event.start_time), 'h:mm a')} - {format(new Date(event.end_time), 'h:mm a')}
                         </div>
                         {event.description && (
                           <div className="text-xs text-muted-foreground mt-1 line-clamp-2">

@@ -16,7 +16,7 @@ import {
 interface SchedulerCalendarGridProps {
   readonly days: Date[];
   readonly events: CalendarEvent[];
-  readonly calendars?: { id: string; color: string; name: string; isVisible: boolean }[];
+  readonly calendars?: { id: string; color: string; name: string; is_visible: boolean }[];
   readonly openEditDialog: (event: CalendarEvent) => void;
   readonly openNewEventDialog: (day: Date, isAllDay?: boolean) => void;
   readonly onEventUpdate?: (updatedEvent: CalendarEvent) => void;
@@ -213,8 +213,8 @@ export function SchedulerCalendarGrid({
       // Create updated event
       const updatedEvent: CalendarEvent = {
         ...activeEvent.event,
-        startTime: result.startTime,
-        endTime: result.endTime,
+        start_time: result.startTime.toISOString(),
+        end_time: result.endTime.toISOString(),
         updatedAt: new Date()
       };
       
@@ -382,8 +382,8 @@ export function SchedulerCalendarGrid({
 
   // Render a single event
   const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex = 10, opacity = 100) => {
-    const startTime = new Date(event.startTime);
-    const endTime = new Date(event.endTime);
+    const startTime = new Date(event.start_time);
+    const endTime = new Date(event.end_time);
     
     const dayStart = new Date(day);
     dayStart.setHours(0, 0, 0, 0);
@@ -394,7 +394,7 @@ export function SchedulerCalendarGrid({
     const top = (startMinutes / 60) * slotHeight;
     const height = Math.max((duration / 60) * slotHeight, 20);
     
-    const calendar = calendars?.find(cal => cal.id === event.calendarId);
+    const calendar = calendars?.find(cal => cal.id === event.calendar_id);
     const bgColor = calendar?.color || '#3b82f6';
     
     return (
@@ -442,7 +442,7 @@ export function SchedulerCalendarGrid({
   // Render events for a day
   const renderEvents = (day: Date, dayIndex: number) => {
     const dayEvents = events.filter(event => 
-      isSameDay(event.startTime, day) || isSameDay(event.endTime, day)
+      isSameDay(new Date(event.start_time), day) || isSameDay(new Date(event.end_time), day)
     );
     
     if (!dayEvents.length) return null;
@@ -488,8 +488,8 @@ export function SchedulerCalendarGrid({
     // Create a temporary event with the dragged position data
     const draggedEvent: CalendarEvent = {
       ...activeEvent.event,
-      startTime: dragPosition.startTime,
-      endTime: dragPosition.endTime
+      start_time: dragPosition.startTime.toISOString(),
+      end_time: dragPosition.endTime.toISOString()
     };
     
     // Use a wrapper div to apply the opacity and prevent pointer events

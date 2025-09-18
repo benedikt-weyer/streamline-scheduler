@@ -64,7 +64,6 @@ export default function ProjectSidebarWithDragDrop({
   isAllTasksSelected = false,
   isMyDaySelected = false
 }: ProjectSidebarProps) {
-  console.log('[ProjectSidebarWithDragDrop] Rendering with projects:', projects.length, projects.map(p => p.name));
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectDecrypted | null>(null);
@@ -106,7 +105,6 @@ export default function ProjectSidebarWithDragDrop({
 
   // Convert projects to tree items format
   const treeItems: TreeItems<TreeItemData> = useMemo(() => {
-    console.log('[ProjectSidebarWithDragDrop] Converting projects to tree items. Projects:', projects.length);
     
     // Create callback functions outside the mapping to reduce nesting
     const createSelectHandler = (projectId: string) => () => onProjectSelect(projectId);
@@ -120,12 +118,10 @@ export default function ProjectSidebarWithDragDrop({
           // Normalize null and undefined to be equivalent for comparison
           const projectParentId = p.parent_id ?? undefined;
           const targetParentId = parentId ?? undefined;
-          console.log('[ProjectSidebarWithDragDrop] Project parentId check:', p.name, 'parentId:', projectParentId, 'looking for:', targetParentId, 'match:', projectParentId === targetParentId);
           return projectParentId === targetParentId;
         })
         .sort((a, b) => a.order - b.order);
       
-      console.log('[ProjectSidebarWithDragDrop] Building tree for parentId:', parentId, 'found projects:', filteredProjects.length);
       
       return filteredProjects.map(project => ({
         id: project.id,
@@ -142,7 +138,6 @@ export default function ProjectSidebarWithDragDrop({
     };
 
     const result = buildTree();
-    console.log('[ProjectSidebarWithDragDrop] Tree items result:', result.length);
     return result;
   }, [projects, itemCounts, selectedProjectId, onProjectSelect]);
 
