@@ -175,6 +175,7 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
         urgency: request.urgency,
         tags: request.tags,
         duration_minutes: request.duration_minutes,
+        my_day: request.my_day ?? false,
       });
 
       const encryptedRequest: CreateCanDoItemRequest = {
@@ -201,7 +202,7 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
       if (request.content !== undefined || request.completed !== undefined || 
           request.due_date !== undefined || request.impact !== undefined || 
           request.urgency !== undefined || request.tags !== undefined || 
-          request.duration_minutes !== undefined) {
+          request.duration_minutes !== undefined || request.my_day !== undefined) {
         const encrypted = this.encryptItemData({
           content: request.content,
           completed: request.completed,
@@ -210,6 +211,7 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
           urgency: request.urgency,
           tags: request.tags,
           duration_minutes: request.duration_minutes,
+          my_day: request.my_day,
         });
         encryptedData = encrypted.encrypted_data;
         iv = encrypted.iv;

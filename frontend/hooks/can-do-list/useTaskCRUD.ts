@@ -81,7 +81,8 @@ export const useTaskCRUD = (
         project_id: projectId,
         due_date: dueDate?.toISOString(),
         duration_minutes: estimatedDuration,
-        display_order: existingTask.display_order
+        display_order: existingTask.display_order,
+        my_day: myDay !== undefined ? myDay : existingTask.my_day // Include my_day field
       };
 
       const updatedTask = await updateTask(taskData);
@@ -93,14 +94,14 @@ export const useTaskCRUD = (
             ? { 
                 ...task, 
                 content: updatedTask.content, 
-                estimatedDuration: updatedTask.duration_minutes,
-                projectId: updatedTask.project_id,
-                impact: impact,
-                urgency: urgency,
-                dueDate: updatedTask.due_date ? new Date(updatedTask.due_date) : undefined,
-                blockedBy: blockedBy,
-                myDay: myDay,
-                updatedAt: new Date(updatedTask.updated_at) 
+                duration_minutes: updatedTask.duration_minutes,
+                project_id: updatedTask.project_id,
+                impact: impact !== undefined ? impact : task.impact,
+                urgency: urgency !== undefined ? urgency : task.urgency,
+                due_date: updatedTask.due_date,
+                blocked_by: blockedBy !== undefined ? blockedBy : task.blocked_by,
+                my_day: updatedTask.my_day,
+                updated_at: updatedTask.updated_at 
               }
             : task
         )
