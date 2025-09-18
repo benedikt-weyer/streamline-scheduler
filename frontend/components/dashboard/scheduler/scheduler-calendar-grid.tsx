@@ -382,18 +382,17 @@ export function SchedulerCalendarGrid({
   };
 
   // Render a single event
-  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex = 10, opacity = 100) => {
-    const startTime = new Date(event.start_time);
-    const endTime = new Date(event.end_time);
-    
-    const dayStart = new Date(day);
-    dayStart.setHours(0, 0, 0, 0);
-    
-    const startMinutes = differenceInMinutes(startTime, dayStart);
-    const duration = differenceInMinutes(endTime, startTime);
-    
-    const top = (startMinutes / 60) * slotHeight;
-    const height = Math.max((duration / 60) * slotHeight, 20);
+  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex = 10, opacity = 100, columnIndex = 0, totalColumns = 1) => {
+    // Use the utility function to calculate rendering details for multi-day events
+    const { eventStyles, startTime, endTime } = calculateEventRendering(
+      event,
+      day,
+      slotHeight,
+      zIndex,
+      opacity,
+      columnIndex,
+      totalColumns
+    );
     
     const calendar = calendars?.find(cal => cal.id === event.calendar_id);
     const bgColor = calendar?.color || '#3b82f6';
@@ -408,13 +407,8 @@ export function SchedulerCalendarGrid({
         key={event.id}
         className="absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white shadow-sm cursor-pointer hover:shadow-md transition-shadow group"
         style={{
-          top: `${top}px`,
-          height: `${height}px`,
-          left: '4px',
-          right: '4px',
-          backgroundColor: bgColor,
-          zIndex: zIndex,
-          opacity: opacity / 100
+          ...eventStyles,
+          backgroundColor: bgColor
         }}
         onClick={(e) => handleEventClick(e, event)}
         onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex)}
@@ -430,14 +424,14 @@ export function SchedulerCalendarGrid({
           ) : null}
           <span className="truncate">{event.title}</span>
         </div>
-        {height > 25 && (
+        {parseInt(eventStyles.height) > 25 && (
           <div className="text-xs truncate">
             {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
           </div>
         )}
         
         {/* Resize handles - only show on hover if we can update */}
-        {onEventUpdate && height > 40 && (
+        {onEventUpdate && parseInt(eventStyles.height) > 40 && (
           <>
             {/* Top resize handle */}
             <div 
@@ -525,14 +519,32 @@ export function SchedulerCalendarGrid({
     });
     
     if (!dayEvents.length) return null;
+
+    // Group overlapping events
+    const eventGroups = groupOverlappingEvents(dayEvents);
     
-    return dayEvents.map(event => {
-      // Don't render the original event if it's being dragged
-      if (activeEvent && activeEvent.event.id === event.id) {
-        return null;
+    const renderedEvents = eventGroups.flatMap(group => {
+      // For non-overlapping events (group of 1), render normally
+      if (group.length === 1) {
+        const event = group[0];
+        // Don't render the original event if it's being dragged
+        if (activeEvent && activeEvent.event.id === event.id) {
+          return null;
+        }
+        return renderSingleEvent(event, day, dayIndex);
       }
-      return renderSingleEvent(event, day, dayIndex);
+      
+      // For overlapping events, render each in its own column
+      return group.map((event, columnIndex) => {
+        // Don't render the original event if it's being dragged
+        if (activeEvent && activeEvent.event.id === event.id) {
+          return null;
+        }
+        return renderSingleEvent(event, day, dayIndex, 10, 100, columnIndex, group.length);
+      });
     });
+    
+    return renderedEvents;
   };
 
   // Helper function to check if dates overlap
