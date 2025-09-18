@@ -17,6 +17,8 @@ import {
   UpdateCalendarDecryptedRequest,
   CreateCalendarEventDecryptedRequest,
   UpdateCalendarEventDecryptedRequest,
+  RealtimeMessage,
+  RealtimeSubscription,
   PaginatedResponse,
   ApiResponse,
   QueryOptions,
@@ -49,6 +51,11 @@ export interface DecryptedBackendInterface {
      * Delete a can-do item
      */
     delete(id: string): Promise<{ error: string | null }>;
+
+    /**
+     * Subscribe to real-time changes for can-do items (decrypted)
+     */
+    subscribe(callback: (payload: RealtimeMessage<CanDoItemDecrypted>) => void): RealtimeSubscription;
   };
 
   // Project methods
@@ -77,6 +84,11 @@ export interface DecryptedBackendInterface {
      * Delete a project
      */
     delete(id: string): Promise<{ error: string | null }>;
+
+    /**
+     * Subscribe to real-time changes for projects (decrypted)
+     */
+    subscribe(callback: (payload: RealtimeMessage<ProjectDecrypted>) => void): RealtimeSubscription;
   };
 
   // Calendar methods
@@ -105,6 +117,11 @@ export interface DecryptedBackendInterface {
      * Delete a calendar
      */
     delete(id: string): Promise<{ error: string | null }>;
+
+    /**
+     * Subscribe to real-time changes for calendars (decrypted)
+     */
+    subscribe(callback: (payload: RealtimeMessage<CalendarDecrypted>) => void): RealtimeSubscription;
   };
 
   // Calendar event methods
@@ -142,5 +159,10 @@ export interface DecryptedBackendInterface {
      * Delete a calendar event
      */
     delete(id: string): Promise<{ error: string | null }>;
+
+    /**
+     * Subscribe to real-time changes for calendar events (decrypted)
+     */
+    subscribe(callback: (payload: RealtimeMessage<CalendarEventDecrypted>) => void): RealtimeSubscription;
   };
 }

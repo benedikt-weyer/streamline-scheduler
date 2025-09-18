@@ -51,7 +51,6 @@ function CalendarContent() {
   
   // Subscribe to real-time updates (need to get skipNextEventReload before useCalendarEvents)
   const { skipNextEventReload } = useCalendarSubscriptions(
-    encryptionKey,
     async () => {
       if (encryptionKey) {
         await loadCalendarsAndSetState(encryptionKey);

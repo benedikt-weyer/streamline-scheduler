@@ -26,7 +26,6 @@ export function useCalendar(encryptionKey: string | null) {
   
   // Subscribe to real-time updates
   const { skipNextEventReload } = useCalendarSubscriptions(
-    encryptionKey,
     async () => {
       if (encryptionKey) {
         await loadCalendarsAndSetState(encryptionKey);

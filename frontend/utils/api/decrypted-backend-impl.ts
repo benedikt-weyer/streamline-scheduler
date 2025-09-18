@@ -31,6 +31,8 @@ import {
   UpdateCalendarRequest,
   CreateCalendarEventRequest,
   UpdateCalendarEventRequest,
+  RealtimeMessage,
+  RealtimeSubscription,
   PaginatedResponse,
   ApiResponse,
   QueryOptions,
@@ -233,6 +235,18 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
     delete: async (id: string): Promise<{ error: string | null }> => {
       return this.backend.canDoList.delete(id);
     },
+
+    subscribe: (callback: (payload: RealtimeMessage<CanDoItemDecrypted>) => void): RealtimeSubscription => {
+      // Subscribe to encrypted events and decrypt them
+      return this.backend.canDoList.subscribe((payload: RealtimeMessage<CanDoItemEncrypted>) => {
+        const decryptedPayload: RealtimeMessage<CanDoItemDecrypted> = {
+          ...payload,
+          new: payload.new ? this.decryptCanDoItem(payload.new) : undefined,
+          old: payload.old ? this.decryptCanDoItem(payload.old) : undefined,
+        };
+        callback(decryptedPayload);
+      });
+    },
   };
 
   // Project methods implementation
@@ -312,6 +326,18 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
 
     delete: async (id: string): Promise<{ error: string | null }> => {
       return this.backend.projects.delete(id);
+    },
+
+    subscribe: (callback: (payload: RealtimeMessage<ProjectDecrypted>) => void): RealtimeSubscription => {
+      // Subscribe to encrypted events and decrypt them
+      return this.backend.projects.subscribe((payload: RealtimeMessage<ProjectEncrypted>) => {
+        const decryptedPayload: RealtimeMessage<ProjectDecrypted> = {
+          ...payload,
+          new: payload.new ? this.decryptProject(payload.new) : undefined,
+          old: payload.old ? this.decryptProject(payload.old) : undefined,
+        };
+        callback(decryptedPayload);
+      });
     },
   };
 
@@ -393,6 +419,18 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
 
     delete: async (id: string): Promise<{ error: string | null }> => {
       return this.backend.calendars.delete(id);
+    },
+
+    subscribe: (callback: (payload: RealtimeMessage<CalendarDecrypted>) => void): RealtimeSubscription => {
+      // Subscribe to encrypted events and decrypt them
+      return this.backend.calendars.subscribe((payload: RealtimeMessage<CalendarEncrypted>) => {
+        const decryptedPayload: RealtimeMessage<CalendarDecrypted> = {
+          ...payload,
+          new: payload.new ? this.decryptCalendar(payload.new) : undefined,
+          old: payload.old ? this.decryptCalendar(payload.old) : undefined,
+        };
+        callback(decryptedPayload);
+      });
     },
   };
 
@@ -494,6 +532,18 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
 
     delete: async (id: string): Promise<{ error: string | null }> => {
       return this.backend.calendarEvents.delete(id);
+    },
+
+    subscribe: (callback: (payload: RealtimeMessage<CalendarEventDecrypted>) => void): RealtimeSubscription => {
+      // Subscribe to encrypted events and decrypt them
+      return this.backend.calendarEvents.subscribe((payload: RealtimeMessage<CalendarEventEncrypted>) => {
+        const decryptedPayload: RealtimeMessage<CalendarEventDecrypted> = {
+          ...payload,
+          new: payload.new ? this.decryptCalendarEvent(payload.new) : undefined,
+          old: payload.old ? this.decryptCalendarEvent(payload.old) : undefined,
+        };
+        callback(decryptedPayload);
+      });
     },
   };
 }

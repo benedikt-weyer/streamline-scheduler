@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { getBackend } from '@/utils/api/backend-interface';
-import { RealtimeSubscription, RealtimeMessage, CalendarEncrypted, CalendarEventEncrypted } from '@/utils/api/types';
+import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
+import { RealtimeSubscription, RealtimeMessage, CalendarDecrypted, CalendarEventDecrypted } from '@/utils/api/types';
 
 export function useCalendarSubscriptions(
-  encryptionKey: string | null,
   calendarLoadFn: () => Promise<void>,
   eventLoadFn: () => Promise<void>
 ) {
@@ -11,20 +10,15 @@ export function useCalendarSubscriptions(
   const skipNextEventReloadRef = useRef<boolean>(false);
 
   useEffect(() => {
-    // Only subscribe when we have an encryption key
-    if (!encryptionKey) {
-      return;
-    }
-
     let calendarUnsubscribe: RealtimeSubscription | null = null;
     let eventUnsubscribe: RealtimeSubscription | null = null;
 
     const setupSubscriptions = async () => {
       try {
-        const backend = getBackend();
+        const backend = getDecryptedBackend();
 
         // Subscribe to calendars changes
-        calendarUnsubscribe = backend.calendars.subscribe(async (message: RealtimeMessage<CalendarEncrypted>) => {
+        calendarUnsubscribe = backend.calendars.subscribe(async (message: RealtimeMessage<CalendarDecrypted>) => {
           // console.log('Calendar change detected:', message.event_type);
           
           // Reload calendars when a change is detected
@@ -36,7 +30,7 @@ export function useCalendarSubscriptions(
         });
 
         // Subscribe to calendar_events changes
-        eventUnsubscribe = backend.calendarEvents.subscribe(async (message: RealtimeMessage<CalendarEventEncrypted>) => {
+        eventUnsubscribe = backend.calendarEvents.subscribe(async (message: RealtimeMessage<CalendarEventDecrypted>) => {
           // console.log('Calendar event change detected:', message.event_type);
           
           // Skip reload if we're in the middle of a drag operation
@@ -78,7 +72,7 @@ export function useCalendarSubscriptions(
       }
       setIsSubscribed(false);
     };
-  }, [encryptionKey, calendarLoadFn, eventLoadFn]);
+  }, [calendarLoadFn, eventLoadFn]);
 
   // Function to skip the next event reload (useful for drag operations)
   const skipNextEventReload = () => {
