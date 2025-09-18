@@ -2,20 +2,14 @@ import {
   format, 
   parse, 
   isValid, 
-  startOfWeek, 
   endOfWeek, 
   eachDayOfInterval, 
   addWeeks, 
-  subWeeks,
   isWithinInterval,
   isSameDay,
   addDays,
   addMonths,
   addYears,
-  differenceInDays,
-  differenceInWeeks,
-  differenceInMonths,
-  differenceInYears,
   getDay
 } from 'date-fns';
 import { CalendarEvent, Calendar, RecurrenceFrequency, RecurrencePattern } from './calendar-types';
@@ -129,7 +123,10 @@ export const generateRecurrenceInstancesInRange = (
   }
   
   // Define the maximum date we'll check for recurrences
-  const latestDate = endDate ? new Date(Math.min(rangeEnd.getTime(), endDate.getTime())) : rangeEnd;
+  // Extend the range to account for multi-day events that might start before rangeStart but end within range
+  const maxEventDurationDays = Math.ceil(eventDuration / (24 * 60 * 60 * 1000)); // Convert ms to days
+  const extendedRangeEnd = addDays(rangeEnd, maxEventDurationDays);
+  const latestDate = endDate ? new Date(Math.min(extendedRangeEnd.getTime(), endDate.getTime())) : extendedRangeEnd;
   
   // Generate instances based on frequency
   let currentDate = new Date(baseEventStartTime);
@@ -157,26 +154,31 @@ export const generateRecurrenceInstancesInRange = (
 
     // Skip the original event occurrence
     if (!isSameDay(currentDate, baseEventStartTime)) {
-      // Only include if it falls in our desired range
-      if (currentDate >= rangeStart && currentDate <= rangeEnd) {
+      // Create the instance with same duration as original
+      const startTime = new Date(currentDate);
+      const endTime = new Date(startTime.getTime() + eventDuration);
+      
+      if (!isValid(startTime) || !isValid(endTime)) {
+        console.error(
+          '[generateRecurrenceInstancesInRange] Invalid startTime or endTime for generated instance:',
+          JSON.stringify({ baseEventId: baseEvent.id, currentLoopDate: currentDate, instanceStartTime: startTime, instanceEndTime: endTime })
+        );
+        // Decide: skip this instance or stop? For now, skip.
+        continue; 
+      }
+      
+      // Check if this instance overlaps with the desired range (same logic as root events)
+      const instanceOverlapsRange = isWithinInterval(startTime, { start: rangeStart, end: rangeEnd }) ||
+        isWithinInterval(endTime, { start: rangeStart, end: rangeEnd }) ||
+        (startTime < rangeStart && endTime > rangeEnd);
+      
+      if (instanceOverlapsRange) {
         // For weekly recurrences, check if this day of week should be included
         const shouldInclude = frequency !== RecurrenceFrequency.Weekly || 
           !daysOfWeek || 
           daysOfWeek.includes(getDay(currentDate));
         
         if (shouldInclude) {
-          // Create the instance with same duration as original
-          const startTime = new Date(currentDate);
-          const endTime = new Date(startTime.getTime() + eventDuration);
-          
-          if (!isValid(startTime) || !isValid(endTime)) {
-            console.error(
-              '[generateRecurrenceInstancesInRange] Invalid startTime or endTime for generated instance:',
-              JSON.stringify({ baseEventId: baseEvent.id, currentLoopDate: currentDate, instanceStartTime: startTime, instanceEndTime: endTime })
-            );
-            // Decide: skip this instance or stop? For now, skip.
-            continue; 
-          }
           instances.push({
             ...baseEvent,
             id: `${baseEvent.id}-recurrence-${format(startTime, 'yyyy-MM-dd')}`,
