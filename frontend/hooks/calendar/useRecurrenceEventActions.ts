@@ -267,20 +267,22 @@ export const useRecurrenceEventActions = (
         if (createResult.newEvent) {
           const { record, data, startTime, endTime, originalRecurrenceEndDate: endDate } = createResult.newEvent;
           
+          const recurrenceRule = JSON.parse(data.recurrence_rule);
           const newLocalEvent: CalendarEvent = {
             id: record.id,
             title: data.title,
             description: data.description,
-            calendarId: data.calendarId,
+            calendarId: data.calendar_id,
             calendar: undefined,
             user_id: record.user_id,
+            isAllDay: data.all_day,
             startTime, 
             endTime,   
             recurrencePattern: {
-              frequency: data.recurrenceFrequency,
-              interval: data.recurrenceInterval,
+              frequency: recurrenceRule.frequency,
+              interval: recurrenceRule.interval,
               endDate: endDate ? endOfDay(endDate) : undefined, 
-              daysOfWeek: data.daysOfWeek,
+              daysOfWeek: recurrenceRule.days_of_week,
             },
             createdAt: new Date(record.created_at), 
             updatedAt: record.updated_at ? new Date(record.updated_at) : undefined,
