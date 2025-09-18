@@ -151,6 +151,25 @@ export function FixSection({ encryptionKey }: FixSectionProps) {
             });
           }
           
+          // Check for legacy recurrence properties that need to be consolidated into recurrence_rule
+          const hasLegacyRecurrence = (event as any).recurrenceFrequency !== undefined ||
+                                    (event as any).recurrenceInterval !== undefined ||
+                                    (event as any).recurrenceEndDate !== undefined;
+          
+          if (hasLegacyRecurrence) {
+            const legacyRecurrenceFields = [];
+            if ((event as any).recurrenceFrequency) legacyRecurrenceFields.push(`recurrenceFrequency: ${(event as any).recurrenceFrequency}`);
+            if ((event as any).recurrenceInterval) legacyRecurrenceFields.push(`recurrenceInterval: ${(event as any).recurrenceInterval}`);
+            if ((event as any).recurrenceEndDate) legacyRecurrenceFields.push(`recurrenceEndDate: ${(event as any).recurrenceEndDate}`);
+            
+            changes.push({
+              field: 'recurrence_rule',
+              from: legacyRecurrenceFields.join(', '),
+              to: 'Consolidated into recurrence_rule JSON',
+              action: 'normalize'
+            });
+          }
+          
           if (changes.length > 0) {
             previewItems.push({
               id: event.id,
@@ -244,13 +263,41 @@ export function FixSection({ encryptionKey }: FixSectionProps) {
         for (const event of events) {
           eventsProcessed++;
           try {
-            // Check if event has legacy camelCase properties that need fixing
+            // Check if event has legacy camelCase properties or recurrence data that need fixing
             const hasLegacyData = (event as any).startTime !== undefined || 
                                  (event as any).endTime !== undefined ||
                                  (event as any).calendarId !== undefined ||
-                                 (event as any).isAllDay !== undefined;
+                                 (event as any).isAllDay !== undefined ||
+                                 (event as any).recurrenceFrequency !== undefined ||
+                                 (event as any).recurrenceInterval !== undefined ||
+                                 (event as any).recurrenceEndDate !== undefined;
             
             if (hasLegacyData) {
+              // Build normalized recurrence rule from legacy properties
+              let normalizedRecurrenceRule = event.recurrence_rule;
+              
+              // If we have legacy recurrence properties, consolidate them into recurrence_rule
+              if ((event as any).recurrenceFrequency || (event as any).recurrenceInterval || (event as any).recurrenceEndDate) {
+                const recurrenceData: any = {};
+                
+                if ((event as any).recurrenceFrequency) {
+                  recurrenceData.frequency = (event as any).recurrenceFrequency;
+                }
+                if ((event as any).recurrenceInterval) {
+                  recurrenceData.interval = (event as any).recurrenceInterval;
+                }
+                if ((event as any).recurrenceEndDate) {
+                  recurrenceData.endDate = (event as any).recurrenceEndDate;
+                }
+                
+                // If there's already a recurrenceRule (RRULE format), prefer that, otherwise create JSON
+                if ((event as any).recurrenceRule && !normalizedRecurrenceRule) {
+                  normalizedRecurrenceRule = (event as any).recurrenceRule;
+                } else if (Object.keys(recurrenceData).length > 0) {
+                  normalizedRecurrenceRule = JSON.stringify(recurrenceData);
+                }
+              }
+              
               // Normalize the data by updating it
               await backend.calendarEvents.update({
                 id: event.id,
@@ -261,7 +308,7 @@ export function FixSection({ encryptionKey }: FixSectionProps) {
                 start_time: event.start_time || (event as any).startTime,
                 end_time: event.end_time || (event as any).endTime,
                 all_day: event.all_day ?? (event as any).isAllDay ?? false,
-                recurrence_rule: event.recurrence_rule,
+                recurrence_rule: normalizedRecurrenceRule,
                 recurrence_exception: event.recurrence_exception,
               });
               eventsFixed++;
@@ -520,7 +567,8 @@ export function FixSection({ encryptionKey }: FixSectionProps) {
           <div className="text-sm text-muted-foreground space-y-2">
             <h4 className="font-medium text-foreground">What this fixes:</h4>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>Converts legacy camelCase properties (isVisible, isDefault, startTime, etc.) to snake_case</li>
+              <li>Converts legacy camelCase properties (isVisible, isDefault, startTime, calendarId, etc.) to snake_case</li>
+              <li>Consolidates legacy recurrence properties (recurrenceFrequency, recurrenceInterval, recurrenceEndDate) into recurrence_rule</li>
               <li>Adds missing essential fields like calendar names and colors</li>
               <li>Normalizes calendar and event data structure</li>
               <li>Ensures data consistency across the application</li>
