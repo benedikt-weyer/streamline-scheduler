@@ -9,6 +9,8 @@ import { ChevronRight, List } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TaskSearchWithFilter } from '@/components/dashboard/shared/task-search-input';
+import { getRecommendationReason, calculateRecommendationScore } from '@/utils/can-do-list/recommendation-utils';
+import { cn } from '@/lib/shadcn-utils';
 
 interface SchedulerTaskListProps {
   readonly organizedTasks: Array<{ type: 'project' | 'task'; data: ProjectDecrypted | CanDoItemDecrypted }>;
@@ -23,6 +25,8 @@ interface SchedulerTaskListProps {
   readonly isLoading: boolean;
   readonly baseTasks?: CanDoItemDecrypted[]; // For search functionality
   readonly onFilteredTasksChange?: (tasks: CanDoItemDecrypted[], isSearchActive: boolean) => void; // For search functionality
+  readonly isRecommendedSelected?: boolean; // For recommended UI hints
+  readonly taskPool?: CanDoItemDecrypted[]; // All tasks for calculating recommendation scores
 }
 
 export function SchedulerTaskList({
@@ -37,7 +41,9 @@ export function SchedulerTaskList({
   isCollapsed,
   isLoading,
   baseTasks = [],
-  onFilteredTasksChange
+  onFilteredTasksChange,
+  isRecommendedSelected = false,
+  taskPool = []
 }: SchedulerTaskListProps) {
   const { setNodeRef } = useDroppable({
     id: 'task-drop-zone',
@@ -82,6 +88,82 @@ export function SchedulerTaskList({
     const project = projects.find(p => p.id === selectedProjectId);
     return project?.name || 'Project';
   }, [selectedProjectId, projects]);
+
+  // Helper functions for recommended tasks UI
+  const getProjectName = (task: CanDoItemDecrypted): string => {
+    if (!task.project_id) return 'Inbox';
+    const project = projects.find(p => p.id === task.project_id);
+    return project?.name || 'Unknown Project';
+  };
+  
+  const getProjectColor = (task: CanDoItemDecrypted): string => {
+    if (!task.project_id) return '#6b7280'; // gray-500 for inbox
+    const project = projects.find(p => p.id === task.project_id);
+    return project?.color || '#6b7280';
+  };
+
+  // Render task with recommendation UI hints
+  const renderTaskWithRecommendationHints = (task: CanDoItemDecrypted, index: number) => {
+    const score = calculateRecommendationScore(task, taskPool);
+    const reason = getRecommendationReason(task, taskPool);
+    const rankNumber = index + 1;
+    
+    return (
+      <div key={task.id} className="relative">
+        {/* Priority rank indicator */}
+        <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-md" 
+             style={{ 
+               backgroundColor: score >= 25 ? '#ef4444' : 
+                              score >= 20 ? '#f97316' : 
+                              score >= 15 ? '#eab308' : '#6b7280' 
+             }} />
+        
+        {/* Task item with custom styling */}
+        <div className="ml-2 relative">
+          {/* Rank badge */}
+          <div className="absolute -top-1 -left-1 z-10">
+            <div className={cn(
+              "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+              rankNumber === 1 ? "bg-amber-500 text-white" :
+              rankNumber === 2 ? "bg-gray-400 text-white" :
+              rankNumber === 3 ? "bg-amber-600 text-white" :
+              "bg-muted text-muted-foreground"
+            )}>
+              {rankNumber}
+            </div>
+          </div>
+          
+          {/* Task content */}
+          <div className="pl-4">
+            <TaskListItem
+              task={task}
+              onToggleComplete={onToggleComplete}
+              onDeleteTask={onDeleteTask}
+              onUpdateTask={onUpdateTask}
+              onToggleMyDay={onToggleMyDay}
+              projects={projects}
+              tasks={taskPool}
+            />
+            
+            {/* Additional info for recommended view */}
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: getProjectColor(task) }}
+                />
+                <span>{getProjectName(task)}</span>
+              </div>
+              <span>•</span>
+              <span>Score: {score}</span>
+              <span>•</span>
+              <span>{reason}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -262,17 +344,21 @@ export function SchedulerTaskList({
                         <div className="text-xs mt-1">All tasks completed!</div>
                       </div>
                     ) : (
-                      filteredTasksForTabs.map((task) => (
-                        <TaskListItem
-                          key={task.id}
-                          task={task}
-                          onToggleComplete={onToggleComplete}
-                          onDeleteTask={onDeleteTask}
-                          onUpdateTask={onUpdateTask}
-                          onToggleMyDay={onToggleMyDay}
-                          projects={projects}
-                        />
-                      ))
+                      filteredTasksForTabs.map((task, index) => 
+                        isRecommendedSelected ? 
+                          renderTaskWithRecommendationHints(task, index) : (
+                            <TaskListItem
+                              key={task.id}
+                              task={task}
+                              onToggleComplete={onToggleComplete}
+                              onDeleteTask={onDeleteTask}
+                              onUpdateTask={onUpdateTask}
+                              onToggleMyDay={onToggleMyDay}
+                              projects={projects}
+                              tasks={taskPool}
+                            />
+                          )
+                      )
                     )}
                   </div>
                 </TabsContent>
@@ -293,6 +379,7 @@ export function SchedulerTaskList({
                           onUpdateTask={onUpdateTask}
                           onToggleMyDay={onToggleMyDay}
                           projects={projects}
+                          tasks={taskPool}
                         />
                       ))
                     )}

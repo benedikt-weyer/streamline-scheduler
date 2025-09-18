@@ -16,6 +16,7 @@ import { addMinutes, format } from 'date-fns';
 import { List } from 'lucide-react';
 import TaskListItem from '@/components/dashboard/can-do-list/task-list-item';
 import { TaskSearchInput, TaskSearchWithFilter } from '@/components/dashboard/shared/task-search-input';
+import { getRecommendedTasks } from '@/utils/can-do-list/recommendation-utils';
 
 
 function SchedulerPageContent() {
@@ -335,6 +336,7 @@ function SchedulerPageContent() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
   const [isMyDaySelected, setIsMyDaySelected] = useState(false);
+  const [isRecommendedSelected, setIsRecommendedSelected] = useState(false);
   
   // Search state - for the filtered tasks from search component
   const [searchFilteredTasks, setSearchFilteredTasks] = useState<CanDoItemDecrypted[]>([]);
@@ -364,6 +366,7 @@ function SchedulerPageContent() {
     setSelectedProjectId(projectId);
     setIsAllTasksSelected(false);
     setIsMyDaySelected(false);
+    setIsRecommendedSelected(false);
   };
 
   // Handle all tasks selection for desktop view
@@ -371,6 +374,7 @@ function SchedulerPageContent() {
     setIsAllTasksSelected(true);
     setSelectedProjectId(undefined);
     setIsMyDaySelected(false);
+    setIsRecommendedSelected(false);
   };
 
   // Handle My Day selection for desktop view
@@ -378,6 +382,15 @@ function SchedulerPageContent() {
     setIsMyDaySelected(true);
     setSelectedProjectId(undefined);
     setIsAllTasksSelected(false);
+    setIsRecommendedSelected(false);
+  };
+
+  // Handle recommended tasks selection for desktop view
+  const handleRecommendedSelect = () => {
+    setIsRecommendedSelected(true);
+    setSelectedProjectId(undefined);
+    setIsAllTasksSelected(false);
+    setIsMyDaySelected(false);
   };
 
   // Calculate task counts per project for sidebar
@@ -403,7 +416,9 @@ function SchedulerPageContent() {
 
   // Base tasks filtering (without search) - search will be handled by TaskSearchWithFilter component
   const baseTasks = useMemo(() => {
-    if (isMyDaySelected) {
+    if (isRecommendedSelected) {
+      return getRecommendedTasks(tasks, 20);
+    } else if (isMyDaySelected) {
       return tasks.filter(task => task.my_day && !task.completed);
     } else if (isAllTasksSelected) {
       return tasks.filter(task => !task.completed);
@@ -413,7 +428,7 @@ function SchedulerPageContent() {
       // Show tasks without project (inbox)
       return tasks.filter(task => !task.project_id && !task.completed);
     }
-  }, [tasks, selectedProjectId, isAllTasksSelected, isMyDaySelected]);
+  }, [tasks, selectedProjectId, isAllTasksSelected, isMyDaySelected, isRecommendedSelected]);
 
   // Final filtered tasks (base tasks + search filter)
   const filteredTasks = useMemo(() => {
@@ -662,7 +677,7 @@ function SchedulerPageContent() {
               tasks={tasks}
               selectedProjectId={selectedProjectId}
               onProjectSelect={handleProjectSelect}
-              onRecommendedSelect={() => {}} // No-op for scheduler - recommended tasks not implemented
+              onRecommendedSelect={handleRecommendedSelect}
               onAllTasksSelect={handleAllTasksSelect}
               onMyDaySelect={handleMyDaySelect}
               onAddProject={handleAddProject}
@@ -673,6 +688,7 @@ function SchedulerPageContent() {
               isLoading={isLoadingTasks || isLoadingProjects}
               itemCounts={taskCounts}
               isCollapsed={isTaskbarCollapsed}
+              isRecommendedSelected={isRecommendedSelected}
               isAllTasksSelected={isAllTasksSelected}
               isMyDaySelected={isMyDaySelected}
             />
@@ -748,6 +764,8 @@ function SchedulerPageContent() {
                 isLoading={isLoadingTasks || isLoadingProjects}
                 baseTasks={baseTasks}
                 onFilteredTasksChange={handleFilteredTasksChange}
+                isRecommendedSelected={isRecommendedSelected}
+                taskPool={tasks}
               />
             )}
           </div>
