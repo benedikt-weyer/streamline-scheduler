@@ -6,9 +6,10 @@ interface CalendarHeaderProps {
   currentWeek: Date;
   setCurrentWeek: React.Dispatch<React.SetStateAction<Date>>;
   openNewEventDialog: () => void;
+  onTodaySelected?: () => void;
 }
 
-export function CalendarHeader({ currentWeek, setCurrentWeek, openNewEventDialog }: CalendarHeaderProps) {
+export function CalendarHeader({ currentWeek, setCurrentWeek, openNewEventDialog, onTodaySelected }: CalendarHeaderProps) {
   // Navigate to previous week
   const goToPreviousWeek = () => {
     setCurrentWeek(prevWeek => subWeeks(prevWeek, 1));
@@ -22,6 +23,7 @@ export function CalendarHeader({ currentWeek, setCurrentWeek, openNewEventDialog
   // Go to current week
   const goToCurrentWeek = () => {
     setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    onTodaySelected?.();
   };
 
   return (

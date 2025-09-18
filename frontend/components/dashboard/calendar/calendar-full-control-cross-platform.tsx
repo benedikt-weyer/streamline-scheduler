@@ -444,10 +444,12 @@ export function CalendarFullControlCrossPlatform({
 
   // Handle today selection from mobile header
   const handleTodaySelected = useCallback(() => {
+    const today = new Date();
+    setSelectedDate(today);
     setShouldSelectToday(true);
     // Reset the flag after a brief delay to allow the effect to trigger
     setTimeout(() => setShouldSelectToday(false), 100);
-  }, [setShouldSelectToday]);
+  }, [setSelectedDate, setShouldSelectToday]);
 
   // Handle date selection from month overview
   const handleDateSelect = useCallback((date: Date) => {
@@ -537,6 +539,7 @@ export function CalendarFullControlCrossPlatform({
             currentWeek={currentWeek}
             setCurrentWeek={setCurrentWeek}
             openNewEventDialog={openNewEventDialogHandler}
+            onTodaySelected={handleTodaySelected}
           />
           
           {error && (
