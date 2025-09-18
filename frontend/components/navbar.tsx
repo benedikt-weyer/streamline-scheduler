@@ -63,7 +63,7 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
 
       {/* Mobile Navigation Menu - Only visible when open */}
       {isOpen && (
-        <div className="md:hidden border-t border-t-foreground/10 bg-background">
+        <div className="md:hidden border-t border-t-foreground/10 bg-background relative z-50">
           <div className="flex flex-col space-y-2 p-4">
             <div onClick={closeMenu}>
               <NavLink href="/dashboard/can-do-list" className="w-full justify-start">
