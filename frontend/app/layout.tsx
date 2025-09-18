@@ -4,18 +4,12 @@ import HeaderAuth from "@/components/auth/header-auth";
 import { ThemeSwitcher } from "@/components/dashboard/theme-switcher";
 import { Geist } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import Link from "next/link";
 import "./globals.css";
-import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 
 // Initialize backend connection
 import "@/utils/api/init";
-
-const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
 
 const geistSans = Geist({
   display: "swap",
