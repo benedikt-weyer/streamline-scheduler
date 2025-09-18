@@ -16,17 +16,7 @@ export enum CalendarType {
   ICS = 'ics'
 }
 
-export interface Calendar extends Omit<CalendarDecrypted, 'created_at' | 'updated_at' | 'is_visible' | 'is_default' | 'ics_url' | 'last_sync'> {
-  isVisible: boolean;
-  isDefault: boolean;
-  type: CalendarType;
-  icsUrl?: string; // Optional ICS URL for ICS calendars
-  lastSync?: Date; // Last sync time for ICS calendars
-  createdAt: Date;
-  updatedAt?: Date;
-}
-
-
+export type Calendar = CalendarDecrypted;
 
 export interface RecurrencePattern {
   frequency: RecurrenceFrequency;
@@ -35,17 +25,17 @@ export interface RecurrencePattern {
   daysOfWeek?: number[]; // For weekly/monthly recurrence (0 = Sunday, 6 = Saturday)
 }
 
-export interface CalendarEvent extends Omit<CalendarEventDecrypted, 'created_at' | 'updated_at' | 'start_time' | 'end_time' | 'all_day' | 'calendar_id'> {
+export interface CalendarEvent extends CalendarEventDecrypted {
+  // UI-specific properties that are computed from the database fields
+  recurrencePattern?: RecurrencePattern;
+  isRecurrenceInstance?: boolean; // Flag for generated recurrence instances
+  calendar?: Calendar; // Associated calendar object for easy access
+  
+  // Convenience getters for backward compatibility
   startTime: Date;
   endTime: Date;
-  isAllDay?: boolean; // New property for all-day events
-  calendarId: string; // Reference to the calendar
-  calendar?: Calendar; // Optional calendar object
-  createdAt: Date;
-  updatedAt?: Date;
-  recurrencePattern?: RecurrencePattern; // Optional recurrence pattern
-  isRecurrenceInstance?: boolean; // Flag to indicate if this is an instance of a recurring event
-  clickedOccurrenceDate?: Date; // The start date of a specific occurrence that was interacted with
+  calendarId: string;
+  isAllDay: boolean;
 }
 
 

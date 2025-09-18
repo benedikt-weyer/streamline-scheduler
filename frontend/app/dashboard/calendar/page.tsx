@@ -1,123 +1,359 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 
 import { CalendarFullControlCrossPlatform } from '@/components/dashboard/calendar/calendar-full-control-cross-platform';
 
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
+import { Calendar, CalendarEvent } from '@/utils/calendar/calendar-types';
 
-// Import our custom hooks
-import { useCalendars } from '../../../hooks/calendar/useCalendars';
-import { useCalendarEvents } from '../../../hooks/calendar/useCalendarEvents';
-import { useCalendarSubscriptions } from '../../../hooks/calendar/useCalendarSubscriptions';
-import { useICSEvents } from '../../../hooks/calendar/useICSEvents';
+// Import services
+import { CalendarService } from '@/services/calendar/calendar-service';
+import { CalendarEventsService } from '@/services/calendar-events/calendar-events-service';
+import { CalendarPageService } from './calendar-page-service';
+import { EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
+import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
+
 
 function CalendarContent() {
   const { error, setError } = useError();
-  
-  // Use our custom hooks
-  const { 
-    calendars, 
-    handleCalendarToggle, 
-    handleCalendarCreate, 
-    handleICSCalendarCreate,
-    handleICSCalendarRefresh,
-    handleCalendarEdit, 
-    handleCalendarDelete,
-    setCalendarAsDefault,
-    loadCalendarsAndSetState
-  } = useCalendars();
-  
-  // Subscribe to real-time updates (need to get skipNextEventReload before useCalendarEvents)
-  const {} = useCalendarSubscriptions(
-    async () => {
-      await loadCalendarsAndSetState();
-    },
-    async () => {
-      await loadEvents();
-    }
-  );
-  
-  const {
-    events,
-    isLoading: isLoadingEvents,
-    loadEvents,
-    handleSubmitEvent,
-    handleDeleteEvent,
-    handleCloneEvent,
-    handleEventUpdate,
-    moveEventToCalendar,
-    handleDeleteThisOccurrence,
-    handleDeleteThisAndFuture,
-    handleModifyThisOccurrence,
-    handleModifyThisAndFuture,
-    handleModifyAllInSeries
-  } = useCalendarEvents(calendars);
 
-  // ICS events hook
-  const {
-    icsEvents,
-    isLoading: isLoadingICSEvents,
-    refreshICSCalendar,
-    isICSEvent,
-    isReadOnlyCalendar
-  } = useICSEvents(calendars);
+
+  const [calendars, setCalendars] = useState<Calendar[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [icsEvents, setIcsEvents] = useState<CalendarEvent[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [isLoadingICSEvents, setIsLoadingICSEvents] = useState(false);
+
+  // Initialize services with backend (only in browser)
+  const [calendarPageService] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return new CalendarPageService(getDecryptedBackend());
+    }
+    return null;
+  });
   
   // Load data when component mounts
   useEffect(() => {
     const loadData = async () => {
+      if (!calendarPageService) {
+        console.error('Calendar page service not initialized');
+        return;
+      }
+
       try {
-        // First load calendars
-        await loadCalendarsAndSetState();
-        // Then load events
-        await loadEvents();
-      } catch (error) {
-        console.error('Error loading calendar data:', error);
-        setError('Failed to load calendar data');
+        setIsLoadingEvents(true);
+        setIsLoadingICSEvents(true);
+        
+        // Load all calendar and event data together
+        const { calendars, events } = await calendarPageService!.loadCalendarData();
+        setCalendars(calendars);
+        setCalendarEvents(events);
+        
+        // Load ICS events using calendar page service
+        const icsEventsData = await calendarPageService!.fetchAllICSEvents(calendars);
+        setIcsEvents(icsEventsData);
+        } catch (error) {
+          console.error('Error loading calendar data:', error);
+          setError('Failed to load calendar data');
+      } finally {
+        setIsLoadingEvents(false);
+        setIsLoadingICSEvents(false);
       }
     };
     
     loadData();
-  }, []);
+  }, [calendarPageService, setError]);
 
-  // Function to handle calendar deletion with event moving
-  const handleCalendarDeleteWithEvents = useCallback(async (calendarId: string) => {
+  // Calendar handlers
+  const handleCalendarToggle = useCallback(async (calendarId: string, isVisible: boolean): Promise<void> => {
+    if (!calendarPageService) return;
+    
     try {
-      // Delete the calendar and get the target calendar ID for moving events
-      const targetCalendarId = await handleCalendarDelete(calendarId, moveEventToCalendar);
-      
-      if (targetCalendarId) {
-        // Move all events from this calendar to the target calendar
-        const eventsToMove = events.filter(event => event.calendarId === calendarId);
-        for (const event of eventsToMove) {
-          await moveEventToCalendar(event.id, targetCalendarId);
-        }
-      }
-      return targetCalendarId;
+      const updatedCalendar = await calendarPageService!.toggleCalendarVisibility(calendarId, isVisible);
+      setCalendars(prev => prev.map(cal => cal.id === calendarId ? updatedCalendar : cal));
     } catch (error) {
-      console.error('Error in handleCalendarDeleteWithEvents:', error);
-      setError('Failed to delete calendar and move events');
+      console.error('Failed to toggle calendar visibility:', error);
+      setError('Failed to update calendar visibility');
+    }
+  }, [calendarPageService, setError]);
+
+  const handleCalendarCreate = useCallback(async (name: string, color: string): Promise<Calendar> => {
+    try {
+      const { calendar, shouldRefreshEvents } = await calendarPageService!.createCalendar(name, color);
+      setCalendars(prev => [...prev, calendar]);
+      
+      if (shouldRefreshEvents) {
+        const { events } = await calendarPageService!.loadCalendarData();
+        setCalendarEvents(events);
+      }
+      
+      return calendar;
+    } catch (error) {
+      console.error('Failed to create calendar:', error);
+      setError('Failed to create calendar');
       throw error;
     }
-  }, [handleCalendarDelete, moveEventToCalendar, events, setError]);
+  }, [calendars, setError]);
+
+  const handleICSCalendarCreate = useCallback(async (name: string, color: string, icsUrl: string): Promise<Calendar> => {
+    try {
+      const { calendar, shouldRefreshEvents } = await calendarPageService!.createICSCalendar(name, color, icsUrl);
+      setCalendars(prev => [...prev, calendar]);
+      
+      if (shouldRefreshEvents) {
+        setIsLoadingICSEvents(true);
+        const icsEventsData = await calendarPageService!.fetchICSEventsForCalendar(calendar);
+        setIcsEvents(prev => [...prev, ...icsEventsData]);
+        setIsLoadingICSEvents(false);
+      }
+      
+      return calendar;
+    } catch (error) {
+      console.error('Failed to create ICS calendar:', error);
+      setError('Failed to create ICS calendar');
+      throw error;
+    }
+  }, [setError]);
+
+  const handleICSCalendarRefresh = useCallback(async (calendarId: string): Promise<void> => {
+    try {
+      setIsLoadingICSEvents(true);
+      const { events, calendar } = await calendarPageService!.refreshICSEventsForCalendar(calendarId, calendars);
+      setCalendars(prev => prev.map(cal => cal.id === calendarId ? calendar : cal));
+      
+      // Update ICS events for this calendar
+      setIcsEvents(prev => prev.filter(event => event.calendar_id !== calendarId).concat(events));
+    } catch (error) {
+      console.error('Failed to refresh ICS calendar:', error);
+      setError('Failed to refresh ICS calendar');
+    } finally {
+      setIsLoadingICSEvents(false);
+    }
+  }, [calendars, setError]);
+
+  const handleCalendarEdit = useCallback(async (id: string, name: string, color: string): Promise<void> => {
+    try {
+      const updatedCalendar = await calendarPageService!.editCalendar(id, name, color);
+      setCalendars(prev => prev.map(cal => cal.id === id ? updatedCalendar : cal));
+    } catch (error) {
+      console.error('Failed to edit calendar:', error);
+      setError('Failed to edit calendar');
+    }
+  }, [setError]);
+
+  const handleCalendarDeleteWithEvents = useCallback(async (calendarId: string): Promise<string | undefined> => {
+    try {
+      const targetCalendarId = await calendarPageService!.deleteCalendarWithEvents(
+        calendarId,
+        async (eventId: string, targetCalId: string) => {
+          // Update local state when moving events
+          setCalendarEvents(prev => prev.map(event => 
+            event.id === eventId ? { ...event, calendar_id: targetCalId } : event
+          ));
+        }
+      );
+      
+      // Remove calendar from state
+      setCalendars(prev => prev.filter(cal => cal.id !== calendarId));
+      
+      // Remove events for deleted calendar and refresh events from target calendar
+      if (targetCalendarId) {
+        const { events: updatedEvents } = await calendarPageService!.loadCalendarData();
+        setCalendarEvents(updatedEvents);
+      }
+      
+      return targetCalendarId;
+    } catch (error) {
+      console.error('Failed to delete calendar with events:', error);
+      setError('Failed to delete calendar');
+      return undefined;
+    }
+  }, [calendars, setError]);
+
+  const setCalendarAsDefault = useCallback(async (calendarId: string): Promise<void> => {
+    try {
+      await calendarPageService!.setDefaultCalendar(calendarId);
+      // Update all calendars - unset previous default and set new one
+      setCalendars(prev => prev.map(cal => ({
+        ...cal,
+        is_default: cal.id === calendarId
+      })));
+    } catch (error) {
+      console.error('Failed to set default calendar:', error);
+      setError('Failed to set default calendar');
+    }
+  }, [setError]);
+
+  // Event handlers
+  const handleSubmitEvent = useCallback(async (values: EventFormValues): Promise<boolean> => {
+    try {
+      const { event, isUpdate } = await calendarPageService!.submitEvent(values);
+      
+      if (isUpdate) {
+        setCalendarEvents(prev => prev.map(e => e.id === event.id ? event : e));
+      } else {
+        setCalendarEvents(prev => [...prev, event]);
+      }
+      return true;
+    } catch (error) {
+      console.error('Failed to submit event:', error);
+      setError('Failed to save event');
+      return false;
+    }
+  }, [setError]);
+
+  const handleDeleteEvent = useCallback(async (eventId: string): Promise<boolean> => {
+    try {
+      await calendarPageService!.deleteEvent(eventId);
+      setCalendarEvents(prev => prev.filter(event => event.id !== eventId));
+      return true;
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+      setError('Failed to delete event');
+      return false;
+    }
+  }, [setError]);
+
+  const handleCloneEvent = useCallback(async (event: CalendarEvent): Promise<boolean> => {
+    try {
+      const clonedEvent = await calendarPageService!.cloneEvent(event);
+      setCalendarEvents(prev => [...prev, clonedEvent]);
+      return true;
+    } catch (error) {
+      console.error('Failed to clone event:', error);
+      setError('Failed to clone event');
+      return false;
+    }
+  }, [setError]);
+
+  const handleEventUpdate = useCallback(async (updatedEvent: CalendarEvent): Promise<boolean> => {
+    try {
+      const eventWithUpdates = await calendarPageService!.updateEvent(updatedEvent.id, {
+        title: updatedEvent.title,
+        description: updatedEvent.description,
+        location: updatedEvent.location,
+        startTime: updatedEvent.start_time ? new Date(updatedEvent.start_time) : undefined,
+        endTime: updatedEvent.end_time ? new Date(updatedEvent.end_time) : undefined,
+        isAllDay: updatedEvent.all_day,
+        calendarId: updatedEvent.calendar_id,
+      });
+      setCalendarEvents(prev => prev.map(event => event.id === updatedEvent.id ? eventWithUpdates : event));
+      return true;
+    } catch (error) {
+      console.error('Failed to update event:', error);
+      setError('Failed to update event');
+      return false;
+    }
+  }, [setError]);
+
+  const moveEventToCalendar = useCallback(async (eventId: string, targetCalendarId: string): Promise<void> => {
+    try {
+      const updatedEvent = await calendarPageService!.moveEventToCalendar(eventId, targetCalendarId);
+      setCalendarEvents(prev => prev.map(event => event.id === eventId ? updatedEvent : event));
+    } catch (error) {
+      console.error('Failed to move event:', error);
+      setError('Failed to move event');
+    }
+  }, [setError]);
+
+  // Recurrence handlers (placeholder implementations - would need proper recurrence logic)
+  const handleDeleteThisOccurrence = useCallback(async (event: CalendarEvent): Promise<boolean> => {
+    try {
+      // This would need specific recurrence logic from useRecurrenceEventActions
+      console.log('Delete this occurrence:', event);
+      setError('Recurrence operations not yet implemented');
+      return false;
+    } catch (error) {
+      console.error('Failed to delete occurrence:', error);
+      setError('Failed to delete occurrence');
+      return false;
+    }
+  }, [setError]);
+
+  const handleDeleteThisAndFuture = useCallback(async (event: CalendarEvent): Promise<boolean> => {
+    try {
+      // This would need specific recurrence logic
+      console.log('Delete this and future:', event);
+      setError('Recurrence operations not yet implemented');
+      return false;
+    } catch (error) {
+      console.error('Failed to delete this and future:', error);
+      setError('Failed to delete occurrences');
+      return false;
+    }
+  }, [setError]);
+
+  const handleModifyThisOccurrence = useCallback(async (event: CalendarEvent, modifiedData: any): Promise<boolean> => {
+    try {
+      // This would need specific recurrence logic
+      console.log('Modify this occurrence:', event, modifiedData);
+      setError('Recurrence operations not yet implemented');
+      return false;
+    } catch (error) {
+      console.error('Failed to modify occurrence:', error);
+      setError('Failed to modify occurrence');
+      return false;
+    }
+  }, [setError]);
+
+  const handleModifyThisAndFuture = useCallback(async (event: CalendarEvent, modifiedData: any): Promise<boolean> => {
+    try {
+      // This would need specific recurrence logic
+      console.log('Modify this and future:', event, modifiedData);
+      setError('Recurrence operations not yet implemented');
+      return false;
+    } catch (error) {
+      console.error('Failed to modify this and future:', error);
+      setError('Failed to modify occurrences');
+      return false;
+    }
+  }, [setError]);
+
+  const handleModifyAllInSeries = useCallback(async (event: CalendarEvent, modifiedData: any): Promise<boolean> => {
+    try {
+      // This would need specific recurrence logic
+      console.log('Modify all in series:', event, modifiedData);
+      setError('Recurrence operations not yet implemented');
+      return false;
+    } catch (error) {
+      console.error('Failed to modify series:', error);
+      setError('Failed to modify event series');
+      return false;
+    }
+  }, [setError]);
+
+  // ICS helpers
+  const isICSEvent = useCallback((event: CalendarEvent): boolean => {
+    return calendarPageService!.isICSEvent(event);
+  }, []);
+
+  const isReadOnlyCalendar = useCallback((calendarId: string): boolean => {
+    return calendarPageService!.isReadOnlyCalendar(calendarId, calendars);
+  }, [calendars]);
+
+  const refreshICSCalendar = useCallback(async (calendarId: string): Promise<void> => {
+    return handleICSCalendarRefresh(calendarId);
+  }, [handleICSCalendarRefresh]);
+
 
   return (
     <CalendarFullControlCrossPlatform
       // Data
-      calendars={calendars}
-      events={events}
+            calendars={calendars}
+      events={calendarEvents}
       icsEvents={icsEvents}
-      isLoading={isLoadingEvents || isLoadingICSEvents}
+      isLoading={isLoadingEvents}
       error={error}
       
       // Calendar handlers
-      onCalendarToggle={handleCalendarToggle}
-      onCalendarCreate={handleCalendarCreate}
+          onCalendarToggle={handleCalendarToggle}
+          onCalendarCreate={handleCalendarCreate}
       onICSCalendarCreate={(name: string, color: string, icsUrl: string) => handleICSCalendarCreate(name, color, icsUrl)}
       onICSCalendarRefresh={handleICSCalendarRefresh}
-      onCalendarEdit={handleCalendarEdit}
-      onCalendarDelete={handleCalendarDeleteWithEvents}
-      onSetDefaultCalendar={setCalendarAsDefault}
+          onCalendarEdit={handleCalendarEdit}
+          onCalendarDelete={handleCalendarDeleteWithEvents}
+          onSetDefaultCalendar={setCalendarAsDefault}
       
       // Event handlers
       onSubmitEvent={handleSubmitEvent}

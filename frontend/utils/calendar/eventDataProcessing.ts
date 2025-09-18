@@ -63,7 +63,27 @@ export const processDecryptedEvent = (
   }
   
   let recurrencePattern: RecurrencePattern | undefined;
-  if (decryptedData.recurrenceFrequency && decryptedData.recurrenceFrequency !== RecurrenceFrequency.None) {
+  
+  // Parse recurrence rule from JSON string (new format)
+  const recurrenceRule = decryptedData.recurrence_rule || decryptedData.recurrenceRule;
+  if (recurrenceRule) {
+    try {
+      const rule = typeof recurrenceRule === 'string' ? JSON.parse(recurrenceRule) : recurrenceRule;
+      if (rule.frequency && rule.frequency !== RecurrenceFrequency.None) {
+        recurrencePattern = {
+          frequency: rule.frequency,
+          interval: rule.interval ?? 1,
+          endDate: rule.end_date ? new Date(rule.end_date) : undefined,
+          daysOfWeek: rule.days_of_week
+        };
+      }
+    } catch (error) {
+      console.error('Failed to parse recurrence rule:', recurrenceRule, error);
+    }
+  }
+  
+  // Fallback to old format for backward compatibility
+  if (!recurrencePattern && decryptedData.recurrenceFrequency && decryptedData.recurrenceFrequency !== RecurrenceFrequency.None) {
     recurrencePattern = {
       frequency: decryptedData.recurrenceFrequency,
       interval: decryptedData.recurrenceInterval ?? 1,
@@ -77,18 +97,31 @@ export const processDecryptedEvent = (
   const calendar = calendars.find(cal => cal.id === calendarId);
   
   return {
+    // Base CalendarEventDecrypted properties
     id: rawEvent.id,
     title: decryptedData.title,
     description: decryptedData.description,
     location: decryptedData.location,
-    calendarId: calendarId,
-    calendar: calendar,
-    isAllDay: decryptedData.isAllDay ?? decryptedData.all_day ?? false,
-    startTime,
-    endTime,
+    calendar_id: calendarId,
+    start_time: startTimeValue,
+    end_time: endTimeValue,
+    all_day: decryptedData.isAllDay ?? decryptedData.all_day ?? false,
+    recurrence_rule: decryptedData.recurrence_rule,
+    recurrence_exception: decryptedData.recurrence_exception,
+    created_at: rawEvent.created_at,
+    updated_at: rawEvent.updated_at,
+    user_id: rawEvent.user_id,
+    
+    // UI-specific properties
     recurrencePattern,
-    createdAt: new Date(rawEvent.created_at),
-    updatedAt: rawEvent.updated_at ? new Date(rawEvent.updated_at) : undefined
+    calendar: calendar,
+    isRecurrenceInstance: false,
+    
+    // Convenience properties for backward compatibility
+    startTime: startTime,
+    endTime: endTime,
+    calendarId: calendarId,
+    isAllDay: decryptedData.isAllDay ?? decryptedData.all_day ?? false
   };
 };
 
