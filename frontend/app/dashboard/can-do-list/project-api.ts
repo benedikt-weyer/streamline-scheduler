@@ -1,7 +1,6 @@
 'use client';
 
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
-import { Project } from '@/utils/can-do-list/can-do-list-types';
 import { ProjectDecrypted, CreateProjectDecryptedRequest, UpdateProjectDecryptedRequest } from '@/utils/api/types';
 import { getCurrentUserId } from '@/utils/auth/current-user';
 

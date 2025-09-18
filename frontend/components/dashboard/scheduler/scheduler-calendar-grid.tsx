@@ -215,7 +215,7 @@ export function SchedulerCalendarGrid({
         ...activeEvent.event,
         start_time: result.startTime.toISOString(),
         end_time: result.endTime.toISOString(),
-        updatedAt: new Date()
+        updated_at: new Date().toISOString()
       };
       
       // Update the event

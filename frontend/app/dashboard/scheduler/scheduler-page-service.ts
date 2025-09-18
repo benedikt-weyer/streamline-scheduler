@@ -47,7 +47,7 @@ export class SchedulerPageService {
     }
 
     try {
-      const events = await fetchAndParseICSCalendar(calendar.ics_url);
+      const events = await fetchAndParseICSCalendar(calendar.ics_url, calendar.id);
       // Transform and add calendar_id to each event
       return events.map(event => ({
         ...event,
@@ -101,7 +101,7 @@ export class SchedulerPageService {
     try {
       // Update the calendar's last sync time
       const updatedCalendar = await this.calendarService.updateCalendar(calendarId, {
-        last_sync: new Date().toISOString()
+        lastSync: new Date().toISOString()
       });
 
       // Fetch fresh ICS events
@@ -151,14 +151,61 @@ export class SchedulerPageService {
     calendarId: string,
     moveEventCallback: (eventId: string, targetCalendarId: string) => Promise<void>
   ): Promise<string | undefined> {
-    return await this.calendarService.deleteCalendarWithEvents(calendarId, moveEventCallback);
+    try {
+      // Get all calendars first
+      const allCalendars = await this.calendarService.getCalendars();
+      const calendarToDelete = allCalendars.find(cal => cal.id === calendarId);
+      
+      if (!calendarToDelete) {
+        throw new Error('Calendar not found');
+      }
+
+      // Get all events in this calendar
+      const eventsInCalendar = await this.calendarEventsService.getEventsForCalendar(calendarId, allCalendars);
+      
+      let targetCalendarId: string | undefined;
+      
+      // If there are events, we need to move them to another calendar
+      if (eventsInCalendar.length > 0) {
+        // Find a target calendar (prefer default, then first available)
+        const remainingCalendars = allCalendars.filter(cal => cal.id !== calendarId);
+        
+        if (remainingCalendars.length === 0) {
+          throw new Error('Cannot delete the last calendar with events');
+        }
+        
+        const targetCalendar = remainingCalendars.find(cal => cal.is_default) || remainingCalendars[0];
+        targetCalendarId = targetCalendar.id;
+        
+        // Move all events to the target calendar
+        for (const event of eventsInCalendar) {
+          await moveEventCallback(event.id, targetCalendarId);
+        }
+      }
+      
+      // If this was the default calendar, set another as default
+      if (calendarToDelete.is_default) {
+        const remainingCalendars = allCalendars.filter(cal => cal.id !== calendarId);
+        if (remainingCalendars.length > 0) {
+          await this.calendarService.setDefaultCalendar(remainingCalendars[0].id);
+        }
+      }
+      
+      // Finally, delete the calendar
+      await this.calendarService.deleteCalendar(calendarId);
+      
+      return targetCalendarId;
+    } catch (error) {
+      console.error(`Failed to delete calendar with events ${calendarId}:`, error);
+      throw new Error(`Failed to delete calendar with events`);
+    }
   }
 
   /**
    * Set a calendar as default
    */
   async setDefaultCalendar(calendarId: string): Promise<void> {
-    return await this.calendarService.setDefaultCalendar(calendarId);
+    await this.calendarService.setDefaultCalendar(calendarId);
   }
 
   /**
@@ -230,9 +277,9 @@ export class SchedulerPageService {
       title: updates.title,
       description: updates.description,
       location: updates.location,
-      start_time: updates.startTime?.toISOString(),
-      end_time: updates.endTime?.toISOString(),
-      all_day: updates.isAllDay
+      startTime: updates.startTime,
+      endTime: updates.endTime,
+      isAllDay: updates.isAllDay
     });
   }
 

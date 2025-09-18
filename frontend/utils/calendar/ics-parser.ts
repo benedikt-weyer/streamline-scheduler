@@ -128,12 +128,13 @@ function convertICSEventToCalendarEvent(icsEvent: ICSEvent, calendarId: string):
       title: icsEvent.summary || 'Untitled Event',
       description: icsEvent.description || undefined,
       location: icsEvent.location || undefined,
-      startTime,
-      endTime,
-      isAllDay,
-      calendarId,
-      createdAt: icsEvent.created ? parseICSDateTime(icsEvent.created) || new Date() : new Date(),
-      updatedAt: icsEvent['last-modified'] ? parseICSDateTime(icsEvent['last-modified']) || undefined : undefined
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
+      all_day: isAllDay,
+      calendar_id: calendarId,
+      created_at: icsEvent.created ? parseICSDateTime(icsEvent.created)?.toISOString() || new Date().toISOString() : new Date().toISOString(),
+      updated_at: icsEvent['last-modified'] ? parseICSDateTime(icsEvent['last-modified'])?.toISOString() || new Date().toISOString() : new Date().toISOString(),
+      user_id: '',
     };
     
     return event;

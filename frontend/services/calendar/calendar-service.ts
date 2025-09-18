@@ -73,7 +73,7 @@ export class CalendarService {
   /**
    * Update an existing calendar
    */
-  async updateCalendar(id: string, updates: Partial<{ name: string; color: string; isVisible: boolean; isDefault: boolean; icsUrl?: string }>): Promise<Calendar> {
+  async updateCalendar(id: string, updates: Partial<{ name: string; color: string; isVisible: boolean; isDefault: boolean; icsUrl?: string; lastSync?: string }>): Promise<Calendar> {
     try {
       // First, fetch the current calendar to get all existing data
       const currentCalendar = await this.getCalendarById(id);
@@ -90,7 +90,7 @@ export class CalendarService {
         is_default: updates.isDefault ?? currentCalendar.is_default,
         type: currentCalendar.type,
         ics_url: updates.icsUrl ?? currentCalendar.ics_url,
-        last_sync: updates.icsUrl !== undefined ? new Date().toISOString() : currentCalendar.last_sync,
+        last_sync: updates.lastSync ?? (updates.icsUrl !== undefined ? new Date().toISOString() : currentCalendar.last_sync),
       };
 
       const { data: updatedCalendar } = await this.backend.calendars.update(updateData);

@@ -144,14 +144,11 @@ export function CalendarSidebar({
       </div>
 
       <div className="space-y-2">
-        {console.log('Rendering calendars in sidebar:', calendars.map(cal => ({id: cal.id, name: cal.name, is_visible: cal.is_visible})))}
         {calendars.map((calendar) => (
           <div key={calendar.id} className="flex items-center justify-between group">
             <div 
               className="flex items-center gap-2 cursor-pointer flex-grow overflow-hidden"
               onClick={() => {
-                console.log('Sidebar: Clicking calendar toggle for', calendar.id, 'current is_visible:', calendar.is_visible, 'will set to:', !calendar.is_visible);
-                console.log('Calendar object:', calendar);
                 onCalendarToggle(calendar.id, !calendar.is_visible);
               }}
             >
@@ -159,7 +156,6 @@ export function CalendarSidebar({
                 className="rounded-full p-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500 flex-shrink-0"
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent triggering the parent onClick
-                  console.log('Sidebar button: Clicking calendar toggle for', calendar.id, 'current is_visible:', calendar.is_visible, 'will set to:', !calendar.is_visible);
                   onCalendarToggle(calendar.id, !calendar.is_visible);
                 }}
               >

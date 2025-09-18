@@ -1,6 +1,7 @@
 'use client';
 
 import { getBackend } from '@/utils/api/backend-interface';
+import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { encryptData, generateSalt, generateIV, deriveKeyFromPassword } from '@/utils/cryptography/encryption';
 import { 
   CanDoItemDecrypted, 
@@ -85,25 +86,26 @@ export interface DecryptedExportData {
 // Export all user data
 export async function exportUserData(): Promise<ExportedData> {
   try {
-    const backend = getBackend();
+    const rawBackend = getBackend();
+    const decryptedBackend = getDecryptedBackend();
     
     // Use the backend's data management export method if available
-    if (backend.dataManagement?.exportUserData) {
-      return await backend.dataManagement.exportUserData();
+    if (rawBackend.dataManagement?.exportUserData) {
+      return await rawBackend.dataManagement.exportUserData();
     }
     
     // Fallback to direct implementation
-    const { data: { user } } = await backend.auth.getUser();
+    const { data: { user } } = await rawBackend.auth.getUser();
     if (!user) {
       throw new Error('User not authenticated');
     }
 
-    // Fetch all user data
+    // Fetch all user data using decrypted backend
     const [canDoListResult, projectsResult, calendarsResult, calendarEventsResult] = await Promise.all([
-      backend.canDoList.getAll(),
-      backend.projects.getAll({ all: true }), // Get all projects including children
-      backend.calendars.getAll(),
-      backend.calendarEvents.getAll(),
+      decryptedBackend.canDoList.getAll(),
+      decryptedBackend.projects.getAll({ all: true }), // Get all projects including children
+      decryptedBackend.calendars.getAll(),
+      decryptedBackend.calendarEvents.getAll(),
     ]);
 
     return {
@@ -126,11 +128,11 @@ export async function exportUserData(): Promise<ExportedData> {
 // Import user data
 export async function importUserData(data: ExportedData): Promise<void> {
   try {
-    const backend = getBackend();
+    const rawBackend = getBackend();
 
     // Use the backend's data management import method which handles encryption properly
-    if (backend.dataManagement?.importUserData) {
-      return await backend.dataManagement.importUserData(data);
+    if (rawBackend.dataManagement?.importUserData) {
+      return await rawBackend.dataManagement.importUserData(data);
     }
 
     // If no backend import method, the data should be handled by a more sophisticated import
@@ -144,20 +146,20 @@ export async function importUserData(data: ExportedData): Promise<void> {
 // Clear all user data
 export async function clearAllUserData(): Promise<void> {
   try {
-    const backend = getBackend();
+    const rawBackend = getBackend();
 
     // Use the backend's data management clear method if available
-    if (backend.dataManagement?.clearAllUserData) {
-      return await backend.dataManagement.clearAllUserData();
+    if (rawBackend.dataManagement?.clearAllUserData) {
+      return await rawBackend.dataManagement.clearAllUserData();
     }
 
     // Fallback to direct implementation
     // Get all data first
     const [canDoListResult, projectsResult, calendarsResult, calendarEventsResult] = await Promise.all([
-      backend.canDoList.getAll(),
-      backend.projects.getAll({ all: true }), // Get all projects including children
-      backend.calendars.getAll(),
-      backend.calendarEvents.getAll(),
+      rawBackend.canDoList.getAll(),
+      rawBackend.projects.getAll({ all: true }), // Get all projects including children
+      rawBackend.calendars.getAll(),
+      rawBackend.calendarEvents.getAll(),
     ]);
 
     // Delete in reverse order (children first, then parents)
@@ -165,28 +167,28 @@ export async function clearAllUserData(): Promise<void> {
     // Delete calendar events
     if (calendarEventsResult.data) {
       for (const event of calendarEventsResult.data) {
-        await backend.calendarEvents.delete(event.id);
+        await rawBackend.calendarEvents.delete(event.id);
       }
     }
 
     // Delete calendars
     if (calendarsResult.data) {
       for (const calendar of calendarsResult.data) {
-        await backend.calendars.delete(calendar.id);
+        await rawBackend.calendars.delete(calendar.id);
       }
     }
 
     // Delete can-do list items
     if (canDoListResult.data) {
       for (const task of canDoListResult.data) {
-        await backend.canDoList.delete(task.id);
+        await rawBackend.canDoList.delete(task.id);
       }
     }
 
     // Delete projects
     if (projectsResult.data) {
       for (const project of projectsResult.data) {
-        await backend.projects.delete(project.id);
+        await rawBackend.projects.delete(project.id);
       }
     }
   } catch (error) {
@@ -198,7 +200,7 @@ export async function clearAllUserData(): Promise<void> {
 // Import decrypted user data (delegate to backend)
 export async function importDecryptedUserData(data: DecryptedExportData, encryptionKey: string): Promise<void> {
   try {
-    const backend = getBackend();
+    const backend = getDecryptedBackend();
     
     // Convert DecryptedExportData to ExportedData format and delegate to main import
     const exportData: ExportedData = {

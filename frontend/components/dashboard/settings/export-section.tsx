@@ -47,7 +47,8 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
               projectId: task.project_id,
               displayOrder: task.display_order ?? 0,
               createdAt: task.created_at,
-              updatedAt: task.updated_at
+              updatedAt: task.updated_at,
+              user_id: task.user_id
             };
           } catch (error) {
             console.error('Failed to decrypt task:', error);
@@ -71,10 +72,11 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
               name: decryptedData.name,
               color: decryptedData.color,
               parentId: project.parent_id,
-              displayOrder: project.display_order ?? 0,
+              order: project.display_order ?? 0,
               isCollapsed: project.is_collapsed ?? false,
               createdAt: project.created_at,
-              updatedAt: project.updated_at
+              updatedAt: project.updated_at,
+              user_id: project.user_id
             };
           } catch (error) {
             console.error('Failed to decrypt project:', error);
@@ -103,7 +105,8 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
               icsUrl: decryptedData.icsUrl,
               lastSync: decryptedData.lastSync,
               createdAt: calendar.created_at,
-              updatedAt: calendar.updated_at
+              updatedAt: calendar.updated_at,
+              user_id: calendar.user_id
             };
           } catch (error) {
             console.error('Failed to decrypt calendar:', error);
@@ -146,7 +149,8 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
               recurrenceException: decryptedData.recurrenceException,
               calendarId: decryptedData.calendarId,
               createdAt: event.created_at,
-              updatedAt: event.updated_at
+              updatedAt: event.updated_at,
+              user_id: event.user_id
             };
           } catch (error) {
             console.error('Failed to decrypt calendar event:', error);

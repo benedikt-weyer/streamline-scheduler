@@ -104,7 +104,7 @@ export function SchedulerMobile({
 
   // Get default calendar
   const defaultCalendar = useMemo(() => 
-    calendars.find(cal => cal.isDefault) || calendars[0], [calendars]
+    calendars.find(cal => cal.is_default) || calendars[0], [calendars]
   );
 
   // Today's events
@@ -138,10 +138,12 @@ export function SchedulerMobile({
       id: 'new',
       title: task?.content || '',
       description: task ? `Scheduled from task: ${task.content}` : '',
-      calendarId: defaultCalendar?.id || '',
-      startTime,
-      endTime,
-      createdAt: new Date(),
+      calendar_id: defaultCalendar?.id || '',
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
+      all_day: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       user_id: 'placeholder'
     };
 

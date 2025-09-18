@@ -103,10 +103,14 @@ export function SchedulerCalendar({
         id: 'new', // This ID will never be used, it's just for the temporary object
         title: '',
         description: '',
-        calendarId: calendarId ?? fallbackCalendarId,
-        startTime: startTime,
-        endTime: endTime,
-        createdAt: new Date()
+        location: '',
+        calendar_id: calendarId ?? fallbackCalendarId,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        all_day: isAllDay ?? false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        user_id: ''
       };
       
       // Set as selected event to prefill the form with these times
@@ -123,7 +127,7 @@ export function SchedulerCalendar({
   }, []);
 
   const handleDeleteEvent = useCallback(async (id: string) => {
-    console.log('Deleting event:', id);
+    // Event deletion logic would go here
   }, []);
 
   const handleCloneEvent = useCallback(async (event: CalendarEvent) => {
@@ -186,7 +190,12 @@ export function SchedulerCalendar({
           <SchedulerCalendarGrid
             days={daysOfWeek}
             events={eventsInCurrentWeek}
-            calendars={visibleCalendars}
+            calendars={visibleCalendars.map(cal => ({
+              id: cal.id,
+              name: cal.name,
+              color: cal.color || '#3b82f6',
+              is_visible: cal.is_visible
+            }))}
             openEditDialog={openEditDialog}
             openNewEventDialog={openNewEventDialog}
             onEventUpdate={onEventUpdate}
