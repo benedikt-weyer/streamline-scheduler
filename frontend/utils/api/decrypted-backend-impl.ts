@@ -74,6 +74,8 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
       urgency?: number;
       tags?: string[];
       duration_minutes?: number;
+      blocked_by?: string;
+      my_day?: boolean;
     }>(encrypted);
 
     return {
@@ -175,6 +177,7 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
         urgency: request.urgency,
         tags: request.tags,
         duration_minutes: request.duration_minutes,
+        blocked_by: request.blocked_by,
         my_day: request.my_day ?? false,
       });
 
@@ -202,17 +205,30 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
       if (request.content !== undefined || request.completed !== undefined || 
           request.due_date !== undefined || request.impact !== undefined || 
           request.urgency !== undefined || request.tags !== undefined || 
-          request.duration_minutes !== undefined || request.my_day !== undefined) {
-        const encrypted = this.encryptItemData({
-          content: request.content,
-          completed: request.completed,
-          due_date: request.due_date,
-          impact: request.impact,
-          urgency: request.urgency,
-          tags: request.tags,
-          duration_minutes: request.duration_minutes,
-          my_day: request.my_day,
-        });
+          request.duration_minutes !== undefined || request.blocked_by !== undefined || 
+          request.my_day !== undefined) {
+        
+        // Get current data to merge with updates (preserves fields not being updated)
+        const currentResponse = await this.backend.canDoList.getById(request.id);
+        if (!currentResponse.data) {
+          throw new Error('Task not found');
+        }
+        const currentData = this.decryptCanDoItem(currentResponse.data);
+        
+        // Merge current data with updates, filtering out undefined values from the request
+        const dataToEncrypt: any = {
+          content: request.content !== undefined ? request.content : currentData.content,
+          completed: request.completed !== undefined ? request.completed : currentData.completed,
+          due_date: request.due_date !== undefined ? request.due_date : currentData.due_date,
+          impact: request.impact !== undefined ? request.impact : currentData.impact,
+          urgency: request.urgency !== undefined ? request.urgency : currentData.urgency,
+          tags: request.tags !== undefined ? request.tags : currentData.tags,
+          duration_minutes: request.duration_minutes !== undefined ? request.duration_minutes : currentData.duration_minutes,
+          blocked_by: request.blocked_by !== undefined ? request.blocked_by : currentData.blocked_by,
+          my_day: request.my_day !== undefined ? request.my_day : currentData.my_day,
+        };
+        
+        const encrypted = this.encryptItemData(dataToEncrypt);
         encryptedData = encrypted.encrypted_data;
         iv = encrypted.iv;
         salt = encrypted.salt;

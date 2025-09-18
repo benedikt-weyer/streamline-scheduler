@@ -7,14 +7,15 @@ import { CanDoItemDecrypted } from '../api/types';
 /**
  * Calculate a recommendation score for a task based on impact, urgency, due date, and blocking relationships
  * Higher scores indicate higher priority tasks that should be recommended
+ * Uses actual impact and urgency values from tasks (0-10 scale each), with 0 if not set by user
  */
 export function calculateRecommendationScore(task: CanDoItemDecrypted, allTasks: CanDoItemDecrypted[]): number {
   let score = 0;
   
   // Base score from impact and urgency (0-10 each, max 20)
-  // Note: impact and urgency are not yet implemented in the API, so we use default values
-  const impact = 5; // Default medium impact
-  const urgency = 5; // Default medium urgency
+  // Use actual values from the task, with 0 if not set (user hasn't specified priority)
+  const impact = task.impact ?? 0; // Default to 0 if not set by user
+  const urgency = task.urgency ?? 0; // Default to 0 if not set by user
   score += impact + urgency;
   
   // Due date multiplier (adds urgency based on how soon the task is due)
@@ -53,8 +54,8 @@ export function calculateRecommendationScore(task: CanDoItemDecrypted, allTasks:
     // Calculate the highest score among blocked tasks
     const maxBlockedScore = Math.max(...blockedTasks.map(blockedTask => {
       // Calculate blocked task's base score (without blocking bonus to avoid recursion)
-      const blockedImpact = 5; // Default medium impact
-      const blockedUrgency = 5; // Default medium urgency
+      const blockedImpact = blockedTask.impact ?? 0; // Use actual impact or 0 if not set
+      const blockedUrgency = blockedTask.urgency ?? 0; // Use actual urgency or 0 if not set
       let blockedScore = blockedImpact + blockedUrgency;
       
       // Add due date bonus for blocked task
@@ -116,15 +117,15 @@ export function getRecommendedTasks(tasks: CanDoItemDecrypted[], limit: number =
  * Get a human-readable explanation of why a task is recommended
  */
 export function getRecommendationReason(task: CanDoItemDecrypted, allTasks: CanDoItemDecrypted[]): string {
-  const impact = 5; // Default medium impact (API doesn't support impact yet)
-  const urgency = 5; // Default medium urgency (API doesn't support urgency yet)
+  const impact = task.impact ?? 0; // Use actual impact or 0 if not set
+  const urgency = task.urgency ?? 0; // Use actual urgency or 0 if not set
   const reasons: string[] = [];
   
   // Check if this task blocks important tasks
   const blockedTasks = allTasks.filter(t => t.blocked_by === task.id && !t.completed);
   if (blockedTasks.length > 0) {
-    const highImpactBlocked = blockedTasks.some(t => 5 >= 8); // Always false since we use default values
-    const highUrgencyBlocked = blockedTasks.some(t => 5 >= 8); // Always false since we use default values
+    const highImpactBlocked = blockedTasks.some(t => (t.impact ?? 0) >= 8);
+    const highUrgencyBlocked = blockedTasks.some(t => (t.urgency ?? 0) >= 8);
     const overdueTasks = blockedTasks.filter(t => {
       if (!t.due_date) return false;
       const today = new Date();
@@ -143,16 +144,21 @@ export function getRecommendationReason(task: CanDoItemDecrypted, allTasks: CanD
     }
   }
   
-  if (impact >= 8) {
-    reasons.push('High impact');
-  } else if (impact >= 5) {
-    reasons.push('Medium impact');
+  // Only mention impact/urgency if user has actually set them (> 0)
+  if (task.impact !== undefined && task.impact > 0) {
+    if (impact >= 8) {
+      reasons.push('High impact');
+    } else if (impact >= 5) {
+      reasons.push('Medium impact');
+    }
   }
   
-  if (urgency >= 8) {
-    reasons.push('High urgency');
-  } else if (urgency >= 5) {
-    reasons.push('Medium urgency');
+  if (task.urgency !== undefined && task.urgency > 0) {
+    if (urgency >= 8) {
+      reasons.push('High urgency');
+    } else if (urgency >= 5) {
+      reasons.push('Medium urgency');
+    }
   }
   
   if (task.due_date) {

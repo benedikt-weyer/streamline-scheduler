@@ -81,6 +81,9 @@ export const useTaskCRUD = (
         project_id: projectId,
         due_date: dueDate?.toISOString(),
         duration_minutes: estimatedDuration,
+        impact: impact !== undefined ? impact : existingTask.impact, // Include impact
+        urgency: urgency !== undefined ? urgency : existingTask.urgency, // Include urgency
+        blocked_by: blockedBy !== undefined ? blockedBy : existingTask.blocked_by, // Include blocked_by
         display_order: existingTask.display_order,
         my_day: myDay !== undefined ? myDay : existingTask.my_day // Include my_day field
       };

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ProjectDecrypted, CanDoItemDecrypted } from '@/utils/api/types';
 import { DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
+import { getRecommendedTasks } from '@/utils/can-do-list/recommendation-utils';
 import { Plus, Folder, FolderOpen, Star, List, Sun } from 'lucide-react';
 import AddProjectDialog from '../add-project-dialog';
 import EditProjectDialog from '../edit-project-dialog';
@@ -203,8 +204,8 @@ export default function ProjectSidebarWithDragDrop({
     );
   }
 
-  // Calculate recommended tasks count
-      const recommendedCount = tasks.filter(task => !task.completed && ((task.impact || 0) > 3 || (task.urgency || 0) > 3 || task.due_date)).length;
+  // Calculate recommended tasks count using proper recommendation logic
+  const recommendedCount = getRecommendedTasks(tasks, 20).length;
 
   // Calculate My Day tasks count
   const myDayCount = tasks.filter(task => !task.completed && task.my_day).length;
