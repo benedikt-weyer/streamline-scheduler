@@ -513,6 +513,11 @@ export function CalendarGrid({
       const calendar = calendars?.find(cal => cal.id === event.calendar_id);
       const eventColor = calendar?.color || '#3B82F6';
       
+      // Check if this is a recurring event or recurrence instance
+      const recurrencePattern = getRecurrencePattern(event);
+      const isRecurring = !!recurrencePattern;
+      const isRecurrenceInstance = event.id.includes('-recurrence-');
+      
       return (
         <div
           key={event.id}
@@ -527,7 +532,15 @@ export function CalendarGrid({
           }}
           data-event-id={event.id}
         >
-          <div className="font-medium truncate">
+          <div className="font-medium truncate flex items-center gap-1">
+            {(isRecurring || isRecurrenceInstance) ? (
+              <span className="inline-flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"></path>
+                  <path d="M12 7v5l2.5 2.5"></path>
+                </svg>
+              </span>
+            ) : null}
             {event.title}
           </div>
           {event.location && (
