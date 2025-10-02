@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { TimeInput, type QuickTimeOption } from '@/components/ui/time-input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -524,7 +525,12 @@ export function CalendarEventDialog({
                   <FormItem>
                     <FormLabel>Start Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} disabled={isReadOnly} />
+                      <DatePicker 
+                        value={field.value} 
+                        onChange={field.onChange} 
+                        disabled={isReadOnly}
+                        placeholder="Select start date"
+                      />
                     </FormControl>
                   </FormItem>
                 )}
@@ -564,7 +570,12 @@ export function CalendarEventDialog({
                   <FormItem>
                     <FormLabel>End Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} disabled={isReadOnly} />
+                      <DatePicker 
+                        value={field.value} 
+                        onChange={field.onChange} 
+                        disabled={isReadOnly}
+                        placeholder="Select end date"
+                      />
                     </FormControl>
                   </FormItem>
                 )}
