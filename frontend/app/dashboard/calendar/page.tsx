@@ -421,8 +421,10 @@ function CalendarContent() {
 
 export default function CalendarPage() {
   return (
-    <ErrorProvider>
-      <CalendarContent />
-    </ErrorProvider>
+    <div className="fixed top-16 left-0 right-0 bottom-0 overflow-hidden">
+      <ErrorProvider>
+        <CalendarContent />
+      </ErrorProvider>
+    </div>
   );
 }

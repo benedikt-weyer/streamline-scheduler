@@ -479,7 +479,7 @@ export function CalendarFullControlCrossPlatform({
   }, [setCurrentWeek, setSelectedDate]);
 
   return (
-    <div className={`flex w-full h-full ${className}`}>
+    <div className={`flex w-full h-full overflow-hidden ${className}`}>
       {/* Mobile Layout */}
       <div className="md:hidden w-full flex flex-col h-screen">
         {/* Mobile Header */}
@@ -530,7 +530,7 @@ export function CalendarFullControlCrossPlatform({
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden md:flex w-full h-full">
+      <div className="hidden md:flex w-full h-full overflow-hidden">
         {/* Calendar Sidebar */}
         <CalendarSidebar
           calendars={calendars}
@@ -548,39 +548,43 @@ export function CalendarFullControlCrossPlatform({
         />
         
         {/* Main Calendar Content */}
-        <div className="flex-1 px-4">
-          <CalendarHeader 
-            currentWeek={currentWeek}
-            setCurrentWeek={setCurrentWeek}
-            openNewEventDialog={openNewEventDialogHandler}
-            onTodaySelected={handleTodaySelected}
-          />
-          
-          {error && (
-            <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4">
-              {error}
-            </div>
-          )}
+        <div className="flex-1 flex flex-col px-4 overflow-hidden">
+          <div className="flex-shrink-0">
+            <CalendarHeader 
+              currentWeek={currentWeek}
+              setCurrentWeek={setCurrentWeek}
+              openNewEventDialog={openNewEventDialogHandler}
+              onTodaySelected={handleTodaySelected}
+            />
+            
+            {error && (
+              <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-4">
+                {error}
+              </div>
+            )}
+          </div>
           
           {/* Display loading or calendar grid */}
-          {isLoading ? (
-            <div className="text-center py-8">{loadingText}</div>
-          ) : (
-              <CalendarGrid 
-                days={daysOfWeek}
-                events={(() => {
-                  return eventsInCurrentWeek;
-                })()}
-                calendars={calendars.map(cal => ({ 
-                  ...cal, 
-                  color: cal.color || '#3b82f6',
-                  isVisible: cal.is_visible 
-                }))}
-                openEditDialog={openEditDialog}
-                openNewEventDialog={openNewEventDialogWithDayHandler}
-                onEventUpdate={handleEventUpdateWithRecurrenceCheck}
-              />
-          )}
+          <div className="flex-1 overflow-hidden">
+            {isLoading ? (
+              <div className="text-center py-8">{loadingText}</div>
+            ) : (
+                <CalendarGrid 
+                  days={daysOfWeek}
+                  events={(() => {
+                    return eventsInCurrentWeek;
+                  })()}
+                  calendars={calendars.map(cal => ({ 
+                    ...cal, 
+                    color: cal.color || '#3b82f6',
+                    isVisible: cal.is_visible 
+                  }))}
+                  openEditDialog={openEditDialog}
+                  openNewEventDialog={openNewEventDialogWithDayHandler}
+                  onEventUpdate={handleEventUpdateWithRecurrenceCheck}
+                />
+            )}
+          </div>
         </div>
       </div>
 

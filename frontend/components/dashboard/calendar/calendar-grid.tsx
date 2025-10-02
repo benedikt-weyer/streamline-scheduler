@@ -34,7 +34,6 @@ export function CalendarGrid({
   openNewEventDialog,
   onEventUpdate 
 }: CalendarGridProps) {
-  const timeSlots = generateTimeSlots();
   const [calendarHeight, setCalendarHeight] = useState<number | null>(null);
   const [slotHeight, setSlotHeight] = useState(35); // default slot height
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,6 +50,101 @@ export function CalendarGrid({
   // Flag to prevent click handlers during drag operations
   const isDraggingRef = useRef(false);
 
+  // Zoom state management - initialize at 100% (no zoom)
+  const [isZoomActive, setIsZoomActive] = useState(false);
+  const [zoomWindow, setZoomWindow] = useState({
+    startHour: 0,   // Start at midnight (100% view)
+    endHour: 24,    // End at midnight next day (100% view)
+    windowHeight: 300 // Height of zoom window in pixels
+  });
+  const [isHoveringTimeline, setIsHoveringTimeline] = useState(false);
+  const [isDraggingZoom, setIsDraggingZoom] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartZoomWindow, setDragStartZoomWindow] = useState({ startHour: 0, endHour: 24 });
+  const timelineRef = useRef<HTMLDivElement>(null);
+
+  // Generate time slots based on zoom state with granular intervals
+  // Only use zoom if it's not 100% (0-24 hours)
+  const isActuallyZoomed = zoomWindow.startHour !== 0 || zoomWindow.endHour !== 24;
+  
+  const generateGranularTimeSlots = (startHour: number, endHour: number) => {
+    const windowSize = endHour - startHour;
+    
+    // Determine main granularity and preview granularity based on zoom level
+    let intervalMinutes = 60; // Default: hourly
+    let previewIntervalMinutes = null; // No preview by default
+    
+    if (windowSize <= 2) {
+      intervalMinutes = 5; // 5-minute intervals when zoomed to 2 hours or less
+    } else if (windowSize <= 3) {
+      intervalMinutes = 15; // 15-minute intervals
+      previewIntervalMinutes = 5; // Show 5-minute grid lines without labels
+    } else if (windowSize <= 4) {
+      intervalMinutes = 15; // 15-minute intervals when zoomed to 4 hours or less
+    } else if (windowSize <= 6) {
+      intervalMinutes = 30; // 30-minute intervals
+      previewIntervalMinutes = 15; // Show 15-minute grid lines without labels
+    } else if (windowSize <= 8) {
+      intervalMinutes = 30; // 30-minute intervals when zoomed to 8 hours or less
+    } else if (windowSize <= 12) {
+      intervalMinutes = 60; // Hourly intervals
+      previewIntervalMinutes = 30; // Show 30-minute grid lines without labels
+    }
+    
+    const slots = [];
+    const totalMinutes = (endHour - startHour) * 60;
+    
+    // Generate main time slots with labels
+    for (let minutes = 0; minutes < totalMinutes; minutes += intervalMinutes) {
+      const totalHours = startHour + (minutes / 60);
+      const hour = Math.floor(totalHours);
+      const minute = Math.round((totalHours - hour) * 60);
+      
+      const formattedHour = hour.toString().padStart(2, '0');
+      const formattedMinute = minute.toString().padStart(2, '0');
+      slots.push({
+        time: `${formattedHour}:${formattedMinute}`,
+        hasLabel: true,
+        isMain: true
+      });
+    }
+    
+    // Add preview slots (grid lines without labels) if applicable
+    if (previewIntervalMinutes) {
+      for (let minutes = 0; minutes < totalMinutes; minutes += previewIntervalMinutes) {
+        const totalHours = startHour + (minutes / 60);
+        const hour = Math.floor(totalHours);
+        const minute = Math.round((totalHours - hour) * 60);
+        
+        const formattedHour = hour.toString().padStart(2, '0');
+        const formattedMinute = minute.toString().padStart(2, '0');
+        const timeString = `${formattedHour}:${formattedMinute}`;
+        
+        // Only add if it's not already in the main slots
+        if (!slots.some(slot => slot.time === timeString)) {
+          slots.push({
+            time: timeString,
+            hasLabel: false,
+            isMain: false
+          });
+        }
+      }
+    }
+    
+    // Sort slots by time
+    slots.sort((a, b) => {
+      const [aHour, aMin] = a.time.split(':').map(Number);
+      const [bHour, bMin] = b.time.split(':').map(Number);
+      return (aHour * 60 + aMin) - (bHour * 60 + bMin);
+    });
+    
+    return slots;
+  };
+  
+  const timeSlots = isZoomActive && isActuallyZoomed
+    ? generateGranularTimeSlots(zoomWindow.startHour, zoomWindow.endHour)
+    : generateTimeSlots();
+
   // Update current time every minute
   useEffect(() => {
     // Set current time on first render
@@ -64,7 +158,7 @@ export function CalendarGrid({
     return () => clearInterval(interval);
   }, []);
 
-  // Calculate calendar height based on window size
+  // Calculate calendar height based on available container space
   useEffect(() => {
     // Calculate on initial render
     calculateCalendarHeightAndSlotSize();
@@ -76,13 +170,198 @@ export function CalendarGrid({
     return () => window.removeEventListener('resize', calculateCalendarHeightAndSlotSize);
   }, [timeSlots.length]);
 
+  // Recalculate when container size changes
+  useEffect(() => {
+    if (containerRef.current) {
+      const resizeObserver = new ResizeObserver(() => {
+        calculateCalendarHeightAndSlotSize();
+      });
+      
+      resizeObserver.observe(containerRef.current.parentElement || containerRef.current);
+      
+      return () => resizeObserver.disconnect();
+    }
+  }, []);
+
+  // Global mouse event listeners for drag operations
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isDraggingZoom) {
+        const deltaY = e.clientY - dragStartY;
+        const timelineHeight = timelineRef.current?.getBoundingClientRect().height || 1;
+        const hoursDelta = -(deltaY / timelineHeight) * 24; // Reverse the direction
+        
+        const windowSize = dragStartZoomWindow.endHour - dragStartZoomWindow.startHour;
+        let newStartHour = Math.round(dragStartZoomWindow.startHour + hoursDelta);
+        let newEndHour = Math.round(dragStartZoomWindow.endHour + hoursDelta);
+        
+        // Keep within bounds
+        if (newStartHour < 0) {
+          newStartHour = 0;
+          newEndHour = Math.round(windowSize);
+        } else if (newEndHour > 24) {
+          newEndHour = 24;
+          newStartHour = Math.round(24 - windowSize);
+        }
+        
+        setZoomWindow(prev => ({
+          ...prev,
+          startHour: newStartHour,
+          endHour: newEndHour
+        }));
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      setIsDraggingZoom(false);
+    };
+
+    if (isDraggingZoom) {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDraggingZoom, dragStartY, dragStartZoomWindow]);
+
   // Extracted function to calculate calendar height and slot size
   const calculateCalendarHeightAndSlotSize = () => {
-    const { calendarHeight: newHeight, slotHeight: newSlotHeight } = 
-      calculateCalendarDimensions(timeSlots.length);
+    // Get available height from the calendar grid container
+    const gridContainer = containerRef.current;
+    let availableHeight = 500; // fallback
+    
+    if (gridContainer) {
+      // Get the actual available height by measuring the parent container
+      // and subtracting the space used by day headers and all-day events
+      const parentElement = gridContainer.parentElement;
+      if (parentElement) {
+        const parentRect = parentElement.getBoundingClientRect();
+        
+        // Find the day headers and all-day events sections
+        const dayHeadersElement = parentElement.querySelector('.grid.border-b.flex-shrink-0');
+        const allDayElement = parentElement.querySelector('.grid.border-b.bg-muted\\/30');
+        
+        let usedHeight = 0;
+        if (dayHeadersElement) {
+          usedHeight += dayHeadersElement.getBoundingClientRect().height;
+        }
+        if (allDayElement) {
+          usedHeight += allDayElement.getBoundingClientRect().height;
+        }
+        
+        // Available height is parent height minus the space used by headers
+        availableHeight = parentRect.height - usedHeight;
+        
+      }
+    }
+    
+    // Calculate slot height to use the full available height
+    // Distribute the height evenly, using fractional pixels if needed
+    const exactSlotHeight = availableHeight / timeSlots.length;
+    
+    // Ensure minimum slot height for readability
+    const minSlotHeight = 25;
+    const calculatedSlotHeight = Math.max(minSlotHeight, exactSlotHeight);
+    
+    // Use the full available height
+    const newHeight = availableHeight;
+    
     
     setCalendarHeight(newHeight);
-    setSlotHeight(newSlotHeight);
+    setSlotHeight(calculatedSlotHeight);
+  };
+
+  // Zoom window calculation functions
+  const calculateZoomWindowPosition = (mouseY: number) => {
+    if (!timelineRef.current) return null;
+    
+    const rect = timelineRef.current.getBoundingClientRect();
+    const relativeY = mouseY - rect.top;
+    const totalHeight = rect.height;
+    
+    // Calculate which hour the mouse is over
+    // In zoom mode, the overview timeline represents 24 hours
+    // In normal mode, the main timeline represents 24 hours
+    const hourAtMouse = Math.floor((relativeY / totalHeight) * 24);
+    
+    // Calculate zoom window bounds
+    const windowHours = zoomWindow.endHour - zoomWindow.startHour;
+    let startHour = Math.max(0, hourAtMouse - Math.floor(windowHours / 2));
+    let endHour = Math.min(24, startHour + windowHours);
+    
+    // Adjust if we hit the boundaries
+    if (endHour === 24) {
+      startHour = Math.max(0, 24 - windowHours);
+    }
+    
+    return { startHour, endHour };
+  };
+
+  const handleTimelineMouseEnter = () => {
+    setIsHoveringTimeline(true);
+  };
+
+  const handleTimelineMouseLeave = () => {
+    setIsHoveringTimeline(false);
+    // Don't clear zoom when mouse leaves - zoom should persist
+  };
+
+  const handleTimelineMouseDown = (e: React.MouseEvent) => {
+    if (!isHoveringTimeline || !isZoomActive || !isActuallyZoomed) return;
+    
+    e.preventDefault();
+    setIsDraggingZoom(true);
+    setDragStartY(e.clientY);
+    setDragStartZoomWindow({ startHour: zoomWindow.startHour, endHour: zoomWindow.endHour });
+  };
+
+
+  const handleCalendarWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    
+    const delta = e.deltaY > 0 ? 1 : -1; // Positive for zoom out, negative for zoom in
+    const currentWindowSize = zoomWindow.endHour - zoomWindow.startHour;
+    const newWindowSize = Math.max(2, Math.min(24, currentWindowSize + delta * 2));
+    
+    // Activate zoom on first wheel interaction
+    if (!isZoomActive) {
+      setIsZoomActive(true);
+    }
+    
+    // Calculate which hour the mouse is over based on the calendar grid
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (!containerRect) return;
+    
+    const relativeY = e.clientY - containerRect.top;
+    const totalHeight = containerRect.height;
+    
+    // Calculate which hour the mouse is over (relative to current zoom window or full day)
+    let hourAtMouse;
+    if (isZoomActive && isActuallyZoomed) {
+      // If already zoomed, calculate relative to current zoom window
+      hourAtMouse = zoomWindow.startHour + (relativeY / totalHeight) * (zoomWindow.endHour - zoomWindow.startHour);
+    } else {
+      // If not zoomed, calculate relative to full day
+      hourAtMouse = (relativeY / totalHeight) * 24;
+    }
+    
+    // Center the new zoom window around the mouse position
+    let startHour = Math.max(0, hourAtMouse - newWindowSize / 2);
+    let endHour = Math.min(24, startHour + newWindowSize);
+    
+    // Adjust if we hit boundaries
+    if (endHour === 24) {
+      startHour = Math.max(0, 24 - newWindowSize);
+    }
+    
+    setZoomWindow(prev => ({
+      ...prev,
+      startHour,
+      endHour
+    }));
   };
 
   // Function to find which day column the mouse is over
@@ -366,10 +645,81 @@ export function CalendarGrid({
     }
   }, [events, calendars]);
 
+  // Calculate event rendering with zoom support
+  const calculateZoomedEventRendering = (
+    event: CalendarEvent,
+    day: Date,
+    slotHeight: number,
+    zIndex: number,
+    opacity: number,
+    columnIndex: number = 0,
+    totalColumns: number = 1
+  ) => {
+    if (!isZoomActive || !isActuallyZoomed) {
+      return calculateEventRendering(event, day, slotHeight, zIndex, opacity, columnIndex, totalColumns);
+    }
+
+    // For zoom mode, adjust calculations
+    const startTime = new Date(event.start_time);
+    const endTime = new Date(event.end_time);
+    
+    const eventStart = isSameDay(startTime, day) 
+      ? startTime 
+      : new Date(day.getFullYear(), day.getMonth(), day.getDate(), zoomWindow.startHour, 0, 0);
+    
+    const eventEnd = isSameDay(endTime, day) 
+      ? endTime 
+      : new Date(day.getFullYear(), day.getMonth(), day.getDate(), zoomWindow.endHour, 0, 0);
+    
+    // Calculate position relative to zoom window start
+    const zoomStartTime = new Date(day.getFullYear(), day.getMonth(), day.getDate(), zoomWindow.startHour, 0, 0);
+    const minutesFromZoomStart = differenceInMinutes(eventStart, zoomStartTime);
+    
+    // Find the smallest interval in the current time slots to calculate position accurately
+    const windowSize = zoomWindow.endHour - zoomWindow.startHour;
+    let smallestInterval = 60;
+    if (windowSize <= 2) {
+      smallestInterval = 5;
+    } else if (windowSize <= 3) {
+      smallestInterval = 5; // Preview slots are 5-minute
+    } else if (windowSize <= 4) {
+      smallestInterval = 15;
+    } else if (windowSize <= 6) {
+      smallestInterval = 15; // Preview slots are 15-minute
+    } else if (windowSize <= 8) {
+      smallestInterval = 30;
+    } else if (windowSize <= 12) {
+      smallestInterval = 30; // Preview slots are 30-minute
+    }
+    
+    const topPosition = (minutesFromZoomStart / smallestInterval) * slotHeight;
+    
+    // Calculate height based on the smallest interval
+    const durationInMinutes = differenceInMinutes(eventEnd, eventStart);
+    const height = (durationInMinutes / smallestInterval) * slotHeight;
+    
+    // Calculate width and left position for overlapping events
+    const columnWidth = 100 / totalColumns;
+    const leftPosition = columnWidth * columnIndex;
+    
+    return {
+      eventStyles: {
+        top: `${topPosition}px`,
+        height: `${height}px`,
+        width: totalColumns > 1 ? `calc(${columnWidth}% - 4px)` : 'calc(100% - 8px)',
+        left: totalColumns > 1 ? `${leftPosition}%` : '4px',
+        zIndex: zIndex,
+        opacity: opacity/100
+      },
+      startTime: eventStart,
+      endTime: eventEnd
+    };
+  };
+
   // Render a single event
   const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex: number = 10, opacity: number = 100, columnIndex: number = 0, totalColumns: number = 1) => {
-    // Use the utility function to calculate rendering details
-    const { eventStyles, startTime, endTime } = calculateEventRendering(event, day, slotHeight, zIndex, opacity, columnIndex, totalColumns);
+    // Use the zoom-aware rendering function
+    const { eventStyles, startTime, endTime } = calculateZoomedEventRendering(event, day, slotHeight, zIndex, opacity, columnIndex, totalColumns);
     
     // Check if this is a recurring event or a recurring instance
     const recurrencePattern = getRecurrencePattern(event);
@@ -461,11 +811,31 @@ export function CalendarGrid({
   };
 
   // Render events in the calendar grid
+  // Filter events based on zoom window
+  const filterEventsForZoom = (dayEvents: CalendarEvent[], day: Date): CalendarEvent[] => {
+    if (!isZoomActive || !isActuallyZoomed) return dayEvents;
+    
+    return dayEvents.filter(event => {
+      const eventStart = new Date(event.start_time);
+      const eventEnd = new Date(event.end_time);
+      
+      // Get event hours
+      const eventStartHour = eventStart.getHours() + eventStart.getMinutes() / 60;
+      const eventEndHour = eventEnd.getHours() + eventEnd.getMinutes() / 60;
+      
+      // Check if event overlaps with zoom window
+      return eventStartHour < zoomWindow.endHour && eventEndHour > zoomWindow.startHour;
+    });
+  };
+
   const renderEvents = (day: Date, dayIndex: number) => {
     // Only render timed events in the main grid
-    const dayEvents = events.filter(event => 
+    let dayEvents = events.filter(event => 
       (isSameDay(new Date(event.start_time), day) || isSameDay(new Date(event.end_time), day)) && !event.all_day
     );
+
+    // Filter events based on zoom window
+    dayEvents = filterEventsForZoom(dayEvents, day);
     
     
     if (!dayEvents.length) return null;
@@ -558,14 +928,44 @@ export function CalendarGrid({
     // Only show for current day
     if (!isSameDay(currentTime, day)) return null;
     
-    // Calculate minutes since start of day (midnight)
-    const dayStart = new Date(day);
-    dayStart.setHours(0, 0, 0, 0);
-    
-    const minutesSinceMidnight = differenceInMinutes(currentTime, dayStart);
-    
-    // Convert to position
-    return (minutesSinceMidnight / 60) * slotHeight;
+    if (isZoomActive && isActuallyZoomed) {
+      // In zoom mode, calculate position relative to zoom window
+      const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
+      
+      // Only show if current time is within zoom window
+      if (currentHour < zoomWindow.startHour || currentHour >= zoomWindow.endHour) {
+        return null;
+      }
+      
+      // Calculate position relative to zoom window start with granular intervals
+      const windowSize = zoomWindow.endHour - zoomWindow.startHour;
+      let smallestInterval = 60;
+      if (windowSize <= 2) {
+        smallestInterval = 5;
+      } else if (windowSize <= 3) {
+        smallestInterval = 5; // Preview slots are 5-minute
+      } else if (windowSize <= 4) {
+        smallestInterval = 15;
+      } else if (windowSize <= 6) {
+        smallestInterval = 15; // Preview slots are 15-minute
+      } else if (windowSize <= 8) {
+        smallestInterval = 30;
+      } else if (windowSize <= 12) {
+        smallestInterval = 30; // Preview slots are 30-minute
+      }
+      
+      const minutesFromZoomStart = (currentHour - zoomWindow.startHour) * 60;
+      return (minutesFromZoomStart / smallestInterval) * slotHeight;
+    } else {
+      // Normal mode - calculate minutes since start of day (midnight)
+      const dayStart = new Date(day);
+      dayStart.setHours(0, 0, 0, 0);
+      
+      const minutesSinceMidnight = differenceInMinutes(currentTime, dayStart);
+      
+      // Convert to position
+      return (minutesSinceMidnight / 60) * slotHeight;
+    }
   };
 
   // Render current time indicator for a day
@@ -637,9 +1037,9 @@ export function CalendarGrid({
   }
 
   return (
-    <div className="border rounded-lg shadow-sm bg-card">
+    <div className="border rounded-lg shadow-sm bg-card h-full flex flex-col overflow-hidden">
       {/* Calendar header with days of the week */}
-      <div className="grid grid-cols-[60px_1fr] border-b">
+      <div className="grid grid-cols-[60px_1fr] border-b flex-shrink-0">
         {/* Empty cell in the top-left corner for alignment */}
         <div className="border-r"></div>
         
@@ -660,7 +1060,7 @@ export function CalendarGrid({
       </div>
 
       {/* All-day events section */}
-      <div className="grid grid-cols-[60px_1fr] border-b bg-muted/30">
+      <div className="grid grid-cols-[60px_1fr] border-b bg-muted/30 flex-shrink-0">
         {/* Label for all-day section */}
         <div className="border-r px-2 py-2 text-xs text-muted-foreground text-right">
           All Day
@@ -680,29 +1080,84 @@ export function CalendarGrid({
         </div>
       </div>
       
-      {/* Calendar grid with time slots - dynamic height based on viewport */}
+      {/* Calendar grid with time slots - fits available space */}
       <div 
         ref={containerRef}
-        className="grid grid-cols-[60px_1fr] overflow-y-hidden relative"
-        style={{ height: slotHeight && timeSlots ? `${slotHeight * timeSlots.length - 1}px` : 'auto' }}
+        className="grid grid-cols-[60px_1fr] overflow-hidden relative"
+        style={{ 
+          height: calendarHeight ? `${calendarHeight}px` : '100%',
+          minHeight: calendarHeight ? `${calendarHeight}px` : '100%',
+          maxHeight: calendarHeight ? `${calendarHeight}px` : '100%',
+          flex: 'none'
+        }}
+        onWheel={handleCalendarWheel}
       >
-        {/* Time labels */}
-        <div className="border-r relative">
-          {timeSlots.map((slot, i) => (
-            <div 
-              key={`time-${slot}`}
-              className="absolute text-xs text-right pr-2 bg-background flex items-center justify-end"
-              style={{ 
-                top: `${i * slotHeight - (slotHeight / 2)}px`,
-                left: 0,
-                right: 0,
-                height: `${slotHeight}px`,
-                zIndex: 20
-              }}
-            >
-              {slot !== "00:00" ? slot : ""}
+        {/* Single Timeline - Scales based on zoom */}
+        <div 
+          ref={timelineRef}
+          className={`border-r relative ${isDraggingZoom ? 'cursor-grabbing' : isZoomActive && isActuallyZoomed ? 'cursor-grab' : ''}`}
+          onMouseEnter={handleTimelineMouseEnter}
+          onMouseLeave={handleTimelineMouseLeave}
+          onMouseDown={handleTimelineMouseDown}
+        >
+          {timeSlots.map((slot, i) => {
+            // Handle both old string format and new object format
+            const timeString = typeof slot === 'string' ? slot : slot.time;
+            const hasLabel = typeof slot === 'string' ? true : slot.hasLabel;
+            const isMain = typeof slot === 'string' ? true : slot.isMain;
+            
+            const isHourMark = timeString.endsWith(':00');
+            const isHalfHour = timeString.endsWith(':30');
+            const isQuarterHour = timeString.endsWith(':15') || timeString.endsWith(':45');
+            const isFiveMinute = !isHourMark && !isHalfHour && !isQuarterHour;
+            
+            return (
+              <div 
+                key={`time-${timeString}`}
+                className={`absolute text-xs text-right pr-2 bg-background flex items-center justify-end ${
+                  !hasLabel ? 'opacity-0' : // Hide labels for preview slots
+                  isHourMark ? 'font-medium' : 
+                  isHalfHour ? 'text-muted-foreground' :
+                  isQuarterHour ? 'text-muted-foreground/80' :
+                  'text-muted-foreground/60'
+                }`}
+                style={{ 
+                  top: `${i * slotHeight - (slotHeight / 2)}px`,
+                  left: 0,
+                  right: 0,
+                  height: `${slotHeight}px`,
+                  zIndex: 20
+                }}
+              >
+                {hasLabel && timeString !== "00:00" ? timeString : ""}
+              </div>
+            );
+          })}
+          
+          
+          {/* Drag instructions when zoomed */}
+          {isZoomActive && isActuallyZoomed && isHoveringTimeline && !isDraggingZoom && (
+            <div className="absolute top-1 right-1 text-xs text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-1 py-0.5 rounded z-30">
+              Drag to move
             </div>
-          ))}
+          )}
+          
+          {/* Zoom active indicator */}
+          {isZoomActive && isActuallyZoomed && (
+            <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-md z-30 flex items-center gap-2">
+              <span>Zoomed: {String(zoomWindow.startHour).padStart(2, '0')}:00 - {String(zoomWindow.endHour).padStart(2, '0')}:00</span>
+              <button
+                onClick={() => {
+                  setZoomWindow({ startHour: 0, endHour: 24, windowHeight: 300 });
+                  setIsZoomActive(false);
+                }}
+                className="bg-blue-700 hover:bg-blue-800 text-white text-xs px-1 py-0.5 rounded"
+                title="Clear zoom"
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
         
         {/* Days grid */}
@@ -712,20 +1167,28 @@ export function CalendarGrid({
               key={day.toString()} 
               className="relative border-r last:border-r-0 day-column"
               onClick={(e) => handleDayClick(day, e)}
-              style={{ height: `${slotHeight * timeSlots.length}px` }}
+              style={{ height: calendarHeight ? `${calendarHeight}px` : `${slotHeight * timeSlots.length}px` }}
               data-date={format(day, "yyyy-MM-dd")}
             >
               {/* Time slot lines */}
-              {timeSlots.map((slot, i) => (
-                <div 
-                  key={`slot-${day.toISOString()}-${i}`}
-                  className="absolute border-b w-full"
-                  style={{ 
-                    top: `${i * slotHeight}px`,
-                    height: `${slotHeight}px` 
-                  }}
-                />
-              ))}
+              {timeSlots.map((slot, i) => {
+                // Handle both old string format and new object format
+                const timeString = typeof slot === 'string' ? slot : slot.time;
+                const isMain = typeof slot === 'string' ? true : slot.isMain;
+                
+                return (
+                  <div 
+                    key={`slot-${day.toISOString()}-${i}`}
+                    className={`absolute border-b w-full ${
+                      isMain ? 'border-border' : 'border-border/30'
+                    }`}
+                    style={{ 
+                      top: `${i * slotHeight}px`,
+                      height: `${slotHeight}px` 
+                    }}
+                  />
+                );
+              })}
               
               {/* Current time indicator line */}
               {renderCurrentTimeLine(day)}
