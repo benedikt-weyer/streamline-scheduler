@@ -77,3 +77,69 @@ export function getTasksThatWouldBecomeReady(completedTaskId: string, allTasks: 
   // (i.e., tasks that are currently blocked only by this task)
   return blockedTasks.filter(task => isTaskActuallyBlocked(task, allTasks));
 }
+
+/**
+ * Gets all tasks that are blocking a specific task, including recursive blocking
+ * Returns an array of tasks in the order they need to be completed (deepest dependencies first)
+ */
+export function getAllBlockingTasks(taskId: string, allTasks: CanDoItemDecrypted[], visited: Set<string> = new Set()): CanDoItemDecrypted[] {
+  // Prevent infinite recursion
+  if (visited.has(taskId)) {
+    return [];
+  }
+  visited.add(taskId);
+
+  const task = allTasks.find(t => t.id === taskId);
+  if (!task || !task.blocked_by || task.completed) {
+    return [];
+  }
+
+  const blockingTask = allTasks.find(t => t.id === task.blocked_by);
+  if (!blockingTask) {
+    return [];
+  }
+
+  // If blocking task is already completed, no need to include it
+  if (blockingTask.completed) {
+    return [];
+  }
+
+  // Recursively get tasks blocking the blocking task
+  const recursiveBlocking = getAllBlockingTasks(blockingTask.id, allTasks, visited);
+  
+  // Return all blocking tasks with the current blocking task at the end
+  return [...recursiveBlocking, blockingTask];
+}
+
+/**
+ * Gets all tasks that need to be completed to unblock a specific task
+ * This includes the task itself and all its recursive blocking dependencies
+ */
+export function getTaskCompletionChain(taskId: string, allTasks: CanDoItemDecrypted[]): CanDoItemDecrypted[] {
+  const task = allTasks.find(t => t.id === taskId);
+  if (!task) {
+    return [];
+  }
+
+  const blockingTasks = getAllBlockingTasks(taskId, allTasks);
+  
+  // Return blocking tasks first, then the target task
+  return [...blockingTasks, task];
+}
+
+/**
+ * Checks if there are any circular dependencies in the blocking relationships
+ */
+export function hasCircularDependency(taskId: string, allTasks: CanDoItemDecrypted[], visited: Set<string> = new Set()): boolean {
+  if (visited.has(taskId)) {
+    return true; // Circular dependency detected
+  }
+
+  const task = allTasks.find(t => t.id === taskId);
+  if (!task || !task.blocked_by) {
+    return false;
+  }
+
+  visited.add(taskId);
+  return hasCircularDependency(task.blocked_by, allTasks, visited);
+}

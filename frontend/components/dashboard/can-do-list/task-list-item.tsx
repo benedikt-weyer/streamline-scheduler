@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Edit, Trash2, Clock, Zap, Calendar, Copy, Shield, AlertCircle, Lock, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 import EditTaskDialog from './edit-task-dialog';
+import BlockedTaskCompletionModal from './blocked-task-completion-modal';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { useSortable } from '@dnd-kit/sortable';
@@ -29,6 +30,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+  const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
 
   // Only enable sorting for active (non-completed) tasks
   const {
@@ -76,6 +78,19 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     setIsEditDialogOpen(false);
   };
 
+  const handleCompleteTaskChain = async (taskIds: string[]) => {
+    try {
+      // Complete all tasks in the chain
+      for (const taskId of taskIds) {
+        await onToggleComplete(taskId, true);
+      }
+      toast.success(`Completed ${taskIds.length} task${taskIds.length === 1 ? '' : 's'}`);
+    } catch (error) {
+      console.error('Error completing task chain:', error);
+      toast.error('Failed to complete tasks');
+    }
+  };
+
   // Check if task is blocked and find the blocking task
   const isBlocked = task.blocked_by && !task.completed && isTaskActuallyBlocked(task, tasks);
   const isUnblocked = task.blocked_by && !task.completed && isTaskUnblocked(task, tasks);
@@ -87,6 +102,12 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
 
   const handleToggleCompleteClick = async () => {
     if (!task.completed) {
+      // Check if task is blocked before completing
+      if (isBlocked) {
+        setIsBlockedModalOpen(true);
+        return;
+      }
+      
       // If marking as complete, trigger animation first
       setIsAnimatingOut(true);
       // Wait for animation to complete, then actually toggle
@@ -385,6 +406,15 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
         isLoading={isUpdating}
         projects={projects}
         tasks={tasks}
+      />
+
+      <BlockedTaskCompletionModal
+        isOpen={isBlockedModalOpen}
+        onClose={() => setIsBlockedModalOpen(false)}
+        task={task}
+        allTasks={tasks}
+        projects={projects}
+        onCompleteChain={handleCompleteTaskChain}
       />
     </>
   );
