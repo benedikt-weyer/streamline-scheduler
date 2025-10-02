@@ -33,24 +33,31 @@ import { DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
+import { parseDurationInput, formatDurationInput } from '@/utils/can-do-list/duration-input-parser';
 
 // Predefined duration options in minutes
 const PREDEFINED_DURATIONS = [
-  { label: '15 min', value: 15 },
-  { label: '30 min', value: 30 },
-  { label: '1 hour', value: 60 },
-  { label: '3 hours', value: 180 },
+  { label: '5m', value: 5 },
+  { label: '10m', value: 10 },
+  { label: '15m', value: 15 },
+  { label: '30m', value: 30 },
+  { label: '45m', value: 45 },
+  { label: '1h', value: 60 },
+  { label: '2h', value: 120 },
+  { label: '3h', value: 180 },
 ] as const;
 
 // Define schema for edit task validation
 const editTaskSchema = z.object({
   content: z.string().min(1, { message: "Task content is required" }),
   estimatedDuration: z
-    .union([
-      z.string().regex(/^\d*$/, { message: 'Must be a number' }),
-      z.number().int().min(0).optional()
-    ])
-    .optional(),
+    .string()
+    .optional()
+    .refine((val) => {
+      if (!val || val.trim() === '') return true;
+      const parsed = parseDurationInput(val);
+      return parsed.isValid;
+    }, { message: 'Invalid format. Use formats like: 2h, 2h30, 2h40m, 40m, or 120' }),
   projectId: z.string().optional(),
   impact: z.number().int().min(0).max(10).optional(),
   urgency: z.number().int().min(0).max(10).optional(),
@@ -97,7 +104,7 @@ export default function EditTaskDialog({
     if (task && isOpen) {
       form.reset({
         content: task.content || '',
-        estimatedDuration: task.duration_minutes?.toString() ?? '',
+        estimatedDuration: formatDurationInput(task.duration_minutes),
         projectId: task.project_id ?? '',
         impact: task.impact ?? 0,
         urgency: task.urgency ?? 0,
@@ -110,7 +117,7 @@ export default function EditTaskDialog({
 
   const onSubmit = async (values: EditTaskFormValues) => {
     if (!task) return;
-    const duration = values.estimatedDuration ? Number(values.estimatedDuration) : undefined;
+    const duration = values.estimatedDuration ? parseDurationInput(values.estimatedDuration).minutes || undefined : undefined;
     const impact = values.impact;
     const urgency = values.urgency;
     const dueDate = values.dueDate ? new Date(values.dueDate + 'T00:00:00.000Z') : undefined;
@@ -177,7 +184,7 @@ export default function EditTaskDialog({
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="estimatedDuration">Estimated Duration (min)</Label>
+            <Label htmlFor="estimatedDuration">Estimated Duration</Label>
             <div className="space-y-3">
               {/* Predefined duration buttons */}
               <div className="flex flex-wrap gap-2">
@@ -188,7 +195,7 @@ export default function EditTaskDialog({
                     variant="outline"
                     size="sm"
                     disabled={isLoading}
-                    onClick={() => form.setValue('estimatedDuration', duration.value.toString())}
+                    onClick={() => form.setValue('estimatedDuration', formatDurationInput(duration.value))}
                     className="text-xs"
                   >
                     {duration.label}
@@ -198,9 +205,8 @@ export default function EditTaskDialog({
               {/* Custom duration input */}
               <Input
                 id="estimatedDuration"
-                type="number"
-                min="0"
-                placeholder="Custom duration..."
+                type="text"
+                placeholder="e.g. 2h, 2h30, 2h40m, 40m, or 120"
                 disabled={isLoading}
                 {...form.register('estimatedDuration')}
               />
