@@ -13,6 +13,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from '@/utils/can-do-list/priority-utils';
 import { formatDueDate, getDueDateColorClass } from '@/utils/can-do-list/due-date-utils';
+import { isTaskActuallyBlocked, isTaskUnblocked } from '@/utils/can-do-list/task-blocking-utils';
 
 interface TaskListItemProps {
   readonly task: CanDoItemDecrypted;
@@ -76,8 +77,9 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   };
 
   // Check if task is blocked and find the blocking task
-  const isBlocked = task.blocked_by && !task.completed;
-  const blockingTask = isBlocked ? tasks.find(t => t.id === task.blocked_by) : null;
+  const isBlocked = task.blocked_by && !task.completed && isTaskActuallyBlocked(task, tasks);
+  const isUnblocked = task.blocked_by && !task.completed && isTaskUnblocked(task, tasks);
+  const blockingTask = task.blocked_by ? tasks.find(t => t.id === task.blocked_by) : null;
 
   // Check if task is blocking other tasks and find the blocked tasks
   const blockedTasks = tasks.filter(t => t.blocked_by === task.id && !t.completed);
@@ -136,7 +138,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
         className={`flex rounded-md border task-transition ${
           !task.completed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
         } ${
-          task.completed ? 'bg-muted' : isBlocked ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50' : ''
+          task.completed ? 'bg-muted' : isBlocked ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50' : isUnblocked ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50' : ''
         } ${
           isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
         } ${
@@ -173,6 +175,12 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
                 <Shield className="h-4 w-4 text-red-500 dark:text-red-400" />
               </div>
             )}
+            {/* Show unblocked indicator on the same line for mobile */}
+            {isUnblocked && (
+              <div className="md:hidden flex items-center">
+                <Shield className="h-4 w-4 text-green-500 dark:text-green-400" />
+              </div>
+            )}
             {/* Show blocking indicator on the same line for mobile */}
             {isBlocking && (
               <div className="md:hidden flex items-center">
@@ -182,12 +190,18 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           </div>
           
           {/* Badges row - only show on mobile when there are badges */}
-          {(task.duration_minutes || task.due_date || isBlocked || isBlocking) && (
+          {(task.duration_minutes || task.due_date || isBlocked || isUnblocked || isBlocking) && (
             <div className="md:hidden flex items-center space-x-1 pl-12 pr-3 pb-3">
               {isBlocked && (
                 <span className="text-xs text-red-800 dark:text-red-200 bg-red-100 dark:bg-red-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
                   <Shield className="h-3 w-3" />
                   Blocked{blockingTask ? ` by "${blockingTask.content.substring(0, 20)}${blockingTask.content.length > 20 ? '...' : ''}"` : ''}
+                </span>
+              )}
+              {isUnblocked && (
+                <span className="text-xs text-green-800 dark:text-green-200 bg-green-100 dark:bg-green-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
+                  <Shield className="h-3 w-3" />
+                  Unblocked{blockingTask ? ` (was blocked by "${blockingTask.content.substring(0, 15)}${blockingTask.content.length > 15 ? '...' : ''}")` : ''}
                 </span>
               )}
               {isBlocking && (
@@ -254,6 +268,12 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
               <span className="ml-2 text-xs text-red-800 dark:text-red-200 bg-red-100 dark:bg-red-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
                 <Shield className="h-3 w-3" />
                 Blocked{blockingTask ? ` by "${blockingTask.content.substring(0, 15)}${blockingTask.content.length > 15 ? '...' : ''}"` : ''}
+              </span>
+            )}
+            {isUnblocked && (
+              <span className="ml-2 text-xs text-green-800 dark:text-green-200 bg-green-100 dark:bg-green-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                Unblocked{blockingTask ? ` (was blocked by "${blockingTask.content.substring(0, 12)}${blockingTask.content.length > 12 ? '...' : ''}")` : ''}
               </span>
             )}
             {isBlocking && (
