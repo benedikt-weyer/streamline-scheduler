@@ -420,13 +420,35 @@ export function CalendarGrid({
       // Calculate new position
       const columnMouseOverRect = columnMouseIsCurrentlyOver.getBoundingClientRect();
       
+      // Calculate zoom parameters for drag positioning
+      const windowSize = zoomWindow.endHour - zoomWindow.startHour;
+      let smallestInterval = 60;
+      if (windowSize <= 2) {
+        smallestInterval = 5;
+      } else if (windowSize <= 3) {
+        smallestInterval = 5; // Preview slots are 5-minute
+      } else if (windowSize <= 4) {
+        smallestInterval = 15;
+      } else if (windowSize <= 6) {
+        smallestInterval = 15; // Preview slots are 15-minute
+      } else if (windowSize <= 8) {
+        smallestInterval = 30;
+      } else if (windowSize <= 12) {
+        smallestInterval = 30; // Preview slots are 30-minute
+      }
+
+      const zoomStartHour = isZoomActive && isActuallyZoomed ? zoomWindow.startHour : 0;
+      const zoomIntervalMinutes = isZoomActive && isActuallyZoomed ? smallestInterval : 60;
+
       // Calculate the new drag position using the utility function
       const result = calculateDraggingEventDateTime(
         e.clientY,
         columnMouseOverRect, 
         activeEvent, 
         slotHeight,
-        targetDay
+        targetDay,
+        zoomStartHour,
+        zoomIntervalMinutes
       );
       
       // Update the visual position state
@@ -461,13 +483,35 @@ export function CalendarGrid({
       // Calculate new position
       const columnMouseOverRect = columnMouseIsCurrentlyOver.getBoundingClientRect();
       
+      // Calculate zoom parameters for drag positioning
+      const windowSize = zoomWindow.endHour - zoomWindow.startHour;
+      let smallestInterval = 60;
+      if (windowSize <= 2) {
+        smallestInterval = 5;
+      } else if (windowSize <= 3) {
+        smallestInterval = 5; // Preview slots are 5-minute
+      } else if (windowSize <= 4) {
+        smallestInterval = 15;
+      } else if (windowSize <= 6) {
+        smallestInterval = 15; // Preview slots are 15-minute
+      } else if (windowSize <= 8) {
+        smallestInterval = 30;
+      } else if (windowSize <= 12) {
+        smallestInterval = 30; // Preview slots are 30-minute
+      }
+
+      const zoomStartHour = isZoomActive && isActuallyZoomed ? zoomWindow.startHour : 0;
+      const zoomIntervalMinutes = isZoomActive && isActuallyZoomed ? smallestInterval : 60;
+
       // Calculate the new drag position using the utility function
       const result = calculateDraggingEventDateTime(
         e.clientY,
         columnMouseOverRect, 
         activeEvent, 
         slotHeight,
-        targetDay
+        targetDay,
+        zoomStartHour,
+        zoomIntervalMinutes
       );
       
       // Create updated event

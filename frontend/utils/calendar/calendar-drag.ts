@@ -29,7 +29,9 @@ export const calculateDraggingEventDateTime = (
   columnMouseOverRect: DOMRect, 
   activeEvent: DraggedEvent,
   slotHeight: number,
-  currentlyHoveringDay: Date
+  currentlyHoveringDay: Date,
+  zoomStartHour: number = 0,
+  zoomIntervalMinutes: number = 60
 ): DragPosition => {
 
   // Calculate the relative Y position of the mouse within the column
@@ -45,11 +47,14 @@ export const calculateDraggingEventDateTime = (
     relativeYSnapped = columnMouseOverRect.height - (activeEvent.mode === DragMode.Move ? activeEvent.offsetY : 0);
   }
   
-  // Calculate minutes from top position
-  const totalMinutes = (relativeYSnapped / slotHeight) * 60;
+  // Calculate minutes from top position, accounting for zoom offset
+  const totalMinutesFromTop = (relativeYSnapped / slotHeight) * zoomIntervalMinutes;
+  
+  // Add the zoom start hour offset (convert to minutes)
+  const totalMinutesFromMidnight = totalMinutesFromTop + (zoomStartHour * 60);
   
   // Round minutes to nearest 15-minute interval for better usability
-  const snappedMinutes = Math.round(totalMinutes / 15) * 15;
+  const snappedMinutes = Math.round(totalMinutesFromMidnight / 15) * 15;
   
   // Calculate hours and minutes components
   const hours = snappedMinutes >= 0 ? Math.floor(snappedMinutes / 60) : Math.ceil(snappedMinutes / 60);
