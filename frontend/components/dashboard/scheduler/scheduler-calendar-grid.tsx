@@ -20,7 +20,7 @@ interface SchedulerCalendarGridProps {
   readonly calendars?: { id: string; color: string; name: string; is_visible: boolean }[];
   readonly openEditDialog: (event: CalendarEvent) => void;
   readonly openNewEventDialog: (day: Date, isAllDay?: boolean) => void;
-  readonly onEventUpdate?: (updatedEvent: CalendarEvent) => void;
+  readonly onEventUpdate?: (updatedEvent: CalendarEvent) => Promise<boolean> | void;
   readonly activeTask?: { id: string; content: string; estimatedDuration?: number } | null;
 }
 
@@ -34,6 +34,7 @@ export function SchedulerCalendarGrid({
   activeTask
 }: SchedulerCalendarGridProps) {
   const timeSlots = generateTimeSlots();
+  const [calendarHeight, setCalendarHeight] = useState<number | null>(null);
   const [slotHeight, setSlotHeight] = useState(35);
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -89,17 +90,67 @@ export function SchedulerCalendarGrid({
     return () => clearInterval(interval);
   }, []);
 
-  // Calculate calendar height based on window size
+  // Calculate calendar height based on available container space
   useEffect(() => {
-    const calculateCalendarHeightAndSlotSize = () => {
-      const { slotHeight: newSlotHeight } = calculateCalendarDimensions(timeSlots.length);
-      setSlotHeight(newSlotHeight);
-    };
-    
+    // Calculate on initial render
     calculateCalendarHeightAndSlotSize();
+    
+    // Recalculate on window resize
     window.addEventListener('resize', calculateCalendarHeightAndSlotSize);
+    
+    // Clean up event listener
     return () => window.removeEventListener('resize', calculateCalendarHeightAndSlotSize);
   }, [timeSlots.length]);
+
+  // Recalculate when container size changes
+  useEffect(() => {
+    if (containerRef.current) {
+      const resizeObserver = new ResizeObserver(() => {
+        calculateCalendarHeightAndSlotSize();
+      });
+      
+      resizeObserver.observe(containerRef.current.parentElement || containerRef.current);
+      
+      return () => resizeObserver.disconnect();
+    }
+  }, []);
+
+  // Extracted function to calculate calendar height and slot size
+  const calculateCalendarHeightAndSlotSize = () => {
+    // Use viewport height minus navbar and buffer for external elements
+    const viewportHeight = window.innerHeight;
+    const navbarHeight = 64; // h-16 = 64px
+    const externalBufferHeight = 80; // Buffer for calendar header, sidebar padding, etc.
+    
+    let availableHeight = viewportHeight - navbarHeight - externalBufferHeight;
+    
+    // Subtract the height of day headers and all-day sections that are part of our calendar grid
+    const gridContainer = containerRef.current;
+    if (gridContainer) {
+      const dayHeadersElement = gridContainer.parentElement?.querySelector('.grid.border-b.flex-shrink-0');
+      const allDayElement = gridContainer.parentElement?.querySelector('.grid.border-b.bg-muted\\/30');
+      
+      if (dayHeadersElement) {
+        availableHeight -= dayHeadersElement.getBoundingClientRect().height;
+      }
+      if (allDayElement) {
+        availableHeight -= allDayElement.getBoundingClientRect().height;
+      }
+    }
+    
+    // Calculate slot height to use the remaining available height
+    const exactSlotHeight = availableHeight / timeSlots.length;
+    
+    // Ensure minimum slot height for readability
+    const minSlotHeight = 25;
+    const calculatedSlotHeight = Math.max(minSlotHeight, exactSlotHeight);
+    
+    // Use the calculated height for just the time grid portion
+    const newHeight = calculatedSlotHeight * timeSlots.length;
+    
+    setCalendarHeight(newHeight);
+    setSlotHeight(calculatedSlotHeight);
+  };
 
   // Helper function to find day column at mouse position
   const findDayColumnAtPosition = (clientX: number): Element | null => {
@@ -169,7 +220,9 @@ export function SchedulerCalendarGrid({
         columnMouseOverRect, 
         activeEvent, 
         slotHeight,
-        targetDay
+        targetDay,
+        0, // zoomStartHour - scheduler doesn't use zoom
+        60 // zoomIntervalMinutes - standard hourly intervals
       );
       
       // Update the visual position state
@@ -206,9 +259,11 @@ export function SchedulerCalendarGrid({
       const result = calculateDraggingEventDateTime(
         e.clientY,
         columnMouseOverRect, 
-        activeEvent, 
+        activeEvent,
         slotHeight,
-        targetDay
+        targetDay,
+        0, // zoomStartHour - scheduler doesn't use zoom
+        60 // zoomIntervalMinutes - standard hourly intervals
       );
       
       // Create updated event
@@ -220,7 +275,24 @@ export function SchedulerCalendarGrid({
       };
       
       // Update the event
-      onEventUpdate(updatedEvent);
+      if (onEventUpdate) {
+        console.log('Updating event:', updatedEvent);
+        const result = onEventUpdate(updatedEvent);
+        // Handle both sync and async onEventUpdate functions
+        if (result && typeof result.then === 'function') {
+          result
+            .then((success) => {
+              console.log('Event update result:', success);
+              if (!success) {
+                console.error('Event update returned false - update failed');
+              }
+            })
+            .catch((error) => {
+              console.error('Failed to update event:', error);
+              // Optionally show error to user
+            });
+        }
+      }
     };
 
     // Clean up function
@@ -620,10 +692,13 @@ export function SchedulerCalendarGrid({
   };
 
   return (
-    <div className="border rounded-lg shadow-sm bg-card">
-      {/* Calendar header */}
-      <div className="grid grid-cols-[60px_1fr] border-b">
+    <div className="border rounded-lg shadow-sm bg-card h-full flex flex-col overflow-hidden">
+      {/* Calendar header with days of the week */}
+      <div className="grid grid-cols-[60px_1fr] border-b flex-shrink-0">
+        {/* Empty cell in the top-left corner for alignment */}
         <div className="border-r"></div>
+        
+        {/* Days of the week */}
         <div className="grid grid-cols-7">
           {days.map(day => (
             <div 
@@ -638,17 +713,20 @@ export function SchedulerCalendarGrid({
           ))}
         </div>
       </div>
-      
+
       {/* All-day events section */}
-      <div className="grid grid-cols-[60px_1fr] border-b">
-        <div className="border-r p-2 text-xs text-muted-foreground text-right">
-          All day
+      <div className="grid grid-cols-[60px_1fr] border-b bg-muted/30 flex-shrink-0">
+        {/* Label for all-day section */}
+        <div className="border-r px-2 py-2 text-xs text-muted-foreground text-right">
+          All Day
         </div>
+        
+        {/* All-day events for each day */}
         <div className="grid grid-cols-7">
           {days.map(day => (
             <div 
               key={`allday-${day.toString()}`}
-              className="border-r last:border-r-0 p-2 min-h-[40px]"
+              className="px-2 py-2 border-r last:border-r-0 min-h-[40px] cursor-pointer hover:bg-muted/50 transition-colors"
               onClick={(e) => {
                 // Check if click was on an existing event
                 const target = e.target as HTMLElement;
@@ -664,14 +742,22 @@ export function SchedulerCalendarGrid({
         </div>
       </div>
       
-      {/* Calendar grid */}
+      {/* Calendar grid with time slots - fits available space */}
       <div 
         ref={containerRef}
-        className="grid grid-cols-[60px_1fr] overflow-y-auto relative"
-        style={{ height: `${slotHeight * timeSlots.length}px` }}
+        className="grid grid-cols-[60px_1fr] overflow-hidden relative"
+        style={{ 
+          height: calendarHeight ? `${calendarHeight}px` : '100%',
+          minHeight: calendarHeight ? `${calendarHeight}px` : '100%',
+          maxHeight: calendarHeight ? `${calendarHeight}px` : '100%',
+          flex: 'none'
+        }}
       >
         {/* Time labels */}
-        <div className="border-r relative">
+        <div 
+          className="border-r relative"
+          style={{ height: calendarHeight ? `${calendarHeight}px` : `${slotHeight * timeSlots.length}px` }}
+        >
           {timeSlots.map((slot, i) => (
             <div 
               key={`time-${slot}`}
@@ -696,7 +782,7 @@ export function SchedulerCalendarGrid({
               key={day.toString()} 
               className="relative border-r last:border-r-0 day-column"
               onClick={(e) => handleDayClick(day, e)}
-              style={{ height: `${slotHeight * timeSlots.length}px` }}
+              style={{ height: calendarHeight ? `${calendarHeight}px` : `${slotHeight * timeSlots.length}px` }}
               data-date={format(day, "yyyy-MM-dd")}
             >
               {/* Time slot lines */}

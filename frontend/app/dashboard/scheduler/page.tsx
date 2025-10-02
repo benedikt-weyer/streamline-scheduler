@@ -297,21 +297,34 @@ function SchedulerPageContent() {
   }, [schedulerPageService, setError]);
 
   const onEventUpdate = useCallback(async (updatedEvent: CalendarEvent): Promise<boolean> => {
-    if (!schedulerPageService) return false;
+    if (!schedulerPageService) {
+      console.error('No scheduler page service available');
+      return false;
+    }
     
     try {
-      const eventWithUpdates = await schedulerPageService.updateEvent(updatedEvent.id, {
+      console.log('Scheduler onEventUpdate called with:', updatedEvent);
+      const updateData = {
         title: updatedEvent.title,
         description: updatedEvent.description,
         location: updatedEvent.location,
+        calendarId: updatedEvent.calendar_id, // IMPORTANT: Include calendar_id
         startTime: new Date(updatedEvent.start_time),
         endTime: new Date(updatedEvent.end_time),
         isAllDay: updatedEvent.all_day
-      });
+      };
+      console.log('Sending update data to service:', updateData);
+      const eventWithUpdates = await schedulerPageService.updateEvent(updatedEvent.id, updateData);
       
-      setCalendarEvents(prev => prev.map(event => event.id === updatedEvent.id ? eventWithUpdates : event));
+      console.log('Event updated successfully:', eventWithUpdates);
+      setCalendarEvents(prev => {
+        const updated = prev.map(event => event.id === updatedEvent.id ? eventWithUpdates : event);
+        console.log('Updated calendar events:', updated);
+        return updated;
+      });
       return true;
     } catch (error) {
+      console.error('Error updating event:', error);
       setError('Failed to update event');
       return false;
     }
@@ -771,7 +784,7 @@ function SchedulerPageContent() {
           </div>
 
           {/* Calendar - Desktop */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 h-full overflow-hidden">
             <SchedulerCalendar
               events={[...calendarEvents, ...icsEvents]}
               calendars={calendars}
@@ -814,8 +827,10 @@ function SchedulerPageContent() {
 
 export default function SchedulerPage() {
   return (
-    <ErrorProvider>
-      <SchedulerPageContent />
-    </ErrorProvider>
+    <div className="fixed top-16 left-0 right-0 bottom-0 overflow-hidden">
+      <ErrorProvider>
+        <SchedulerPageContent />
+      </ErrorProvider>
+    </div>
   );
 } 

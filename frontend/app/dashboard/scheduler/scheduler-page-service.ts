@@ -276,6 +276,7 @@ export class SchedulerPageService {
     title?: string;
     description?: string;
     location?: string;
+    calendarId?: string;
     startTime?: Date;
     endTime?: Date;
     isAllDay?: boolean;
@@ -284,6 +285,7 @@ export class SchedulerPageService {
       title: updates.title,
       description: updates.description,
       location: updates.location,
+      calendarId: updates.calendarId,
       startTime: updates.startTime,
       endTime: updates.endTime,
       isAllDay: updates.isAllDay

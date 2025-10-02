@@ -111,12 +111,16 @@ export class CalendarEventsService {
     recurrenceException?: string[];
   }): Promise<CalendarEvent> {
     try {
+      console.log('updateCalendarEvent called with updates:', updates);
+      console.log('updates.calendarId:', updates.calendarId);
+      console.log('updates.calendarId !== undefined:', updates.calendarId !== undefined);
+      
       const updateData: UpdateCalendarEventDecryptedRequest = {
         id,
         ...(updates.title !== undefined && { title: updates.title.trim() }),
         ...(updates.description !== undefined && { description: updates.description.trim() }),
         ...(updates.location !== undefined && { location: updates.location.trim() }),
-        ...(updates.calendarId && { calendar_id: updates.calendarId }),
+        ...(updates.calendarId !== undefined && { calendar_id: updates.calendarId }),
         ...(updates.startTime && { 
           start_time: updates.startTime instanceof Date ? 
             updates.startTime.toISOString() : 
@@ -132,7 +136,9 @@ export class CalendarEventsService {
         ...(updates.recurrenceException && { recurrence_exception: updates.recurrenceException }),
       };
 
+      console.log('CalendarEventsService updateData:', updateData);
       const { data: updatedEvent } = await this.backend.calendarEvents.update(updateData);
+      console.log('Backend returned updated event:', updatedEvent);
       
       if (!updatedEvent) {
         throw new Error('Event update failed - no data returned');
