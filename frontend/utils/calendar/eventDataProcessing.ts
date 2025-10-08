@@ -1,5 +1,6 @@
 import { CalendarEvent, Calendar, RecurrencePattern, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { isValid } from 'date-fns';
+import { parseRRULEUntilDate } from './ics-parser';
 
 /**
  * Parse an RFC 5545 RRULE string into a RecurrencePattern
@@ -38,7 +39,7 @@ const parseRRULE = (rrule: string): RecurrencePattern | null => {
   const pattern: RecurrencePattern = {
     frequency,
     interval: ruleData.INTERVAL ? parseInt(ruleData.INTERVAL, 10) : 1,
-    endDate: ruleData.UNTIL ? new Date(ruleData.UNTIL) : undefined,
+    endDate: ruleData.UNTIL ? parseRRULEUntilDate(ruleData.UNTIL) || undefined : undefined,
     daysOfWeek: ruleData.BYDAY ? ruleData.BYDAY.split(',').map(day => {
       // Convert RRULE day names to day numbers (0=Sunday)
       const dayMap: Record<string, number> = {

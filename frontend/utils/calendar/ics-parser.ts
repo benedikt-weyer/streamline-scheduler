@@ -9,6 +9,10 @@ interface ICSEvent {
   uid: string;
   created?: string;
   'last-modified'?: string;
+  dtstamp?: string;
+  rrule?: string;
+  categories?: string;
+  url?: string;
   isAllDay?: boolean; // Track if this is an all-day event
 }
 
@@ -81,6 +85,18 @@ export function parseICSData(icsData: string, calendarId: string): CalendarEvent
             case 'last-modified':
               currentEvent['last-modified'] = value;
               break;
+            case 'dtstamp':
+              currentEvent.dtstamp = value;
+              break;
+            case 'rrule':
+              currentEvent.rrule = value;
+              break;
+            case 'categories':
+              currentEvent.categories = value;
+              break;
+            case 'url':
+              currentEvent.url = value;
+              break;
             default:
               // Handle DTSTART and DTEND with timezone info
               if (key.startsWith('dtstart')) {
@@ -89,11 +105,27 @@ export function parseICSData(icsData: string, calendarId: string): CalendarEvent
                 if (key.includes('value=date')) {
                   currentEvent.isAllDay = true;
                 }
+                // Store timezone info if present (e.g., DTSTART;TZID=Europe/Berlin)
+                if (key.includes('tzid=')) {
+                  // Extract timezone from the key and store it with the datetime value
+                  const timezoneMatch = key.match(/tzid=([^;]+)/i);
+                  if (timezoneMatch) {
+                    currentEvent.dtstart = `${value}|${timezoneMatch[1]}`;
+                  }
+                }
               } else if (key.startsWith('dtend')) {
                 currentEvent.dtend = value;
                 // Check if it's a date-only format (VALUE=DATE)
                 if (key.includes('value=date')) {
                   currentEvent.isAllDay = true;
+                }
+                // Store timezone info if present (e.g., DTEND;TZID=Europe/Berlin)
+                if (key.includes('tzid=')) {
+                  // Extract timezone from the key and store it with the datetime value
+                  const timezoneMatch = key.match(/tzid=([^;]+)/i);
+                  if (timezoneMatch) {
+                    currentEvent.dtend = `${value}|${timezoneMatch[1]}`;
+                  }
                 }
               }
               break;
@@ -146,6 +178,7 @@ function convertICSEventToCalendarEvent(icsEvent: ICSEvent, calendarId: string):
       end_time: endTime.toISOString(),
       all_day: isAllDay,
       calendar_id: calendarId,
+      recurrence_rule: icsEvent.rrule || undefined,
       created_at: icsEvent.created ? parseICSDateTime(icsEvent.created)?.toISOString() || new Date().toISOString() : new Date().toISOString(),
       updated_at: icsEvent['last-modified'] ? parseICSDateTime(icsEvent['last-modified'])?.toISOString() || new Date().toISOString() : new Date().toISOString(),
       user_id: '',
@@ -163,8 +196,18 @@ function convertICSEventToCalendarEvent(icsEvent: ICSEvent, calendarId: string):
  */
 function parseICSDateTime(dateTimeString: string): Date | null {
   try {
-    // Remove timezone info for now (basic implementation)
-    const cleanDateTime = dateTimeString.replace(/TZID=.*?:/, '');
+    let cleanDateTime = dateTimeString;
+    let timezone = null;
+    
+    // Check if timezone info is embedded (format: "datetime|timezone")
+    if (dateTimeString.includes('|')) {
+      const parts = dateTimeString.split('|');
+      cleanDateTime = parts[0];
+      timezone = parts[1];
+    } else {
+      // Remove timezone info from the original format (TZID=...)
+      cleanDateTime = dateTimeString.replace(/TZID=.*?:/, '');
+    }
     
     // Handle different date formats
     if (cleanDateTime.includes('T')) {
@@ -172,7 +215,16 @@ function parseICSDateTime(dateTimeString: string): Date | null {
       const match = cleanDateTime.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
       if (match) {
         const [, year, month, day, hour, minute, second] = match;
-        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+        
+        // TODO: Proper timezone handling would require a timezone library like date-fns-tz
+        // For now, we assume local time or UTC if 'Z' suffix is present
+        if (cleanDateTime.endsWith('Z')) {
+          // UTC time
+          return new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second)));
+        }
+        
+        return date;
       }
     } else {
       // Date only: YYYYMMDD
@@ -196,6 +248,30 @@ function parseICSDateTime(dateTimeString: string): Date | null {
 function isDateOnlyFormat(dateTimeString: string): boolean {
   // Check if it's exactly 8 digits (YYYYMMDD) without time component
   return /^\d{8}$/.test(dateTimeString);
+}
+
+/**
+ * Parse UNTIL date from RRULE (can be in YYYYMMDD or YYYYMMDDTHHMMSS format)
+ * Export this function so it can be used by other modules
+ */
+export function parseRRULEUntilDate(untilString: string): Date | null {
+  try {
+    // Handle YYYYMMDDTHHMMSS format (with time)
+    if (untilString.includes('T')) {
+      return parseICSDateTime(untilString);
+    }
+    
+    // Handle YYYYMMDD format (date only)
+    if (/^\d{8}$/.test(untilString)) {
+      return parseICSDateTime(untilString);
+    }
+    
+    // Fallback to standard Date parsing
+    return new Date(untilString);
+  } catch (error) {
+    console.error('Error parsing RRULE UNTIL date:', untilString, error);
+    return null;
+  }
 }
 
 /**
@@ -253,4 +329,31 @@ export async function fetchAndParseICSCalendar(url: string, calendarId: string):
     console.error('Error fetching and parsing ICS calendar:', error);
     throw error;
   }
+}
+
+/**
+ * Test function to demonstrate parsing of the provided VEVENT example
+ * This function can be removed after testing
+ */
+export function testVEVENTParsing(): CalendarEvent[] {
+  const testICSData = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:Test Calendar
+BEGIN:VEVENT
+DTSTAMP:20251008T150549Z
+DTSTART;TZID=Europe/Berlin:20250415T100000
+DTEND;TZID=Europe/Berlin:20250415T150000
+SUMMARY:1INF-WP_TWBP.LV Technik von Webbrowsern Praktikum
+DESCRIPTION:TI BA: WP im Department Informatik
+LAST-MODIFIED:20241121T130021Z
+UID:ce7248c9-ae74-41ac-bbb2-f9257511ad21
+RRULE:FREQ=WEEKLY;UNTIL=20250729T150000;INTERVAL=1;BYDAY=TU
+CATEGORIES:Laborpraktikum oder Laborübung
+URL:https://myhaw.haw-hamburg.de:443/qisserver/pages/startFlow.xhtml?_flowId=detailView-flow&unitId=35875&periodId=211
+END:VEVENT
+END:VCALENDAR`;
+
+  const events = parseICSData(testICSData, 'test-calendar-id');
+  console.log('Parsed events:', events);
+  return events;
 } 
