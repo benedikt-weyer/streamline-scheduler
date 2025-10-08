@@ -207,9 +207,6 @@ export async function fetchICSCalendar(url: string): Promise<string> {
     // Fetch directly from the ICS URL (requires CORS support)
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Accept': 'text/calendar, application/ics, text/plain',
-      },
       // Add a reasonable timeout
       signal: AbortSignal.timeout(30000) // 30 second timeout
     });
