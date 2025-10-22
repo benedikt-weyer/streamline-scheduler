@@ -6,11 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { ProjectDecrypted, CanDoItemDecrypted } from '@/utils/api/types';
 import { DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
 import { getRecommendedTasks } from '@/utils/can-do-list/recommendation-utils';
-import { Plus, Folder, FolderOpen, Star, List, Sun } from 'lucide-react';
+import { Plus, Folder, FolderOpen, Star, List, Sun, Search, X } from 'lucide-react';
 import AddProjectDialog from '../add-project-dialog';
 import EditProjectDialog from '../edit-project-dialog';
 import { SortableTree, TreeItems } from 'dnd-kit-sortable-tree';
 import ProjectTreeItem from './project-tree-item';
+import { Input } from '@/components/ui/input';
+import Fuse from 'fuse.js';
 
 interface ProjectSidebarProps {
   readonly projects: ProjectDecrypted[];
@@ -69,6 +71,7 @@ export default function ProjectSidebarWithDragDrop({
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectDecrypted | null>(null);
   const [selectedParentForAdd, setSelectedParentForAdd] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleAddProject = async (name: string, color: string, parentId?: string) => {
     const success = await onAddProject(name, color, parentId ?? selectedParentForAdd);
@@ -104,6 +107,47 @@ export default function ProjectSidebarWithDragDrop({
     setIsAddDialogOpen(true);
   };
 
+  // Helper function to build hierarchical project name for search
+  const buildProjectPath = (projectId: string, projectsMap: Map<string, ProjectDecrypted>): string => {
+    const path: string[] = [];
+    let currentProject = projectsMap.get(projectId);
+    
+    while (currentProject) {
+      path.unshift(currentProject.name);
+      currentProject = currentProject.parent_id ? projectsMap.get(currentProject.parent_id) : undefined;
+    }
+    
+    return path.join('/');
+  };
+
+  // Fuzzy search logic
+  const filteredProjects = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return projects;
+    }
+
+    const projectsMap = new Map(projects.map(p => [p.id, p]));
+    
+    // Create search items with hierarchical names
+    const searchItems = projects.map(project => ({
+      ...project,
+      hierarchicalName: buildProjectPath(project.id, projectsMap)
+    }));
+
+    // Configure Fuse for fuzzy search
+    const fuse = new Fuse(searchItems, {
+      keys: [
+        { name: 'name', weight: 0.7 },
+        { name: 'hierarchicalName', weight: 0.3 }
+      ],
+      threshold: 0.4, // Lower = more strict matching
+      includeScore: true
+    });
+
+    const results = fuse.search(searchQuery);
+    return results.map(result => result.item);
+  }, [projects, searchQuery]);
+
   // Convert projects to tree items format
   const treeItems: TreeItems<TreeItemData> = useMemo(() => {
     
@@ -112,9 +156,27 @@ export default function ProjectSidebarWithDragDrop({
     const createEditHandler = (project: ProjectDecrypted) => () => setEditingProject(project);
     const createAddChildHandler = (projectId: string) => () => openAddDialogForParent(projectId);
 
-    // Build tree structure
+    // When searching, show flat list of matching projects with hierarchical names
+    if (searchQuery.trim()) {
+      const projectsMap = new Map(projects.map(p => [p.id, p]));
+      
+      return filteredProjects.map(project => ({
+        id: project.id,
+        name: buildProjectPath(project.id, projectsMap), // Show full path when searching
+        color: project.color || '#6b7280',
+        count: itemCounts[project.id] || 0,
+        isSelected: selectedProjectId === project.id,
+        onSelect: createSelectHandler(project.id),
+        onEdit: createEditHandler(project),
+        onAddChild: createAddChildHandler(project.id),
+        children: [], // Flat list when searching
+        collapsed: false
+      }));
+    }
+
+    // Build tree structure for normal view
     const buildTree = (parentId?: string): TreeItems<TreeItemData> => {
-      const filteredProjects = projects
+      const projectsToFilter = filteredProjects
         .filter(p => {
           // Normalize null and undefined to be equivalent for comparison
           const projectParentId = p.parent_id ?? undefined;
@@ -124,7 +186,7 @@ export default function ProjectSidebarWithDragDrop({
         .sort((a, b) => a.order - b.order);
       
       
-      return filteredProjects.map(project => ({
+      return projectsToFilter.map(project => ({
         id: project.id,
         name: project.name,
         color: project.color || '#6b7280',
@@ -140,7 +202,7 @@ export default function ProjectSidebarWithDragDrop({
 
     const result = buildTree();
     return result;
-  }, [projects, itemCounts, selectedProjectId, onProjectSelect]);
+  }, [filteredProjects, itemCounts, selectedProjectId, onProjectSelect, searchQuery]);
 
   // Handle tree items change from drag and drop or collapse/expand
   const handleItemsChanged = async (newItems: TreeItems<TreeItemData>) => {
@@ -216,7 +278,7 @@ export default function ProjectSidebarWithDragDrop({
   return (
     <div className="bg-muted/30 border-r border-border h-full flex flex-col">
       <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
             Projects
           </h2>
@@ -230,12 +292,38 @@ export default function ProjectSidebarWithDragDrop({
             <span className="sr-only">Add Project</span>
           </Button>
         </div>
+        
+        {/* Search Input */}
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search projects..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-7 pr-8 h-8 text-xs"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
+            >
+              <X className="h-3 w-3" />
+              <span className="sr-only">Clear search</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-2">
-          {/* My Day */}
-          <button
+          {/* Show special sections only when not searching */}
+          {!searchQuery.trim() && (
+            <>
+              {/* My Day */}
+              <button
             onClick={onMyDaySelect}
             className={`w-full flex items-center justify-between p-2 text-left rounded-md transition-colors my-2 ${
               isMyDaySelected
@@ -318,24 +406,42 @@ export default function ProjectSidebarWithDragDrop({
             )}
           </button>
 
-          {/* Divider between task overviews and projects */}
-          {projects.length > 0 && (
-            <div className="border-t border-foreground/10 mx-4 h-4" />
+              {/* Divider between task overviews and projects */}
+              {projects.length > 0 && (
+                <div className="border-t border-foreground/10 mx-4 h-4" />
+              )}
+            </>
           )}
 
-          {/* Draggable Project Tree */}
+          {/* Project Tree - Draggable when not searching, static when searching */}
           <div className="space-y-1">
-            <SortableTree
-              items={treeItems}
-              onItemsChanged={handleItemsChanged}
-              TreeItemComponent={ProjectTreeItem}
-              indentationWidth={16}
-              pointerSensorOptions={{
-                activationConstraint: {
-                  distance: 8
-                }
-              }}
-            />
+            {searchQuery.trim() ? (
+              // Static list when searching
+              <div className="space-y-1">
+                {treeItems.map((item) => (
+                  <ProjectTreeItem
+                    key={item.id}
+                    item={item}
+                    depth={0}
+                    isOver={false}
+                    isDragging={false}
+                  />
+                ))}
+              </div>
+            ) : (
+              // Draggable tree when not searching
+              <SortableTree
+                items={treeItems}
+                onItemsChanged={handleItemsChanged}
+                TreeItemComponent={ProjectTreeItem}
+                indentationWidth={16}
+                pointerSensorOptions={{
+                  activationConstraint: {
+                    distance: 8
+                  }
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
