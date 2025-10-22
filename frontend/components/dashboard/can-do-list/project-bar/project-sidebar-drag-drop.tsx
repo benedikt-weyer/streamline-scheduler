@@ -11,6 +11,7 @@ import AddProjectDialog from '../add-project-dialog';
 import EditProjectDialog from '../edit-project-dialog';
 import { SortableTree, TreeItems } from 'dnd-kit-sortable-tree';
 import ProjectTreeItem from './project-tree-item';
+import ProjectListItem from './project-list-item';
 import { Input } from '@/components/ui/input';
 import Fuse from 'fuse.js';
 
@@ -418,15 +419,34 @@ export default function ProjectSidebarWithDragDrop({
             {searchQuery.trim() ? (
               // Static list when searching
               <div className="space-y-1">
-                {treeItems.map((item) => (
-                  <ProjectTreeItem
-                    key={item.id}
-                    item={item}
-                    depth={0}
-                    isOver={false}
-                    isDragging={false}
-                  />
-                ))}
+                {treeItems.map((item) => {
+                  // Convert tree item to ProjectNode format
+                  const projectNode = {
+                    id: item.id,
+                    name: item.name,
+                    color: item.color,
+                    parent_id: undefined, // Search results are flattened
+                    order: 0,
+                    created_at: '',
+                    updated_at: '',
+                    user_id: '',
+                    collapsed: item.collapsed || false,
+                    children: [],
+                    level: 0
+                  };
+                  
+                  return (
+                    <ProjectListItem
+                      key={item.id}
+                      projectNode={projectNode}
+                      isSelected={item.isSelected}
+                      itemCount={item.count}
+                      onProjectSelect={(projectId) => item.onSelect()}
+                      onEditProject={() => item.onEdit()}
+                      onAddSubproject={() => item.onAddChild()}
+                    />
+                  );
+                })}
               </div>
             ) : (
               // Draggable tree when not searching
