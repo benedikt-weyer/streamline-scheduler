@@ -659,7 +659,12 @@ export function CalendarEventDialog({
                       <FormItem>
                         <FormLabel>Recurrence End Date</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} disabled={isReadOnly} />
+                          <DatePicker 
+                            value={field.value} 
+                            onChange={field.onChange} 
+                            disabled={isReadOnly}
+                            placeholder="Select end date"
+                          />
                         </FormControl>
                       </FormItem>
                     )}
