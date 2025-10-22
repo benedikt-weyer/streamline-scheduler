@@ -12,7 +12,7 @@ interface AddTaskFormValues {
 
 interface AddTaskFormProps {
   readonly form: UseFormReturn<{ content: string }>;
-  readonly onSubmit: (values: { content: string; projectId?: string }) => Promise<void>;
+  readonly onSubmit: (values: { content: string; projectId?: string; myDay?: boolean }) => Promise<void>;
   readonly isLoading: boolean;
   readonly projects?: { id: string; name: string; }[];
 }
@@ -24,18 +24,22 @@ export default function AddTaskForm({ form, onSubmit, isLoading, projects = [] }
     // Combine content with tags for submission
     let submissionContent = (values.content || '').trim();
     let selectedProjectId: string | undefined;
+    let isMyDay: boolean = false;
     
-    // Add tag information back as hashtags for the backend and extract project ID
+    // Add tag information back as hashtags for the backend and extract project ID and My Day status
     tags.forEach(tag => {
       if (tag.type === 'project') {
         selectedProjectId = tag.projectId;
         // Don't add project tags to content as they're handled separately
+      } else if (tag.type === 'my-day') {
+        isMyDay = tag.myDay || false;
+        // Don't add my-day tags to content as they're handled separately
       } else {
         submissionContent += ` ${tag.text}`;
       }
     });
     
-    await onSubmit({ content: submissionContent, projectId: selectedProjectId });
+    await onSubmit({ content: submissionContent, projectId: selectedProjectId, myDay: isMyDay });
     
     // Clear tags after successful submission
     setTags([]);
@@ -53,7 +57,7 @@ export default function AddTaskForm({ form, onSubmit, isLoading, projects = [] }
                 <FormControl>
                   <TaggedInput
                     {...field}
-                    placeholder="Add a new task... (type # to see options, #pro for projects)"
+                    placeholder="Add a new task... (type # to see options, #pro for projects, #day for My Day)"
                     disabled={isLoading}
                     tags={tags}
                     onTagsChange={setTags}

@@ -4,7 +4,7 @@ import { useState, useRef, forwardRef, useImperativeHandle, useEffect, useMemo }
 import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { X, Clock, Info, Zap, Calendar, Folder } from 'lucide-react';
+import { X, Clock, Info, Zap, Calendar, Folder, Sun } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
 
 export interface Tag {
@@ -17,7 +17,8 @@ export interface Tag {
   projectId?: string; // for project tags
   projectName?: string; // for project tags
   projectColor?: string; // for project tags
-  type: 'duration' | 'priority' | 'due-date' | 'project' | 'custom'; // extensible for different tag types
+  myDay?: boolean; // for my day tags
+  type: 'duration' | 'priority' | 'due-date' | 'project' | 'my-day' | 'custom'; // extensible for different tag types
 }
 
 interface TaggedInputProps {
@@ -41,7 +42,7 @@ export interface TagSuggestion {
   id: string;
   text: string;
   description?: string;
-  type: 'duration' | 'priority' | 'due-date' | 'project' | 'custom';
+  type: 'duration' | 'priority' | 'due-date' | 'project' | 'my-day' | 'custom';
   duration?: number; // for duration suggestions
   impact?: number; // for priority suggestions
   urgency?: number; // for priority suggestions
@@ -49,6 +50,7 @@ export interface TagSuggestion {
   projectId?: string; // for project suggestions
   projectName?: string; // for project suggestions
   projectColor?: string; // for project suggestions
+  myDay?: boolean; // for my day suggestions
 }
 
 export interface TaggedInputRef {
@@ -98,6 +100,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       { id: 'help-priority', text: '#p...', description: 'Priority tags - #p5, #i7, #u3, #i7u3', type: 'custom' },
       { id: 'help-due-date', text: '#due...', description: 'Due date tags - #due2024-12-25, #duetoday, #duetomorrow', type: 'custom' },
       { id: 'help-project', text: '#pro', description: 'Project selection - fuzzy search your projects', type: 'custom' },
+      { id: 'help-my-day', text: '#day', description: 'Add to My Day - #day', type: 'custom' },
       { id: 'help-custom', text: '#...', description: 'Custom tags - #urgent, #meeting, #personal', type: 'custom' },
       
       // Common duration tags
@@ -127,6 +130,9 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       { id: 'due-today', text: '#duetoday', description: 'Due today', type: 'due-date', dueDate: new Date() },
       { id: 'due-tomorrow', text: '#duetomorrow', description: 'Due tomorrow', type: 'due-date', dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000) },
       { id: 'due-week', text: '#dueweek', description: 'Due in 1 week', type: 'due-date', dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+      
+      // My Day tag
+      { id: 'my-day', text: '#day', description: 'Add to My Day', type: 'my-day', myDay: true },
     ], []);
 
     // Helper function to build hierarchical project name
@@ -317,10 +323,11 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         projectId: suggestion.projectId,
         projectName: suggestion.projectName,
         projectColor: suggestion.projectColor,
+        myDay: suggestion.myDay,
         type: suggestion.type
       };
       
-      // Update tags state - override existing duration/priority/due-date/project tag if it's a duration/priority/due-date/project type
+      // Update tags state - override existing duration/priority/due-date/project/my-day tag if it's a duration/priority/due-date/project/my-day type
       setTags(prev => {
         if (suggestion.type === 'duration') {
           const filteredTags = prev.filter(tag => tag.type !== 'duration');
@@ -333,6 +340,9 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
           return [...filteredTags, newTag];
         } else if (suggestion.type === 'project') {
           const filteredTags = prev.filter(tag => tag.type !== 'project');
+          return [...filteredTags, newTag];
+        } else if (suggestion.type === 'my-day') {
+          const filteredTags = prev.filter(tag => tag.type !== 'my-day');
           return [...filteredTags, newTag];
         } else {
           return [...prev, newTag];
@@ -753,6 +763,48 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
           return;
         }
       }
+
+      // Check for my day hashtag
+      const myDayRegex = /#day/i;
+      const myDayMatch = myDayRegex.exec(lastWord);
+      
+      if (myDayMatch) {
+        const hashtagText = myDayMatch[0]; // The full hashtag match (e.g., "#day")
+        
+        e.preventDefault();
+        
+        // Create a new my day tag
+        const newTag: Tag = {
+          id: Date.now().toString(),
+          text: hashtagText,
+          myDay: true,
+          type: 'my-day'
+        };
+        
+        // Update tags state - override existing my day tag
+        setTags(prev => {
+          // Remove any existing my day tags and add the new one
+          const filteredTags = prev.filter(tag => tag.type !== 'my-day');
+          return [...filteredTags, newTag];
+        });
+        
+        // Remove only the hashtag portion from the input and add a space
+        const hashtagStartPos = cursorPosition - lastWord.length + lastWord.indexOf(hashtagText);
+        const beforeHashtag = currentValue.slice(0, hashtagStartPos);
+        const afterCursor = currentValue.slice(cursorPosition);
+        const newValue = beforeHashtag + ' ' + afterCursor;
+        setValue(newValue);
+        
+        // Focus the input and set cursor position
+        setTimeout(() => {
+          if (inputRef.current) {
+            const newCursorPos = hashtagStartPos + 1;
+            inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+            inputRef.current.focus();
+          }
+        }, 0);
+        return;
+      }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -842,6 +894,9 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                       <Folder className="h-3 w-3 text-muted-foreground" />
                     </div>
                   )}
+                  {!suggestion.id.startsWith('help-') && suggestion.type === 'my-day' && (
+                    <Sun className="h-3 w-3 text-amber-500" />
+                  )}
                   <span className={cn(
                     "font-mono text-sm",
                     suggestion.id.startsWith('help-') && "text-muted-foreground font-normal"
@@ -914,6 +969,8 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                   return formatDueDate(tag.dueDate!);
                 } else if (tag.type === 'project') {
                   return tag.projectName || tag.text;
+                } else if (tag.type === 'my-day') {
+                  return 'My Day';
                 }
                 return tag.text;
               };
@@ -938,6 +995,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                       <Folder className="h-3 w-3" />
                     </div>
                   )}
+                  {tag.type === 'my-day' && <Sun className="h-3 w-3 text-amber-500" />}
                   {getTagDisplayText()}
                   <button
                     type="button"

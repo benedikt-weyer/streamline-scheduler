@@ -308,7 +308,7 @@ export default function CanDoListMain() {
   }, [tasks, projects]);
 
   // Add a new task using react-hook-form
-  const onSubmit = async (values: { content: string; projectId?: string }) => {
+  const onSubmit = async (values: { content: string; projectId?: string; myDay?: boolean }) => {
     // Parse duration hashtags from content
     const parsedDuration = parseDurationFromContent(values.content);
     // Parse priority hashtags from content  
@@ -325,7 +325,9 @@ export default function CanDoListMain() {
       projectId,
       parsedPriority.impact,
       parsedPriority.urgency,
-      parsedDueDate.dueDate
+      parsedDueDate.dueDate,
+      undefined, // blockedBy
+      values.myDay // myDay
     );
     if (success) {
       form.reset();

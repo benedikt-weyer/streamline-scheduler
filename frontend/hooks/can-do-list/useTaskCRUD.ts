@@ -23,7 +23,7 @@ export const useTaskCRUD = (
 ) => {
   const { setError } = useError();
 
-  const handleAddTask = useCallback(async (content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string): Promise<boolean> => {
+  const handleAddTask = useCallback(async (content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean): Promise<boolean> => {
     try {
       const userId = getCurrentUserId();
       if (!userId) {
@@ -41,7 +41,8 @@ export const useTaskCRUD = (
         completed: false,
         due_date: dueDate?.toISOString(),
         duration_minutes: estimatedDuration,
-        display_order: 0
+        display_order: 0,
+        my_day: myDay || false
       };
 
       const newTask = await addTask(taskData);
