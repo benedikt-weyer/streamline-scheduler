@@ -42,7 +42,9 @@ export const useTaskCRUD = (
         due_date: dueDate?.toISOString(),
         duration_minutes: estimatedDuration,
         display_order: 0,
-        my_day: myDay || false
+        my_day: myDay || false,
+        impact: impact,
+        urgency: urgency
       };
 
       const newTask = await addTask(taskData);
