@@ -308,7 +308,7 @@ export default function CanDoListMain() {
   }, [tasks, projects]);
 
   // Add a new task using react-hook-form
-  const onSubmit = async (values: AddTaskFormValues) => {
+  const onSubmit = async (values: { content: string; projectId?: string }) => {
     // Parse duration hashtags from content
     const parsedDuration = parseDurationFromContent(values.content);
     // Parse priority hashtags from content  
@@ -316,10 +316,13 @@ export default function CanDoListMain() {
     // Parse due date hashtags from content
     const parsedDueDate = parseDueDateFromContent(parsedPriority.content);
     
+    // Use project from tag if provided, otherwise use selected project
+    const projectId = values.projectId || selectedProjectId;
+    
     const success = await handleAddTask(
       parsedDueDate.content, 
       parsedDuration.duration, 
-      selectedProjectId,
+      projectId,
       parsedPriority.impact,
       parsedPriority.urgency,
       parsedDueDate.dueDate
@@ -438,6 +441,7 @@ export default function CanDoListMain() {
                         form={form} 
                         onSubmit={onSubmit} 
                         isLoading={isLoading} 
+                        projects={projects.map(p => ({ id: p.id, name: p.name, color: p.color, parent_id: p.parent_id }))}
                       />
                     )}
 
@@ -689,6 +693,7 @@ export default function CanDoListMain() {
                         form={form} 
                         onSubmit={onSubmit} 
                         isLoading={isLoading} 
+                        projects={projects.map(p => ({ id: p.id, name: p.name, color: p.color, parent_id: p.parent_id }))}
                       />
                     )}
 

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, forwardRef, useImperativeHandle, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { X, Clock, Info, Zap, Calendar } from 'lucide-react';
+import { X, Clock, Info, Zap, Calendar, Folder } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
 
 export interface Tag {
@@ -13,7 +14,10 @@ export interface Tag {
   impact?: number; // 1-10, for priority tags
   urgency?: number; // 1-10, for priority tags
   dueDate?: Date; // for due date tags
-  type: 'duration' | 'priority' | 'due-date' | 'custom'; // extensible for different tag types
+  projectId?: string; // for project tags
+  projectName?: string; // for project tags
+  projectColor?: string; // for project tags
+  type: 'duration' | 'priority' | 'due-date' | 'project' | 'custom'; // extensible for different tag types
 }
 
 interface TaggedInputProps {
@@ -26,6 +30,7 @@ interface TaggedInputProps {
   tags?: Tag[];
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   availableTagSuggestions?: TagSuggestion[];
+  projects?: { id: string; name: string; color?: string; parent_id?: string; }[]; // for project suggestions
   autoComplete?: string;
   autoCorrect?: 'on' | 'off';
   autoCapitalize?: 'off' | 'none' | 'on' | 'sentences' | 'words' | 'characters';
@@ -36,11 +41,14 @@ export interface TagSuggestion {
   id: string;
   text: string;
   description?: string;
-  type: 'duration' | 'priority' | 'due-date' | 'custom';
+  type: 'duration' | 'priority' | 'due-date' | 'project' | 'custom';
   duration?: number; // for duration suggestions
   impact?: number; // for priority suggestions
   urgency?: number; // for priority suggestions
   dueDate?: Date; // for due date suggestions
+  projectId?: string; // for project suggestions
+  projectName?: string; // for project suggestions
+  projectColor?: string; // for project suggestions
 }
 
 export interface TaggedInputRef {
@@ -63,6 +71,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
     tags: externalTags,
     onKeyDown: externalOnKeyDown,
     availableTagSuggestions = [],
+    projects = [],
     ...props 
   }, ref) => {
     const [internalTags, setInternalTags] = useState<Tag[]>([]);
@@ -70,6 +79,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
     const [showDropdown, setShowDropdown] = useState(false);
     const [filteredSuggestions, setFilteredSuggestions] = useState<TagSuggestion[]>([]);
     const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+    const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     
@@ -87,6 +97,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       { id: 'help-duration', text: '#d...', description: 'Duration tags - #d15m, #d1h, #d2h30m', type: 'custom' },
       { id: 'help-priority', text: '#p...', description: 'Priority tags - #p5, #i7, #u3, #i7u3', type: 'custom' },
       { id: 'help-due-date', text: '#due...', description: 'Due date tags - #due2024-12-25, #duetoday, #duetomorrow', type: 'custom' },
+      { id: 'help-project', text: '#pro', description: 'Project selection - fuzzy search your projects', type: 'custom' },
       { id: 'help-custom', text: '#...', description: 'Custom tags - #urgent, #meeting, #personal', type: 'custom' },
       
       // Common duration tags
@@ -118,15 +129,58 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       { id: 'due-week', text: '#dueweek', description: 'Due in 1 week', type: 'due-date', dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
     ], []);
 
+    // Helper function to build hierarchical project name
+    const buildProjectPath = (projectId: string, projectsMap: Map<string, typeof projects[0]>): string => {
+      const path: string[] = [];
+      let currentProject = projectsMap.get(projectId);
+      
+      while (currentProject) {
+        path.unshift(currentProject.name);
+        currentProject = currentProject.parent_id ? projectsMap.get(currentProject.parent_id) : undefined;
+      }
+      
+      return path.join('/');
+    };
+
+    // Generate project suggestions from available projects
+    const projectSuggestions: TagSuggestion[] = useMemo(() => {
+      const projectsMap = new Map(projects.map(p => [p.id, p]));
+      
+      return projects.map(project => {
+        const hierarchicalName = buildProjectPath(project.id, projectsMap);
+        return {
+          id: `project-${project.id}`,
+          text: `#pro ${hierarchicalName}`,
+          description: hierarchicalName,
+          type: 'project' as const,
+          projectId: project.id,
+          projectName: hierarchicalName,
+          projectColor: project.color || '#6b7280'
+        };
+      });
+    }, [projects]);
+
     // Update allSuggestionsRef when needed to avoid infinite re-renders
     // Always ensure the ref has the current suggestions
-    const currentSuggestionsKey = JSON.stringify(availableTagSuggestions);
+    const currentSuggestionsKey = JSON.stringify(availableTagSuggestions) + JSON.stringify(projectSuggestions);
     const prevSuggestionsKey = JSON.stringify(prevAvailableTagSuggestionsRef.current);
     
     if (prevSuggestionsKey !== currentSuggestionsKey || allSuggestionsRef.current.length === 0) {
       prevAvailableTagSuggestionsRef.current = availableTagSuggestions;
-      allSuggestionsRef.current = [...defaultSuggestions, ...availableTagSuggestions];
+      allSuggestionsRef.current = [...defaultSuggestions, ...projectSuggestions, ...availableTagSuggestions];
     }
+
+    // Calculate dropdown position
+    const updateDropdownPosition = () => {
+      if (inputRef.current) {
+        const rect = inputRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width
+        });
+      }
+    };
 
     // Update dropdown state when input changes
     useEffect(() => {
@@ -134,6 +188,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         setShowDropdown(false);
         setFilteredSuggestions([]);
         setSelectedSuggestionIndex(-1);
+        setDropdownPosition(null);
         return;
       }
       
@@ -156,10 +211,47 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       
       // If it's just a hashtag, show all suggestions (overview)
       if (lastWord === '#') {
+        updateDropdownPosition();
         setShowDropdown(true);
         setFilteredSuggestions(currentSuggestions);
         setSelectedSuggestionIndex(-1);
         return;
+      }
+      
+      // Special handling for #pro - show project search
+      if (lastWord.toLowerCase().startsWith('#pro')) {
+        const searchTerm = lastWord.slice(4).trim(); // Remove '#pro' and trim
+        
+        if (searchTerm === '') {
+          // Show all projects when just '#pro' is typed
+          const projectSugs = currentSuggestions.filter(s => s.type === 'project');
+          if (projectSugs.length > 0) {
+            updateDropdownPosition();
+            setShowDropdown(true);
+            setFilteredSuggestions(projectSugs);
+            setSelectedSuggestionIndex(-1);
+          } else {
+            setShowDropdown(false);
+          }
+          return;
+        } else {
+          // Fuzzy search projects - search both project name and description (hierarchical path)
+          const projectSugs = currentSuggestions.filter(s => s.type === 'project');
+          const fuzzyFiltered = projectSugs.filter(suggestion => 
+            suggestion.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            suggestion.description?.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+          
+          if (fuzzyFiltered.length > 0) {
+            updateDropdownPosition();
+            setShowDropdown(true);
+            setFilteredSuggestions(fuzzyFiltered);
+            setSelectedSuggestionIndex(-1);
+          } else {
+            setShowDropdown(false);
+          }
+          return;
+        }
       }
       
       // Filter suggestions based on what the user typed
@@ -167,9 +259,14 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         suggestion.text.toLowerCase().startsWith(lastWord.toLowerCase())
       );
       
-      setShowDropdown(filtered.length > 0);
-      setFilteredSuggestions(filtered);
-      setSelectedSuggestionIndex(-1);
+      if (filtered.length > 0) {
+        updateDropdownPosition();
+        setShowDropdown(true);
+        setFilteredSuggestions(filtered);
+        setSelectedSuggestionIndex(-1);
+      } else {
+        setShowDropdown(false);
+      }
     }, [inputValue, disabled]); // Only depend on inputValue and disabled
 
     // Handle clicks outside dropdown to close it
@@ -212,15 +309,18 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       // Create the tag
       const newTag: Tag = {
         id: Date.now().toString(),
-        text: suggestion.text,
+        text: suggestion.type === 'project' ? `#pro ${suggestion.projectName}` : suggestion.text,
         duration: suggestion.duration,
         impact: suggestion.impact,
         urgency: suggestion.urgency,
         dueDate: suggestion.dueDate,
+        projectId: suggestion.projectId,
+        projectName: suggestion.projectName,
+        projectColor: suggestion.projectColor,
         type: suggestion.type
       };
       
-      // Update tags state - override existing duration/priority/due-date tag if it's a duration/priority/due-date type
+      // Update tags state - override existing duration/priority/due-date/project tag if it's a duration/priority/due-date/project type
       setTags(prev => {
         if (suggestion.type === 'duration') {
           const filteredTags = prev.filter(tag => tag.type !== 'duration');
@@ -230,6 +330,9 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
           return [...filteredTags, newTag];
         } else if (suggestion.type === 'due-date') {
           const filteredTags = prev.filter(tag => tag.type !== 'due-date');
+          return [...filteredTags, newTag];
+        } else if (suggestion.type === 'project') {
+          const filteredTags = prev.filter(tag => tag.type !== 'project');
           return [...filteredTags, newTag];
         } else {
           return [...prev, newTag];
@@ -698,11 +801,17 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
           spellCheck="false"
         />
         
-        {/* Dropdown suggestions */}
-        {showDropdown && filteredSuggestions.length > 0 && (
+        {/* Dropdown suggestions - rendered as portal */}
+        {showDropdown && filteredSuggestions.length > 0 && dropdownPosition && typeof window !== 'undefined' && createPortal(
           <div
             ref={dropdownRef}
-            className="absolute top-full left-0 right-0 z-50 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
+            className="fixed z-[99999] bg-popover border border-border rounded-md shadow-xl max-h-48 overflow-y-auto"
+            style={{ 
+              top: dropdownPosition.top + 4,
+              left: dropdownPosition.left,
+              width: dropdownPosition.width,
+              zIndex: 99999 
+            }}
           >
             {filteredSuggestions.map((suggestion, index) => (
               <div
@@ -724,6 +833,15 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                   {!suggestion.id.startsWith('help-') && suggestion.type === 'due-date' && (
                     <Calendar className="h-3 w-3 text-muted-foreground" />
                   )}
+                  {!suggestion.id.startsWith('help-') && suggestion.type === 'project' && (
+                    <div className="flex items-center gap-1">
+                      <div 
+                        className="h-3 w-3 rounded-full border border-gray-300"
+                        style={{ backgroundColor: suggestion.projectColor || '#6b7280' }}
+                      />
+                      <Folder className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  )}
                   <span className={cn(
                     "font-mono text-sm",
                     suggestion.id.startsWith('help-') && "text-muted-foreground font-normal"
@@ -741,7 +859,8 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                 )}
               </div>
             ))}
-          </div>
+          </div>,
+          document.body
         )}
         
         {/* Tags display - reserved space at bottom */}
@@ -793,6 +912,8 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                   return `P${priority}`;
                 } else if (tag.type === 'due-date') {
                   return formatDueDate(tag.dueDate!);
+                } else if (tag.type === 'project') {
+                  return tag.projectName || tag.text;
                 }
                 return tag.text;
               };
@@ -808,6 +929,15 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
                   {tag.type === 'duration' && <Clock className="h-3 w-3" />}
                   {tag.type === 'priority' && <Zap className="h-3 w-3" />}
                   {tag.type === 'due-date' && <Calendar className="h-3 w-3" />}
+                  {tag.type === 'project' && (
+                    <div className="flex items-center gap-1">
+                      <div 
+                        className="h-3 w-3 rounded-full border border-gray-300"
+                        style={{ backgroundColor: tag.projectColor || '#6b7280' }}
+                      />
+                      <Folder className="h-3 w-3" />
+                    </div>
+                  )}
                   {getTagDisplayText()}
                   <button
                     type="button"

@@ -12,23 +12,30 @@ interface AddTaskFormValues {
 
 interface AddTaskFormProps {
   readonly form: UseFormReturn<{ content: string }>;
-  readonly onSubmit: (values: { content: string }) => Promise<void>;
+  readonly onSubmit: (values: { content: string; projectId?: string }) => Promise<void>;
   readonly isLoading: boolean;
+  readonly projects?: { id: string; name: string; }[];
 }
 
-export default function AddTaskForm({ form, onSubmit, isLoading }: AddTaskFormProps) {
+export default function AddTaskForm({ form, onSubmit, isLoading, projects = [] }: AddTaskFormProps) {
   const [tags, setTags] = useState<Tag[]>([]);
 
   const handleSubmit = async (values: AddTaskFormValues) => {
     // Combine content with tags for submission
     let submissionContent = (values.content || '').trim();
+    let selectedProjectId: string | undefined;
     
-    // Add tag information back as hashtags for the backend
+    // Add tag information back as hashtags for the backend and extract project ID
     tags.forEach(tag => {
-      submissionContent += ` ${tag.text}`;
+      if (tag.type === 'project') {
+        selectedProjectId = tag.projectId;
+        // Don't add project tags to content as they're handled separately
+      } else {
+        submissionContent += ` ${tag.text}`;
+      }
     });
     
-    await onSubmit({ content: submissionContent });
+    await onSubmit({ content: submissionContent, projectId: selectedProjectId });
     
     // Clear tags after successful submission
     setTags([]);
@@ -46,10 +53,11 @@ export default function AddTaskForm({ form, onSubmit, isLoading }: AddTaskFormPr
                 <FormControl>
                   <TaggedInput
                     {...field}
-                    placeholder="Add a new task... (type # to see duration options)"
+                    placeholder="Add a new task... (type # to see options, #pro for projects)"
                     disabled={isLoading}
                     tags={tags}
                     onTagsChange={setTags}
+                    projects={projects}
                     autoComplete='off'
                     autoCapitalize='off'
                     autoCorrect='off'
