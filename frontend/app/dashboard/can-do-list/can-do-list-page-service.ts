@@ -50,25 +50,11 @@ export class CanDoListPageService {
     myDay?: boolean
   ): Promise<{ task: CanDoItemDecrypted; shouldRefreshProjects: boolean }> {
     try {
-      // Ensure we have a default project if none specified
+      // Use the provided projectId as-is
+      // If projectId is undefined/null, the task will be created in the inbox (without a project)
+      // Only create a default project if explicitly needed by other parts of the system
       let finalProjectId = projectId;
       let shouldRefreshProjects = false;
-      
-      if (!finalProjectId) {
-        try {
-          const defaultProject = await this.projectService.getDefaultProject();
-          if (!defaultProject) {
-            const newDefaultProject = await this.projectService.ensureDefaultProject();
-            finalProjectId = newDefaultProject.id;
-            shouldRefreshProjects = true;
-          } else {
-            finalProjectId = defaultProject.id;
-          }
-        } catch (error) {
-          // Continue without project if default creation fails
-          console.warn('Failed to ensure default project:', error);
-        }
-      }
 
       const taskData: CreateCanDoItemDecryptedRequest = {
         content,
