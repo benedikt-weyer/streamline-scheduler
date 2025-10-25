@@ -64,7 +64,7 @@ function CanDoListContent() {
     const backend = getDecryptedBackend();
     
     // Subscribe to can-do list changes
-    const canDoSubscription = backend.canDoItems.subscribe((payload: RealtimeMessage<CanDoItemDecrypted>) => {
+    const canDoSubscription = backend.canDoList.subscribe((payload: RealtimeMessage<CanDoItemDecrypted>) => {
       console.log('Can-do item websocket message:', payload);
       
       switch (payload.eventType) {
