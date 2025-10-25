@@ -222,13 +222,6 @@ export class CanDoListPageService {
 
       const project = await this.projectService.createProject(projectData);
       
-      // Check if this is the first project (should be set as default)
-      const allProjects = await this.projectService.getProjects();
-      if (allProjects.length === 1) {
-        const updatedProject = await this.projectService.setDefaultProject(project.id);
-        return { project: updatedProject, shouldRefreshTasks: false };
-      }
-      
       return { project, shouldRefreshTasks: false };
     } catch (error) {
       console.error('Failed to create project:', error);
