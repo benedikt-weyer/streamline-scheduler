@@ -59,7 +59,7 @@ export class CanDoListPageService {
       const taskData: CreateCanDoItemDecryptedRequest = {
         content,
         completed: false,
-        due_date: dueDate,
+        due_date: dueDate ? dueDate.toISOString() : undefined,
         impact,
         urgency,
         duration_minutes: duration,
@@ -100,7 +100,7 @@ export class CanDoListPageService {
         ...(projectId !== undefined && { project_id: projectId }),
         ...(impact !== undefined && { impact }),
         ...(urgency !== undefined && { urgency }),
-        ...(dueDate !== undefined && { due_date: dueDate }),
+        ...(dueDate !== undefined && { due_date: dueDate ? dueDate.toISOString() : undefined }),
         ...(blockedBy !== undefined && { blocked_by: blockedBy }),
         ...(myDay !== undefined && { my_day: myDay }),
       };
