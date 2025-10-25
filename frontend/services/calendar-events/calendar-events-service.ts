@@ -1013,9 +1013,11 @@ export class CalendarEventsService {
         all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
         recurrence_rule: JSON.stringify({
           frequency: modifiedEventData.recurrenceFrequency ?? recurrencePattern?.frequency ?? 'none',
-          end_date: modifiedEventData.recurrenceEndDate && modifiedEventData.recurrenceEndDate.trim() !== '' 
-            ? new Date(modifiedEventData.recurrenceEndDate).toISOString() 
-            : undefined,
+          end_date: modifiedEventData.recurrenceEndDate !== undefined
+            ? (modifiedEventData.recurrenceEndDate && modifiedEventData.recurrenceEndDate.trim() !== '' 
+                ? new Date(modifiedEventData.recurrenceEndDate).toISOString() 
+                : undefined)
+            : (recurrencePattern?.endDate ? recurrencePattern.endDate.toISOString() : undefined),
           interval: modifiedEventData.recurrenceInterval ?? recurrencePattern?.interval ?? 1,
           days_of_week: recurrencePattern?.daysOfWeek
         })
@@ -1036,9 +1038,11 @@ export class CalendarEventsService {
           all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
           recurrence_rule: JSON.stringify({
             frequency: modifiedEventData.recurrenceFrequency ?? recurrencePattern?.frequency ?? 'none',
-            end_date: modifiedEventData.recurrenceEndDate && modifiedEventData.recurrenceEndDate.trim() !== '' 
-              ? new Date(modifiedEventData.recurrenceEndDate).toISOString() 
-              : undefined,
+            end_date: modifiedEventData.recurrenceEndDate !== undefined
+              ? (modifiedEventData.recurrenceEndDate && modifiedEventData.recurrenceEndDate.trim() !== '' 
+                  ? new Date(modifiedEventData.recurrenceEndDate).toISOString() 
+                  : undefined)
+              : (recurrencePattern?.endDate ? recurrencePattern.endDate.toISOString() : undefined),
             interval: modifiedEventData.recurrenceInterval ?? recurrencePattern?.interval ?? 1,
             days_of_week: recurrencePattern?.daysOfWeek
           }),
