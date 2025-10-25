@@ -465,7 +465,7 @@ export function CalendarFullControlCrossPlatform({
 
   // Handlers for drag/resize modification choices
   const handleDragModifyThisOccurrence = useCallback(async (event: CalendarEvent) => {
-    if (pendingDraggedEvent && onModifyThisOccurrence) {
+    if (pendingDraggedEvent && originalEventBeforeDrag && onModifyThisOccurrence) {
       const modifiedData = {
         title: pendingDraggedEvent.title,
         description: pendingDraggedEvent.description,
@@ -473,13 +473,15 @@ export function CalendarFullControlCrossPlatform({
         start_time: pendingDraggedEvent.start_time,
         end_time: pendingDraggedEvent.end_time
       };
-      await onModifyThisOccurrence(event, modifiedData);
+      // Pass the original event before drag, not the current event
+      await onModifyThisOccurrence(originalEventBeforeDrag, modifiedData);
       setPendingDraggedEvent(null);
+      setOriginalEventBeforeDrag(null);
     }
-  }, [pendingDraggedEvent, onModifyThisOccurrence]);
+  }, [pendingDraggedEvent, originalEventBeforeDrag, onModifyThisOccurrence]);
 
   const handleDragModifyThisAndFuture = useCallback(async (event: CalendarEvent) => {
-    if (pendingDraggedEvent && onModifyThisAndFuture) {
+    if (pendingDraggedEvent && originalEventBeforeDrag && onModifyThisAndFuture) {
       const modifiedData = {
         title: pendingDraggedEvent.title,
         description: pendingDraggedEvent.description,
@@ -487,10 +489,12 @@ export function CalendarFullControlCrossPlatform({
         start_time: pendingDraggedEvent.start_time,
         end_time: pendingDraggedEvent.end_time
       };
-      await onModifyThisAndFuture(event, modifiedData);
+      // Pass the original event before drag, not the current event
+      await onModifyThisAndFuture(originalEventBeforeDrag, modifiedData);
       setPendingDraggedEvent(null);
+      setOriginalEventBeforeDrag(null);
     }
-  }, [pendingDraggedEvent, onModifyThisAndFuture]);
+  }, [pendingDraggedEvent, originalEventBeforeDrag, onModifyThisAndFuture]);
 
   const handleDragModifyAllInSeries = useCallback(async (event: CalendarEvent) => {
     if (pendingDraggedEvent && originalEventBeforeDrag && onModifyAllInSeries) {
@@ -511,6 +515,7 @@ export function CalendarFullControlCrossPlatform({
 
   const handleDragModificationConfirmed = () => {
     setPendingDraggedEvent(null);
+    setOriginalEventBeforeDrag(null);
   };
 
   // Memoized handlers for JSX props to prevent unnecessary re-renders
