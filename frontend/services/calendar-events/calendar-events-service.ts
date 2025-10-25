@@ -870,6 +870,17 @@ export class CalendarEventsService {
         return { success: false, error: 'Invalid date/time values provided' };
       }
 
+      // Calculate the date offset to apply to the recurrence end date
+      const originalOccurrenceDate = new Date(occurrenceStartTime);
+      const originalDateOnly = new Date(Date.UTC(originalOccurrenceDate.getUTCFullYear(), originalOccurrenceDate.getUTCMonth(), originalOccurrenceDate.getUTCDate()));
+      const newDateOnly = new Date(Date.UTC(newSeriesStartTime.getUTCFullYear(), newSeriesStartTime.getUTCMonth(), newSeriesStartTime.getUTCDate()));
+      const dateOffsetMs = newDateOnly.getTime() - originalDateOnly.getTime();
+
+      // Adjust the recurrence end date by the same offset
+      const adjustedRecurrenceEndDate = originalRecurrenceEndDate && dateOffsetMs !== 0
+        ? new Date(originalRecurrenceEndDate.getTime() + dateOffsetMs)
+        : originalRecurrenceEndDate;
+
       const newRecurringEventData = {
         title: modifiedEventData.title ?? masterEvent.title,
         description: modifiedEventData.description ?? masterEvent.description ?? '',
@@ -881,7 +892,7 @@ export class CalendarEventsService {
         recurrence_rule: JSON.stringify({
           frequency: recurrencePattern!.frequency,
           interval: recurrencePattern!.interval,
-          end_date: originalRecurrenceEndDate ? originalRecurrenceEndDate.toISOString() : undefined,
+          end_date: adjustedRecurrenceEndDate ? adjustedRecurrenceEndDate.toISOString() : undefined,
           days_of_week: recurrencePattern!.daysOfWeek,
         }),
       };
