@@ -342,8 +342,16 @@ export function CalendarFullControlCrossPlatform({
 
   // Callback for deleting all events in a series
   const onDeleteAllInSeriesHandler = useCallback(async (event: CalendarEvent) => {
-    // onDeleteEvent from the hook expects an ID.
-    const success = await onDeleteEvent(event.id);
+    // For recurring events, we need to delete the master event, not the instance
+    let masterEventId = event.id;
+    
+    // If this is a recurrence instance, extract the master event ID
+    if (event.id.includes('-recurrence-')) {
+      masterEventId = event.id.split('-recurrence-')[0];
+    }
+    
+    // Delete the master event (which will delete the entire series)
+    const success = await onDeleteEvent(masterEventId);
     if (success) {
       setSelectedEvent(null);
       setIsDialogOpen(false);
