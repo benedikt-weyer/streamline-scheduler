@@ -221,8 +221,12 @@ function CanDoListContent() {
         canDoListPageService.taskService.getTasks()
       ]);
       
+      // Update state in a single batch to prevent UI inconsistencies
       setProjects(updatedProjects);
       setTasks(updatedTasks);
+      
+      // Clear any existing errors
+      setError(null);
       
       return true;
     } catch (error) {

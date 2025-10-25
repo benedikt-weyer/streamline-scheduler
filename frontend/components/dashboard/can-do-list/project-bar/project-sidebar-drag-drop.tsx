@@ -94,11 +94,15 @@ export default function ProjectSidebarWithDragDrop({
   const handleDeleteProject = async (id: string) => {
     const success = await onDeleteProject(id);
     if (success) {
+      // Force close the dialog immediately
       setEditingProject(null);
       // If we're deleting the currently selected project, switch to inbox
       if (selectedProjectId === id) {
         onProjectSelect(undefined);
       }
+    } else {
+      // Even if deletion failed, ensure dialog state is consistent
+      setEditingProject(null);
     }
     return success;
   };
