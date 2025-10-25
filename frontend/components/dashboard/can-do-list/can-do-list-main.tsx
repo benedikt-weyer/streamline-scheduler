@@ -1,8 +1,5 @@
 'use client';
 
-import { useCanDoList } from '@/hooks/can-do-list/useCanDoList';
-import { useProjects } from '@/hooks/can-do-list/can-do-projects/useProjects';
-import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { useError } from '@/utils/context/ErrorContext';
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
@@ -40,8 +37,78 @@ type AddTaskFormValues = {
   content: string;
 };
 
-export default function CanDoListMain() {
-  const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
+interface CanDoListMainProps {
+  // Data
+  tasks: CanDoItemDecrypted[];
+  projects: ProjectDecrypted[];
+  isLoadingTasks: boolean;
+  isLoadingProjects: boolean;
+  isLoadingKey: boolean;
+  encryptionKey: string | null;
+  
+  // Task methods
+  handleAddTask: (
+    content: string,
+    duration?: number,
+    projectId?: string,
+    impact?: number,
+    urgency?: number,
+    dueDate?: Date,
+    blockedBy?: string,
+    myDay?: boolean
+  ) => Promise<boolean>;
+  handleUpdateTask: (
+    id: string,
+    content?: string,
+    duration?: number,
+    projectId?: string,
+    impact?: number,
+    urgency?: number,
+    dueDate?: Date,
+    blockedBy?: string,
+    myDay?: boolean
+  ) => Promise<boolean>;
+  handleToggleComplete: (id: string, completed: boolean) => Promise<boolean>;
+  handleDeleteTask: (id: string) => Promise<boolean>;
+  handleBulkDeleteCompleted: (projectId?: string) => Promise<number>;
+  handleReorderTasks: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
+  loadTasks: () => Promise<void>;
+  
+  // Project methods
+  handleAddProject: (name: string, description?: string, color?: string, parentId?: string) => Promise<boolean>;
+  handleUpdateProject: (id: string, updateData: any) => Promise<boolean>;
+  handleDeleteProject: (id: string) => Promise<boolean>;
+  handleBulkReorderProjects: (projectUpdates: Array<{ id: string; displayOrder: number; parentId?: string }>) => Promise<boolean>;
+  handleUpdateProjectCollapsedState: (id: string, isCollapsed: boolean) => Promise<boolean>;
+  loadProjects: () => Promise<void>;
+}
+
+export default function CanDoListMain({
+  // Data
+  tasks,
+  projects,
+  isLoadingTasks,
+  isLoadingProjects,
+  isLoadingKey,
+  encryptionKey,
+  
+  // Task methods
+  handleAddTask,
+  handleUpdateTask,
+  handleToggleComplete,
+  handleDeleteTask,
+  handleBulkDeleteCompleted,
+  handleReorderTasks,
+  loadTasks,
+  
+  // Project methods
+  handleAddProject,
+  handleUpdateProject,
+  handleDeleteProject,
+  handleBulkReorderProjects,
+  handleUpdateProjectCollapsedState,
+  loadProjects,
+}: CanDoListMainProps) {
   const { error } = useError();
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
@@ -54,31 +121,6 @@ export default function CanDoListMain() {
   const mobileScrollRef = useRef<HTMLDivElement>(null);
   const desktopScrollRef = useRef<HTMLDivElement>(null);
 
-  // Use the main can-do list hook
-  const {
-    tasks,
-    isLoading: isLoadingTasks,
-    loadTasks,
-    handleAddTask,
-    handleUpdateTask,
-    handleToggleComplete,
-    handleDeleteTask,
-    handleBulkDeleteCompleted,
-    handleReorderTasks
-  } = useCanDoList(encryptionKey);
-
-  // Use projects hook
-  const {
-    projects,
-    isLoading: isLoadingProjects,
-    loadProjects,
-    handleAddProject,
-    handleUpdateProject,
-    handleDeleteProject,
-    handleBulkReorderProjects,
-    handleUpdateProjectCollapsedState
-  } = useProjects(encryptionKey);
-
   const isLoading = isLoadingTasks || isLoadingProjects;
 
   // Initialize form with react-hook-form and zod validation
@@ -88,17 +130,6 @@ export default function CanDoListMain() {
       content: ''
     }
   });
-
-  // Load tasks and projects when encryption key becomes available
-  useEffect(() => {
-    console.log('[CanDoListMain] useEffect triggered with encryptionKey:', !!encryptionKey);
-    if (encryptionKey) {
-      console.log('[CanDoListMain] Loading projects and tasks...');
-      loadProjects();
-      // Always load all tasks for count calculations
-      loadTasks();
-    }
-  }, [encryptionKey, loadTasks, loadProjects]);
 
   // Debug projects state
   useEffect(() => {
