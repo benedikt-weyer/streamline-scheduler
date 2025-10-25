@@ -36,7 +36,7 @@ import {
 } from './types';
 
 interface WebSocketMessage {
-  type: 'subscription' | 'auth_change' | 'error';
+  type?: 'subscription' | 'auth_change' | 'error' | 'auth_success' | 'auth_error';
   table?: string;
   eventType?: 'INSERT' | 'UPDATE' | 'DELETE';
   schema?: string;
@@ -46,6 +46,12 @@ interface WebSocketMessage {
   error?: string;
   event?: string;
   session?: AuthSession | null;
+  // Backend message format
+  event_type?: string;
+  user_id?: string;
+  record_id?: string;
+  data?: any;
+  message?: string;
 }
 
 class RustBackendImpl implements BackendInterface {
@@ -75,21 +81,39 @@ class RustBackendImpl implements BackendInterface {
     try {
       const token = localStorage.getItem('auth_token');
       if (token) {
+        console.log('[RustBackend] Auth token restored from localStorage');
         this.authToken = token;
+        // Initialize WebSocket connection now that we have a token
+        if (!this.ws && typeof window !== 'undefined') {
+          console.log('[RustBackend] Initializing WebSocket after token restore');
+          this.initWebSocket();
+        }
         return;
       }
     } catch (e) {
       // localStorage might not be available in SSR
+      console.warn('[RustBackend] localStorage not available:', e);
     }
 
     // Try cookies as fallback
     try {
       const match = document.cookie.match(/auth_token=([^;]+)/);
       if (match) {
+        console.log('[RustBackend] Auth token restored from cookies');
         this.authToken = match[1];
+        // Initialize WebSocket connection now that we have a token
+        if (!this.ws && typeof window !== 'undefined') {
+          console.log('[RustBackend] Initializing WebSocket after token restore from cookies');
+          this.initWebSocket();
+        }
       }
     } catch (e) {
       // document might not be available in SSR
+      console.warn('[RustBackend] Cookies not available:', e);
+    }
+    
+    if (!this.authToken) {
+      console.log('[RustBackend] No auth token found in storage');
     }
   }
 
@@ -155,7 +179,7 @@ class RustBackendImpl implements BackendInterface {
 
   private initWebSocket(): void {
     if (typeof window === 'undefined') {
-      // Skip WebSocket in SSR
+      console.log('[RustBackend] Skipping WebSocket in SSR');
       return;
     }
 
@@ -165,8 +189,20 @@ class RustBackendImpl implements BackendInterface {
       return;
     }
 
+    // Don't create multiple connections
+    if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
+      console.log('[RustBackend] WebSocket already connecting, skipping');
+      return;
+    }
+    
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      console.log('[RustBackend] WebSocket already connected, skipping');
+      return;
+    }
+
     try {
       const wsUrl = `${this.wsUrl}/ws`;
+      console.log('[RustBackend] Attempting to connect to WebSocket:', wsUrl);
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
@@ -187,6 +223,7 @@ class RustBackendImpl implements BackendInterface {
       this.ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
+          console.log('[RustBackend] Received WebSocket message:', message);
           
           // Handle auth responses
           if (message.type === 'auth_success') {
@@ -199,7 +236,7 @@ class RustBackendImpl implements BackendInterface {
           
           this.handleWebSocketMessage(message);
         } catch (error) {
-          console.error('[RustBackend] Failed to parse WebSocket message:', error);
+          console.error('[RustBackend] Failed to parse WebSocket message:', error, 'Raw data:', event.data);
         }
       };
 
@@ -234,6 +271,40 @@ class RustBackendImpl implements BackendInterface {
   }
 
   private handleWebSocketMessage(message: WebSocketMessage): void {
+    // Handle auth responses first
+    if (message.type === 'auth_success') {
+      console.log('[RustBackend] WebSocket authentication successful');
+      return;
+    } else if (message.type === 'auth_error') {
+      console.error('[RustBackend] WebSocket authentication failed:', message.message);
+      this.ws?.close();
+      return;
+    }
+
+    // Handle backend message format (data change notifications)
+    if (message.event_type && message.table) {
+      console.log(`[RustBackend] Processing ${message.event_type} event for table ${message.table}`);
+      const callback = this.subscriptions.get(message.table);
+      if (callback) {
+        console.log(`[RustBackend] Found subscription callback for table ${message.table}`);
+        const realtimeMessage: RealtimeMessage = {
+          eventType: message.event_type as 'INSERT' | 'UPDATE' | 'DELETE',
+          schema: 'public',
+          table: message.table,
+          commit_timestamp: new Date().toISOString(),
+          new: message.event_type === 'DELETE' ? undefined : message.data,
+          old: message.event_type === 'DELETE' ? message.data : undefined,
+        };
+        console.log(`[RustBackend] Calling subscription callback with:`, realtimeMessage);
+        callback(realtimeMessage);
+      } else {
+        console.warn(`[RustBackend] No subscription callback found for table ${message.table}`);
+        console.log(`[RustBackend] Available subscriptions:`, Array.from(this.subscriptions.keys()));
+      }
+      return;
+    }
+
+    // Handle legacy message format
     switch (message.type) {
       case 'subscription':
         if (message.table && message.eventType) {

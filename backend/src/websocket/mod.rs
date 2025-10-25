@@ -45,6 +45,22 @@ impl WebSocketState {
         connections.remove(user_id);
     }
 
+    pub async fn broadcast_to_user(&self, user_id: &Uuid, message: WebSocketMessage) {
+        let connections = self.connections.read().await;
+        tracing::info!("Broadcasting WebSocket message to user {}: {:?}", user_id, message);
+        
+        if let Some(tx) = connections.get(user_id) {
+            tracing::info!("Found connection for user {}, sending message", user_id);
+            if let Err(e) = tx.send(message) {
+                tracing::warn!("Failed to send WebSocket message to user {}: {}", user_id, e);
+            } else {
+                tracing::info!("Successfully sent WebSocket message to user {}", user_id);
+            }
+        } else {
+            tracing::warn!("No WebSocket connection found for user {}", user_id);
+            tracing::info!("Active connections: {:?}", connections.keys().collect::<Vec<_>>());
+        }
+    }
 }
 
 pub async fn websocket_handler(
@@ -74,6 +90,7 @@ async fn websocket_connection(
                 if let Some(token) = auth_msg.get("token").and_then(|t| t.as_str()) {
                     if let Ok(user) = auth_service.get_user_from_token(token).await {
                         user_id = Some(user.id);
+                        tracing::info!("WebSocket authentication successful for user: {}", user.id);
                         ws_state.add_connection(user.id, tx.clone()).await;
                         
                         // Send authentication success
@@ -83,8 +100,12 @@ async fn websocket_connection(
                         });
                         
                         if sender.send(Message::Text(auth_response.to_string().into())).await.is_err() {
+                            tracing::error!("Failed to send auth success message to user: {}", user.id);
                             return;
                         }
+                        tracing::info!("Sent auth success message to user: {}", user.id);
+                    } else {
+                        tracing::warn!("WebSocket authentication failed for token");
                     }
                 }
             }

@@ -14,6 +14,7 @@ use crate::{
         ApiResponse,
     },
     state::AppState,
+    websocket::WebSocketMessage,
 };
 
 pub async fn list_calendars(
@@ -60,6 +61,17 @@ pub async fn create_calendar(
     let calendar = calendar_active.insert(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
+    // Broadcast websocket message for calendar creation
+    tracing::info!("Calendar created, broadcasting websocket message for user {}", auth_user.0.id);
+    let ws_message = WebSocketMessage {
+        event_type: "INSERT".to_string(),
+        table: "calendars".to_string(),
+        user_id: auth_user.0.id,
+        record_id: Some(calendar.id),
+        data: Some(serde_json::to_value(&CalendarResponse::from(calendar.clone())).unwrap_or_default()),
+    };
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+
     Ok(Json(ApiResponse::with_message(calendar.into(), "Calendar created successfully")))
 }
 
@@ -94,6 +106,17 @@ pub async fn update_calendar(
     let updated_calendar = calendar_active.update(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
+    // Broadcast websocket message for calendar update
+    tracing::info!("Calendar updated, broadcasting websocket message for user {}", auth_user.0.id);
+    let ws_message = WebSocketMessage {
+        event_type: "UPDATE".to_string(),
+        table: "calendars".to_string(),
+        user_id: auth_user.0.id,
+        record_id: Some(updated_calendar.id),
+        data: Some(serde_json::to_value(&CalendarResponse::from(updated_calendar.clone())).unwrap_or_default()),
+    };
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+
     Ok(Json(ApiResponse::with_message(updated_calendar.into(), "Calendar updated successfully")))
 }
 
@@ -111,6 +134,17 @@ pub async fn delete_calendar(
     if result.rows_affected == 0 {
         return Err(crate::errors::AppError::NotFound("Calendar not found".to_string()));
     }
+
+    // Broadcast websocket message for calendar deletion
+    tracing::info!("Calendar deleted, broadcasting websocket message for user {}", auth_user.0.id);
+    let ws_message = WebSocketMessage {
+        event_type: "DELETE".to_string(),
+        table: "calendars".to_string(),
+        user_id: auth_user.0.id,
+        record_id: Some(id),
+        data: None,
+    };
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
 
     Ok(Json(ApiResponse::with_message((), "Calendar deleted successfully")))
 }

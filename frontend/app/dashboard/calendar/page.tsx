@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 
 import { CalendarFullControlCrossPlatform } from '@/components/dashboard/calendar/calendar-full-control-cross-platform';
 
@@ -13,6 +13,7 @@ import { CalendarEventsService } from '@/services/calendar-events/calendar-event
 import { CalendarPageService } from './calendar-page-service';
 import { EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
+import { RealtimeSubscription, RealtimeMessage } from '@/utils/api/types';
 
 
 function CalendarContent() {
@@ -32,6 +33,9 @@ function CalendarContent() {
     }
     return null;
   });
+
+  // Store websocket subscriptions
+  const subscriptionsRef = useRef<RealtimeSubscription[]>([]);
 
   
   // Load data when component mounts
@@ -65,6 +69,92 @@ function CalendarContent() {
     
     loadData();
   }, [calendarPageService, setError]);
+
+  // Set up websocket subscriptions for real-time updates
+  useEffect(() => {
+    if (!calendarPageService) return;
+
+    const backend = getDecryptedBackend();
+    
+    // Subscribe to calendar changes
+    const calendarSubscription = backend.calendars.subscribe((payload: RealtimeMessage<Calendar>) => {
+      console.log('Calendar websocket message:', payload);
+      
+      switch (payload.eventType) {
+        case 'INSERT':
+          if (payload.new) {
+            setCalendars(prev => {
+              // Check if calendar already exists to avoid duplicates
+              const exists = prev.some(cal => cal.id === payload.new!.id);
+              if (!exists) {
+                return [...prev, payload.new!];
+              }
+              return prev;
+            });
+          }
+          break;
+          
+        case 'UPDATE':
+          if (payload.new) {
+            setCalendars(prev => prev.map(cal => 
+              cal.id === payload.new!.id ? payload.new! : cal
+            ));
+          }
+          break;
+          
+        case 'DELETE':
+          if (payload.old) {
+            setCalendars(prev => prev.filter(cal => cal.id !== payload.old!.id));
+          }
+          break;
+      }
+    });
+
+    // Subscribe to calendar event changes
+    const eventSubscription = backend.calendarEvents.subscribe((payload: RealtimeMessage<CalendarEvent>) => {
+      console.log('Calendar event websocket message:', payload);
+      
+      switch (payload.eventType) {
+        case 'INSERT':
+          if (payload.new) {
+            setCalendarEvents(prev => {
+              // Check if event already exists to avoid duplicates
+              const exists = prev.some(event => event.id === payload.new!.id);
+              if (!exists) {
+                return [...prev, payload.new!];
+              }
+              return prev;
+            });
+          }
+          break;
+          
+        case 'UPDATE':
+          if (payload.new) {
+            setCalendarEvents(prev => prev.map(event => 
+              event.id === payload.new!.id ? payload.new! : event
+            ));
+          }
+          break;
+          
+        case 'DELETE':
+          if (payload.old) {
+            setCalendarEvents(prev => prev.filter(event => event.id !== payload.old!.id));
+          }
+          break;
+      }
+    });
+
+    // Store subscriptions for cleanup
+    subscriptionsRef.current = [calendarSubscription, eventSubscription];
+
+    // Cleanup function
+    return () => {
+      subscriptionsRef.current.forEach(subscription => {
+        subscription.unsubscribe();
+      });
+      subscriptionsRef.current = [];
+    };
+  }, [calendarPageService]);
 
   // Calendar handlers
   const handleCalendarToggle = useCallback(async (calendarId: string, isVisible: boolean): Promise<void> => {
