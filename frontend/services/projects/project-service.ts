@@ -167,64 +167,6 @@ export class ProjectService {
     }
   }
 
-  /**
-   * Get the default project (if any)
-   */
-  async getDefaultProject(): Promise<ProjectDecrypted | null> {
-    try {
-      const projects = await this.getProjects();
-      return projects.find(project => project.is_default) || null;
-    } catch (error) {
-      console.error('Failed to get default project:', error);
-      throw new Error('Failed to load default project');
-    }
-  }
-
-  /**
-   * Set a project as default
-   */
-  async setDefaultProject(projectId: string): Promise<ProjectDecrypted> {
-    try {
-      // First, unset all other projects as default
-      const allProjects = await this.getProjects();
-      for (const project of allProjects) {
-        if (project.id !== projectId && project.is_default) {
-          await this.updateProject(project.id, { is_default: false });
-        }
-      }
-      
-      // Then set the selected project as default
-      return await this.updateProject(projectId, { is_default: true });
-    } catch (error) {
-      console.error(`Failed to set default project ${projectId}:`, error);
-      throw new Error('Failed to set default project');
-    }
-  }
-
-  /**
-   * Create a default project if none exists
-   */
-  async ensureDefaultProject(): Promise<ProjectDecrypted> {
-    try {
-      const defaultProject = await this.getDefaultProject();
-      
-      if (defaultProject) {
-        return defaultProject;
-      }
-      
-      // Create a default project
-      return await this.createProject({
-        name: 'General',
-        description: 'Default project for tasks',
-        color: '#3b82f6', // Blue color
-        is_default: true,
-        order: 0
-      });
-    } catch (error) {
-      console.error('Failed to ensure default project exists:', error);
-      throw new Error('Failed to create default project');
-    }
-  }
 
   /**
    * Get project statistics
@@ -232,7 +174,6 @@ export class ProjectService {
   async getProjectStats(): Promise<{
     totalProjects: number;
     rootProjects: number;
-    defaultProjectId?: string;
   }> {
     try {
       const projects = await this.getProjects();
@@ -240,7 +181,6 @@ export class ProjectService {
       return {
         totalProjects: projects.length,
         rootProjects: projects.filter(project => !project.parent_id).length,
-        defaultProjectId: projects.find(project => project.is_default)?.id,
       };
     } catch (error) {
       console.error('Failed to get project stats:', error);

@@ -282,12 +282,11 @@ export class CanDoListPageService {
           const remainingProjects = allProjects.filter(proj => proj.id !== projectId);
           
           if (remainingProjects.length === 0) {
-            // Create a default project if none exist
-            const defaultProject = await this.projectService.ensureDefaultProject();
-            targetProjectId = defaultProject.id;
+            // No projects exist, tasks will go to inbox (undefined project_id)
+            targetProjectId = undefined;
           } else {
-            const targetProject = remainingProjects.find(proj => proj.is_default) || remainingProjects[0];
-            targetProjectId = targetProject.id;
+            // Move to the first available project
+            targetProjectId = remainingProjects[0].id;
           }
         }
         
@@ -514,15 +513,4 @@ export class CanDoListPageService {
     }
   }
 
-  /**
-   * Ensure default project exists
-   */
-  async ensureDefaultProject(): Promise<ProjectDecrypted> {
-    try {
-      return await this.projectService.ensureDefaultProject();
-    } catch (error) {
-      console.error('Failed to ensure default project exists:', error);
-      throw new Error('Failed to create default project');
-    }
-  }
 }
