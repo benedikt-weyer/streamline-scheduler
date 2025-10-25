@@ -694,9 +694,13 @@ export function CalendarEventDialog({
                   Clone
                 </Button>
               )}
-              {selectedEvent && !isReadOnly && (
+              {selectedEvent && !isReadOnly && (() => {
+                const recurrencePattern = getRecurrencePattern(selectedEvent);
+                const isRecurring = recurrencePattern && recurrencePattern.frequency !== RecurrenceFrequency.None;
+                
+                return (
                 <>
-                  {getRecurrencePattern(selectedEvent)?.frequency !== RecurrenceFrequency.None ? (
+                  {isRecurring ? (
                     // This event is part of a recurrence series (either master or an instance view of master)
                     <Button
                       type="button"
@@ -722,7 +726,8 @@ export function CalendarEventDialog({
                     </Button>
                   )}
                 </>
-              )}
+                );
+              })()}
               {!isReadOnly && (
                 <Button type="submit">
                   {selectedEvent ? 'Update' : 'Add'} Event
