@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
-import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
+import { CanDoItemDecrypted, ProjectDecrypted, RealtimeSubscription, RealtimeMessage } from '@/utils/api/types';
 import { CanDoListPageService } from './can-do-list-page-service';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import CanDoListMain from '@/components/dashboard/can-do-list/can-do-list-main';
@@ -24,6 +24,9 @@ function CanDoListContent() {
     }
     return null;
   });
+
+  // Store websocket subscriptions
+  const subscriptionsRef = useRef<RealtimeSubscription[]>([]);
 
   // Load data when encryption key becomes available
   useEffect(() => {
@@ -53,6 +56,92 @@ function CanDoListContent() {
 
     loadData();
   }, [encryptionKey, canDoListPageService, setError]);
+
+  // Set up websocket subscriptions for real-time updates
+  useEffect(() => {
+    if (!canDoListPageService || !encryptionKey) return;
+
+    const backend = getDecryptedBackend();
+    
+    // Subscribe to can-do list changes
+    const canDoSubscription = backend.canDoItems.subscribe((payload: RealtimeMessage<CanDoItemDecrypted>) => {
+      console.log('Can-do item websocket message:', payload);
+      
+      switch (payload.eventType) {
+        case 'INSERT':
+          if (payload.new) {
+            setTasks(prev => {
+              // Check if task already exists to avoid duplicates
+              const exists = prev.some(task => task.id === payload.new!.id);
+              if (!exists) {
+                return [...prev, payload.new!];
+              }
+              return prev;
+            });
+          }
+          break;
+          
+        case 'UPDATE':
+          if (payload.new) {
+            setTasks(prev => prev.map(task => 
+              task.id === payload.new!.id ? payload.new! : task
+            ));
+          }
+          break;
+          
+        case 'DELETE':
+          if (payload.old) {
+            setTasks(prev => prev.filter(task => task.id !== payload.old!.id));
+          }
+          break;
+      }
+    });
+
+    // Subscribe to project changes
+    const projectSubscription = backend.projects.subscribe((payload: RealtimeMessage<ProjectDecrypted>) => {
+      console.log('Project websocket message:', payload);
+      
+      switch (payload.eventType) {
+        case 'INSERT':
+          if (payload.new) {
+            setProjects(prev => {
+              // Check if project already exists to avoid duplicates
+              const exists = prev.some(project => project.id === payload.new!.id);
+              if (!exists) {
+                return [...prev, payload.new!];
+              }
+              return prev;
+            });
+          }
+          break;
+          
+        case 'UPDATE':
+          if (payload.new) {
+            setProjects(prev => prev.map(project => 
+              project.id === payload.new!.id ? payload.new! : project
+            ));
+          }
+          break;
+          
+        case 'DELETE':
+          if (payload.old) {
+            setProjects(prev => prev.filter(project => project.id !== payload.old!.id));
+          }
+          break;
+      }
+    });
+
+    // Store subscriptions for cleanup
+    subscriptionsRef.current = [canDoSubscription, projectSubscription];
+
+    // Cleanup function
+    return () => {
+      subscriptionsRef.current.forEach(subscription => {
+        subscription.unsubscribe();
+      });
+      subscriptionsRef.current = [];
+    };
+  }, [canDoListPageService, encryptionKey]);
 
   // Service methods wrapped for the component
   const handleAddTask = useCallback(async (

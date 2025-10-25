@@ -15,6 +15,7 @@ use crate::{
         ApiResponse,
     },
     state::AppState,
+    websocket::WebSocketMessage,
 };
 
 #[derive(Debug, Deserialize)]
@@ -77,6 +78,17 @@ pub async fn create_item(
     let item = item_active.insert(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
+    // Broadcast websocket message for can-do item creation
+    tracing::info!("Can-do item created, broadcasting websocket message for user {}", auth_user.0.id);
+    let ws_message = WebSocketMessage {
+        event_type: "INSERT".to_string(),
+        table: "can_do_list".to_string(),
+        user_id: auth_user.0.id,
+        record_id: Some(item.id),
+        data: Some(serde_json::to_value(&CanDoItemResponse::from(item.clone())).unwrap_or_default()),
+    };
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+
     Ok(Json(ApiResponse::with_message(item.into(), "Can-do item created successfully")))
 }
 
@@ -114,6 +126,17 @@ pub async fn update_item(
     let updated_item = item_active.update(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
+    // Broadcast websocket message for can-do item update
+    tracing::info!("Can-do item updated, broadcasting websocket message for user {}", auth_user.0.id);
+    let ws_message = WebSocketMessage {
+        event_type: "UPDATE".to_string(),
+        table: "can_do_list".to_string(),
+        user_id: auth_user.0.id,
+        record_id: Some(updated_item.id),
+        data: Some(serde_json::to_value(&CanDoItemResponse::from(updated_item.clone())).unwrap_or_default()),
+    };
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+
     Ok(Json(ApiResponse::with_message(updated_item.into(), "Can-do item updated successfully")))
 }
 
@@ -131,6 +154,17 @@ pub async fn delete_item(
     if result.rows_affected == 0 {
         return Err(crate::errors::AppError::NotFound("Can-do item not found".to_string()));
     }
+
+    // Broadcast websocket message for can-do item deletion
+    tracing::info!("Can-do item deleted, broadcasting websocket message for user {}", auth_user.0.id);
+    let ws_message = WebSocketMessage {
+        event_type: "DELETE".to_string(),
+        table: "can_do_list".to_string(),
+        user_id: auth_user.0.id,
+        record_id: Some(id),
+        data: None,
+    };
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
 
     Ok(Json(ApiResponse::with_message((), "Can-do item deleted successfully")))
 }

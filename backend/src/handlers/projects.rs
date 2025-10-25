@@ -15,6 +15,7 @@ use crate::{
         ApiResponse,
     },
     state::AppState,
+    websocket::WebSocketMessage,
 };
 
 #[derive(Debug, Deserialize)]
@@ -88,6 +89,17 @@ pub async fn create_project(
     let project = project_active.insert(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
+    // Broadcast websocket message for project creation
+    tracing::info!("Project created, broadcasting websocket message for user {}", auth_user.0.id);
+    let ws_message = WebSocketMessage {
+        event_type: "INSERT".to_string(),
+        table: "projects".to_string(),
+        user_id: auth_user.0.id,
+        record_id: Some(project.id),
+        data: Some(serde_json::to_value(&ProjectResponse::from(project.clone())).unwrap_or_default()),
+    };
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+
     Ok(Json(ApiResponse::with_message(project.into(), "Project created successfully")))
 }
 
@@ -131,6 +143,17 @@ pub async fn update_project(
     let updated_project = project_active.update(&app_state.db.connection).await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
+    // Broadcast websocket message for project update
+    tracing::info!("Project updated, broadcasting websocket message for user {}", auth_user.0.id);
+    let ws_message = WebSocketMessage {
+        event_type: "UPDATE".to_string(),
+        table: "projects".to_string(),
+        user_id: auth_user.0.id,
+        record_id: Some(updated_project.id),
+        data: Some(serde_json::to_value(&ProjectResponse::from(updated_project.clone())).unwrap_or_default()),
+    };
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+
     Ok(Json(ApiResponse::with_message(updated_project.into(), "Project updated successfully")))
 }
 
@@ -148,6 +171,17 @@ pub async fn delete_project(
     if result.rows_affected == 0 {
         return Err(crate::errors::AppError::NotFound("Project not found".to_string()));
     }
+
+    // Broadcast websocket message for project deletion
+    tracing::info!("Project deleted, broadcasting websocket message for user {}", auth_user.0.id);
+    let ws_message = WebSocketMessage {
+        event_type: "DELETE".to_string(),
+        table: "projects".to_string(),
+        user_id: auth_user.0.id,
+        record_id: Some(id),
+        data: None,
+    };
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
 
     Ok(Json(ApiResponse::with_message((), "Project deleted successfully")))
 }
