@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useCanDoList } from '@/hooks/can-do-list/useCanDoList';
-import { useProjects } from '@/hooks/can-do-list/can-do-projects/useProjects';
+import { CanDoListPageService } from '../can-do-list/can-do-list-page-service';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 import { SchedulerPageService } from './scheduler-page-service';
@@ -37,40 +36,256 @@ function SchedulerPageContent() {
   const [icsEvents, setIcsEvents] = useState<CalendarEvent[]>([]);
   const [isLoadingCalendar, setIsLoadingCalendar] = useState(false);
 
-  // Can-do list hooks
-  const {
-    tasks,
-    isLoading: isLoadingTasks,
-    loadTasks,
-    handleAddTask,
-    handleUpdateTask: updateTask,
-    handleToggleComplete: toggleComplete,
-    handleDeleteTask: deleteTask,
-    handleReorderTasks
-  } = useCanDoList(encryptionKey);
+  // Can-do list state
+  const [tasks, setTasks] = useState<CanDoItemDecrypted[]>([]);
+  const [projects, setProjects] = useState<ProjectDecrypted[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
 
-  const {
-    projects,
-    isLoading: isLoadingProjects,
-    loadProjects,
-    handleAddProject,
-    handleUpdateProject,
-    handleDeleteProject,
-    handleBulkReorderProjects,
-    handleUpdateProjectCollapsedState
-  } = useProjects(encryptionKey);
+  // Initialize can-do list service (only in browser)
+  const [canDoListPageService] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return new CanDoListPageService(getDecryptedBackend());
+    }
+    return null;
+  });
+
+  // Load can-do list data when encryption key becomes available
+  useEffect(() => {
+    const loadCanDoListData = async () => {
+      if (!canDoListPageService || !encryptionKey) {
+        return;
+      }
+
+      try {
+        setIsLoadingTasks(true);
+        setIsLoadingProjects(true);
+        
+        // Load all tasks and projects together
+        const { tasks, projects } = await canDoListPageService.loadCanDoListData();
+        
+        setTasks(tasks);
+        setProjects(projects);
+      } catch (error) {
+        console.error('Failed to load can-do list data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load data');
+      } finally {
+        setIsLoadingTasks(false);
+        setIsLoadingProjects(false);
+      }
+    };
+
+    loadCanDoListData();
+  }, [encryptionKey, canDoListPageService, setError]);
 
   // Wrapper functions to match expected signatures
   const handleToggleComplete = async (id: string, completed: boolean): Promise<void> => {
-    await toggleComplete(id, completed);
+    if (!canDoListPageService) return;
+
+    try {
+      const updatedTask = await canDoListPageService.toggleTaskComplete(id, completed);
+      setTasks(prev => prev.map(task => task.id === id ? updatedTask : task));
+    } catch (error) {
+      console.error('Failed to toggle task complete:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update task');
+    }
   };
 
   const handleDeleteTask = async (id: string): Promise<void> => {
-    await deleteTask(id);
+    if (!canDoListPageService) return;
+
+    try {
+      await canDoListPageService.deleteTask(id);
+      setTasks(prev => prev.filter(task => task.id !== id));
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete task');
+    }
   };
 
   const handleUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean): Promise<void> => {
-    await updateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay);
+    if (!canDoListPageService) return;
+
+    try {
+      const updatedTask = await canDoListPageService.updateTask(
+        id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay
+      );
+      setTasks(prev => prev.map(task => task.id === id ? updatedTask : task));
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update task');
+    }
+  };
+
+  const handleAddTask = async (
+    content: string,
+    duration?: number,
+    projectId?: string,
+    impact?: number,
+    urgency?: number,
+    dueDate?: Date,
+    blockedBy?: string,
+    myDay?: boolean
+  ): Promise<boolean> => {
+    if (!canDoListPageService) return false;
+
+    try {
+      const { task, shouldRefreshProjects } = await canDoListPageService.createTask(
+        content, duration, projectId, impact, urgency, dueDate, blockedBy, myDay
+      );
+      
+      setTasks(prev => [...prev, task]);
+      
+      if (shouldRefreshProjects) {
+        const updatedProjects = await canDoListPageService.projectService.getProjects();
+        setProjects(updatedProjects);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to add task:', error);
+      setError(error instanceof Error ? error.message : 'Failed to add task');
+      return false;
+    }
+  };
+
+  const handleReorderTasks = async (sourceIndex: number, destinationIndex: number, projectId?: string): Promise<boolean> => {
+    if (!canDoListPageService) return false;
+
+    try {
+      const success = await canDoListPageService.reorderTasks(sourceIndex, destinationIndex, projectId);
+      
+      if (success) {
+        // Refresh tasks to reflect new order
+        const updatedTasks = await canDoListPageService.taskService.getTasks();
+        setTasks(updatedTasks);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error('Failed to reorder tasks:', error);
+      setError(error instanceof Error ? error.message : 'Failed to reorder tasks');
+      return false;
+    }
+  };
+
+  // Project wrapper functions
+  const handleAddProject = async (name: string, description?: string, color?: string, parentId?: string): Promise<boolean> => {
+    if (!canDoListPageService) return false;
+
+    try {
+      const { project } = await canDoListPageService.createProject(name, description, color, parentId);
+      setProjects(prev => [...prev, project]);
+      return true;
+    } catch (error) {
+      console.error('Failed to add project:', error);
+      setError(error instanceof Error ? error.message : 'Failed to add project');
+      return false;
+    }
+  };
+
+  const handleUpdateProject = async (id: string, updateData: any): Promise<boolean> => {
+    if (!canDoListPageService) return false;
+
+    try {
+      const updatedProject = await canDoListPageService.updateProject(id, updateData);
+      setProjects(prev => prev.map(project => project.id === id ? updatedProject : project));
+      return true;
+    } catch (error) {
+      console.error('Failed to update project:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update project');
+      return false;
+    }
+  };
+
+  const handleDeleteProject = async (id: string): Promise<boolean> => {
+    if (!canDoListPageService) return false;
+
+    try {
+      await canDoListPageService.deleteProjectWithTasks(id);
+      
+      // Refresh both projects and tasks
+      const [updatedProjects, updatedTasks] = await Promise.all([
+        canDoListPageService.projectService.getProjects(),
+        canDoListPageService.taskService.getTasks()
+      ]);
+      
+      setProjects(updatedProjects);
+      setTasks(updatedTasks);
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete project');
+      return false;
+    }
+  };
+
+  const handleBulkReorderProjects = async (projectUpdates: Array<{ id: string; displayOrder: number; parentId?: string }>): Promise<boolean> => {
+    if (!canDoListPageService) return false;
+
+    try {
+      await canDoListPageService.reorderProjects(projectUpdates);
+      
+      // Refresh projects to reflect new order
+      const updatedProjects = await canDoListPageService.projectService.getProjects();
+      setProjects(updatedProjects);
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to reorder projects:', error);
+      setError(error instanceof Error ? error.message : 'Failed to reorder projects');
+      return false;
+    }
+  };
+
+  const handleUpdateProjectCollapsedState = async (id: string, isCollapsed: boolean): Promise<boolean> => {
+    if (!canDoListPageService) return false;
+
+    try {
+      const updatedProject = await canDoListPageService.toggleProjectCollapse(id, isCollapsed);
+      setProjects(prev => prev.map(project => project.id === id ? updatedProject : project));
+      return true;
+    } catch (error) {
+      console.error('Failed to update project collapsed state:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update project');
+      return false;
+    }
+  };
+
+  // Load functions for compatibility
+  const loadTasks = async (): Promise<CanDoItemDecrypted[]> => {
+    if (!canDoListPageService) return [];
+
+    try {
+      setIsLoadingTasks(true);
+      const updatedTasks = await canDoListPageService.taskService.getTasks();
+      setTasks(updatedTasks);
+      return updatedTasks;
+    } catch (error) {
+      console.error('Failed to load tasks:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load tasks');
+      return [];
+    } finally {
+      setIsLoadingTasks(false);
+    }
+  };
+
+  const loadProjects = async (): Promise<ProjectDecrypted[]> => {
+    if (!canDoListPageService) return [];
+
+    try {
+      setIsLoadingProjects(true);
+      const updatedProjects = await canDoListPageService.projectService.getProjects();
+      setProjects(updatedProjects);
+      return updatedProjects;
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load projects');
+      return [];
+    } finally {
+      setIsLoadingProjects(false);
+    }
   };
 
   // Handle toggling My Day status for a task
