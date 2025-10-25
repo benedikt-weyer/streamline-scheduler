@@ -355,6 +355,9 @@ export default function CanDoListMain({
     // Use project from tag if provided, otherwise use selected project
     const projectId = values.projectId || selectedProjectId;
     
+    // If user is on My Day tab, automatically mark the task as My Day
+    const myDay = values.myDay || isMyDaySelected;
+    
     const success = await handleAddTask(
       parsedDueDate.content, 
       parsedDuration.duration, 
@@ -363,7 +366,7 @@ export default function CanDoListMain({
       parsedPriority.urgency,
       parsedDueDate.dueDate,
       undefined, // blockedBy
-      values.myDay // myDay
+      myDay // myDay
     );
     if (success) {
       form.reset();
