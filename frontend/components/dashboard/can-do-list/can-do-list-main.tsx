@@ -2,6 +2,7 @@
 
 import { useError } from '@/utils/context/ErrorContext';
 import { useEffect, useState, useMemo, useRef } from 'react';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -110,11 +111,15 @@ export default function CanDoListMain({
   loadProjects,
 }: CanDoListMainProps) {
   const { error } = useError();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
-  const [isRecommendedSelected, setIsRecommendedSelected] = useState(false);
-  const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
-  const [isMyDaySelected, setIsMyDaySelected] = useState(false);
+  
+  // Use persistent storage for can-do list state to remember user's last selection
+  const [selectedProjectId, setSelectedProjectId] = useLocalStorage<string | undefined>('can-do-list-selected-project', undefined);
+  const [activeTab, setActiveTab] = useLocalStorage<'active' | 'completed'>('can-do-list-active-tab', 'active');
+  const [isRecommendedSelected, setIsRecommendedSelected] = useLocalStorage('can-do-list-recommended-selected', false);
+  const [isAllTasksSelected, setIsAllTasksSelected] = useLocalStorage('can-do-list-all-tasks-selected', false);
+  const [isMyDaySelected, setIsMyDaySelected] = useLocalStorage('can-do-list-my-day-selected', false);
+  
+  // Search query doesn't need to persist across sessions
   const [searchQuery, setSearchQuery] = useState('');
   
   // Refs for scroll containers

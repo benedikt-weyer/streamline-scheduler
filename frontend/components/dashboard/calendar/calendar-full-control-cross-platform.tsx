@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
+import { useLocalStorageDate } from '@/hooks/useLocalStorage';
 import { CalendarHeader } from './calendar-header';
 import { CalendarGrid } from './calendar-grid';
 import { CalendarEventDialog, EventFormValues } from './calendar-event-dialog';
@@ -123,8 +124,15 @@ export function CalendarFullControlCrossPlatform({
 }: CalendarFullControlCrossPlatformProps) {
   
   // Internal state management (only used if props not provided)
-  const [internalCurrentWeek, setInternalCurrentWeek] = useState<Date>(new Date());
-  const [internalSelectedDate, setInternalSelectedDate] = useState<Date>(new Date());
+  // Use persistent storage for calendar state to remember user's last position
+  const [internalCurrentWeek, setInternalCurrentWeek] = useLocalStorageDate(
+    'calendar-current-week', 
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  );
+  const [internalSelectedDate, setInternalSelectedDate] = useLocalStorageDate(
+    'calendar-selected-date', 
+    new Date()
+  );
   const [internalIsDialogOpen, setInternalIsDialogOpen] = useState<boolean>(false);
   const [internalSelectedEvent, setInternalSelectedEvent] = useState<CalendarEvent | null>(null);
   const [internalShouldSelectToday, setInternalShouldSelectToday] = useState<boolean>(false);
