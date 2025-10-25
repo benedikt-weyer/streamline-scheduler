@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { CanDoListPageService } from '../can-do-list/can-do-list-page-service';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 import { SchedulerPageService } from './scheduler-page-service';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
-import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
+import { CanDoItemDecrypted, ProjectDecrypted, RealtimeSubscription, RealtimeMessage } from '@/utils/api/types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, pointerWithin } from '@dnd-kit/core';
 import { SchedulerTaskList, SchedulerCalendar, SchedulerTaskItem, SchedulerMobile } from '@/components/dashboard/scheduler';
@@ -50,6 +50,9 @@ function SchedulerPageContent() {
     return null;
   });
 
+  // Store websocket subscriptions
+  const subscriptionsRef = useRef<RealtimeSubscription[]>([]);
+
   // Load can-do list data when encryption key becomes available
   useEffect(() => {
     const loadCanDoListData = async () => {
@@ -77,6 +80,92 @@ function SchedulerPageContent() {
 
     loadCanDoListData();
   }, [encryptionKey, canDoListPageService, setError]);
+
+  // Set up websocket subscriptions for real-time updates
+  useEffect(() => {
+    if (!canDoListPageService || !encryptionKey) return;
+
+    const backend = getDecryptedBackend();
+    
+    // Subscribe to can-do list changes
+    const canDoSubscription = backend.canDoItems.subscribe((payload: RealtimeMessage<CanDoItemDecrypted>) => {
+      console.log('Can-do item websocket message (scheduler):', payload);
+      
+      switch (payload.eventType) {
+        case 'INSERT':
+          if (payload.new) {
+            setTasks(prev => {
+              // Check if task already exists to avoid duplicates
+              const exists = prev.some(task => task.id === payload.new!.id);
+              if (!exists) {
+                return [...prev, payload.new!];
+              }
+              return prev;
+            });
+          }
+          break;
+          
+        case 'UPDATE':
+          if (payload.new) {
+            setTasks(prev => prev.map(task => 
+              task.id === payload.new!.id ? payload.new! : task
+            ));
+          }
+          break;
+          
+        case 'DELETE':
+          if (payload.old) {
+            setTasks(prev => prev.filter(task => task.id !== payload.old!.id));
+          }
+          break;
+      }
+    });
+
+    // Subscribe to project changes
+    const projectSubscription = backend.projects.subscribe((payload: RealtimeMessage<ProjectDecrypted>) => {
+      console.log('Project websocket message (scheduler):', payload);
+      
+      switch (payload.eventType) {
+        case 'INSERT':
+          if (payload.new) {
+            setProjects(prev => {
+              // Check if project already exists to avoid duplicates
+              const exists = prev.some(project => project.id === payload.new!.id);
+              if (!exists) {
+                return [...prev, payload.new!];
+              }
+              return prev;
+            });
+          }
+          break;
+          
+        case 'UPDATE':
+          if (payload.new) {
+            setProjects(prev => prev.map(project => 
+              project.id === payload.new!.id ? payload.new! : project
+            ));
+          }
+          break;
+          
+        case 'DELETE':
+          if (payload.old) {
+            setProjects(prev => prev.filter(project => project.id !== payload.old!.id));
+          }
+          break;
+      }
+    });
+
+    // Store subscriptions for cleanup
+    subscriptionsRef.current = [canDoSubscription, projectSubscription];
+
+    // Cleanup function
+    return () => {
+      subscriptionsRef.current.forEach(subscription => {
+        subscription.unsubscribe();
+      });
+      subscriptionsRef.current = [];
+    };
+  }, [canDoListPageService, encryptionKey]);
 
   // Wrapper functions to match expected signatures
   const handleToggleComplete = async (id: string, completed: boolean): Promise<void> => {
