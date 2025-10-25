@@ -144,6 +144,7 @@ export function CalendarFullControlCrossPlatform({
   // Drag/resize modification modal state
   const [isDragModificationModalOpen, setIsDragModificationModalOpen] = useState(false);
   const [pendingDraggedEvent, setPendingDraggedEvent] = useState<CalendarEvent | null>(null);
+  const [originalEventBeforeDrag, setOriginalEventBeforeDrag] = useState<CalendarEvent | null>(null);
 
   // Calculate derived data using useMemo to avoid unnecessary recalculations
   const daysOfWeek = useMemo(() => 
@@ -388,6 +389,64 @@ export function CalendarFullControlCrossPlatform({
 
   // Handler for drag/resize operations that checks for recurring events
   const handleEventUpdateWithRecurrenceCheck = useCallback(async (updatedEvent: CalendarEvent) => {
+    
+    // Find the original event before drag to calculate the offset
+    // For child events (recurrence instances), we need to find the master event
+    let originalEvent = events.find(e => e.id === updatedEvent.id);
+    
+    if (!originalEvent && updatedEvent.id.includes('-recurrence-')) {
+      // This is a recurrence instance, find the master event and calculate the original instance time
+      const masterEventId = updatedEvent.id.split('-recurrence-')[0];
+      const masterEvent = events.find(e => e.id === masterEventId);
+      if (masterEvent) {
+        // Extract the date from the recurrence instance ID
+        const instanceDateStr = updatedEvent.id.split('-recurrence-')[1];
+        if (instanceDateStr) {
+          try {
+            // Parse the instance date and combine it with the master event's time
+            const instanceDate = new Date(instanceDateStr);
+            const masterStartTime = new Date(masterEvent.start_time);
+            const masterEndTime = new Date(masterEvent.end_time);
+            
+            // Calculate the duration of the master event
+            const duration = masterEndTime.getTime() - masterStartTime.getTime();
+            
+            // Create the original instance time by combining the instance date with master event's time
+            const originalInstanceStartTime = new Date(
+              instanceDate.getFullYear(),
+              instanceDate.getMonth(),
+              instanceDate.getDate(),
+              masterStartTime.getHours(),
+              masterStartTime.getMinutes(),
+              masterStartTime.getSeconds(),
+              masterStartTime.getMilliseconds()
+            );
+            
+            const originalInstanceEndTime = new Date(originalInstanceStartTime.getTime() + duration);
+            
+            originalEvent = {
+              ...masterEvent,
+              id: updatedEvent.id, // Keep the instance ID
+              start_time: originalInstanceStartTime.toISOString(),
+              end_time: originalInstanceEndTime.toISOString()
+            };
+            
+          } catch (error) {
+            console.error('Failed to parse instance date:', instanceDateStr, error);
+            // Fallback to master event time
+            originalEvent = {
+              ...masterEvent,
+              id: updatedEvent.id
+            };
+          }
+        }
+      }
+    }
+    
+    if (originalEvent) {
+      setOriginalEventBeforeDrag(originalEvent);
+    }
+    
     // Check if this is a recurring event
     const recurrencePattern = getRecurrencePattern(updatedEvent);
     const isRecurringEvent = recurrencePattern && 
@@ -402,7 +461,7 @@ export function CalendarFullControlCrossPlatform({
 
     // For non-recurring events, update directly
     await onEventUpdate(updatedEvent);
-  }, [onEventUpdate, onModifyAllInSeries, onModifyThisAndFuture, onModifyThisOccurrence]);
+  }, [onEventUpdate, onModifyAllInSeries, onModifyThisAndFuture, onModifyThisOccurrence, events]);
 
   // Handlers for drag/resize modification choices
   const handleDragModifyThisOccurrence = useCallback(async (event: CalendarEvent) => {
@@ -434,7 +493,8 @@ export function CalendarFullControlCrossPlatform({
   }, [pendingDraggedEvent, onModifyThisAndFuture]);
 
   const handleDragModifyAllInSeries = useCallback(async (event: CalendarEvent) => {
-    if (pendingDraggedEvent && onModifyAllInSeries) {
+    if (pendingDraggedEvent && originalEventBeforeDrag && onModifyAllInSeries) {
+      
       const modifiedData = {
         title: pendingDraggedEvent.title,
         description: pendingDraggedEvent.description,
@@ -442,10 +502,12 @@ export function CalendarFullControlCrossPlatform({
         start_time: pendingDraggedEvent.start_time,
         end_time: pendingDraggedEvent.end_time
       };
-      await onModifyAllInSeries(event, modifiedData);
+      // Pass the original event before drag, not the current event
+      await onModifyAllInSeries(originalEventBeforeDrag, modifiedData);
       setPendingDraggedEvent(null);
+      setOriginalEventBeforeDrag(null);
     }
-  }, [pendingDraggedEvent, onModifyAllInSeries]);
+  }, [pendingDraggedEvent, originalEventBeforeDrag, onModifyAllInSeries]);
 
   const handleDragModificationConfirmed = () => {
     setPendingDraggedEvent(null);

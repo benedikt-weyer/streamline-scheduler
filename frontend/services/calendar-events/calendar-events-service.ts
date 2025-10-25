@@ -945,8 +945,11 @@ export class CalendarEventsService {
     updatedEvents?: CalendarEvent[];
     error?: string;
   }> {
+    
     // If this is a recurrence instance, find the master event
     let masterEvent = eventToModify;
+    let originalEventBeingModified = eventToModify; // Keep reference to the original event being modified
+    
     if (eventToModify.id.includes('-recurrence-')) {
       const masterEventId = eventToModify.id.split('-recurrence-')[0];
       const foundMasterEvent = allEvents.find(e => e.id === masterEventId);
@@ -958,9 +961,13 @@ export class CalendarEventsService {
     }
 
     try {
+      // Get the recurrence pattern first
+      const recurrencePattern = getRecurrencePattern(masterEvent);
+      
       // Handle different data formats - either from form (startDate/startTime) or direct (start_time)
       let newStartTime: Date;
       let newEndTime: Date;
+      
       
       if (modifiedEventData.startDate && modifiedEventData.startTime) {
         // Form data format with separate date and time fields
@@ -981,27 +988,57 @@ export class CalendarEventsService {
         return { success: false, error: 'Invalid date/time values provided' };
       }
       
-      // For "modify all in series", preserve the original start date but update the time
-      const originalStartDate = new Date(masterEvent.start_time);
+      // For "modify all in series", calculate the date and time changes
+      // Use the original event being modified (before drag) to get the original time
+      const originalStartDate = new Date(originalEventBeingModified.start_time);
       
-      // Calculate the time difference to apply to the master event
+      // Calculate the time difference to maintain event duration
       const timeDifference = newEndTime.getTime() - newStartTime.getTime();
       
-      // Create the new start time with original date but new time
-      const updatedStartTime = new Date(
-        originalStartDate.getFullYear(),
-        originalStartDate.getMonth(),
-        originalStartDate.getDate(),
-        newStartTime.getHours(),
-        newStartTime.getMinutes(),
-        newStartTime.getSeconds(),
-        newStartTime.getMilliseconds()
-      );
+      // For drag operations, we need to detect if the user moved the event to a different day
+      // by comparing the original event's date (before drag) with the new date (using UTC to avoid timezone issues)
+      const originalDateOnly = new Date(Date.UTC(originalStartDate.getUTCFullYear(), originalStartDate.getUTCMonth(), originalStartDate.getUTCDate()));
+      const newDateOnly = new Date(Date.UTC(newStartTime.getUTCFullYear(), newStartTime.getUTCMonth(), newStartTime.getUTCDate()));
+      const dateOffsetMs = newDateOnly.getTime() - originalDateOnly.getTime();
       
-      // Create the new end time maintaining the duration
-      const updatedEndTime = new Date(updatedStartTime.getTime() + timeDifference);
-
-      const recurrencePattern = getRecurrencePattern(masterEvent);
+      // If this is a drag operation and the event was moved to a different day,
+      // we need to update the master event's date accordingly
+      let updatedStartTime: Date;
+      let updatedEndTime: Date;
+      
+      if (dateOffsetMs !== 0) {
+        // Event was moved to a different day - use the new date and time directly
+        // but apply the date offset to the master event's original date with the new time
+        const masterStartTime = new Date(masterEvent.start_time);
+        
+        // Use the new time from the drag operation, but apply it to the master event's date + offset
+        const newMasterDate = new Date(masterStartTime.getTime() + dateOffsetMs);
+        
+        updatedStartTime = new Date(
+          newMasterDate.getFullYear(),
+          newMasterDate.getMonth(),
+          newMasterDate.getDate(),
+          newStartTime.getHours(),
+          newStartTime.getMinutes(),
+          newStartTime.getSeconds(),
+          newStartTime.getMilliseconds()
+        );
+        updatedEndTime = new Date(updatedStartTime.getTime() + timeDifference);
+        
+      } else {
+        // Event was moved within the same day or time was changed - preserve original date but update time
+        const masterStartTime = new Date(masterEvent.start_time);
+        updatedStartTime = new Date(
+          masterStartTime.getFullYear(),
+          masterStartTime.getMonth(),
+          masterStartTime.getDate(),
+          newStartTime.getHours(),
+          newStartTime.getMinutes(),
+          newStartTime.getSeconds(),
+          newStartTime.getMilliseconds()
+        );
+        updatedEndTime = new Date(updatedStartTime.getTime() + timeDifference);
+      }
       const eventData = {
         id: masterEvent.id,
         title: modifiedEventData.title ?? masterEvent.title,
@@ -1017,7 +1054,9 @@ export class CalendarEventsService {
             ? (modifiedEventData.recurrenceEndDate && modifiedEventData.recurrenceEndDate.trim() !== '' 
                 ? new Date(modifiedEventData.recurrenceEndDate).toISOString() 
                 : undefined)
-            : (recurrencePattern?.endDate ? recurrencePattern.endDate.toISOString() : undefined),
+            : (recurrencePattern?.endDate 
+                ? new Date(recurrencePattern.endDate.getTime() + dateOffsetMs).toISOString()
+                : undefined),
           interval: modifiedEventData.recurrenceInterval ?? recurrencePattern?.interval ?? 1,
           days_of_week: recurrencePattern?.daysOfWeek
         })
@@ -1042,7 +1081,9 @@ export class CalendarEventsService {
               ? (modifiedEventData.recurrenceEndDate && modifiedEventData.recurrenceEndDate.trim() !== '' 
                   ? new Date(modifiedEventData.recurrenceEndDate).toISOString() 
                   : undefined)
-              : (recurrencePattern?.endDate ? recurrencePattern.endDate.toISOString() : undefined),
+              : (recurrencePattern?.endDate 
+                  ? new Date(recurrencePattern.endDate.getTime() + dateOffsetMs).toISOString() 
+                  : undefined),
             interval: modifiedEventData.recurrenceInterval ?? recurrencePattern?.interval ?? 1,
             days_of_week: recurrencePattern?.daysOfWeek
           }),
