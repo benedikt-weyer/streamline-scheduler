@@ -28,6 +28,22 @@ export function CalendarGridMobile({
 }: CalendarGridMobileProps) {
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Current time tracker for showing time indicator line
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every minute
+  useEffect(() => {
+    // Set current time on first render
+    setCurrentTime(new Date());
+    
+    // Update current time every minute
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // 60000ms = 1 minute
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Effect to select today's date when shouldSelectToday changes
   useEffect(() => {
@@ -128,6 +144,45 @@ export function CalendarGridMobile({
   const getEventColor = (event: CalendarEvent) => {
     const calendar = calendars?.find(cal => cal.id === event.calendar_id);
     return calendar?.color || '#4f46e5';
+  };
+
+  // Calculate the position for the current time indicator
+  const calculateCurrentTimePosition = (day: Date): number | null => {
+    // Only show for current day
+    if (!isSameDay(currentTime, day)) return null;
+    
+    // Calculate minutes since start of day (midnight)
+    const dayStart = new Date(day);
+    dayStart.setHours(0, 0, 0, 0);
+    
+    const minutesSinceMidnight = differenceInMinutes(currentTime, dayStart);
+    
+    // Convert to percentage position (24 hours = 100%)
+    const positionPercent = (minutesSinceMidnight / (24 * 60)) * 100;
+    
+    return Math.max(0, Math.min(100, positionPercent));
+  };
+
+  // Render current time indicator for a day
+  const renderCurrentTimeLine = (day: Date): React.ReactNode => {
+    const positionPercent = calculateCurrentTimePosition(day);
+    
+    // Don't render if not current day
+    if (positionPercent === null) return null;
+    
+    return (
+      <div 
+        className="absolute w-full bg-red-500 z-30 pointer-events-none h-[2px] -translate-y-1/2"
+        style={{ 
+          top: `${positionPercent}%`,
+        }}
+      >
+        {/* Time indicator dot */}
+        <div 
+          className="absolute bg-red-500 rounded-full w-2 h-2 -translate-y-1/2 -translate-x-full left-0"
+        />
+      </div>
+    );
   };
 
   // Check if two events overlap
@@ -296,6 +351,9 @@ export function CalendarGridMobile({
           
           {/* Events overlay */}
           <div className="absolute inset-0 ml-16 pointer-events-none">
+            {/* Current time indicator */}
+            {renderCurrentTimeLine(selectedDay)}
+            
             {groupOverlappingEvents(timedEvents).flatMap(group => {
               // For non-overlapping events (group of 1), render normally
               if (group.length === 1) {
