@@ -10,7 +10,7 @@ import { DecryptedBackendInterface } from '@/utils/api/decrypted-backend-interfa
  * to provide higher-level operations specific to the can-do list page
  */
 export class CanDoListPageService {
-  private taskService: TaskService;
+  public taskService: TaskService;
   public projectService: ProjectService;
 
   constructor(backend: DecryptedBackendInterface) {
@@ -285,7 +285,7 @@ export class CanDoListPageService {
         
         // Move all tasks to the target project
         for (const task of tasksInProject) {
-          await this.taskService.moveTaskToProject(task.id, targetProjectId);
+          await this.taskService.moveTaskToProject(task.id, targetProjectId ?? null);
         }
       }
       

@@ -32,15 +32,7 @@ export function RecurringEventModificationDialog({
   if (!selectedEvent) return null;
 
   const handleThisOccurrence = async () => {
-    // For drag operations, we need to pass the event data as modified data
-    const modifiedData = {
-      title: selectedEvent.title,
-      description: selectedEvent.description,
-      location: selectedEvent.location,
-      start_time: selectedEvent.start_time,
-      end_time: selectedEvent.end_time
-    };
-    await onModifyThisOccurrence(selectedEvent, modifiedData);
+    await onModifyThisOccurrence(selectedEvent);
     setTimeout(() => {
       onOpenChange(false);
       onModificationConfirmed();
@@ -48,15 +40,7 @@ export function RecurringEventModificationDialog({
   };
 
   const handleThisAndFuture = async () => {
-    // For drag operations, we need to pass the event data as modified data
-    const modifiedData = {
-      title: selectedEvent.title,
-      description: selectedEvent.description,
-      location: selectedEvent.location,
-      start_time: selectedEvent.start_time,
-      end_time: selectedEvent.end_time
-    };
-    await onModifyThisAndFuture(selectedEvent, modifiedData);
+    await onModifyThisAndFuture(selectedEvent);
     setTimeout(() => {
       onOpenChange(false);
       onModificationConfirmed();
@@ -64,15 +48,7 @@ export function RecurringEventModificationDialog({
   };
 
   const handleAllInSeries = async () => {
-    // For drag operations, we need to pass the event data as modified data
-    const modifiedData = {
-      title: selectedEvent.title,
-      description: selectedEvent.description,
-      location: selectedEvent.location,
-      start_time: selectedEvent.start_time,
-      end_time: selectedEvent.end_time
-    };
-    await onModifyAllInSeries(selectedEvent, modifiedData);
+    await onModifyAllInSeries(selectedEvent);
     setTimeout(() => {
       onOpenChange(false);
       onModificationConfirmed();

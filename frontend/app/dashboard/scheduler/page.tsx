@@ -387,7 +387,7 @@ function SchedulerPageContent() {
     if (!task) return;
     
     const newMyDayStatus = !task.my_day;
-    await updateTask(
+    await handleUpdateTask(
       id, 
       task.content, 
       task.duration_minutes, 
