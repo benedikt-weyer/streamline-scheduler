@@ -747,9 +747,16 @@ export class CalendarEventsService {
       // Update events list with all changes
       let updatedEvents = allEvents.map(event => {
         if (event.id === masterEvent.id) {
-          // Update original event with new end date
+          // Update original event with new recurrence rule that ends before the occurrence
+          const newEndDate = updateResult.newEndDate;
           return {
             ...event,
+            recurrence_rule: JSON.stringify({
+              frequency: recurrencePattern!.frequency,
+              interval: recurrencePattern!.interval,
+              end_date: newEndDate ? endOfDay(newEndDate).toISOString() : undefined,
+              days_of_week: recurrencePattern!.daysOfWeek,
+            }),
             updated_at: new Date().toISOString()
           };
         }
@@ -908,9 +915,16 @@ export class CalendarEventsService {
       // Update events list with all changes
       let updatedEvents = allEvents.map(event => {
         if (event.id === masterEvent.id) {
-          // Update original event with new end date
+          // Update original event with new recurrence rule that ends before the occurrence
+          const newEndDate = updateResult.newEndDate;
           return {
             ...event,
+            recurrence_rule: JSON.stringify({
+              frequency: recurrencePattern!.frequency,
+              interval: recurrencePattern!.interval,
+              end_date: newEndDate ? endOfDay(newEndDate).toISOString() : undefined,
+              days_of_week: recurrencePattern!.daysOfWeek,
+            }),
             updated_at: new Date().toISOString()
           };
         }
