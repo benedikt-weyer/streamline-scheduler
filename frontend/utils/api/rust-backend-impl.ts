@@ -59,6 +59,7 @@ class RustBackendImpl implements BackendInterface {
   private wsUrl: string;
   private ws: WebSocket | null = null;
   private authToken: string | null = null;
+  private connectionId: string | null = null;
   private subscriptions: Map<string, (payload: RealtimeMessage<any>) => void> = new Map();
   private authStateCallbacks: Set<(event: string, session: AuthSession | null) => void> = new Set();
   private wsReconnectAttempts = 0;
@@ -135,6 +136,7 @@ class RustBackendImpl implements BackendInterface {
 
   private clearAuthToken(): void {
     this.authToken = null;
+    this.connectionId = null;
     
     try {
       localStorage.removeItem('auth_token');
@@ -162,6 +164,11 @@ class RustBackendImpl implements BackendInterface {
 
     if (this.authToken) {
       headers['Authorization'] = `Bearer ${this.authToken}`;
+    }
+
+    // Include connection ID to prevent receiving our own updates via WebSocket
+    if (this.connectionId) {
+      headers['X-Connection-Id'] = this.connectionId;
     }
 
     const response = await fetch(url, {
@@ -274,6 +281,11 @@ class RustBackendImpl implements BackendInterface {
     // Handle auth responses first
     if (message.type === 'auth_success') {
       console.log('[RustBackend] WebSocket authentication successful');
+      // Store connection ID to exclude self from broadcasts
+      if ((message as any).connection_id) {
+        this.connectionId = (message as any).connection_id;
+        console.log('[RustBackend] Connection ID stored:', this.connectionId);
+      }
       return;
     } else if (message.type === 'auth_error') {
       console.error('[RustBackend] WebSocket authentication failed:', message.message);

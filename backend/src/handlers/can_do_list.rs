@@ -1,5 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
+    http::HeaderMap,
     response::Json,
 };
 use sea_orm::*;
@@ -17,6 +18,13 @@ use crate::{
     state::AppState,
     websocket::WebSocketMessage,
 };
+
+fn extract_connection_id(headers: &HeaderMap) -> Option<Uuid> {
+    headers
+        .get("x-connection-id")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| Uuid::parse_str(s).ok())
+}
 
 #[derive(Debug, Deserialize)]
 pub struct CanDoListQuery {
@@ -63,8 +71,10 @@ pub async fn get_item(
 pub async fn create_item(
     State(app_state): State<AppState>,
     auth_user: AuthUser,
+    headers: HeaderMap,
     Json(request): Json<CreateCanDoItemRequest>,
 ) -> Result<Json<ApiResponse<CanDoItemResponse>>> {
+    let connection_id = extract_connection_id(&headers);
     let display_order = request.display_order.unwrap_or(0);
 
     let mut item_active = can_do_list::ActiveModel::new();
@@ -79,7 +89,7 @@ pub async fn create_item(
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
     // Broadcast websocket message for can-do item creation
-    tracing::info!("Can-do item created, broadcasting websocket message for user {}", auth_user.0.id);
+    tracing::info!("Can-do item created, broadcasting websocket message for user {} (excluding connection {:?})", auth_user.0.id, connection_id);
     let ws_message = WebSocketMessage {
         event_type: "INSERT".to_string(),
         table: "can_do_list".to_string(),
@@ -87,7 +97,7 @@ pub async fn create_item(
         record_id: Some(item.id),
         data: Some(serde_json::to_value(&CanDoItemResponse::from(item.clone())).unwrap_or_default()),
     };
-    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message, connection_id).await;
 
     Ok(Json(ApiResponse::with_message(item.into(), "Can-do item created successfully")))
 }
@@ -95,9 +105,12 @@ pub async fn create_item(
 pub async fn update_item(
     State(app_state): State<AppState>,
     auth_user: AuthUser,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(request): Json<UpdateCanDoItemRequest>,
 ) -> Result<Json<ApiResponse<CanDoItemResponse>>> {
+    let connection_id = extract_connection_id(&headers);
+    
     let item = CanDoList::find_by_id(id)
         .filter(can_do_list::Column::UserId.eq(auth_user.0.id))
         .one(&app_state.db.connection)
@@ -127,7 +140,7 @@ pub async fn update_item(
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
     // Broadcast websocket message for can-do item update
-    tracing::info!("Can-do item updated, broadcasting websocket message for user {}", auth_user.0.id);
+    tracing::info!("Can-do item updated, broadcasting websocket message for user {} (excluding connection {:?})", auth_user.0.id, connection_id);
     let ws_message = WebSocketMessage {
         event_type: "UPDATE".to_string(),
         table: "can_do_list".to_string(),
@@ -135,7 +148,7 @@ pub async fn update_item(
         record_id: Some(updated_item.id),
         data: Some(serde_json::to_value(&CanDoItemResponse::from(updated_item.clone())).unwrap_or_default()),
     };
-    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message, connection_id).await;
 
     Ok(Json(ApiResponse::with_message(updated_item.into(), "Can-do item updated successfully")))
 }
@@ -143,8 +156,11 @@ pub async fn update_item(
 pub async fn delete_item(
     State(app_state): State<AppState>,
     auth_user: AuthUser,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<()>>> {
+    let connection_id = extract_connection_id(&headers);
+    
     let result = CanDoList::delete_by_id(id)
         .filter(can_do_list::Column::UserId.eq(auth_user.0.id))
         .exec(&app_state.db.connection)
@@ -156,7 +172,7 @@ pub async fn delete_item(
     }
 
     // Broadcast websocket message for can-do item deletion
-    tracing::info!("Can-do item deleted, broadcasting websocket message for user {}", auth_user.0.id);
+    tracing::info!("Can-do item deleted, broadcasting websocket message for user {} (excluding connection {:?})", auth_user.0.id, connection_id);
     let ws_message = WebSocketMessage {
         event_type: "DELETE".to_string(),
         table: "can_do_list".to_string(),
@@ -164,7 +180,7 @@ pub async fn delete_item(
         record_id: Some(id),
         data: None,
     };
-    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message, connection_id).await;
 
     Ok(Json(ApiResponse::with_message((), "Can-do item deleted successfully")))
 }

@@ -24,8 +24,14 @@ pub struct WebSocketMessage {
 }
 
 #[derive(Clone)]
+pub struct WebSocketConnection {
+    pub tx: broadcast::Sender<WebSocketMessage>,
+    pub connection_id: Uuid,
+}
+
+#[derive(Clone)]
 pub struct WebSocketState {
-    pub connections: Arc<RwLock<HashMap<Uuid, broadcast::Sender<WebSocketMessage>>>>,
+    pub connections: Arc<RwLock<HashMap<Uuid, Vec<WebSocketConnection>>>>,
 }
 
 impl WebSocketState {
@@ -35,29 +41,46 @@ impl WebSocketState {
         }
     }
 
-    pub async fn add_connection(&self, user_id: Uuid, tx: broadcast::Sender<WebSocketMessage>) {
+    pub async fn add_connection(&self, user_id: Uuid, connection_id: Uuid, tx: broadcast::Sender<WebSocketMessage>) {
         let mut connections = self.connections.write().await;
-        connections.insert(user_id, tx);
+        let conn = WebSocketConnection { tx, connection_id };
+        connections.entry(user_id).or_insert_with(Vec::new).push(conn);
     }
 
-    pub async fn remove_connection(&self, user_id: &Uuid) {
+    pub async fn remove_connection(&self, user_id: &Uuid, connection_id: &Uuid) {
         let mut connections = self.connections.write().await;
-        connections.remove(user_id);
-    }
-
-    pub async fn broadcast_to_user(&self, user_id: &Uuid, message: WebSocketMessage) {
-        let connections = self.connections.read().await;
-        tracing::info!("Broadcasting WebSocket message to user {}: {:?}", user_id, message);
-        
-        if let Some(tx) = connections.get(user_id) {
-            tracing::info!("Found connection for user {}, sending message", user_id);
-            if let Err(e) = tx.send(message) {
-                tracing::warn!("Failed to send WebSocket message to user {}: {}", user_id, e);
-            } else {
-                tracing::info!("Successfully sent WebSocket message to user {}", user_id);
+        if let Some(user_conns) = connections.get_mut(user_id) {
+            user_conns.retain(|conn| &conn.connection_id != connection_id);
+            if user_conns.is_empty() {
+                connections.remove(user_id);
             }
+        }
+    }
+
+    pub async fn broadcast_to_user(&self, user_id: &Uuid, message: WebSocketMessage, exclude_connection_id: Option<Uuid>) {
+        let connections = self.connections.read().await;
+        tracing::info!("Broadcasting WebSocket message to user {}: {:?}, excluding connection: {:?}", user_id, message, exclude_connection_id);
+        
+        if let Some(user_conns) = connections.get(user_id) {
+            let mut sent_count = 0;
+            for conn in user_conns {
+                // Skip the connection that initiated the update
+                if let Some(exclude_id) = exclude_connection_id {
+                    if conn.connection_id == exclude_id {
+                        tracing::info!("Skipping connection {} (initiator of the update)", exclude_id);
+                        continue;
+                    }
+                }
+                
+                if let Err(e) = conn.tx.send(message.clone()) {
+                    tracing::warn!("Failed to send WebSocket message to connection {}: {}", conn.connection_id, e);
+                } else {
+                    sent_count += 1;
+                }
+            }
+            tracing::info!("Successfully sent WebSocket message to {} out of {} connections for user {}", sent_count, user_conns.len(), user_id);
         } else {
-            tracing::warn!("No WebSocket connection found for user {}", user_id);
+            tracing::warn!("No WebSocket connections found for user {}", user_id);
             tracing::info!("Active connections: {:?}", connections.keys().collect::<Vec<_>>());
         }
     }
@@ -80,6 +103,9 @@ async fn websocket_connection(
     let (mut sender, mut receiver) = socket.split();
     let (tx, mut rx) = broadcast::channel::<WebSocketMessage>(100);
     
+    // Generate a unique connection ID for this WebSocket
+    let connection_id = Uuid::new_v4();
+    
     // Handle authentication
     let mut user_id: Option<Uuid> = None;
     
@@ -90,20 +116,21 @@ async fn websocket_connection(
                 if let Some(token) = auth_msg.get("token").and_then(|t| t.as_str()) {
                     if let Ok(user) = auth_service.get_user_from_token(token).await {
                         user_id = Some(user.id);
-                        tracing::info!("WebSocket authentication successful for user: {}", user.id);
-                        ws_state.add_connection(user.id, tx.clone()).await;
+                        tracing::info!("WebSocket authentication successful for user: {} with connection_id: {}", user.id, connection_id);
+                        ws_state.add_connection(user.id, connection_id, tx.clone()).await;
                         
-                        // Send authentication success
+                        // Send authentication success with connection_id
                         let auth_response = serde_json::json!({
                             "type": "auth_success",
-                            "user_id": user.id
+                            "user_id": user.id,
+                            "connection_id": connection_id
                         });
                         
                         if sender.send(Message::Text(auth_response.to_string().into())).await.is_err() {
                             tracing::error!("Failed to send auth success message to user: {}", user.id);
                             return;
                         }
-                        tracing::info!("Sent auth success message to user: {}", user.id);
+                        tracing::info!("Sent auth success message to user: {} with connection_id: {}", user.id, connection_id);
                     } else {
                         tracing::warn!("WebSocket authentication failed for token");
                     }
@@ -163,6 +190,6 @@ async fn websocket_connection(
     }
     
     // Clean up connection
-    ws_state.remove_connection(&user_id).await;
-    tracing::info!("WebSocket connection closed for user: {}", user_id);
+    ws_state.remove_connection(&user_id, &connection_id).await;
+    tracing::info!("WebSocket connection closed for user: {} with connection_id: {}", user_id, connection_id);
 }

@@ -1,5 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
+    http::HeaderMap,
     response::Json,
 };
 use sea_orm::*;
@@ -17,6 +18,13 @@ use crate::{
     state::AppState,
     websocket::WebSocketMessage,
 };
+
+fn extract_connection_id(headers: &HeaderMap) -> Option<Uuid> {
+    headers
+        .get("x-connection-id")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| Uuid::parse_str(s).ok())
+}
 
 #[derive(Debug, Deserialize)]
 pub struct ProjectQuery {
@@ -72,8 +80,10 @@ pub async fn get_project(
 pub async fn create_project(
     State(app_state): State<AppState>,
     auth_user: AuthUser,
+    headers: HeaderMap,
     Json(request): Json<CreateProjectRequest>,
 ) -> Result<Json<ApiResponse<ProjectResponse>>> {
+    let connection_id = extract_connection_id(&headers);
     let display_order = request.display_order.unwrap_or(0);
     let is_collapsed = request.is_collapsed.unwrap_or(false);
 
@@ -90,7 +100,7 @@ pub async fn create_project(
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
     // Broadcast websocket message for project creation
-    tracing::info!("Project created, broadcasting websocket message for user {}", auth_user.0.id);
+    tracing::info!("Project created, broadcasting websocket message for user {} (excluding connection {:?})", auth_user.0.id, connection_id);
     let ws_message = WebSocketMessage {
         event_type: "INSERT".to_string(),
         table: "projects".to_string(),
@@ -98,7 +108,7 @@ pub async fn create_project(
         record_id: Some(project.id),
         data: Some(serde_json::to_value(&ProjectResponse::from(project.clone())).unwrap_or_default()),
     };
-    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message, connection_id).await;
 
     Ok(Json(ApiResponse::with_message(project.into(), "Project created successfully")))
 }
@@ -106,9 +116,12 @@ pub async fn create_project(
 pub async fn update_project(
     State(app_state): State<AppState>,
     auth_user: AuthUser,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(request): Json<UpdateProjectRequest>,
 ) -> Result<Json<ApiResponse<ProjectResponse>>> {
+    let connection_id = extract_connection_id(&headers);
+    
     let project = Projects::find_by_id(id)
         .filter(projects::Column::UserId.eq(auth_user.0.id))
         .one(&app_state.db.connection)
@@ -144,7 +157,7 @@ pub async fn update_project(
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
 
     // Broadcast websocket message for project update
-    tracing::info!("Project updated, broadcasting websocket message for user {}", auth_user.0.id);
+    tracing::info!("Project updated, broadcasting websocket message for user {} (excluding connection {:?})", auth_user.0.id, connection_id);
     let ws_message = WebSocketMessage {
         event_type: "UPDATE".to_string(),
         table: "projects".to_string(),
@@ -152,7 +165,7 @@ pub async fn update_project(
         record_id: Some(updated_project.id),
         data: Some(serde_json::to_value(&ProjectResponse::from(updated_project.clone())).unwrap_or_default()),
     };
-    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message, connection_id).await;
 
     Ok(Json(ApiResponse::with_message(updated_project.into(), "Project updated successfully")))
 }
@@ -160,8 +173,11 @@ pub async fn update_project(
 pub async fn delete_project(
     State(app_state): State<AppState>,
     auth_user: AuthUser,
+    headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<ApiResponse<()>>> {
+    let connection_id = extract_connection_id(&headers);
+    
     let result = Projects::delete_by_id(id)
         .filter(projects::Column::UserId.eq(auth_user.0.id))
         .exec(&app_state.db.connection)
@@ -173,7 +189,7 @@ pub async fn delete_project(
     }
 
     // Broadcast websocket message for project deletion
-    tracing::info!("Project deleted, broadcasting websocket message for user {}", auth_user.0.id);
+    tracing::info!("Project deleted, broadcasting websocket message for user {} (excluding connection {:?})", auth_user.0.id, connection_id);
     let ws_message = WebSocketMessage {
         event_type: "DELETE".to_string(),
         table: "projects".to_string(),
@@ -181,7 +197,7 @@ pub async fn delete_project(
         record_id: Some(id),
         data: None,
     };
-    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message).await;
+    app_state.ws_state.broadcast_to_user(&auth_user.0.id, ws_message, connection_id).await;
 
     Ok(Json(ApiResponse::with_message((), "Project deleted successfully")))
 }
