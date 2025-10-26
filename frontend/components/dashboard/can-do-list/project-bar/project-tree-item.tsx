@@ -99,7 +99,11 @@ const ProjectTreeItem = React.forwardRef<
           <Button
             variant="ghost"
             size="sm"
-            onClick={item.onAddChild}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              item.onAddChild();
+            }}
             className={`h-6 w-6 p-0 ${item.isSelected ? 'hover:bg-primary-foreground/20' : ''}`}
             title="Add subproject"
           >
@@ -108,7 +112,11 @@ const ProjectTreeItem = React.forwardRef<
           <Button
             variant="ghost"
             size="sm"
-            onClick={item.onEdit}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              item.onEdit();
+            }}
             className={`h-6 w-6 p-0 ${item.isSelected ? 'hover:bg-primary-foreground/20' : ''}`}
             title="Edit project"
           >

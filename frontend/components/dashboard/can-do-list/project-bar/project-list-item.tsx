@@ -92,7 +92,11 @@ export default function ProjectListItem({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onAddSubproject(projectNode.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onAddSubproject(projectNode.id);
+                }}
                 className={`h-6 w-6 p-0 ${isSelected ? 'hover:bg-primary-foreground/20' : ''}`}
                 title="Add subproject"
               >
@@ -103,7 +107,11 @@ export default function ProjectListItem({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onEditProject(projectNode)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onEditProject(projectNode);
+                }}
                 className={`h-6 w-6 p-0 ${isSelected ? 'hover:bg-primary-foreground/20' : ''}`}
                 title="Edit project"
               >
