@@ -34,6 +34,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
 import { parseDurationInput, formatDurationInput } from '@/utils/can-do-list/duration-input-parser';
+import { DatePicker } from '@/components/ui/date-picker';
 
 // Predefined duration options in minutes
 const PREDEFINED_DURATIONS = [
@@ -251,11 +252,11 @@ export default function EditTaskDialog({
 
           <div className="space-y-2">
             <Label htmlFor="dueDate">Due Date</Label>
-            <Input
-              id="dueDate"
-              type="date"
+            <DatePicker
+              value={form.watch('dueDate')}
+              onChange={(value) => form.setValue('dueDate', value)}
               disabled={isLoading}
-              {...form.register('dueDate')}
+              placeholder="Pick a due date"
             />
             {form.formState.errors.dueDate && (
               <p className="text-sm text-destructive">
