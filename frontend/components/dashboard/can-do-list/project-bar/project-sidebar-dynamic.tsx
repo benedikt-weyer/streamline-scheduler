@@ -40,8 +40,8 @@ interface ProjectSidebarDynamicProps {
   readonly onRecommendedSelect: () => void;
   readonly onAllTasksSelect: () => void;
   readonly onMyDaySelect: () => void;
-  readonly onAddProject: (name: string, color: string, parentId?: string) => Promise<boolean>;
-  readonly onUpdateProject: (id: string, name: string, color: string, parentId?: string) => Promise<boolean>;
+  readonly onAddProject: (name: string, description?: string, color?: string, parentId?: string) => Promise<boolean>;
+  readonly onUpdateProject: (id: string, updateData: any) => Promise<boolean>;
   readonly onDeleteProject: (id: string) => Promise<boolean>;
   readonly onBulkReorderProjects: (updates: Array<{ id: string; parentId?: string; displayOrder: number }>) => Promise<boolean>;
   readonly onUpdateProjectCollapsedState: (id: string, isCollapsed: boolean) => Promise<boolean>;
