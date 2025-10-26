@@ -129,8 +129,8 @@ export interface ProjectEncrypted {
   updated_at: string;
   user_id: string;
   parent_id?: string;
-  order: number;
-  collapsed: boolean;
+  display_order: number;
+  is_collapsed: boolean;
   encrypted_data: string;
   iv: string;
   salt: string;
@@ -152,8 +152,8 @@ export interface ProjectDecrypted {
 
 
 export interface CreateProjectRequest {
-  order: number;
-  collapsed?: boolean;
+  display_order: number;
+  is_collapsed?: boolean;
   parent_id?: string;
   encrypted_data: string;
   iv: string;
@@ -163,8 +163,8 @@ export interface CreateProjectRequest {
 export interface UpdateProjectRequest {
   id: string;
   parent_id?: string;
-  order?: number;
-  collapsed?: boolean;
+  display_order?: number;
+  is_collapsed?: boolean;
   encrypted_data?: string;
   iv?: string;
   salt?: string;

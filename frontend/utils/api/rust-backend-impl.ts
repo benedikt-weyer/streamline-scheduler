@@ -816,8 +816,8 @@ class RustBackendImpl implements BackendInterface {
             iv: project.iv,
             salt: project.salt,
             parent_id: project.parent_id,
-            order: project.display_order || project.order || 0,
-            collapsed: project.is_collapsed || project.collapsed || false,
+            display_order: project.display_order || project.order || 0,
+            is_collapsed: project.is_collapsed || project.collapsed || false,
           });
         }
       }

@@ -102,8 +102,8 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
       updated_at: encrypted.updated_at,
       user_id: encrypted.user_id,
       parent_id: encrypted.parent_id,
-      order: encrypted.order,
-      collapsed: encrypted.collapsed,
+      order: encrypted.display_order,
+      collapsed: encrypted.is_collapsed,
       ...decryptedData,
     };
   }
@@ -294,8 +294,8 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
 
       const encryptedRequest: CreateProjectRequest = {
         parent_id: request.parent_id,
-        order: request.order ?? 0,
-        collapsed: request.collapsed ?? false,
+        display_order: request.order ?? 0,
+        is_collapsed: request.collapsed ?? false,
         encrypted_data,
         iv,
         salt,
@@ -328,8 +328,8 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
       const encryptedRequest: UpdateProjectRequest = {
         id: request.id,
         parent_id: request.parent_id,
-        order: request.order,
-        collapsed: request.collapsed,
+        display_order: request.order,
+        is_collapsed: request.collapsed,
         encrypted_data: encryptedData,
         iv,
         salt,

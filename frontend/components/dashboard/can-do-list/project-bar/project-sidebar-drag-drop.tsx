@@ -75,7 +75,7 @@ export default function ProjectSidebarWithDragDrop({
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleAddProject = async (name: string, color: string, parentId?: string) => {
-    const success = await onAddProject(name, color, parentId ?? selectedParentForAdd);
+    const success = await onAddProject(name, undefined, color, parentId ?? selectedParentForAdd);
     if (success) {
       setIsAddDialogOpen(false);
       setSelectedParentForAdd(undefined);
@@ -84,7 +84,7 @@ export default function ProjectSidebarWithDragDrop({
   };
 
   const handleEditProject = async (id: string, name: string, color: string, parentId?: string) => {
-    const success = await onUpdateProject(id, name, color, parentId);
+    const success = await onUpdateProject(id, { name, color, parent_id: parentId });
     if (success) {
       setEditingProject(null);
     }
