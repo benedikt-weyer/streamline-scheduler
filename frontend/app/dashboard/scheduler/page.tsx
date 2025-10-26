@@ -671,16 +671,6 @@ function SchedulerPageContent() {
     setIsSearchActive(searchActive);
   };
 
-
-
-  // Load tasks and projects when encryption key becomes available
-  useEffect(() => {
-    if (encryptionKey) {
-      loadProjects();
-      loadTasks();
-    }
-  }, [encryptionKey, loadTasks, loadProjects]);
-
   // Get default calendar for creating events from tasks
   const defaultCalendar = calendars.find((cal: Calendar) => cal.is_default) || calendars[0];
 
