@@ -47,7 +47,10 @@ export const eventFormSchema = z.object({
   // Recurrence fields
   recurrenceFrequency: z.nativeEnum(RecurrenceFrequency).default(RecurrenceFrequency.None),
   recurrenceEndDate: z.string().optional(),
-  recurrenceInterval: z.coerce.number().min(1).default(1)
+  recurrenceInterval: z.coerce.number().min(1).default(1),
+  // Event group fields
+  isGroupEvent: z.boolean().default(false),
+  parentGroupEventId: z.string().optional()
 }).refine(data => {
   // For all-day events, we don't need time validation
   if (data.isAllDay) {
@@ -97,6 +100,15 @@ export const eventFormSchema = z.object({
 }, {
   message: "End date/time must be after start date/time",
   path: ["endTime"]
+}).refine(data => {
+  // Prevent nesting: A group event cannot have a parent group
+  if (data.isGroupEvent && data.parentGroupEventId) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Group events cannot be nested inside other groups",
+  path: ["isGroupEvent"]
 });
 
 export type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -179,7 +191,9 @@ export function CalendarEventDialog({
       recurrenceEndDate: selectedEvent && getRecurrencePattern(selectedEvent)?.endDate 
         ? format(getRecurrencePattern(selectedEvent)!.endDate!, "yyyy-MM-dd") 
         : '',
-      recurrenceInterval: selectedEvent ? (getRecurrencePattern(selectedEvent)?.interval ?? 1) : 1
+      recurrenceInterval: selectedEvent ? (getRecurrencePattern(selectedEvent)?.interval ?? 1) : 1,
+      isGroupEvent: selectedEvent?.is_group_event ?? false,
+      parentGroupEventId: selectedEvent?.parent_group_event_id ?? undefined
     }
   });
 
@@ -203,7 +217,9 @@ export function CalendarEventDialog({
       recurrenceEndDate: selectedEvent && getRecurrencePattern(selectedEvent)?.endDate 
         ? format(getRecurrencePattern(selectedEvent)!.endDate!, "yyyy-MM-dd") 
         : '',
-      recurrenceInterval: selectedEvent ? (getRecurrencePattern(selectedEvent)?.interval ?? 1) : 1
+      recurrenceInterval: selectedEvent ? (getRecurrencePattern(selectedEvent)?.interval ?? 1) : 1,
+      isGroupEvent: selectedEvent?.is_group_event ?? false,
+      parentGroupEventId: selectedEvent?.parent_group_event_id ?? undefined
     });
   }, [selectedEvent, form, calendars, defaultCalendarId]);
 
@@ -672,6 +688,67 @@ export function CalendarEventDialog({
                 </>
               )}
             </div>
+
+            {/* Event Group Settings */}
+            {!isReadOnly && (
+              <div className="space-y-3 pt-2 border-t">
+                <h3 className="text-sm font-medium text-muted-foreground">Event Group</h3>
+                
+                {/* Show parent group info if event is in a group */}
+                {form.watch('parentGroupEventId') && !form.watch('isGroupEvent') && (
+                  <div className="text-sm text-blue-600 bg-blue-50 p-2 rounded-md">
+                    <p>This event is part of an event group.</p>
+                  </div>
+                )}
+                
+                {/* Convert to Group Toggle */}
+                <FormField
+                  control={form.control}
+                  name="isGroupEvent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div 
+                        className="flex flex-row items-center justify-between w-full rounded-lg border bg-card p-3 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => {
+                          const newValue = !field.value;
+                          field.onChange(newValue);
+                          // If converting to group event, clear parent group
+                          if (newValue) {
+                            form.setValue('parentGroupEventId', undefined);
+                          }
+                        }}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <FormLabel className="text-sm font-medium cursor-pointer select-none">
+                            Convert to Event Group
+                          </FormLabel>
+                          <p className="text-xs text-muted-foreground">
+                            Allow other events to be placed inside this event
+                          </p>
+                        </div>
+                        <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+                          <Checkbox
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked);
+                              // If converting to group event, clear parent group
+                              if (checked) {
+                                form.setValue('parentGroupEventId', undefined);
+                              }
+                            }}
+                            checked={field.value}
+                          />
+                        </div>
+                      </div>
+                      {field.value && (
+                        <div className="text-xs text-muted-foreground mt-1 px-3">
+                          This event can now contain other events. Drag events over this one to add them.
+                        </div>
+                      )}
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
             
             <DialogFooter>
               <Button

@@ -619,7 +619,9 @@ function SchedulerPageContent() {
         calendarId: updatedEvent.calendar_id, // IMPORTANT: Include calendar_id
         startTime: new Date(updatedEvent.start_time),
         endTime: new Date(updatedEvent.end_time),
-        isAllDay: updatedEvent.all_day
+        isAllDay: updatedEvent.all_day,
+        isGroupEvent: updatedEvent.is_group_event,
+        parentGroupEventId: updatedEvent.parent_group_event_id,
       };
       console.log('Sending update data to service:', updateData);
       const eventWithUpdates = await schedulerPageService.updateEvent(updatedEvent.id, updateData);

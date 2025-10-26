@@ -44,4 +44,6 @@ export interface EventFormValues {
   recurrenceEndDate?: string;
   recurrenceInterval?: number;
   daysOfWeek?: number[];
+  isGroupEvent?: boolean;
+  parentGroupEventId?: string;
 }

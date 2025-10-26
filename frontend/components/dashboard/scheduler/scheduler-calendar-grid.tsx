@@ -13,6 +13,7 @@ import {
   calculateDraggingEventDateTime,
   DragMode 
 } from '@/utils/calendar/calendar-drag';
+import { EventGroupModal } from '../calendar/event-group-modal';
 
 interface SchedulerCalendarGridProps {
   readonly days: Date[];
@@ -45,6 +46,11 @@ export function SchedulerCalendarGrid({
   const [dragPosition, setDragPosition] = useState<DragPosition | null>(null);
   const isDraggingRef = useRef(false);
   const lastDragUpdateRef = useRef<number>(0);
+  
+  // Event group modal state
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [selectedGroupEvent, setSelectedGroupEvent] = useState<CalendarEvent | null>(null);
+  const [isDragHoverModalOpen, setIsDragHoverModalOpen] = useState(false);
 
   // Force layout recalculation when activeTask changes (taskbar collapse/expand)
   useEffect(() => {
@@ -178,6 +184,35 @@ export function SchedulerCalendarGrid({
     return new Date(dateString);
   };
 
+  // Helper function to find if mouse is hovering over a group event
+  const findGroupEventAtPosition = (mouseX: number, mouseY: number): CalendarEvent | null => {
+    if (!containerRef.current) return null;
+    
+    // Use elementFromPoint which respects pointer-events: none
+    const element = document.elementFromPoint(mouseX, mouseY);
+    if (!element) return null;
+    
+    // Walk up the DOM tree to find an element with data-event-id
+    let currentElement: Element | null = element;
+    while (currentElement && currentElement !== containerRef.current) {
+      const eventId = currentElement.getAttribute('data-event-id');
+      if (eventId) {
+        // Find the event in our events array
+        const event = events.find(e => e.id === eventId);
+        
+        // Return only if it's a group event and not the currently dragged event
+        if (event && event.is_group_event && event.id !== activeEvent?.event.id) {
+          return event;
+        }
+        // If we found an event but it's not a group, break
+        break;
+      }
+      currentElement = currentElement.parentElement;
+    }
+    
+    return null;
+  };
+
   // Add global mouse handlers for drag operations
   useEffect(() => {
     if (!activeEvent || !onEventUpdate) return;    
@@ -194,6 +229,14 @@ export function SchedulerCalendarGrid({
       // Update the visual position of the event being dragged
       if (isDraggingRef.current && containerRef.current) {
         updateDragPosition(e);
+      }
+    };
+    
+    // Handle escape key to exit group modal
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDragHoverModalOpen) {
+        setIsDragHoverModalOpen(false);
+        setSelectedGroupEvent(null);
       }
     };
     
@@ -225,20 +268,45 @@ export function SchedulerCalendarGrid({
         60 // zoomIntervalMinutes - standard hourly intervals
       );
       
+      // Check if hovering over a group event
+      const groupEvent = findGroupEventAtPosition(e.clientX, e.clientY);
+      
+      // Prevent nesting: Don't allow a group event to be dropped into another group
+      if (groupEvent && !activeEvent.event.is_group_event) {
+        // Open modal to show group contents during drag
+        if (groupEvent.id !== selectedGroupEvent?.id || !isDragHoverModalOpen) {
+          console.log('Hovering over group event:', groupEvent.id, groupEvent.title);
+          setSelectedGroupEvent(groupEvent);
+          setIsDragHoverModalOpen(true);
+        }
+      } else {
+        // Not hovering over a valid group, close modal
+        if (isDragHoverModalOpen) {
+          console.log('Left group event area');
+          setIsDragHoverModalOpen(false);
+          setSelectedGroupEvent(null);
+        }
+      }
+      
       // Update the visual position state
       setDragPosition(result);
     };
 
     const handleMouseUp = (e: MouseEvent) => {
-      // Only process the drag if we actually moved (isDragging)
-      if (isDraggingRef.current && containerRef.current) {
-        processDragEnd(e);
-      }
+      const wasDragging = isDraggingRef.current;
       
-      // Reset drag state after a short delay to prevent unwanted clicks
-      setTimeout(() => {
+      // Only process the drag if we actually moved (isDragging)
+      if (wasDragging && containerRef.current) {
+        processDragEnd(e);
+        
+        // Reset drag state after a short delay to prevent unwanted clicks
+        setTimeout(() => {
+          isDraggingRef.current = false;
+        }, 50);
+      } else {
+        // If we didn't drag, reset immediately so clicks work
         isDraggingRef.current = false;
-      }, 50);
+      }
       
       cleanupDrag();
     };
@@ -266,12 +334,22 @@ export function SchedulerCalendarGrid({
         60 // zoomIntervalMinutes - standard hourly intervals
       );
       
-      // Create updated event
+      // Check if dropped on a group event
+      // If drag hover modal is open, use the selected group event (modal covers the actual group)
+      const groupEvent = isDragHoverModalOpen && selectedGroupEvent 
+        ? selectedGroupEvent 
+        : findGroupEventAtPosition(e.clientX, e.clientY);
+      
+      // Create updated event - explicitly preserve is_group_event
       const updatedEvent: CalendarEvent = {
         ...activeEvent.event,
         start_time: result.startTime.toISOString(),
         end_time: result.endTime.toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        // Explicitly preserve is_group_event flag
+        is_group_event: activeEvent.event.is_group_event,
+        // Set parent group if dropped on a group (and not a group itself)
+        parent_group_event_id: (groupEvent && !activeEvent.event.is_group_event) ? groupEvent.id : activeEvent.event.parent_group_event_id
       };
       
       // Update the event
@@ -299,13 +377,17 @@ export function SchedulerCalendarGrid({
     const cleanupDrag = () => {
       setActiveEvent(null);
       setDragPosition(null);
+      setIsDragHoverModalOpen(false);
+      // Don't clear selectedGroupEvent here - it might be used for the regular modal
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('keydown', handleKeyDown);
     };
     
     // Add event listeners
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('keydown', handleKeyDown);
     
     // Clean up on unmount or when activeEvent changes
     return cleanupDrag;
@@ -375,6 +457,13 @@ export function SchedulerCalendarGrid({
     
     // Don't open the edit dialog if we're in a drag operation
     if (isDraggingRef.current) return;
+    
+    // If this is a group event, open the group modal instead
+    if (event.is_group_event) {
+      setSelectedGroupEvent(event);
+      setIsGroupModalOpen(true);
+      return;
+    }
     
     openEditDialog(event);
   };
@@ -474,19 +563,49 @@ export function SchedulerCalendarGrid({
     const isRecurring = !!recurrencePattern;
     const isRecurrenceInstance = event.id.includes('-recurrence-');
     
+    // For group events, use transparent background with solid border
+    const groupEventStyles = event.is_group_event ? {
+      backgroundColor: `${bgColor}20`, // Very transparent background
+      borderWidth: '2px',
+      borderStyle: 'solid',
+      borderColor: bgColor, // Solid, non-transparent border
+    } : {};
+    
+    // Get child events if this is a group event
+    const childEvents = event.is_group_event 
+      ? events.filter(e => e.parent_group_event_id === event.id && isSameDay(new Date(e.start_time), day))
+      : [];
+    
+    // Calculate group time range for positioning child events
+    const groupStart = new Date(event.start_time);
+    const groupEnd = new Date(event.end_time);
+    const groupDuration = differenceInMinutes(groupEnd, groupStart);
+    
     return (
       <div
         key={event.id}
-        className="absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white shadow-sm cursor-pointer hover:shadow-md transition-shadow group"
+        data-event-id={event.id}
+        className={`absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 group
+          ${event.is_group_event ? 'backdrop-blur-sm' : ''}`}
         style={{
           ...eventStyles,
-          backgroundColor: bgColor
+          backgroundColor: bgColor,
+          ...groupEventStyles,
         }}
         onClick={(e) => handleEventClick(e, event)}
         onMouseDown={(e) => handleEventMouseDown(e, event, dayIndex)}
       >
-        <div className="font-medium truncate flex items-center gap-1">
-          {(isRecurring || isRecurrenceInstance) ? (
+        <div className={`font-medium truncate flex items-center gap-1 ${event.is_group_event ? 'text-gray-900 dark:text-gray-100' : ''}`}>
+          {event.is_group_event ? (
+            <span className="inline-flex items-center flex-shrink-0" style={{ color: bgColor }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </span>
+          ) : (isRecurring || isRecurrenceInstance) ? (
             <span className="inline-flex items-center flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"></path>
@@ -497,8 +616,52 @@ export function SchedulerCalendarGrid({
           <span className="truncate">{event.title}</span>
         </div>
         {parseInt(eventStyles.height) > 25 && (
-          <div className="text-xs truncate">
+          <div className={`text-xs truncate ${event.is_group_event ? 'text-gray-700 dark:text-gray-300' : ''}`}>
             {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+          </div>
+        )}
+        
+        {/* Render child events inside the group */}
+        {event.is_group_event && childEvents.length > 0 && (
+          <div className="absolute inset-0 pointer-events-none mt-12">
+            {childEvents.map(childEvent => {
+              const childStart = new Date(childEvent.start_time);
+              const childEnd = new Date(childEvent.end_time);
+              const childDuration = differenceInMinutes(childEnd, childStart);
+              
+              // Calculate position relative to group
+              const minutesFromGroupStart = differenceInMinutes(childStart, groupStart);
+              const topPercent = Math.max(0, (minutesFromGroupStart / groupDuration) * 100);
+              const heightPercent = Math.min(100 - topPercent, (childDuration / groupDuration) * 100);
+              
+              // Get child event color
+              const childCalendar = calendars?.find(cal => cal.id === childEvent.calendar_id);
+              const childColor = childCalendar?.color || '#3b82f6';
+              
+              return (
+                <div
+                  key={childEvent.id}
+                  className="absolute left-1 right-1 rounded-sm px-1 text-xs overflow-hidden shadow-sm"
+                  style={{
+                    top: `${topPercent}%`,
+                    height: `${heightPercent}%`,
+                    minHeight: '16px',
+                    backgroundColor: childColor,
+                    color: 'white',
+                  }}
+                  title={`${childEvent.title} (${format(childStart, 'HH:mm')} - ${format(childEnd, 'HH:mm')})`}
+                >
+                  <div className="font-medium truncate text-[10px]">
+                    {childEvent.title}
+                  </div>
+                  {heightPercent > 15 && (
+                    <div className="truncate text-[9px] opacity-80">
+                      {format(childStart, 'HH:mm')}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
         
@@ -587,6 +750,8 @@ export function SchedulerCalendarGrid({
     const dayEvents = events.filter(event => {
       // Only include timed events (not all-day)
       if (event.all_day) return false;
+      // Exclude child events - they will be rendered inside their parent groups
+      if (event.parent_group_event_id) return false;
       return isSameDay(new Date(event.start_time), day) || isSameDay(new Date(event.end_time), day);
     });
     
@@ -656,9 +821,10 @@ export function SchedulerCalendarGrid({
     };
     
     // Use a wrapper div to apply the opacity and prevent pointer events
+    // Use z-index higher than modal overlay (Dialog uses z-50, we use 99999 to be above everything)
     return (
-      <div key={`drag-helper-${activeEvent.event.id}`} style={{ pointerEvents: 'none' }}>
-        {renderSingleEvent(draggedEvent, day, dayIndex, 1000, 80)}
+      <div key={`drag-helper-${activeEvent.event.id}`} style={{ pointerEvents: 'none', position: 'relative', zIndex: 99999 }}>
+        {renderSingleEvent(draggedEvent, day, dayIndex, 99999, 80)}
       </div>
     );
   };
@@ -848,6 +1014,78 @@ export function SchedulerCalendarGrid({
           ))}
         </div>
       </div>
+      
+      {/* Event Group Modal */}
+      {/* Click-to-open modal */}
+      <EventGroupModal
+        isOpen={isGroupModalOpen}
+        onOpenChange={setIsGroupModalOpen}
+        groupEvent={selectedGroupEvent}
+        childEvents={events.filter(e => e.parent_group_event_id === selectedGroupEvent?.id)}
+        calendars={calendars?.map(cal => ({
+          id: cal.id,
+          name: cal.name,
+          color: cal.color,
+          is_visible: cal.is_visible,
+          is_default: false,
+          created_at: '',
+          updated_at: '',
+          user_id: '',
+        })) || []}
+        onEditGroup={(event) => {
+          openEditDialog(event);
+        }}
+        onEventClick={(event) => {
+          openEditDialog(event);
+        }}
+        onEventUpdate={onEventUpdate}
+      />
+      
+      {/* Drag hover modal */}
+      <EventGroupModal
+        isOpen={isDragHoverModalOpen}
+        onOpenChange={setIsDragHoverModalOpen}
+        groupEvent={selectedGroupEvent}
+        childEvents={events.filter(e => e.parent_group_event_id === selectedGroupEvent?.id)}
+        calendars={calendars?.map(cal => ({
+          id: cal.id,
+          name: cal.name,
+          color: cal.color,
+          is_visible: cal.is_visible,
+          is_default: false,
+          created_at: '',
+          updated_at: '',
+          user_id: '',
+        })) || []}
+        onEditGroup={(event) => {
+          openEditDialog(event);
+        }}
+        onEventClick={(event) => {
+          openEditDialog(event);
+        }}
+        onEventUpdate={onEventUpdate}
+        externalDragEvent={activeEvent?.event || null}
+        onExternalDrop={(event, newStartTime, newEndTime) => {
+          if (!onEventUpdate || !selectedGroupEvent) return;
+          
+          // Update the event with new times and assign to group
+          const updatedEvent: CalendarEvent = {
+            ...event,
+            start_time: newStartTime.toISOString(),
+            end_time: newEndTime.toISOString(),
+            parent_group_event_id: selectedGroupEvent.id,
+            updated_at: new Date().toISOString(),
+          };
+          
+          onEventUpdate(updatedEvent);
+          
+          // Clean up drag state
+          setActiveEvent(null);
+          setDragPosition(null);
+          setIsDragHoverModalOpen(false);
+          isDraggingRef.current = false;
+        }}
+      />
     </div>
   );
 } 

@@ -492,6 +492,8 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
         all_day: request.all_day ?? false,
         calendar_id: request.calendar_id,
         recurrence_rule: request.recurrence_rule,
+        is_group_event: request.is_group_event,
+        parent_group_event_id: request.parent_group_event_id,
       });
 
       const encryptedRequest: CreateCalendarEventRequest = {
@@ -517,7 +519,8 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
           request.location !== undefined || request.start_time !== undefined ||
           request.end_time !== undefined || request.all_day !== undefined ||
           request.calendar_id !== undefined || request.recurrence_rule !== undefined ||
-          request.recurrence_exception !== undefined) {
+          request.recurrence_exception !== undefined || request.is_group_event !== undefined ||
+          request.parent_group_event_id !== undefined) {
         const encrypted = this.encryptItemData({
           title: request.title,
           description: request.description,
@@ -528,6 +531,8 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
           calendar_id: request.calendar_id,
           recurrence_rule: request.recurrence_rule,
           recurrence_exception: request.recurrence_exception,
+          is_group_event: request.is_group_event,
+          parent_group_event_id: request.parent_group_event_id,
         });
         encryptedData = encrypted.encrypted_data;
         iv = encrypted.iv;

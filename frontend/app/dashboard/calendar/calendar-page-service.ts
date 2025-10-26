@@ -207,6 +207,8 @@ export class CalendarPageService {
         endTime: new Date(`${values.endDate}T${values.endTime}`),
         isAllDay: values.isAllDay,
         recurrenceRule: this.buildRecurrenceRule(values),
+        isGroupEvent: values.isGroupEvent,
+        parentGroupEventId: values.parentGroupEventId,
       };
       
       let event: CalendarEvent;
@@ -271,6 +273,8 @@ export class CalendarPageService {
     endTime: Date;
     isAllDay: boolean;
     calendarId: string;
+    isGroupEvent: boolean;
+    parentGroupEventId: string;
   }>): Promise<CalendarEvent> {
     try {
       return await this.calendarEventsService.updateCalendarEvent(eventId, updates);

@@ -336,6 +336,8 @@ function CalendarContent() {
         endTime: updatedEvent.end_time ? new Date(updatedEvent.end_time) : undefined,
         isAllDay: updatedEvent.all_day,
         calendarId: updatedEvent.calendar_id,
+        isGroupEvent: updatedEvent.is_group_event,
+        parentGroupEventId: updatedEvent.parent_group_event_id,
       });
       setCalendarEvents(prev => prev.map(event => event.id === updatedEvent.id ? eventWithUpdates : event));
       return true;

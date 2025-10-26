@@ -280,6 +280,8 @@ export class SchedulerPageService {
     startTime?: Date;
     endTime?: Date;
     isAllDay?: boolean;
+    isGroupEvent?: boolean;
+    parentGroupEventId?: string;
   }): Promise<CalendarEvent> {
     return await this.calendarEventsService.updateCalendarEvent(eventId, {
       title: updates.title,
@@ -288,7 +290,9 @@ export class SchedulerPageService {
       calendarId: updates.calendarId,
       startTime: updates.startTime,
       endTime: updates.endTime,
-      isAllDay: updates.isAllDay
+      isAllDay: updates.isAllDay,
+      isGroupEvent: updates.isGroupEvent,
+      parentGroupEventId: updates.parentGroupEventId,
     });
   }
 

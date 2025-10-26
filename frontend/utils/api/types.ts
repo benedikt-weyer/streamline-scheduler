@@ -274,6 +274,8 @@ export interface CalendarEventDecrypted {
   calendar_id: string;
   recurrence_rule?: string;
   recurrence_exception?: string[];
+  is_group_event?: boolean;
+  parent_group_event_id?: string;
   created_at: string;
   updated_at: string;
   user_id: string;
@@ -303,6 +305,8 @@ export interface CreateCalendarEventDecryptedRequest {
   all_day?: boolean;
   calendar_id: string;
   recurrence_rule?: string;
+  is_group_event?: boolean;
+  parent_group_event_id?: string;
 }
 
 export interface UpdateCalendarEventDecryptedRequest {
@@ -316,6 +320,8 @@ export interface UpdateCalendarEventDecryptedRequest {
   calendar_id?: string;
   recurrence_rule?: string;
   recurrence_exception?: string[];
+  is_group_event?: boolean;
+  parent_group_event_id?: string;
 }
 
 // Real-time subscription types
