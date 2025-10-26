@@ -49,7 +49,8 @@ export default function TaskList({
   onToggleMyDay,
   onReorderTasks,
   projects = [],
-  currentProjectId
+  currentProjectId,
+  showProjectName = false
 }: TaskListProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -149,6 +150,7 @@ export default function TaskList({
                   onToggleMyDay={onToggleMyDay}
                   projects={projects}
                   tasks={allTasks ?? tasks}
+                  showProjectName={showProjectName}
                 />
                 
                 {/* Drop indicator below */}
@@ -170,6 +172,7 @@ export default function TaskList({
             onUpdateTask={onUpdateTask}
             projects={projects}
             tasks={allTasks ?? tasks}
+            showProjectName={showProjectName}
           />
         ) : null}
       </DragOverlay>

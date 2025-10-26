@@ -591,6 +591,7 @@ export default function CanDoListMain({
                           onReorderTasks={handleReorderTasks}
                           projects={projects}
                           currentProjectId={selectedProjectId}
+                          showProjectName={isMyDaySelected}
                         />
                       )}
                     </TabsContent>
@@ -644,6 +645,7 @@ export default function CanDoListMain({
                           onReorderTasks={handleReorderTasks}
                           projects={projects}
                           currentProjectId={selectedProjectId}
+                          showProjectName={isMyDaySelected}
                         />
                       )}
                     </TabsContent>
@@ -836,6 +838,7 @@ export default function CanDoListMain({
                           onReorderTasks={handleReorderTasks}
                           projects={projects}
                           currentProjectId={selectedProjectId}
+                          showProjectName={isMyDaySelected}
                         />
                       )}
                     </TabsContent>
@@ -889,6 +892,7 @@ export default function CanDoListMain({
                           onReorderTasks={handleReorderTasks}
                           projects={projects}
                           currentProjectId={selectedProjectId}
+                          showProjectName={isMyDaySelected}
                         />
                       )}
                     </TabsContent>

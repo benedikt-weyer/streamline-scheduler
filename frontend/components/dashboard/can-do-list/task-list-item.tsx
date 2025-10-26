@@ -24,9 +24,10 @@ interface TaskListItemProps {
   readonly onToggleMyDay?: (id: string) => Promise<void>;
   readonly projects?: ProjectDecrypted[];
   readonly tasks?: CanDoItemDecrypted[];
+  readonly showProjectName?: boolean;
 }
 
-export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, onToggleMyDay, projects = [], tasks = [] }: TaskListItemProps) {
+export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, onToggleMyDay, projects = [], tasks = [], showProjectName = false }: TaskListItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -99,6 +100,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   // Check if task is blocking other tasks and find the blocked tasks
   const blockedTasks = tasks.filter(t => t.blocked_by === task.id && !t.completed);
   const isBlocking = blockedTasks.length > 0 && !task.completed;
+
+  // Get project name if task has a project
+  const projectName = task.project_id ? projects.find(p => p.id === task.project_id)?.name : null;
+  const projectColor = task.project_id ? projects.find(p => p.id === task.project_id)?.color : null;
 
   const handleToggleCompleteClick = async () => {
     if (!task.completed) {
@@ -211,7 +216,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           </div>
           
           {/* Badges row - only show on mobile when there are badges */}
-          {(task.duration_minutes || task.due_date || isBlocked || isUnblocked || isBlocking) && (
+          {(task.duration_minutes || task.due_date || isBlocked || isUnblocked || isBlocking || (showProjectName && projectName)) && (
             <div className="md:hidden flex items-center space-x-1 pl-12 pr-3 pb-3">
               {isBlocked && (
                 <span className="text-xs text-red-800 dark:text-red-200 bg-red-100 dark:bg-red-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
@@ -248,6 +253,21 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
                     </TooltipPrimitive.Portal>
                   </Tooltip>
                 </TooltipProvider>
+              )}
+              {showProjectName && projectName && (
+                <span 
+                  className="text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 border"
+                  style={{ 
+                    borderColor: projectColor || '#6b7280',
+                    color: projectColor || '#6b7280'
+                  }}
+                >
+                  <div 
+                    className="w-2 h-2 rounded-full" 
+                    style={{ backgroundColor: projectColor || '#6b7280' }}
+                  />
+                  {projectName}
+                </span>
               )}
               {task.duration_minutes && (
                 <span className="text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
@@ -318,8 +338,23 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
                       </div>
                     </TooltipContent>
                   </TooltipPrimitive.Portal>
-                </Tooltip>
-              </TooltipProvider>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            {showProjectName && projectName && (
+              <span 
+                className="ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 border"
+                style={{ 
+                  borderColor: projectColor || '#6b7280',
+                  color: projectColor || '#6b7280'
+                }}
+              >
+                <div 
+                  className="w-2 h-2 rounded-full" 
+                  style={{ backgroundColor: projectColor || '#6b7280' }}
+                />
+                {projectName}
+              </span>
             )}
             {task.duration_minutes && (
               <span className="ml-2 text-xs text-background bg-muted-foreground px-2 py-[2px] rounded-sm flex items-center gap-1">
