@@ -392,6 +392,8 @@ pkgs.mkShell {
       cd "$PROJECT_DIR"
     fi
 
+    unset NODE_ENV
+
     echo "✅ Development environment ready!"
     echo ""
     echo "🎯 Quick start:"
@@ -422,6 +424,5 @@ pkgs.mkShell {
     OPENSSL_DIR = "${pkgs.openssl.dev}";
     OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
     OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
-    NODE_ENV = "development";
   };
 }
