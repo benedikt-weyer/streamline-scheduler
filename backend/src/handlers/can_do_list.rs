@@ -44,7 +44,7 @@ pub async fn list_items(
     
     let items = find
         .order_by_asc(can_do_list::Column::DisplayOrder)
-        .order_by_asc(can_do_list::Column::CreatedAt)
+        .order_by_desc(can_do_list::Column::CreatedAt)
         .all(&app_state.db.connection)
         .await
         .map_err(|e| crate::errors::AppError::Database(e.into()))?;
