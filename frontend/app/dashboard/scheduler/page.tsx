@@ -1063,7 +1063,7 @@ function SchedulerPageContent() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full">
+    <div className="flex flex-col h-full w-full">
 
       {/* Main Content Area - Unified for Mobile and Desktop */}
       <div className="flex flex-1 overflow-hidden">
