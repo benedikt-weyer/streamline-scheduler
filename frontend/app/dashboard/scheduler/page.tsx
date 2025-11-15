@@ -687,6 +687,26 @@ function SchedulerPageContent() {
   const [showTaskList, setShowTaskList] = useLocalStorage('scheduler-show-task-list', true);
   const [showCalendar, setShowCalendar] = useLocalStorage('scheduler-show-calendar', true);
   
+  // Ensure on mobile only one panel is active (default to calendar if both are active)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const checkMobileState = () => {
+      if (window.innerWidth < 768 && showTaskList && showCalendar) {
+        // On mobile, if both are active, default to calendar only
+        setShowTaskList(false);
+        setShowCalendar(true);
+      }
+    };
+    
+    // Check on mount
+    checkMobileState();
+    
+    // Check on window resize
+    window.addEventListener('resize', checkMobileState);
+    return () => window.removeEventListener('resize', checkMobileState);
+  }, [showTaskList, showCalendar, setShowTaskList, setShowCalendar]);
+  
   // Handlers for toggling view panels (with constraint that at least one must be visible)
   const handleToggleTaskList = () => {
     // Only allow toggling off if calendar is visible
@@ -801,79 +821,103 @@ function SchedulerPageContent() {
   };
 
   return (
-    <div className="flex h-screen w-full">
-
-      {/* Desktop Layout */}
-      <div className="hidden md:flex flex-col w-full">
-          {/* Top Navigation Bar */}
-          <div className="border-b bg-background px-4 py-2 flex items-center justify-center">
-            <ButtonGroup>
-              <Button
-                variant={showTaskList ? "default" : "outline"}
-                size="sm"
-                onClick={handleToggleTaskList}
-                disabled={showTaskList && !showCalendar}
-                className={cn(
-                  "flex items-center gap-2",
-                  showTaskList && !showCalendar && "opacity-100 cursor-not-allowed"
-                )}
-              >
-                <LayoutList className="h-4 w-4" />
-                <span>Can-Do List</span>
-              </Button>
-              <ButtonGroupSeparator />
-              <Button
-                variant={showCalendar ? "default" : "outline"}
-                size="sm"
-                onClick={handleToggleCalendar}
-                disabled={showCalendar && !showTaskList}
-                className={cn(
-                  "flex items-center gap-2",
-                  showCalendar && !showTaskList && "opacity-100 cursor-not-allowed"
-                )}
-              >
-                <CalendarIcon className="h-4 w-4" />
-                <span>Calendar</span>
-              </Button>
-            </ButtonGroup>
-          </div>
-
-          {/* Main Content Area */}
-          <div className="flex flex-1 overflow-hidden">
-            {/* Can-Do List - Desktop (only show when task list is visible) */}
-            {showTaskList && (
-              <div className={cn(
-                "transition-all duration-300 h-full overflow-hidden",
-                showCalendar ? 'w-1/2' : 'flex-1'
-              )}>
-                <CanDoListMain
-                  tasks={tasks}
-                  projects={projects}
-                  isLoadingTasks={isLoadingTasks}
-                  isLoadingProjects={isLoadingProjects}
-                  isLoadingKey={isLoadingKey}
-                  encryptionKey={encryptionKey}
-                  handleAddTask={handleAddTask}
-                  handleUpdateTask={wrappedHandleUpdateTaskBoolean}
-                  handleToggleComplete={wrappedHandleToggleCompleteBoolean}
-                  handleDeleteTask={wrappedHandleDeleteTaskBoolean}
-                  handleBulkDeleteCompleted={handleBulkDeleteCompleted}
-                  handleReorderTasks={handleReorderTasks}
-                  loadTasks={wrappedLoadTasks}
-                  handleAddProject={handleAddProject}
-                  handleUpdateProject={handleUpdateProject}
-                  handleDeleteProject={handleDeleteProject}
-                  handleBulkReorderProjects={handleBulkReorderProjects}
-                  handleUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
-                  loadProjects={wrappedLoadProjects}
-                  containerClassName="flex w-full h-full"
-                />
-              </div>
+    <div className="flex flex-col h-screen w-full">
+      {/* Top Navigation Bar - Unified for Mobile and Desktop */}
+      <div className="border-b bg-background px-4 py-2 flex items-center justify-center">
+        <ButtonGroup>
+          <Button
+            variant={showTaskList ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              // On mobile: only one can be active (exclusive toggle)
+              // On desktop: at least one must be active (toggle with constraint)
+              if (window.innerWidth < 768) {
+                // Mobile: exclusive toggle
+                setShowTaskList(true);
+                setShowCalendar(false);
+              } else {
+                // Desktop: toggle with constraint
+                handleToggleTaskList();
+              }
+            }}
+            disabled={showTaskList && !showCalendar && window.innerWidth >= 768}
+            className={cn(
+              "flex items-center gap-2",
+              showTaskList && !showCalendar && "opacity-100 md:cursor-not-allowed"
             )}
+          >
+            <LayoutList className="h-4 w-4" />
+            <span>Can-Do List</span>
+          </Button>
+          <ButtonGroupSeparator />
+          <Button
+            variant={showCalendar ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              // On mobile: only one can be active (exclusive toggle)
+              // On desktop: at least one must be active (toggle with constraint)
+              if (window.innerWidth < 768) {
+                // Mobile: exclusive toggle
+                setShowCalendar(true);
+                setShowTaskList(false);
+              } else {
+                // Desktop: toggle with constraint
+                handleToggleCalendar();
+              }
+            }}
+            disabled={showCalendar && !showTaskList && window.innerWidth >= 768}
+            className={cn(
+              "flex items-center gap-2",
+              showCalendar && !showTaskList && "opacity-100 md:cursor-not-allowed"
+            )}
+          >
+            <CalendarIcon className="h-4 w-4" />
+            <span>Calendar</span>
+          </Button>
+        </ButtonGroup>
+      </div>
 
-            {/* Calendar - Desktop (only show when calendar is visible) */}
-            {showCalendar && (
-              <div className={cn("h-full overflow-hidden", showTaskList ? "flex-1" : "w-full")}>
+      {/* Main Content Area - Unified for Mobile and Desktop */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Can-Do List */}
+        {showTaskList && (
+          <div className={cn(
+            "h-full overflow-hidden",
+            // Desktop: transition and width based on calendar visibility
+            "md:transition-all md:duration-300",
+            showCalendar ? "w-full md:w-1/2" : "w-full md:flex-1"
+          )}>
+            <CanDoListMain
+              tasks={tasks}
+              projects={projects}
+              isLoadingTasks={isLoadingTasks}
+              isLoadingProjects={isLoadingProjects}
+              isLoadingKey={isLoadingKey}
+              encryptionKey={encryptionKey}
+              handleAddTask={handleAddTask}
+              handleUpdateTask={wrappedHandleUpdateTaskBoolean}
+              handleToggleComplete={wrappedHandleToggleCompleteBoolean}
+              handleDeleteTask={wrappedHandleDeleteTaskBoolean}
+              handleBulkDeleteCompleted={handleBulkDeleteCompleted}
+              handleReorderTasks={handleReorderTasks}
+              loadTasks={wrappedLoadTasks}
+              handleAddProject={handleAddProject}
+              handleUpdateProject={handleUpdateProject}
+              handleDeleteProject={handleDeleteProject}
+              handleBulkReorderProjects={handleBulkReorderProjects}
+              handleUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
+              loadProjects={wrappedLoadProjects}
+              containerClassName="flex w-full h-full"
+            />
+          </div>
+        )}
+
+        {/* Calendar */}
+        {showCalendar && (
+          <div className={cn(
+            "h-full overflow-hidden",
+            showTaskList ? "w-full md:flex-1" : "w-full"
+          )}>
             <CalendarMain
               calendars={calendars}
               events={calendarEvents}
@@ -892,13 +936,12 @@ function SchedulerPageContent() {
               onEventUpdate={onEventUpdate}
               moveEventToCalendar={moveEventToCalendar}
               onRefreshICSCalendar={handleICSCalendarRefresh}
-              isICSEvent={(event) => schedulerPageService?.isICSEvent(event, calendars) || false}
-              isReadOnlyCalendar={(calendarId) => schedulerPageService?.isReadOnlyCalendar(calendarId, calendars) || false}
+              isICSEvent={(event: CalendarEvent) => schedulerPageService?.isICSEvent(event, calendars) || false}
+              isReadOnlyCalendar={(calendarId: string) => schedulerPageService?.isReadOnlyCalendar(calendarId, calendars) || false}
             />
-              </div>
-            )}
           </div>
-        </div>
+        )}
+      </div>
     </div>
   );
 }
