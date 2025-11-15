@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
+import { calculateEventLayout } from '@/utils/calendar/calendar-render';
 
 interface CalendarGridMobileProps {
   readonly days: Date[];
@@ -394,17 +395,18 @@ export function CalendarGridMobile({
                 );
               }
               
-              // For overlapping events, render each in its own column
-              return group.map((event, columnIndex) => {
-                const style = getEventStyle(event);
-                const color = getEventColor(event);
-                const totalColumns = group.length;
-                const columnWidth = 100 / totalColumns;
-                const leftPosition = columnWidth * columnIndex;
+              // For overlapping events, use the new layout algorithm
+              const layouts = calculateEventLayout(group);
+              return layouts.map(layout => {
+                const style = getEventStyle(layout.event);
+                const color = getEventColor(layout.event);
+                const columnWidth = 100 / layout.totalColumns;
+                const width = columnWidth * layout.columnSpan;
+                const left = columnWidth * layout.column;
                 
                 return (
                   <div
-                    key={event.id}
+                    key={layout.event.id}
                     className="absolute rounded-md p-2 text-xs cursor-pointer pointer-events-auto shadow-sm border-l-4"
                     style={{
                       top: style.top,
@@ -412,25 +414,25 @@ export function CalendarGridMobile({
                       backgroundColor: color,
                       borderLeftColor: color,
                       minHeight: '2rem',
-                      width: `calc(${columnWidth}% - 4px)`,
-                      left: `calc(${leftPosition}% + 4px)`
+                      width: `calc(${width}% - 4px)`,
+                      left: `calc(${left}% + 4px)`
                     }}
-                    onClick={() => handleEventClick(event)}
+                    onClick={() => handleEventClick(layout.event)}
                   >
                     <div className="font-medium text-white line-clamp-1">
-                      {event.title}
+                      {layout.event.title}
                     </div>
                     <div className="text-white text-xs opacity-90">
-                      {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')}
+                      {format(new Date(layout.event.start_time), 'HH:mm')} - {format(new Date(layout.event.end_time), 'HH:mm')}
                     </div>
-                    {event.location && (
+                    {layout.event.location && (
                       <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
-                        📍 {event.location}
+                        📍 {layout.event.location}
                       </div>
                     )}
-                    {event.description && (
+                    {layout.event.description && (
                       <div className="text-white text-xs line-clamp-1 mt-1 opacity-90">
-                        {event.description}
+                        {layout.event.description}
                       </div>
                     )}
                   </div>

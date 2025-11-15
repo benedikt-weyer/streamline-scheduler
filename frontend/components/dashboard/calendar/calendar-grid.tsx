@@ -4,7 +4,7 @@ import { format, isSameDay, differenceInMinutes } from 'date-fns';
 
 import { CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { generateTimeSlots } from '@/utils/calendar/calendar';
-import { calculateCalendarDimensions, calculateEventRendering, groupOverlappingEvents } from '@/utils/calendar/calendar-render';
+import { calculateCalendarDimensions, calculateEventRendering, groupOverlappingEvents, calculateEventLayout } from '@/utils/calendar/calendar-render';
 import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 import { 
   DraggedEvent, 
@@ -849,11 +849,49 @@ export function CalendarGrid({
     };
   };
 
-  // Render a single event
-  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex: number = 10, opacity: number = 100, columnIndex: number = 0, totalColumns: number = 1) => {
-    // Use the zoom-aware rendering function
-    const { eventStyles, startTime, endTime } = calculateZoomedEventRendering(event, day, slotHeight, zIndex, opacity, columnIndex, totalColumns);
+  // Render a single event with explicit layout parameters (for advanced layout algorithm)
+  const renderSingleEventWithLayout = (
+    event: CalendarEvent, 
+    day: Date, 
+    dayIndex: number, 
+    zIndex: number = 10, 
+    opacity: number = 100,
+    leftPercent: number,
+    widthPercent: number,
+    totalColumns: number = 1
+  ) => {
+    // Calculate base event rendering without width/left (we'll override those)
+    const { eventStyles: baseStyles, startTime, endTime } = calculateZoomedEventRendering(
+      event, 
+      day, 
+      slotHeight, 
+      zIndex, 
+      opacity, 
+      0, 
+      1
+    );
     
+    // Override width and left with our calculated layout
+    const eventStyles = {
+      ...baseStyles,
+      width: `calc(${widthPercent}% - 4px)`,
+      left: `${leftPercent}%`
+    };
+    
+    return renderEventElement(event, eventStyles, startTime, endTime, day, dayIndex, zIndex, totalColumns);
+  };
+
+  // Render event element - shared JSX rendering logic
+  const renderEventElement = (
+    event: CalendarEvent,
+    eventStyles: any,
+    startTime: Date,
+    endTime: Date,
+    day: Date,
+    dayIndex: number,
+    zIndex: number,
+    totalColumns: number
+  ) => {
     // Check if this is a recurring event or a recurring instance
     const recurrencePattern = getRecurrencePattern(event);
     const isRecurring = recurrencePattern?.frequency !== undefined && 
@@ -902,7 +940,7 @@ export function CalendarGrid({
     const groupStart = new Date(event.start_time);
     const groupEnd = new Date(event.end_time);
     const groupDuration = differenceInMinutes(groupEnd, groupStart);
-    
+
     return (
       <div
         key={event.id}
@@ -1017,6 +1055,14 @@ export function CalendarGrid({
     );
   };
 
+  // Render a single event
+  const renderSingleEvent = (event: CalendarEvent, day: Date, dayIndex: number, zIndex: number = 10, opacity: number = 100, columnIndex: number = 0, totalColumns: number = 1) => {
+    // Use the zoom-aware rendering function
+    const { eventStyles, startTime, endTime } = calculateZoomedEventRendering(event, day, slotHeight, zIndex, opacity, columnIndex, totalColumns);
+    
+    return renderEventElement(event, eventStyles, startTime, endTime, day, dayIndex, zIndex, totalColumns);
+  };
+
   // Render events in the calendar grid
   // Filter events based on zoom window
   const filterEventsForZoom = (dayEvents: CalendarEvent[], day: Date): CalendarEvent[] => {
@@ -1064,10 +1110,24 @@ export function CalendarGrid({
         return renderSingleEvent(group[0], day, dayIndex);
       }
       
-      // For overlapping events, render each in its own column
-      return group.map((event, columnIndex) => 
-        renderSingleEvent(event, day, dayIndex, 10, 100, columnIndex, group.length)
-      );
+      // For overlapping events, use the new layout algorithm
+      const layouts = calculateEventLayout(group);
+      return layouts.map(layout => {
+        const columnWidth = 100 / layout.totalColumns;
+        const width = columnWidth * layout.columnSpan;
+        const left = columnWidth * layout.column;
+        
+        return renderSingleEventWithLayout(
+          layout.event, 
+          day, 
+          dayIndex, 
+          10, 
+          100, 
+          left, 
+          width,
+          layout.totalColumns
+        );
+      });
     });
     
     return renderedEvents;

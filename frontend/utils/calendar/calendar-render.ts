@@ -132,6 +132,101 @@ export const groupOverlappingEvents = (
   return groups;
 };
 
+export interface EventLayout {
+  event: CalendarEvent;
+  column: number;
+  columnSpan: number;
+  totalColumns: number;
+}
+
+/**
+ * Calculates optimal layout for overlapping events to maximize their width
+ * Uses a column-based algorithm similar to Google Calendar
+ */
+export const calculateEventLayout = (events: CalendarEvent[]): EventLayout[] => {
+  if (events.length === 0) return [];
+  if (events.length === 1) {
+    return [{ event: events[0], column: 0, columnSpan: 1, totalColumns: 1 }];
+  }
+
+  // Sort events by start time, then by duration (longer events first)
+  const sortedEvents = [...events].sort((a, b) => {
+    const startDiff = new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+    if (startDiff !== 0) return startDiff;
+    // If same start time, longer events first
+    const durationA = new Date(a.end_time).getTime() - new Date(a.start_time).getTime();
+    const durationB = new Date(b.end_time).getTime() - new Date(b.start_time).getTime();
+    return durationB - durationA;
+  });
+
+  // Build collision matrix - which events overlap with which
+  const collisions: boolean[][] = sortedEvents.map((_, i) =>
+    sortedEvents.map((_, j) => i !== j && doEventsOverlap(sortedEvents[i], sortedEvents[j]))
+  );
+
+  // Calculate the maximum number of overlapping events at any point
+  let maxColumns = 0;
+  const columns: number[] = new Array(sortedEvents.length).fill(0);
+
+  // Assign each event to a column
+  for (let i = 0; i < sortedEvents.length; i++) {
+    // Find the leftmost available column
+    const occupiedColumns = new Set<number>();
+    
+    // Check which columns are occupied by events that overlap with this one
+    for (let j = 0; j < i; j++) {
+      if (collisions[i][j]) {
+        occupiedColumns.add(columns[j]);
+      }
+    }
+
+    // Find the first free column
+    let column = 0;
+    while (occupiedColumns.has(column)) {
+      column++;
+    }
+    
+    columns[i] = column;
+    maxColumns = Math.max(maxColumns, column + 1);
+  }
+
+  // Calculate column span for each event
+  // An event can span multiple columns if no other events occupy those columns during its time
+  const layouts: EventLayout[] = sortedEvents.map((event, i) => {
+    let columnSpan = 1;
+    const eventColumn = columns[i];
+    
+    // Check how many columns to the right are free during this event's time
+    for (let col = eventColumn + 1; col < maxColumns; col++) {
+      let columnIsFree = true;
+      
+      // Check if any event in this column overlaps with our event
+      for (let j = 0; j < sortedEvents.length; j++) {
+        if (columns[j] === col && collisions[i][j]) {
+          columnIsFree = false;
+          break;
+        }
+      }
+      
+      if (columnIsFree) {
+        columnSpan++;
+      } else {
+        // Stop if we hit an occupied column (no gaps)
+        break;
+      }
+    }
+
+    return {
+      event,
+      column: eventColumn,
+      columnSpan,
+      totalColumns: maxColumns
+    };
+  });
+
+  return layouts;
+};
+
 /**
  * Calculates viewport-optimized calendar dimensions
  */
