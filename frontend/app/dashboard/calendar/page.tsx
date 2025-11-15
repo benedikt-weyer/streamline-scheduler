@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useState, useRef } from 'react';
 
-import { CalendarFullControlCrossPlatform } from '@/components/calendar/calendar-full-control-cross-platform';
+import { CalendarMain } from '@/components/calendar/calendar-main';
 
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 import { Calendar, CalendarEvent } from '@/utils/calendar/calendar-types';
@@ -469,7 +469,7 @@ function CalendarContent() {
 
 
   return (
-    <CalendarFullControlCrossPlatform
+    <CalendarMain
       // Data
             calendars={calendars}
       events={calendarEvents}

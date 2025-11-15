@@ -15,7 +15,7 @@ import { getDaysOfWeek, getEventsInWeek } from '@/utils/calendar/calendarHelpers
 import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 import { startOfWeek } from 'date-fns';
 
-export interface CalendarFullControlCrossPlatformProps {
+export interface CalendarMainProps {
   // Data
   calendars: Calendar[];
   events: CalendarEvent[];
@@ -70,7 +70,7 @@ export interface CalendarFullControlCrossPlatformProps {
   loadingText?: string;
 }
 
-export function CalendarFullControlCrossPlatform({
+export function CalendarMain({
   // Data
   calendars,
   events,
@@ -121,7 +121,7 @@ export function CalendarFullControlCrossPlatform({
   // Optional props
   className = '',
   loadingText = 'Loading your calendar...'
-}: CalendarFullControlCrossPlatformProps) {
+}: CalendarMainProps) {
   
   // Internal state management (only used if props not provided)
   // Use persistent storage for calendar state to remember user's last position

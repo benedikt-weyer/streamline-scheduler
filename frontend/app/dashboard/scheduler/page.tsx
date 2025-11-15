@@ -8,7 +8,7 @@ import { SchedulerPageService } from './scheduler-page-service';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { CanDoItemDecrypted, ProjectDecrypted, RealtimeSubscription, RealtimeMessage } from '@/utils/api/types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
-import { CalendarFullControlCrossPlatform } from '@/components/calendar/calendar-full-control-cross-platform';
+import { CalendarMain } from '@/components/calendar/calendar-main';
 import CanDoListMain from '@/components/can-do-list/can-do-list-main';
 import { LayoutList, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -874,7 +874,7 @@ function SchedulerPageContent() {
             {/* Calendar - Desktop (only show when calendar is visible) */}
             {showCalendar && (
               <div className={cn("h-full overflow-hidden", showTaskList ? "flex-1" : "w-full")}>
-            <CalendarFullControlCrossPlatform
+            <CalendarMain
               calendars={calendars}
               events={calendarEvents}
               icsEvents={icsEvents}
