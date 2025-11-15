@@ -14,6 +14,7 @@ import { LayoutList, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { cn } from '@/lib/shadcn-utils';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 
 function SchedulerPageContent() {
@@ -682,9 +683,9 @@ function SchedulerPageContent() {
     }
   }, [schedulerPageService, setError]);
 
-  // View state for showing/hiding panels
-  const [showTaskList, setShowTaskList] = useState(true);
-  const [showCalendar, setShowCalendar] = useState(true);
+  // View state for showing/hiding panels (persisted in localStorage)
+  const [showTaskList, setShowTaskList] = useLocalStorage('scheduler-show-task-list', true);
+  const [showCalendar, setShowCalendar] = useLocalStorage('scheduler-show-calendar', true);
   
   // Handlers for toggling view panels (with constraint that at least one must be visible)
   const handleToggleTaskList = () => {
