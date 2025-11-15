@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { CanDoListPageService } from '../can-do-list/can-do-list-page-service';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
@@ -8,10 +8,8 @@ import { SchedulerPageService } from './scheduler-page-service';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { CanDoItemDecrypted, ProjectDecrypted, RealtimeSubscription, RealtimeMessage } from '@/utils/api/types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
-import { SchedulerMobile } from '@/components/dashboard/scheduler';
 import { CalendarFullControlCrossPlatform } from '@/components/dashboard/calendar/calendar-full-control-cross-platform';
 import CanDoListMain from '@/components/dashboard/can-do-list/can-do-list-main';
-import { addMinutes, format } from 'date-fns';
 import { LayoutList, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
@@ -803,24 +801,6 @@ function SchedulerPageContent() {
 
   return (
     <div className="flex h-screen w-full">
-      {/* Mobile Layout */}
-      <div className="md:hidden w-full">
-        <SchedulerMobile
-          tasks={tasks}
-          projects={projects}  
-          events={[...calendarEvents, ...icsEvents]}
-          calendars={calendars}
-          onToggleComplete={wrappedHandleToggleCompleteVoid}
-          onDeleteTask={wrappedHandleDeleteTaskVoid}
-          onUpdateTask={wrappedHandleUpdateTaskVoid}
-          onToggleMyDay={handleToggleMyDay}
-          onEventUpdate={onEventUpdate}
-          onSubmitEvent={handleSubmitEventWrapper}
-          onDeleteEvent={handleDeleteEventWrapper}
-          onClone={handleCloneEvent}
-          isLoading={isLoadingTasks || isLoadingProjects || isLoadingCalendar}
-        />
-      </div>
 
       {/* Desktop Layout */}
       <div className="hidden md:flex flex-col w-full">
