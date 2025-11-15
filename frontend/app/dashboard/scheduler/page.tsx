@@ -12,10 +12,13 @@ import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, pointerWithin } 
 import { SchedulerTaskList, SchedulerCalendar, SchedulerTaskItem, SchedulerMobile } from '@/components/dashboard/scheduler';
 import ProjectSidebarDynamic from '@/components/dashboard/can-do-list/project-bar/project-sidebar-dynamic';
 import { addMinutes, format } from 'date-fns';
-import { List } from 'lucide-react';
+import { List, LayoutList, Calendar as CalendarIcon } from 'lucide-react';
 import TaskListItem from '@/components/dashboard/can-do-list/task-list-item';
 import { TaskSearchInput, TaskSearchWithFilter } from '@/components/dashboard/shared/task-search-input';
 import { getRecommendedTasks } from '@/utils/can-do-list/recommendation-utils';
+import { Button } from '@/components/ui/button';
+import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
+import { cn } from '@/lib/shadcn-utils';
 
 
 function SchedulerPageContent() {
@@ -655,6 +658,29 @@ function SchedulerPageContent() {
   const [activeTask, setActiveTask] = useState<CanDoItemDecrypted | null>(null);
   const [isTaskbarCollapsed, setIsTaskbarCollapsed] = useState(false);
   
+  // View state for showing/hiding panels
+  const [showTaskList, setShowTaskList] = useState(true);
+  const [showCalendar, setShowCalendar] = useState(true);
+  
+  // Handlers for toggling view panels (with constraint that at least one must be visible)
+  const handleToggleTaskList = () => {
+    // Only allow toggling off if calendar is visible
+    if (showTaskList && showCalendar) {
+      setShowTaskList(false);
+    } else if (!showTaskList) {
+      setShowTaskList(true);
+    }
+  };
+
+  const handleToggleCalendar = () => {
+    // Only allow toggling off if task list is visible
+    if (showCalendar && showTaskList) {
+      setShowCalendar(false);
+    } else if (!showCalendar) {
+      setShowCalendar(true);
+    }
+  };
+  
   // Project selection state for desktop view
   const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
   const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
@@ -982,9 +1008,45 @@ function SchedulerPageContent() {
         onDragEnd={handleDragEnd}
         collisionDetection={pointerCollisionDetection}
       >
-        <div className="hidden md:flex w-full">
-          {/* Project Sidebar - Desktop */}
-          <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-1/6'}`}>
+        <div className="hidden md:flex flex-col w-full">
+          {/* Top Navigation Bar */}
+          <div className="border-b bg-background px-4 py-2 flex items-center justify-center">
+            <ButtonGroup>
+              <Button
+                variant={showTaskList ? "default" : "outline"}
+                size="sm"
+                onClick={handleToggleTaskList}
+                disabled={showTaskList && !showCalendar}
+                className={cn(
+                  "flex items-center gap-2",
+                  showTaskList && !showCalendar && "opacity-100 cursor-not-allowed"
+                )}
+              >
+                <LayoutList className="h-4 w-4" />
+                <span>Can-Do List</span>
+              </Button>
+              <ButtonGroupSeparator />
+              <Button
+                variant={showCalendar ? "default" : "outline"}
+                size="sm"
+                onClick={handleToggleCalendar}
+                disabled={showCalendar && !showTaskList}
+                className={cn(
+                  "flex items-center gap-2",
+                  showCalendar && !showTaskList && "opacity-100 cursor-not-allowed"
+                )}
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span>Calendar</span>
+              </Button>
+            </ButtonGroup>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Project Sidebar - Desktop (only show when task list is visible) */}
+            {showTaskList && (
+              <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-1/6'}`}>
             <ProjectSidebarDynamic
               projects={projects}
               tasks={tasks}
@@ -1005,10 +1067,15 @@ function SchedulerPageContent() {
               isAllTasksSelected={isAllTasksSelected}
               isMyDaySelected={isMyDaySelected}
             />
-          </div>
+              </div>
+            )}
 
-          {/* Tasks Panel - Desktop */}
-          <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-2/6'} border-r bg-background`}>
+            {/* Tasks Panel - Desktop (only show when task list is visible) */}
+            {showTaskList && (
+              <div className={cn(
+                "transition-all duration-300 border-r bg-background",
+                isTaskbarCollapsed ? 'w-16' : showCalendar ? 'w-2/6' : 'flex-1'
+              )}>
             {isAllTasksSelected && groupedTasksScheduler ? (
               <div className="flex flex-col h-full">
                 <div className="border-b p-4">
@@ -1081,10 +1148,12 @@ function SchedulerPageContent() {
                 taskPool={tasks}
               />
             )}
-          </div>
+              </div>
+            )}
 
-          {/* Calendar - Desktop */}
-          <div className="flex-1 h-full overflow-hidden">
+            {/* Calendar - Desktop (only show when calendar is visible) */}
+            {showCalendar && (
+              <div className={cn("h-full overflow-hidden", showTaskList ? "flex-1" : "w-full")}>
             <SchedulerCalendar
               events={[...calendarEvents, ...icsEvents]}
               calendars={calendars}
@@ -1100,6 +1169,8 @@ function SchedulerPageContent() {
               isLoading={isLoadingCalendar}
               activeTask={activeTask}
             />
+              </div>
+            )}
           </div>
 
           {/* Drag Overlay */}
