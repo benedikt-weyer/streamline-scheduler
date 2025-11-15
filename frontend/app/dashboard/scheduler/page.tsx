@@ -846,11 +846,7 @@ function SchedulerPageContent() {
               handleToggleTaskList();
             }
           }}
-          disabled={showTaskList && !showCalendar && window.innerWidth >= 768}
-          className={cn(
-            "flex items-center gap-2",
-            showTaskList && !showCalendar && "opacity-100 md:cursor-not-allowed"
-          )}
+          className="flex items-center gap-2"
         >
           <LayoutList className="h-4 w-4" />
           <span>Can-Do List</span>
@@ -867,11 +863,7 @@ function SchedulerPageContent() {
               handleToggleCalendar();
             }
           }}
-          disabled={showCalendar && !showTaskList && window.innerWidth >= 768}
-          className={cn(
-            "flex items-center gap-2",
-            showCalendar && !showTaskList && "opacity-100 md:cursor-not-allowed"
-          )}
+          className="flex items-center gap-2"
         >
           <CalendarIcon className="h-4 w-4" />
           <span>Calendar</span>
