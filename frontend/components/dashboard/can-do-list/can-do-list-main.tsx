@@ -82,6 +82,9 @@ interface CanDoListMainProps {
   handleBulkReorderProjects: (projectUpdates: Array<{ id: string; displayOrder: number; parentId?: string }>) => Promise<boolean>;
   handleUpdateProjectCollapsedState: (id: string, isCollapsed: boolean) => Promise<boolean>;
   loadProjects: () => Promise<void>;
+  
+  // Optional styling
+  containerClassName?: string;
 }
 
 export default function CanDoListMain({
@@ -109,6 +112,9 @@ export default function CanDoListMain({
   handleBulkReorderProjects,
   handleUpdateProjectCollapsedState,
   loadProjects,
+  
+  // Optional styling
+  containerClassName,
 }: CanDoListMainProps) {
   const { error } = useError();
   
@@ -417,7 +423,7 @@ export default function CanDoListMain({
       />
       
       {(encryptionKey || isLoadingKey) && (
-        <div className="fixed inset-0 top-16 flex w-full">
+        <div className={containerClassName || "fixed inset-0 top-16 flex w-full"}>
           {/* Mobile Layout */}
           <div className="md:hidden w-full flex flex-col">
             {/* Mobile Header */}

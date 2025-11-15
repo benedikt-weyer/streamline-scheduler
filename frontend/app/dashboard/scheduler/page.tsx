@@ -8,14 +8,11 @@ import { SchedulerPageService } from './scheduler-page-service';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { CanDoItemDecrypted, ProjectDecrypted, RealtimeSubscription, RealtimeMessage } from '@/utils/api/types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
-import { SchedulerTaskList, SchedulerMobile } from '@/components/dashboard/scheduler';
+import { SchedulerMobile } from '@/components/dashboard/scheduler';
 import { CalendarFullControlCrossPlatform } from '@/components/dashboard/calendar/calendar-full-control-cross-platform';
-import ProjectSidebarDynamic from '@/components/dashboard/can-do-list/project-bar/project-sidebar-dynamic';
+import CanDoListMain from '@/components/dashboard/can-do-list/can-do-list-main';
 import { addMinutes, format } from 'date-fns';
-import { List, LayoutList, Calendar as CalendarIcon } from 'lucide-react';
-import TaskListItem from '@/components/dashboard/can-do-list/task-list-item';
-import { TaskSearchInput, TaskSearchWithFilter } from '@/components/dashboard/shared/task-search-input';
-import { getRecommendedTasks } from '@/utils/can-do-list/recommendation-utils';
+import { LayoutList, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { cn } from '@/lib/shadcn-utils';
@@ -171,41 +168,47 @@ function SchedulerPageContent() {
   }, [canDoListPageService, encryptionKey]);
 
   // Wrapper functions to match expected signatures
-  const handleToggleComplete = async (id: string, completed: boolean): Promise<void> => {
-    if (!canDoListPageService) return;
+  const handleToggleComplete = async (id: string, completed: boolean): Promise<boolean> => {
+    if (!canDoListPageService) return false;
 
     try {
       const updatedTask = await canDoListPageService.toggleTaskComplete(id, completed);
       setTasks(prev => prev.map(task => task.id === id ? updatedTask : task));
+      return true;
     } catch (error) {
       console.error('Failed to toggle task complete:', error);
       setError(error instanceof Error ? error.message : 'Failed to update task');
+      return false;
     }
   };
 
-  const handleDeleteTask = async (id: string): Promise<void> => {
-    if (!canDoListPageService) return;
+  const handleDeleteTask = async (id: string): Promise<boolean> => {
+    if (!canDoListPageService) return false;
 
     try {
       await canDoListPageService.deleteTask(id);
       setTasks(prev => prev.filter(task => task.id !== id));
+      return true;
     } catch (error) {
       console.error('Failed to delete task:', error);
       setError(error instanceof Error ? error.message : 'Failed to delete task');
+      return false;
     }
   };
 
-  const handleUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean): Promise<void> => {
-    if (!canDoListPageService) return;
+  const handleUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean): Promise<boolean> => {
+    if (!canDoListPageService) return false;
 
     try {
       const updatedTask = await canDoListPageService.updateTask(
         id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay
       );
       setTasks(prev => prev.map(task => task.id === id ? updatedTask : task));
+      return true;
     } catch (error) {
       console.error('Failed to update task:', error);
       setError(error instanceof Error ? error.message : 'Failed to update task');
+      return false;
     }
   };
 
@@ -401,6 +404,33 @@ function SchedulerPageContent() {
       task.blocked_by, 
       newMyDayStatus
     );
+  };
+
+  // Bulk delete completed tasks handler
+  const handleBulkDeleteCompleted = async (projectId?: string): Promise<number> => {
+    if (!canDoListPageService) return 0;
+
+    try {
+      const completedTasks = tasks.filter(task => 
+        task.completed && (!projectId || task.project_id === projectId)
+      );
+      
+      let deletedCount = 0;
+      for (const task of completedTasks) {
+        await canDoListPageService.deleteTask(task.id);
+        deletedCount++;
+      }
+      
+      // Refresh tasks
+      const updatedTasks = await canDoListPageService.taskService.getTasks();
+      setTasks(updatedTasks);
+      
+      return deletedCount;
+    } catch (error) {
+      console.error('Failed to bulk delete completed tasks:', error);
+      setError(error instanceof Error ? error.message : 'Failed to delete completed tasks');
+      return 0;
+    }
   };
 
   // Load calendar data
@@ -654,9 +684,6 @@ function SchedulerPageContent() {
     }
   }, [schedulerPageService, setError]);
 
-  // Taskbar collapse state
-  const [isTaskbarCollapsed, setIsTaskbarCollapsed] = useState(false);
-  
   // View state for showing/hiding panels
   const [showTaskList, setShowTaskList] = useState(true);
   const [showCalendar, setShowCalendar] = useState(true);
@@ -679,200 +706,66 @@ function SchedulerPageContent() {
       setShowCalendar(true);
     }
   };
-  
-  // Project selection state for desktop view
-  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(undefined);
-  const [isAllTasksSelected, setIsAllTasksSelected] = useState(false);
-  const [isMyDaySelected, setIsMyDaySelected] = useState(false);
-  const [isRecommendedSelected, setIsRecommendedSelected] = useState(false);
-  
-  // Search state - for the filtered tasks from search component
-  const [searchFilteredTasks, setSearchFilteredTasks] = useState<CanDoItemDecrypted[]>([]);
-  const [isSearchActive, setIsSearchActive] = useState(false);
-
-  // Handle filtered tasks change from search component
-  const handleFilteredTasksChange = (filteredTasks: CanDoItemDecrypted[], searchActive: boolean) => {
-    setSearchFilteredTasks(filteredTasks);
-    setIsSearchActive(searchActive);
-  };
 
   // Get default calendar for creating events from tasks
   const defaultCalendar = calendars.find((cal: Calendar) => cal.is_default) || calendars[0];
 
-  // Handle project selection for desktop view
-  const handleProjectSelect = (projectId?: string) => {
-    setSelectedProjectId(projectId);
-    setIsAllTasksSelected(false);
-    setIsMyDaySelected(false);
-    setIsRecommendedSelected(false);
+  // Wrapper functions to match CanDoListMain expected signatures (return boolean)
+  const wrappedHandleToggleCompleteBoolean = async (id: string, completed: boolean): Promise<boolean> => {
+    return await handleToggleComplete(id, completed);
   };
 
-  // Handle all tasks selection for desktop view
-  const handleAllTasksSelect = () => {
-    setIsAllTasksSelected(true);
-    setSelectedProjectId(undefined);
-    setIsMyDaySelected(false);
-    setIsRecommendedSelected(false);
+  const wrappedHandleDeleteTaskBoolean = async (id: string): Promise<boolean> => {
+    return await handleDeleteTask(id);
   };
 
-  // Handle My Day selection for desktop view
-  const handleMyDaySelect = () => {
-    setIsMyDaySelected(true);
-    setSelectedProjectId(undefined);
-    setIsAllTasksSelected(false);
-    setIsRecommendedSelected(false);
+  const wrappedHandleUpdateTaskBoolean = async (
+    id: string,
+    content?: string,
+    duration?: number,
+    projectId?: string,
+    impact?: number,
+    urgency?: number,
+    dueDate?: Date,
+    blockedBy?: string,
+    myDay?: boolean
+  ): Promise<boolean> => {
+    if (content !== undefined) {
+      return await handleUpdateTask(id, content, duration, projectId, impact, urgency, dueDate, blockedBy, myDay);
+    }
+    return false;
   };
 
-  // Handle recommended tasks selection for desktop view
-  const handleRecommendedSelect = () => {
-    setIsRecommendedSelected(true);
-    setSelectedProjectId(undefined);
-    setIsAllTasksSelected(false);
-    setIsMyDaySelected(false);
+  // Wrapper functions for mobile view (return void)
+  const wrappedHandleToggleCompleteVoid = async (id: string, completed: boolean): Promise<void> => {
+    await handleToggleComplete(id, completed);
   };
 
-  // Calculate task counts per project for sidebar
-  const taskCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    
-    // Count inbox tasks (tasks without project) - only active tasks
-    counts['inbox'] = tasks.filter(task => !task.project_id && !task.completed).length;
-    
-    // Count active tasks per project
-    projects.forEach(project => {
-      counts[project.id] = tasks.filter(task => task.project_id === project.id && !task.completed).length;
-    });
-    
-    // Count all active tasks
-    counts['all'] = tasks.filter(task => !task.completed).length;
-    
-    // Count My Day tasks
-    counts['myDay'] = tasks.filter(task => task.my_day && !task.completed).length;
-    
-    return counts;
-  }, [tasks, projects]);
+  const wrappedHandleDeleteTaskVoid = async (id: string): Promise<void> => {
+    await handleDeleteTask(id);
+  };
 
-  // Base tasks filtering (without search) - search will be handled by TaskSearchWithFilter component
-  const baseTasks = useMemo(() => {
-    if (isRecommendedSelected) {
-      return getRecommendedTasks(tasks, 20);
-    } else if (isMyDaySelected) {
-      return tasks.filter(task => task.my_day && !task.completed);
-    } else if (isAllTasksSelected) {
-      return tasks.filter(task => !task.completed);
-    } else if (selectedProjectId) {
-      return tasks.filter(task => task.project_id === selectedProjectId && !task.completed);
-    } else {
-      // Show tasks without project (inbox)
-      return tasks.filter(task => !task.project_id && !task.completed);
-    }
-  }, [tasks, selectedProjectId, isAllTasksSelected, isMyDaySelected, isRecommendedSelected]);
+  const wrappedHandleUpdateTaskVoid = async (
+    id: string,
+    content: string,
+    estimatedDuration?: number,
+    projectId?: string,
+    impact?: number,
+    urgency?: number,
+    dueDate?: Date,
+    blockedBy?: string,
+    myDay?: boolean
+  ): Promise<void> => {
+    await handleUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay);
+  };
 
-  // Final filtered tasks (base tasks + search filter)
-  const filteredTasks = useMemo(() => {
-    if (isSearchActive) {
-      // When search is active, show search results (even if empty)
-      return searchFilteredTasks;
-    }
-    // When no search is active, show base tasks
-    return baseTasks;
-  }, [searchFilteredTasks, baseTasks, isSearchActive]);
+  const wrappedLoadTasks = async (): Promise<void> => {
+    await loadTasks();
+  };
 
-  // Group tasks by project when in "All Tasks" mode for scheduler
-  const groupedTasksScheduler = useMemo(() => {
-    if (!isAllTasksSelected) {
-      return null; // Return null when not in "All Tasks" mode
-    }
-
-    // Helper function to build full project path
-    const getProjectPath = (projectId: string): string => {
-      const project = projects.find(p => p.id === projectId);
-      if (!project) return 'Unknown Project';
-      
-      if (!project.parent_id) {
-        return project.name;
-      }
-      
-      const parentPath = getProjectPath(project.parent_id);
-      return `${parentPath} > ${project.name}`;
-    };
-
-    // Group filtered tasks by project
-    const tasksByProject = new Map<string | undefined, CanDoItemDecrypted[]>();
-    filteredTasks.forEach(task => {
-      // Normalize null and undefined to be the same key for inbox tasks
-      const projectId = task.project_id || undefined;
-      if (!tasksByProject.has(projectId)) {
-        tasksByProject.set(projectId, []);
-      }
-      tasksByProject.get(projectId)!.push(task);
-    });
-
-    // Create organized structure with project headers
-    const organized: Array<{ type: 'project-header' | 'task'; data: ProjectDecrypted | CanDoItemDecrypted }> = [];
-
-    // Add inbox section if there are inbox tasks
-    const inboxTasks = tasksByProject.get(undefined) || [];
-    if (inboxTasks.length > 0) {
-      organized.push({ 
-        type: 'project-header', 
-        data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as ProjectDecrypted 
-      });
-      inboxTasks.forEach(task => organized.push({ type: 'task', data: task }));
-    }
-
-    // Add tasks grouped by projects with full paths
-    projects
-      .filter(project => tasksByProject.has(project.id))
-      .sort((a, b) => getProjectPath(a.id).localeCompare(getProjectPath(b.id))) // Sort by full path
-      .forEach(project => {
-        const projectWithPath = {
-          ...project,
-          name: getProjectPath(project.id) // Override name with full path
-        };
-        organized.push({ type: 'project-header', data: projectWithPath });
-        const projectTasks = tasksByProject.get(project.id) || [];
-        projectTasks.forEach(task => organized.push({ type: 'task', data: task }));
-      });
-
-    return organized;
-  }, [filteredTasks, projects, isAllTasksSelected]);
-
-  // Organize tasks by project for flat hierarchy display (mobile view)
-  const organizedTasks = useMemo(() => {
-    const organized: Array<{ type: 'project' | 'task'; data: ProjectDecrypted | CanDoItemDecrypted }> = [];
-    
-    // Get active (non-completed) tasks only
-    const activeTasks = tasks.filter(task => !task.completed);
-    
-    // Group tasks by project
-    const tasksByProject = new Map<string | undefined, CanDoItemDecrypted[]>();
-    activeTasks.forEach(task => {
-      const projectId = task.project_id;
-      if (!tasksByProject.has(projectId)) {
-        tasksByProject.set(projectId, []);
-      }
-      tasksByProject.get(projectId)!.push(task);
-    });
-
-    // Add inbox tasks (tasks without project)
-    const inboxTasks = tasksByProject.get(undefined) || [];
-    if (inboxTasks.length > 0) {
-      organized.push({ type: 'project', data: { id: 'inbox', name: 'Inbox', color: '#6b7280' } as ProjectDecrypted });
-      inboxTasks.forEach(task => organized.push({ type: 'task', data: task }));
-    }
-
-    // Add tasks grouped by projects
-    projects
-      .filter(project => tasksByProject.has(project.id))
-      .forEach(project => {
-        organized.push({ type: 'project', data: project });
-        const projectTasks = tasksByProject.get(project.id) || [];
-        projectTasks.forEach(task => organized.push({ type: 'task', data: task }));
-      });
-
-    return organized;
-  }, [tasks, projects]);
+  const wrappedLoadProjects = async (): Promise<void> => {
+    await loadProjects();
+  };
 
 
   if (isLoadingKey) {
@@ -917,9 +810,9 @@ function SchedulerPageContent() {
           projects={projects}  
           events={[...calendarEvents, ...icsEvents]}
           calendars={calendars}
-          onToggleComplete={handleToggleComplete}
-          onDeleteTask={handleDeleteTask}
-          onUpdateTask={handleUpdateTask}
+          onToggleComplete={wrappedHandleToggleCompleteVoid}
+          onDeleteTask={wrappedHandleDeleteTaskVoid}
+          onUpdateTask={wrappedHandleUpdateTaskVoid}
           onToggleMyDay={handleToggleMyDay}
           onEventUpdate={onEventUpdate}
           onSubmitEvent={handleSubmitEventWrapper}
@@ -966,110 +859,34 @@ function SchedulerPageContent() {
 
           {/* Main Content Area */}
           <div className="flex flex-1 overflow-hidden">
-            {/* Project Sidebar - Desktop (only show when task list is visible) */}
-            {showTaskList && (
-              <div className={`transition-all duration-300 ${isTaskbarCollapsed ? 'w-16' : 'w-1/6'}`}>
-            <ProjectSidebarDynamic
-              projects={projects}
-              tasks={tasks}
-              selectedProjectId={selectedProjectId}
-              onProjectSelect={handleProjectSelect}
-              onRecommendedSelect={handleRecommendedSelect}
-              onAllTasksSelect={handleAllTasksSelect}
-              onMyDaySelect={handleMyDaySelect}
-              onAddProject={handleAddProject}
-              onUpdateProject={handleUpdateProject}
-              onDeleteProject={handleDeleteProject}
-              onBulkReorderProjects={handleBulkReorderProjects}
-              onUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
-              isLoading={isLoadingTasks || isLoadingProjects}
-              itemCounts={taskCounts}
-              isCollapsed={isTaskbarCollapsed}
-              isRecommendedSelected={isRecommendedSelected}
-              isAllTasksSelected={isAllTasksSelected}
-              isMyDaySelected={isMyDaySelected}
-            />
-              </div>
-            )}
-
-            {/* Tasks Panel - Desktop (only show when task list is visible) */}
+            {/* Can-Do List - Desktop (only show when task list is visible) */}
             {showTaskList && (
               <div className={cn(
-                "transition-all duration-300 border-r bg-background",
-                isTaskbarCollapsed ? 'w-16' : showCalendar ? 'w-2/6' : 'flex-1'
+                "transition-all duration-300 h-full overflow-hidden",
+                showCalendar ? 'w-1/2' : 'flex-1'
               )}>
-            {isAllTasksSelected && groupedTasksScheduler ? (
-              <div className="flex flex-col h-full">
-                <div className="border-b p-4">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <List className="h-4 w-4" />
-                      <span>All Tasks</span>
-                    </div>
-                    <TaskSearchWithFilter
-                      tasks={baseTasks}
-                      projects={projects}
-                      className="w-48"
-                      onFilteredTasksChange={handleFilteredTasksChange}
-                    />
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Drag tasks to calendar to schedule them
-                  </div>
-                </div>
-                <div className="flex-1 overflow-y-auto p-4">
-                  <div className="space-y-4">
-                    {groupedTasksScheduler.map((item, index) => {
-                      if (item.type === 'project-header') {
-                        const project = item.data as ProjectDecrypted;
-                        return (
-                          <div key={`project-header-${project.id}`} className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2">
-                            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: project.color }}
-                              />
-                              <span>{project.name}</span>
-                            </div>
-                          </div>
-                        );
-                      } else {
-                        const task = item.data as CanDoItemDecrypted;
-                        return (
-                          <div key={`task-${task.id}`} className="ml-4">
-                            <TaskListItem
-                              task={task}
-                              onToggleComplete={handleToggleComplete}
-                              onDeleteTask={handleDeleteTask}
-                              onUpdateTask={handleUpdateTask}
-                              onToggleMyDay={handleToggleMyDay}
-                              projects={projects}
-                            />
-                          </div>
-                        );
-                      }
-                    })}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <SchedulerTaskList
-                organizedTasks={[]} // Empty for desktop - we'll use filteredTasks instead
-                filteredTasks={filteredTasks}
-                selectedProjectId={selectedProjectId}
-                onToggleComplete={handleToggleComplete}
-                onDeleteTask={handleDeleteTask}
-                onUpdateTask={handleUpdateTask}
-                onToggleMyDay={handleToggleMyDay}
-                projects={projects}
-                isCollapsed={isTaskbarCollapsed}
-                isLoading={isLoadingTasks || isLoadingProjects}
-                baseTasks={baseTasks}
-                onFilteredTasksChange={handleFilteredTasksChange}
-                isRecommendedSelected={isRecommendedSelected}
-                taskPool={tasks}
-              />
-            )}
+                <CanDoListMain
+                  tasks={tasks}
+                  projects={projects}
+                  isLoadingTasks={isLoadingTasks}
+                  isLoadingProjects={isLoadingProjects}
+                  isLoadingKey={isLoadingKey}
+                  encryptionKey={encryptionKey}
+                  handleAddTask={handleAddTask}
+                  handleUpdateTask={wrappedHandleUpdateTaskBoolean}
+                  handleToggleComplete={wrappedHandleToggleCompleteBoolean}
+                  handleDeleteTask={wrappedHandleDeleteTaskBoolean}
+                  handleBulkDeleteCompleted={handleBulkDeleteCompleted}
+                  handleReorderTasks={handleReorderTasks}
+                  loadTasks={wrappedLoadTasks}
+                  handleAddProject={handleAddProject}
+                  handleUpdateProject={handleUpdateProject}
+                  handleDeleteProject={handleDeleteProject}
+                  handleBulkReorderProjects={handleBulkReorderProjects}
+                  handleUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
+                  loadProjects={wrappedLoadProjects}
+                  containerClassName="flex w-full h-full"
+                />
               </div>
             )}
 
