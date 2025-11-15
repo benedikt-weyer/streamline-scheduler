@@ -2,24 +2,30 @@
 
 import { Calendar, CalendarEvent } from '@/utils/calendar/calendar-types';
 import { CalendarService } from '@/services/calendar/calendar-service';
-import { CalendarEventsService } from '@/services/calendar-events/calendar-events-service';
-import { fetchAndParseICSCalendar } from '@/utils/calendar/ics-parser';
 import { DecryptedBackendInterface } from '@/utils/api/decrypted-backend-interface';
-import { EventFormValues } from '@/components/calendar/calendar-event-dialog';
 import { generateRecurrenceInstancesInRange } from '@/utils/calendar/calendar';
 import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
+import { SchedulerCalendarService } from './scheduler-calendar-service';
+import { SchedulerEventService } from './scheduler-event-service';
+import { SchedulerICSService } from './scheduler-ics-service';
 
 /**
- * Scheduler Page Service - provides scheduler-specific operations
- * combining calendar and calendar events services with scheduler-specific logic
+ * Scheduler Page Service - Main orchestration service for the scheduler page
+ * Combines calendar, event, and ICS services with scheduling-specific logic
  */
 export class SchedulerPageService {
   private calendarService: CalendarService;
-  public calendarEventsService: CalendarEventsService;
+  
+  // Sub-services for specific functionality
+  public calendarOps: SchedulerCalendarService;
+  public eventOps: SchedulerEventService;
+  public icsOps: SchedulerICSService;
 
   constructor(backend: DecryptedBackendInterface) {
     this.calendarService = new CalendarService(backend);
-    this.calendarEventsService = new CalendarEventsService(backend);
+    this.calendarOps = new SchedulerCalendarService(backend);
+    this.eventOps = new SchedulerEventService(backend);
+    this.icsOps = new SchedulerICSService(backend);
   }
 
   /**
@@ -31,7 +37,7 @@ export class SchedulerPageService {
       const calendars = await this.calendarService.getCalendars();
       
       // Then load events with calendar context
-      const events = await this.calendarEventsService.getCalendarEvents(calendars);
+      const events = await this.eventOps.calendarEventsService.getCalendarEvents(calendars);
       
       return { calendars, events };
     } catch (error) {
@@ -41,320 +47,7 @@ export class SchedulerPageService {
   }
 
   /**
-   * Fetch ICS events for a specific calendar
-   */
-  async fetchICSEventsForCalendar(calendar: Calendar): Promise<CalendarEvent[]> {
-    if (calendar.type !== 'ics' || !calendar.ics_url) {
-      return [];
-    }
-
-    try {
-      const events = await fetchAndParseICSCalendar(calendar.ics_url, calendar.id);
-      // Transform and add calendar_id to each event
-      return events.map(event => ({
-        ...event,
-        calendar_id: calendar.id,
-        user_id: calendar.user_id
-      }));
-    } catch (error) {
-      console.error(`Failed to fetch ICS events for calendar ${calendar.name || calendar.id}:`, error);
-      
-      // Check if it's a CORS error and provide helpful message
-      if (error instanceof Error && error.message.includes('CORS_ERROR')) {
-        console.warn(`CORS Error for calendar "${calendar.name || calendar.id}": The calendar does not allow cross-origin requests. Please contact your calendar provider to enable CORS.`);
-      }
-      
-      // Return empty array instead of throwing to prevent breaking the entire scheduler
-      return [];
-    }
-  }
-
-  /**
-   * Fetch all ICS events from all ICS calendars
-   */
-  async fetchAllICSEvents(calendars: Calendar[]): Promise<CalendarEvent[]> {
-    const icsCalendars = calendars.filter(cal => cal.type === 'ics' && cal.ics_url);
-    
-    if (icsCalendars.length === 0) {
-      return [];
-    }
-
-    try {
-      const allICSEvents = await Promise.all(
-        icsCalendars.map(calendar => this.fetchICSEventsForCalendar(calendar))
-      );
-      
-      return allICSEvents.flat();
-    } catch (error) {
-      console.error('Failed to fetch ICS events:', error);
-      throw new Error('Failed to load ICS calendar events');
-    }
-  }
-
-  /**
-   * Refresh ICS events for a specific calendar
-   */
-  async refreshICSEventsForCalendar(
-    calendarId: string, 
-    calendars: Calendar[]
-  ): Promise<{ events: CalendarEvent[]; calendar: Calendar }> {
-    const calendar = calendars.find(cal => cal.id === calendarId);
-    if (!calendar) {
-      throw new Error('Calendar not found');
-    }
-
-    if (calendar.type !== 'ics') {
-      throw new Error('Calendar is not an ICS calendar');
-    }
-
-    try {
-      // Update the calendar's last sync time
-      const updatedCalendar = await this.calendarService.updateCalendar(calendarId, {
-        lastSync: new Date().toISOString()
-      });
-
-      // Fetch fresh ICS events
-      const events = await this.fetchICSEventsForCalendar(updatedCalendar);
-
-      return { events, calendar: updatedCalendar };
-    } catch (error) {
-      console.error(`Failed to refresh ICS calendar ${calendarId}:`, error);
-      throw new Error('Failed to refresh ICS calendar');
-    }
-  }
-
-  /**
-   * Toggle calendar visibility
-   */
-  async toggleCalendarVisibility(calendarId: string, isVisible: boolean): Promise<Calendar> {
-    return await this.calendarService.toggleCalendarVisibility(calendarId, isVisible);
-  }
-
-  /**
-   * Create a new calendar
-   */
-  async createCalendar(name: string, color: string): Promise<{ calendar: Calendar; shouldRefreshEvents: boolean }> {
-    const calendar = await this.calendarService.createCalendar(name, color);
-    return { calendar, shouldRefreshEvents: false }; // Regular calendars don't need event refresh
-  }
-
-  /**
-   * Create a new ICS calendar
-   */
-  async createICSCalendar(name: string, color: string, icsUrl: string): Promise<{ calendar: Calendar; shouldRefreshEvents: boolean }> {
-    const calendar = await this.calendarService.createICSCalendar(name, color, icsUrl);
-    return { calendar, shouldRefreshEvents: true }; // ICS calendars need to fetch events
-  }
-
-  /**
-   * Edit an existing calendar
-   */
-  async editCalendar(id: string, name: string, color: string): Promise<Calendar> {
-    return await this.calendarService.updateCalendar(id, { name, color });
-  }
-
-  /**
-   * Delete a calendar and handle its events
-   */
-  async deleteCalendarWithEvents(
-    calendarId: string,
-    moveEventCallback: (eventId: string, targetCalendarId: string) => Promise<void>
-  ): Promise<string | undefined> {
-    try {
-      // Get all calendars first
-      const allCalendars = await this.calendarService.getCalendars();
-      const calendarToDelete = allCalendars.find(cal => cal.id === calendarId);
-      
-      if (!calendarToDelete) {
-        throw new Error('Calendar not found');
-      }
-
-      // Get all events in this calendar
-      const eventsInCalendar = await this.calendarEventsService.getEventsForCalendar(calendarId, allCalendars);
-      
-      let targetCalendarId: string | undefined;
-      
-      // If there are events, we need to move them to another calendar
-      if (eventsInCalendar.length > 0) {
-        // Find a target calendar (prefer default, then first available)
-        const remainingCalendars = allCalendars.filter(cal => cal.id !== calendarId);
-        
-        if (remainingCalendars.length === 0) {
-          throw new Error('Cannot delete the last calendar with events');
-        }
-        
-        const targetCalendar = remainingCalendars.find(cal => cal.is_default) || remainingCalendars[0];
-        targetCalendarId = targetCalendar.id;
-        
-        // Move all events to the target calendar
-        for (const event of eventsInCalendar) {
-          await moveEventCallback(event.id, targetCalendarId);
-        }
-      }
-      
-      // If this was the default calendar, set another as default
-      if (calendarToDelete.is_default) {
-        const remainingCalendars = allCalendars.filter(cal => cal.id !== calendarId);
-        if (remainingCalendars.length > 0) {
-          await this.calendarService.setDefaultCalendar(remainingCalendars[0].id);
-        }
-      }
-      
-      // Finally, delete the calendar
-      await this.calendarService.deleteCalendar(calendarId);
-      
-      return targetCalendarId;
-    } catch (error) {
-      console.error(`Failed to delete calendar with events ${calendarId}:`, error);
-      throw new Error(`Failed to delete calendar with events`);
-    }
-  }
-
-  /**
-   * Set a calendar as default
-   */
-  async setDefaultCalendar(calendarId: string): Promise<void> {
-    await this.calendarService.setDefaultCalendar(calendarId);
-  }
-
-  /**
-   * Submit an event (create or update)
-   */
-  async submitEvent(values: EventFormValues): Promise<{ event: CalendarEvent; isUpdate: boolean }> {
-    const isUpdate = !!values.id && values.id !== 'new';
-    
-    // Convert form values to proper Date objects
-    const startDateTime = values.isAllDay 
-      ? new Date(`${values.startDate}T00:00:00`)
-      : new Date(`${values.startDate}T${values.startTime}`);
-    
-    const endDateTime = values.isAllDay 
-      ? new Date(`${values.endDate}T23:59:59`)
-      : new Date(`${values.endDate}T${values.endTime}`);
-    
-    if (isUpdate) {
-      const updatedEvent = await this.calendarEventsService.updateCalendarEvent(values.id!, {
-        title: values.title,
-        description: values.description,
-        location: values.location,
-        calendarId: values.calendarId,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        isAllDay: values.isAllDay,
-        taskId: values.taskId
-      });
-      return { event: updatedEvent, isUpdate: true };
-    } else {
-      const newEvent = await this.calendarEventsService.createCalendarEvent({
-        title: values.title,
-        description: values.description,
-        location: values.location,
-        calendarId: values.calendarId,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        isAllDay: values.isAllDay,
-        taskId: values.taskId
-      });
-      return { event: newEvent, isUpdate: false };
-    }
-  }
-
-  /**
-   * Delete an event
-   */
-  async deleteEvent(eventId: string): Promise<void> {
-    return await this.calendarEventsService.deleteCalendarEvent(eventId);
-  }
-
-  /**
-   * Clone an event
-   */
-  async cloneEvent(event: CalendarEvent): Promise<CalendarEvent> {
-    return await this.calendarEventsService.cloneCalendarEvent(event);
-  }
-
-  /**
-   * Update an event
-   */
-  async updateEvent(eventId: string, updates: {
-    title?: string;
-    description?: string;
-    location?: string;
-    calendarId?: string;
-    startTime?: Date;
-    endTime?: Date;
-    isAllDay?: boolean;
-    isGroupEvent?: boolean;
-    parentGroupEventId?: string;
-  }): Promise<CalendarEvent> {
-    return await this.calendarEventsService.updateCalendarEvent(eventId, {
-      title: updates.title,
-      description: updates.description,
-      location: updates.location,
-      calendarId: updates.calendarId,
-      startTime: updates.startTime,
-      endTime: updates.endTime,
-      isAllDay: updates.isAllDay,
-      isGroupEvent: updates.isGroupEvent,
-      parentGroupEventId: updates.parentGroupEventId,
-    });
-  }
-
-  /**
-   * Move an event to a different calendar
-   */
-  async moveEventToCalendar(eventId: string, targetCalendarId: string): Promise<CalendarEvent> {
-    return await this.calendarEventsService.moveEventToCalendar(eventId, targetCalendarId);
-  }
-
-  /**
-   * Create an event from a task - scheduler-specific functionality
-   */
-  async createEventFromTask(task: {
-    id: string;
-    content: string;
-    duration_minutes?: number;
-    due_date?: string;
-  }, calendarId: string, startTime: Date): Promise<CalendarEvent> {
-    const duration = task.duration_minutes || 60; // Default to 1 hour
-    const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
-
-    return await this.calendarEventsService.createCalendarEvent({
-      title: task.content,
-      description: `Created from task: ${task.content}`,
-      location: '',
-      calendarId: calendarId,
-      startTime: startTime,
-      endTime: endTime,
-      isAllDay: false
-    });
-  }
-
-  /**
-   * Snap a time to the next 15-minute interval
-   */
-  private snapToNext15Minutes(date: Date): Date {
-    const snapped = new Date(date);
-    const minutes = snapped.getMinutes();
-    const remainder = minutes % 15;
-    
-    if (remainder !== 0) {
-      // Round up to next 15-minute mark
-      snapped.setMinutes(minutes + (15 - remainder));
-      snapped.setSeconds(0);
-      snapped.setMilliseconds(0);
-    } else {
-      // Already on a 15-minute mark, just clear seconds/milliseconds
-      snapped.setSeconds(0);
-      snapped.setMilliseconds(0);
-    }
-    
-    return snapped;
-  }
-
-  /**
-   * Get available time slots for scheduling tasks
-   * Finds gaps between existing events throughout the entire day
+   * Find available time slots on a given date
    */
   async getAvailableTimeSlots(
     date: Date,
@@ -362,7 +55,7 @@ export class SchedulerPageService {
     calendars: Calendar[]
   ): Promise<{ start: Date; end: Date }[]> {
     // Get all events for the specified date
-    const events = await this.calendarEventsService.getCalendarEvents(calendars);
+    const events = await this.eventOps.calendarEventsService.getCalendarEvents(calendars);
     
     // Filter events for the target date
     const dateStart = new Date(date);
@@ -478,55 +171,143 @@ export class SchedulerPageService {
   }
 
   /**
-   * Find the next available free slot starting from now
+   * Find the next free slot starting from now
    */
   async findNextFreeSlot(
-    durationMinutes: number,
-    calendars: Calendar[]
+    duration: number,
+    calendars: Calendar[],
+    startFromDate?: Date
   ): Promise<{ start: Date; end: Date } | null> {
-    const now = new Date();
-    const maxDaysToSearch = 7; // Search up to 7 days ahead
-    
+    const startDate = startFromDate || new Date();
+    const maxDaysToSearch = 7;
+
     for (let dayOffset = 0; dayOffset < maxDaysToSearch; dayOffset++) {
-      const searchDate = new Date(now);
-      searchDate.setDate(searchDate.getDate() + dayOffset);
+      const checkDate = new Date(startDate);
+      checkDate.setDate(checkDate.getDate() + dayOffset);
+      checkDate.setHours(0, 0, 0, 0);
+
+      const slots = await this.getAvailableTimeSlots(checkDate, duration, calendars);
       
-      const availableSlots = await this.getAvailableTimeSlots(
-        searchDate,
-        durationMinutes,
-        calendars
-      );
+      // Filter out slots that are in the past (for today)
+      const now = new Date();
+      const futureSlots = slots.filter(slot => slot.start >= now);
       
-      // Filter out slots that have already passed
-      const validSlots = availableSlots.filter(slot => {
-        // Always filter out slots in the past, regardless of day offset
-        return slot.start > now;
-      });
-      
-      if (validSlots.length > 0) {
-        // Return the first available slot
-        return validSlots[0];
+      if (futureSlots.length > 0) {
+        return futureSlots[0];
       }
     }
+
+    return null;
+  }
+
+  /**
+   * Snap a date to the next 15-minute interval
+   */
+  private snapToNext15Minutes(date: Date): Date {
+    const snapped = new Date(date);
+    const minutes = snapped.getMinutes();
+    const remainder = minutes % 15;
     
-    return null; // No free slot found in the next week
+    if (remainder !== 0) {
+      // Round up to next 15-minute mark
+      snapped.setMinutes(minutes + (15 - remainder));
+      snapped.setSeconds(0);
+      snapped.setMilliseconds(0);
+    }
+    
+    return snapped;
   }
 
-  /**
-   * Check if an event is from an ICS calendar (read-only)
-   */
-  isICSEvent(event: CalendarEvent, calendars: Calendar[]): boolean {
-    const calendar = calendars.find(cal => cal.id === event.calendar_id);
-    return calendar?.type === 'ics';
+  // Delegation methods for convenience (delegates to sub-services)
+
+  // Calendar operations
+  async toggleCalendarVisibility(calendarId: string, isVisible: boolean): Promise<Calendar> {
+    return this.calendarOps.toggleCalendarVisibility(calendarId, isVisible);
   }
 
-  /**
-   * Check if a calendar is read-only (ICS calendar)
-   */
+  async createCalendar(name: string, color: string) {
+    return this.calendarOps.createCalendar(name, color);
+  }
+
+  async createICSCalendar(name: string, color: string, icsUrl: string) {
+    return this.calendarOps.createICSCalendar(name, color, icsUrl);
+  }
+
+  async editCalendar(id: string, name: string, color: string): Promise<Calendar> {
+    return this.calendarOps.editCalendar(id, name, color);
+  }
+
+  async deleteCalendarWithEvents(calendarId: string, calendars: Calendar[]) {
+    return this.calendarOps.deleteCalendarWithEvents(calendarId, calendars);
+  }
+
+  async setDefaultCalendar(calendarId: string): Promise<Calendar> {
+    return this.calendarOps.setDefaultCalendar(calendarId);
+  }
+
   isReadOnlyCalendar(calendarId: string, calendars: Calendar[]): boolean {
-    const calendar = calendars.find(cal => cal.id === calendarId);
-    return calendar?.type === 'ics';
+    return this.calendarOps.isReadOnlyCalendar(calendarId, calendars);
+  }
+
+  isICSEvent(event: { calendar_id: string }, calendars: Calendar[]): boolean {
+    return this.calendarOps.isICSEvent(event, calendars);
+  }
+
+  // Event operations
+  async submitEvent(values: any) {
+    return this.eventOps.submitEvent(values);
+  }
+
+  async deleteEvent(eventId: string): Promise<void> {
+    return this.eventOps.deleteEvent(eventId);
+  }
+
+  async deleteThisOccurrence(eventToDelete: CalendarEvent, allEvents: CalendarEvent[]) {
+    return this.eventOps.deleteThisOccurrence(eventToDelete, allEvents);
+  }
+
+  async deleteThisAndFuture(eventToDelete: CalendarEvent, allEvents: CalendarEvent[]) {
+    return this.eventOps.deleteThisAndFuture(eventToDelete, allEvents);
+  }
+
+  async modifyThisOccurrence(eventToModify: CalendarEvent, modifications: Partial<CalendarEvent>, allEvents: CalendarEvent[]) {
+    return this.eventOps.modifyThisOccurrence(eventToModify, modifications, allEvents);
+  }
+
+  async modifyThisAndFuture(eventToModify: CalendarEvent, modifications: Partial<CalendarEvent>, allEvents: CalendarEvent[]) {
+    return this.eventOps.modifyThisAndFuture(eventToModify, modifications, allEvents);
+  }
+
+  async modifyAllInSeries(eventToModify: CalendarEvent, modifications: Partial<CalendarEvent>, allEvents: CalendarEvent[]) {
+    return this.eventOps.modifyAllInSeries(eventToModify, modifications, allEvents);
+  }
+
+  async cloneEvent(event: CalendarEvent): Promise<CalendarEvent> {
+    return this.eventOps.cloneEvent(event);
+  }
+
+  async updateEvent(eventId: string, updates: any) {
+    return this.eventOps.updateEvent(eventId, updates);
+  }
+
+  async moveEventToCalendar(eventId: string, targetCalendarId: string): Promise<CalendarEvent> {
+    return this.eventOps.moveEventToCalendar(eventId, targetCalendarId);
+  }
+
+  async createEventFromTask(task: any, calendarId: string, startTime: Date): Promise<CalendarEvent> {
+    return this.eventOps.createEventFromTask(task, calendarId, startTime);
+  }
+
+  // ICS operations
+  async fetchICSEventsForCalendar(calendar: Calendar): Promise<CalendarEvent[]> {
+    return this.icsOps.fetchICSEventsForCalendar(calendar);
+  }
+
+  async fetchAllICSEvents(calendars: Calendar[]): Promise<CalendarEvent[]> {
+    return this.icsOps.fetchAllICSEvents(calendars);
+  }
+
+  async refreshICSEventsForCalendar(calendarId: string, calendars: Calendar[]) {
+    return this.icsOps.refreshICSEventsForCalendar(calendarId, calendars);
   }
 }
-
-// No singleton export - services should be instantiated with backend dependency

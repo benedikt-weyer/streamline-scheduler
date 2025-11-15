@@ -564,29 +564,32 @@ function SchedulerPageContent() {
     if (!schedulerPageService) return undefined;
     
     try {
-      const targetCalendarId = await schedulerPageService.deleteCalendarWithEvents(
+      const result = await schedulerPageService.deleteCalendarWithEvents(
         calendarId,
-        async (eventId: string, targetCalId: string) => {
-          // Move event to target calendar (implementation depends on your requirements)
-          await schedulerPageService.moveEventToCalendar(eventId, targetCalId);
-        }
+        calendars
       );
       
       // Remove calendar from state
-      setCalendars(prev => prev.filter(cal => cal.id !== calendarId));
+      setCalendars(prev => prev.filter(cal => cal.id !== result.deletedCalendarId));
       
-      // Remove events for deleted calendar and refresh events from target calendar
-      if (targetCalendarId) {
-        const { events: updatedEvents } = await schedulerPageService.loadSchedulerData();
-        setCalendarEvents(updatedEvents);
+      // Remove events for deleted calendar from state
+      setCalendarEvents(prev => prev.filter(event => !result.deletedEventIds.includes(event.id)));
+      
+      // Update default calendar if it changed
+      if (result.newDefaultCalendar) {
+        setCalendars(prev => prev.map(cal => 
+          cal.id === result.newDefaultCalendar!.id 
+            ? result.newDefaultCalendar! 
+            : { ...cal, is_default: false }
+        ));
       }
       
-      return targetCalendarId;
+      return result.newDefaultCalendar?.id;
     } catch (error) {
       setError('Failed to delete calendar');
       return undefined;
     }
-  }, [schedulerPageService, setError]);
+  }, [schedulerPageService, calendars, setError]);
 
   const handleSetDefaultCalendar = useCallback(async (calendarId: string): Promise<void> => {
     if (!schedulerPageService) return;
@@ -649,36 +652,26 @@ function SchedulerPageContent() {
   }, [schedulerPageService, setError]);
 
   const onEventUpdate = useCallback(async (updatedEvent: CalendarEvent): Promise<boolean> => {
-    if (!schedulerPageService) {
-      console.error('No scheduler page service available');
-      return false;
-    }
+    if (!schedulerPageService) return false;
     
     try {
-      console.log('Scheduler onEventUpdate called with:', updatedEvent);
       const updateData = {
         title: updatedEvent.title,
         description: updatedEvent.description,
         location: updatedEvent.location,
-        calendarId: updatedEvent.calendar_id, // IMPORTANT: Include calendar_id
+        calendarId: updatedEvent.calendar_id,
         startTime: new Date(updatedEvent.start_time),
         endTime: new Date(updatedEvent.end_time),
         isAllDay: updatedEvent.all_day,
         isGroupEvent: updatedEvent.is_group_event,
         parentGroupEventId: updatedEvent.parent_group_event_id,
       };
-      console.log('Sending update data to service:', updateData);
       const eventWithUpdates = await schedulerPageService.updateEvent(updatedEvent.id, updateData);
       
-      console.log('Event updated successfully:', eventWithUpdates);
-      setCalendarEvents(prev => {
-        const updated = prev.map(event => event.id === updatedEvent.id ? eventWithUpdates : event);
-        console.log('Updated calendar events:', updated);
-        return updated;
-      });
+      setCalendarEvents(prev => prev.map(event => event.id === updatedEvent.id ? eventWithUpdates : event));
       return true;
     } catch (error) {
-      console.error('Error updating event:', error);
+      console.error('Failed to update event:', error);
       setError('Failed to update event');
       return false;
     }
@@ -694,6 +687,102 @@ function SchedulerPageContent() {
       setError('Failed to move event');
     }
   }, [schedulerPageService, setError]);
+
+  // Recurring event handlers
+  const handleDeleteThisOccurrence = useCallback(async (event: CalendarEvent): Promise<boolean> => {
+    if (!schedulerPageService) return false;
+    
+    try {
+      const result = await schedulerPageService.deleteThisOccurrence(event, calendarEvents);
+      if (result.success && result.updatedEvents) {
+        setCalendarEvents(result.updatedEvents);
+        return true;
+      } else {
+        setError(result.error || 'Failed to delete occurrence');
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to delete occurrence:', error);
+      setError('Failed to delete occurrence');
+      return false;
+    }
+  }, [schedulerPageService, calendarEvents, setError]);
+
+  const handleDeleteThisAndFuture = useCallback(async (event: CalendarEvent): Promise<boolean> => {
+    if (!schedulerPageService) return false;
+    
+    try {
+      const result = await schedulerPageService.deleteThisAndFuture(event, calendarEvents);
+      if (result.success && result.updatedEvents) {
+        setCalendarEvents(result.updatedEvents);
+        return true;
+      } else {
+        setError(result.error || 'Failed to delete this and future');
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to delete this and future:', error);
+      setError('Failed to delete occurrences');
+      return false;
+    }
+  }, [schedulerPageService, calendarEvents, setError]);
+
+  const handleModifyThisOccurrence = useCallback(async (event: CalendarEvent, modifications: Partial<CalendarEvent>): Promise<boolean> => {
+    if (!schedulerPageService) return false;
+    
+    try {
+      const result = await schedulerPageService.modifyThisOccurrence(event, modifications, calendarEvents);
+      if (result.success && result.updatedEvents) {
+        setCalendarEvents(result.updatedEvents);
+        return true;
+      } else {
+        setError(result.error || 'Failed to modify occurrence');
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to modify occurrence:', error);
+      setError('Failed to modify occurrence');
+      return false;
+    }
+  }, [schedulerPageService, calendarEvents, setError]);
+
+  const handleModifyThisAndFuture = useCallback(async (event: CalendarEvent, modifications: Partial<CalendarEvent>): Promise<boolean> => {
+    if (!schedulerPageService) return false;
+    
+    try {
+      const result = await schedulerPageService.modifyThisAndFuture(event, modifications, calendarEvents);
+      if (result.success && result.updatedEvents) {
+        setCalendarEvents(result.updatedEvents);
+        return true;
+      } else {
+        setError(result.error || 'Failed to modify this and future');
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to modify this and future:', error);
+      setError('Failed to modify occurrences');
+      return false;
+    }
+  }, [schedulerPageService, calendarEvents, setError]);
+
+  const handleModifyAllInSeries = useCallback(async (event: CalendarEvent, modifications: Partial<CalendarEvent>): Promise<boolean> => {
+    if (!schedulerPageService) return false;
+    
+    try {
+      const result = await schedulerPageService.modifyAllInSeries(event, modifications, calendarEvents);
+      if (result.success && result.updatedEvents) {
+        setCalendarEvents(result.updatedEvents);
+        return true;
+      } else {
+        setError(result.error || 'Failed to modify series');
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to modify series:', error);
+      setError('Failed to modify series');
+      return false;
+    }
+  }, [schedulerPageService, calendarEvents, setError]);
 
   // View state for showing/hiding panels (persisted in localStorage)
   const [showTaskList, setShowTaskList] = useLocalStorage('scheduler-show-task-list', true);
@@ -1056,6 +1145,11 @@ function SchedulerPageContent() {
               onCloneEvent={handleCloneEvent}
               onEventUpdate={onEventUpdate}
               moveEventToCalendar={moveEventToCalendar}
+              onDeleteThisOccurrence={handleDeleteThisOccurrence}
+              onDeleteThisAndFuture={handleDeleteThisAndFuture}
+              onModifyThisOccurrence={handleModifyThisOccurrence}
+              onModifyThisAndFuture={handleModifyThisAndFuture}
+              onModifyAllInSeries={handleModifyAllInSeries}
               onRefreshICSCalendar={handleICSCalendarRefresh}
               isICSEvent={(event: CalendarEvent) => schedulerPageService?.isICSEvent(event, calendars) || false}
               isReadOnlyCalendar={(calendarId: string) => schedulerPageService?.isReadOnlyCalendar(calendarId, calendars) || false}
