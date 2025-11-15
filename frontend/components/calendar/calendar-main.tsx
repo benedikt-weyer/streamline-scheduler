@@ -22,6 +22,8 @@ export interface CalendarMainProps {
   icsEvents: CalendarEvent[];
   isLoading: boolean;
   error?: string | null;
+  tasks?: any[]; // Can-do list tasks for event-task linking
+  onNavigateToTask?: (taskId: string) => void;
   
   // State props (optional - component can manage its own state if not provided)
   currentWeek?: Date;
@@ -77,6 +79,8 @@ export function CalendarMain({
   icsEvents,
   isLoading,
   error,
+  tasks,
+  onNavigateToTask,
   
   // State props (with defaults for internal state management)
   currentWeek: propCurrentWeek,
@@ -687,6 +691,8 @@ export function CalendarMain({
         onModifyThisOccurrence={onModifyThisOccurrenceHandler}
         onModifyThisAndFuture={onModifyThisAndFutureHandler}
         onModifyAllInSeries={onModifyAllInSeriesHandler}
+        linkedTaskTitle={selectedEvent?.task_id && tasks ? tasks.find(t => t.id === selectedEvent.task_id)?.content : null}
+        onNavigateToTask={selectedEvent?.task_id && onNavigateToTask ? () => onNavigateToTask(selectedEvent.task_id!) : undefined}
       />
 
       {/* Drag/Resize Modification Dialog */}

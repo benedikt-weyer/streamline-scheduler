@@ -186,6 +186,17 @@ function SchedulerPageContent() {
     if (!canDoListPageService) return false;
 
     try {
+      // Check if task has a linked event and delete it first
+      const linkedEvent = calendarEvents.find(event => event.task_id === id);
+      if (linkedEvent) {
+        try {
+          await handleDeleteEvent(linkedEvent.id);
+        } catch (eventError) {
+          console.error('Failed to delete linked event:', eventError);
+          // Continue with task deletion even if event deletion fails
+        }
+      }
+      
       await canDoListPageService.deleteTask(id);
       setTasks(prev => prev.filter(task => task.id !== id));
       return true;
@@ -837,17 +848,47 @@ function SchedulerPageContent() {
         endTime: `${freeSlot.end.getHours().toString().padStart(2, '0')}:${freeSlot.end.getMinutes().toString().padStart(2, '0')}`,
         recurrenceFrequency: 'none' as const,
         recurrenceInterval: 1,
-        isGroupEvent: false
+        isGroupEvent: false,
+        taskId: task.id // Link the event to the task
       };
       
-      await handleSubmitEvent(eventData);
-      toast.success(`Task scheduled for ${freeSlot.start.toLocaleDateString()} at ${freeSlot.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+      const success = await handleSubmitEvent(eventData);
+      if (success) {
+        toast.success(`Task scheduled for ${freeSlot.start.toLocaleDateString()} at ${freeSlot.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+      } else {
+        toast.error('Failed to schedule task');
+      }
     } catch (error) {
       console.error('Error scheduling task:', error);
       toast.error('Failed to schedule task');
     }
   };
 
+  // Handle navigation from task to event
+  const handleNavigateToEvent = (eventId: string) => {
+    // Set the calendar to be visible
+    setShowCalendar(true);
+    
+    // Find the event by ID
+    const event = calendarEvents.find(e => e.id === eventId);
+    if (event) {
+      // Navigate to the event's date in the calendar
+      // This will be handled by CalendarMain's event highlighting
+      // Optionally, could add a state to highlight/scroll to the event
+      toast.info(`Navigating to event: ${event.title}`);
+    }
+  };
+
+  // Handle deletion of linked event
+  const handleDeleteEventFromTask = async (eventId: string): Promise<void> => {
+    try {
+      await handleDeleteEvent(eventId);
+      toast.success('Event deleted');
+      } catch (error) {
+      console.error('Failed to delete event:', error);
+      toast.error('Failed to delete event');
+      }
+  };
 
   if (isLoadingKey) {
     return (
@@ -922,7 +963,7 @@ function SchedulerPageContent() {
                 // Mobile: exclusive toggle
                 setShowCalendar(true);
                 setShowTaskList(false);
-              } else {
+                      } else {
                 // Desktop: toggle with constraint
                 handleToggleCalendar();
               }
@@ -937,7 +978,7 @@ function SchedulerPageContent() {
             <span>Calendar</span>
           </Button>
         </ButtonGroup>
-      </div>
+                  </div>
 
       {/* Main Content Area - Unified for Mobile and Desktop */}
       <div className="flex flex-1 overflow-hidden">
@@ -951,11 +992,12 @@ function SchedulerPageContent() {
           )}>
             <CanDoListMain
               tasks={tasks}
-              projects={projects}
+                projects={projects}
               isLoadingTasks={isLoadingTasks}
               isLoadingProjects={isLoadingProjects}
               isLoadingKey={isLoadingKey}
               encryptionKey={encryptionKey}
+              calendarEvents={calendarEvents}
               handleAddTask={handleAddTask}
               handleUpdateTask={wrappedHandleUpdateTaskBoolean}
               handleToggleComplete={wrappedHandleToggleCompleteBoolean}
@@ -970,6 +1012,8 @@ function SchedulerPageContent() {
               handleBulkReorderProjects={handleBulkReorderProjects}
               handleUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
               loadProjects={wrappedLoadProjects}
+              onNavigateToEvent={handleNavigateToEvent}
+              onDeleteEvent={handleDeleteEventFromTask}
               containerClassName="flex w-full h-full"
             />
           </div>
@@ -986,6 +1030,20 @@ function SchedulerPageContent() {
               events={calendarEvents}
               icsEvents={icsEvents}
               isLoading={isLoadingCalendar}
+              tasks={tasks}
+              onNavigateToTask={(taskId) => {
+                // Focus the can-do list and scroll to task
+                if (!showTaskList) {
+                  setShowTaskList(true);
+                }
+                // Scroll to task after a brief delay to allow DOM update
+                setTimeout(() => {
+                  const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+                  if (taskElement) {
+                    taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                }, 100);
+              }}
               onCalendarToggle={handleCalendarToggle}
               onCalendarCreate={handleCalendarCreate}
               onICSCalendarCreate={handleICSCalendarCreate}
@@ -1004,7 +1062,7 @@ function SchedulerPageContent() {
             />
           </div>
         )}
-      </div>
+              </div>
     </div>
   );
 }

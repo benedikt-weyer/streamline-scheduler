@@ -36,8 +36,12 @@ interface TaskListProps {
   onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
   onToggleMyDay?: (id: string) => Promise<void>;
   onScheduleTask?: (taskId: string) => Promise<void>;
+  isTaskScheduled?: (taskId: string) => boolean;
   onReorderTasks?: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
   currentProjectId?: string;
+  calendarEvents?: any[];
+  onNavigateToEvent?: (eventId: string) => void;
+  onDeleteEvent?: (eventId: string) => Promise<void>;
 }
 
 export default function TaskList({ 
@@ -49,10 +53,14 @@ export default function TaskList({
   onUpdateTask, 
   onToggleMyDay,
   onScheduleTask,
+  isTaskScheduled,
   onReorderTasks,
   projects = [],
   currentProjectId,
-  showProjectName = false
+  showProjectName = false,
+  calendarEvents,
+  onNavigateToEvent,
+  onDeleteEvent
 }: TaskListProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -151,9 +159,13 @@ export default function TaskList({
                   onUpdateTask={onUpdateTask}
                   onToggleMyDay={onToggleMyDay}
                   onScheduleTask={onScheduleTask}
+                  isScheduled={isTaskScheduled ? isTaskScheduled(task.id) : false}
                   projects={projects}
                   tasks={allTasks ?? tasks}
                   showProjectName={showProjectName}
+                  calendarEvents={calendarEvents}
+                  onNavigateToEvent={onNavigateToEvent}
+                  onDeleteEvent={onDeleteEvent}
                 />
                 
                 {/* Drop indicator below */}

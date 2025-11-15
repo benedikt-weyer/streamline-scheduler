@@ -31,7 +31,7 @@ import { useEffect, useState } from 'react';
 import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import { DEFAULT_PROJECT_NAME } from '@/utils/can-do-list/can-do-list-types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, Link2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
 import { parseDurationInput, formatDurationInput } from '@/utils/can-do-list/duration-input-parser';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -77,6 +77,9 @@ interface EditTaskDialogProps {
   readonly isLoading?: boolean;
   readonly projects?: ProjectDecrypted[];
   readonly tasks?: CanDoItemDecrypted[];
+  readonly linkedEventTitle?: string | null;
+  readonly onNavigateToEvent?: () => void;
+  readonly onDeleteLinkedEvent?: () => Promise<void>;
 }
 
 export default function EditTaskDialog({ 
@@ -86,7 +89,10 @@ export default function EditTaskDialog({
   onSave, 
   isLoading = false,
   projects = [],
-  tasks = []
+  tasks = [],
+  linkedEventTitle,
+  onNavigateToEvent,
+  onDeleteLinkedEvent
 }: EditTaskDialogProps) {
   const [blockedByOpen, setBlockedByOpen] = useState(false);
   
@@ -167,8 +173,42 @@ export default function EditTaskDialog({
           <DialogDescription>
             Make changes to your can-do task here. Click save when you're done.
           </DialogDescription>
+          {linkedEventTitle && (onNavigateToEvent || onDeleteLinkedEvent) ? (
+            <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Link2 className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  <span className="text-sm text-blue-900 dark:text-blue-100 font-medium flex-shrink-0">Linked Event:</span>
+                  {onNavigateToEvent && (
+                    <button
+                      type="button"
+                      onClick={onNavigateToEvent}
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium truncate"
+                    >
+                      {linkedEventTitle}
+                    </button>
+                  )}
+                  {!onNavigateToEvent && (
+                    <span className="text-sm text-blue-900 dark:text-blue-100 truncate">{linkedEventTitle}</span>
+                  )}
+                </div>
+                {onDeleteLinkedEvent && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onDeleteLinkedEvent}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/30 flex-shrink-0"
+                    title="Delete linked event"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : null}
         </DialogHeader>
-        
+
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="content">Content</Label>

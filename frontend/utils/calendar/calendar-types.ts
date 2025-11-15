@@ -46,4 +46,5 @@ export interface EventFormValues {
   daysOfWeek?: number[];
   isGroupEvent?: boolean;
   parentGroupEventId?: string;
+  taskId?: string; // Link to a can-do list task
 }

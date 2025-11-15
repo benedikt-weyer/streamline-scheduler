@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Calendar, CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 import { format, parse, isValid, addMinutes } from 'date-fns';
+import { Link2 } from 'lucide-react';
 
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,7 +51,9 @@ export const eventFormSchema = z.object({
   recurrenceInterval: z.coerce.number().min(1).default(1),
   // Event group fields
   isGroupEvent: z.boolean().default(false),
-  parentGroupEventId: z.string().optional()
+  parentGroupEventId: z.string().optional(),
+  // Task linkage
+  taskId: z.string().optional()
 }).refine(data => {
   // For all-day events, we don't need time validation
   if (data.isAllDay) {
@@ -128,6 +131,8 @@ interface CalendarEventDialogProps {
   readonly onModifyAllInSeries?: (event: CalendarEvent, modifiedData: any) => Promise<void>;
   readonly onModifyThisAndFuture?: (event: CalendarEvent, modifiedData: any) => Promise<void>;
   readonly onModifyThisOccurrence?: (event: CalendarEvent, modifiedData: any) => Promise<void>;
+  readonly linkedTaskTitle?: string | null;
+  readonly onNavigateToTask?: () => void;
 }
 
 // Helper function to combine date and time into a single Date object
@@ -158,7 +163,9 @@ export function CalendarEventDialog({
   onDeleteThisOccurrence,
   onModifyAllInSeries,
   onModifyThisAndFuture,
-  onModifyThisOccurrence
+  onModifyThisOccurrence,
+  linkedTaskTitle,
+  onNavigateToTask
 }: CalendarEventDialogProps) {
   // Determine which calendar ID to use
   const initialCalendarId = selectedEvent?.calendar_id ?? defaultCalendarId ?? 
@@ -420,6 +427,21 @@ export function CalendarEventDialog({
           {selectedEvent?.id?.includes('-recurrence-') && !isReadOnly && (
             <div className="mt-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
               <p>This is a recurring event instance. Changes will affect the entire series.</p>
+            </div>
+          )}
+          {linkedTaskTitle && onNavigateToTask && (
+            <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md">
+              <div className="flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm text-blue-900 dark:text-blue-100 font-medium">Linked Task:</span>
+                <button
+                  type="button"
+                  onClick={onNavigateToTask}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                >
+                  {linkedTaskTitle}
+                </button>
+              </div>
             </div>
           )}
         </DialogHeader>

@@ -19,6 +19,11 @@ interface RecommendedTaskListProps {
   onDeleteTask: (id: string) => Promise<void>;
   onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
   onToggleMyDay?: (id: string) => Promise<void>;
+  onScheduleTask?: (taskId: string) => Promise<void>;
+  isTaskScheduled?: (taskId: string) => boolean;
+  calendarEvents?: any[];
+  onNavigateToEvent?: (eventId: string) => void;
+  onDeleteEvent?: (eventId: string) => Promise<void>;
 }
 
 export default function RecommendedTaskList({
@@ -29,7 +34,12 @@ export default function RecommendedTaskList({
   onToggleComplete,
   onDeleteTask,
   onUpdateTask,
-  onToggleMyDay
+  onToggleMyDay,
+  onScheduleTask,
+  isTaskScheduled,
+  calendarEvents = [],
+  onNavigateToEvent,
+  onDeleteEvent
 }: RecommendedTaskListProps) {
   // Configure Fuse.js for fuzzy search
   const fuseOptions = {
@@ -167,8 +177,13 @@ export default function RecommendedTaskList({
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
                     onToggleMyDay={onToggleMyDay}
+                    onScheduleTask={onScheduleTask}
+                    isScheduled={isTaskScheduled ? isTaskScheduled(task.id) : false}
                     projects={projects}
                     tasks={tasks}
+                    calendarEvents={calendarEvents}
+                    onNavigateToEvent={onNavigateToEvent}
+                    onDeleteEvent={onDeleteEvent}
                   />
                   
                   {/* Additional info for recommended view */}

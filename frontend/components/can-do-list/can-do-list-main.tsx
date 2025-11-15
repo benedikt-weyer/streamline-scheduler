@@ -46,6 +46,7 @@ interface CanDoListMainProps {
   isLoadingProjects: boolean;
   isLoadingKey: boolean;
   encryptionKey: string | null;
+  calendarEvents?: any[]; // Calendar events for checking if task is scheduled
   
   // Task methods
   handleAddTask: (
@@ -86,6 +87,10 @@ interface CanDoListMainProps {
   
   // Optional styling
   containerClassName?: string;
+  
+  // Event handling
+  onNavigateToEvent?: (eventId: string) => void;
+  onDeleteEvent?: (eventId: string) => Promise<void>;
 }
 
 export default function CanDoListMain({
@@ -96,6 +101,9 @@ export default function CanDoListMain({
   isLoadingProjects,
   isLoadingKey,
   encryptionKey,
+  calendarEvents = [],
+  onNavigateToEvent,
+  onDeleteEvent,
   
   // Task methods
   handleAddTask,
@@ -143,6 +151,12 @@ export default function CanDoListMain({
       content: ''
     }
   });
+
+  // Helper function to check if a task is scheduled
+  const isTaskScheduled = (taskId: string): boolean => {
+    if (!calendarEvents) return false;
+    return calendarEvents.some(event => event.task_id === taskId);
+  };
 
   // Debug projects state
   useEffect(() => {
@@ -545,6 +559,11 @@ export default function CanDoListMain({
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
                     onToggleMyDay={handleToggleMyDay}
+                    onScheduleTask={handleScheduleTask}
+                    isTaskScheduled={isTaskScheduled}
+                    calendarEvents={calendarEvents}
+                    onNavigateToEvent={onNavigateToEvent}
+                    onDeleteEvent={onDeleteEvent}
                   />
                 ) : (
                   // Show regular project/inbox view on mobile
@@ -580,8 +599,12 @@ export default function CanDoListMain({
                                     onUpdateTask={onUpdateTask}
                                     onToggleMyDay={handleToggleMyDay}
                                     onScheduleTask={handleScheduleTask}
+                                    isScheduled={isTaskScheduled(task.id)}
                                     projects={projects}
                                     tasks={tasks}
+                                    calendarEvents={calendarEvents}
+                                    onNavigateToEvent={onNavigateToEvent}
+                                    onDeleteEvent={onDeleteEvent}
                                   />
                                 </div>
                               );
@@ -598,10 +621,14 @@ export default function CanDoListMain({
                           onUpdateTask={onUpdateTask}
                           onToggleMyDay={handleToggleMyDay}
                           onScheduleTask={handleScheduleTask}
+                          isTaskScheduled={isTaskScheduled}
                           onReorderTasks={handleReorderTasks}
                           projects={projects}
                           currentProjectId={selectedProjectId}
                           showProjectName={isMyDaySelected}
+                          calendarEvents={calendarEvents}
+                          onNavigateToEvent={onNavigateToEvent}
+                          onDeleteEvent={onDeleteEvent}
                         />
                       )}
                     </TabsContent>
@@ -637,8 +664,12 @@ export default function CanDoListMain({
                                     onUpdateTask={onUpdateTask}
                                     onToggleMyDay={handleToggleMyDay}
                                     onScheduleTask={handleScheduleTask}
+                                    isScheduled={isTaskScheduled(task.id)}
                                     projects={projects}
                                     tasks={tasks}
+                                    calendarEvents={calendarEvents}
+                                    onNavigateToEvent={onNavigateToEvent}
+                                    onDeleteEvent={onDeleteEvent}
                                   />
                                 </div>
                               );
@@ -657,6 +688,9 @@ export default function CanDoListMain({
                           projects={projects}
                           currentProjectId={selectedProjectId}
                           showProjectName={isMyDaySelected}
+                          calendarEvents={calendarEvents}
+                          onNavigateToEvent={onNavigateToEvent}
+                          onDeleteEvent={onDeleteEvent}
                         />
                       )}
                     </TabsContent>
@@ -795,6 +829,11 @@ export default function CanDoListMain({
                     onDeleteTask={onDeleteTask}
                     onUpdateTask={onUpdateTask}
                     onToggleMyDay={handleToggleMyDay}
+                    onScheduleTask={handleScheduleTask}
+                    isTaskScheduled={isTaskScheduled}
+                    calendarEvents={calendarEvents}
+                    onNavigateToEvent={onNavigateToEvent}
+                    onDeleteEvent={onDeleteEvent}
                   />
                 ) : (
                   // Show regular project/inbox view
@@ -830,8 +869,12 @@ export default function CanDoListMain({
                                     onUpdateTask={onUpdateTask}
                                     onToggleMyDay={handleToggleMyDay}
                                     onScheduleTask={handleScheduleTask}
+                                    isScheduled={isTaskScheduled(task.id)}
                                     projects={projects}
                                     tasks={tasks}
+                                    calendarEvents={calendarEvents}
+                                    onNavigateToEvent={onNavigateToEvent}
+                                    onDeleteEvent={onDeleteEvent}
                                   />
                                 </div>
                               );
@@ -848,14 +891,18 @@ export default function CanDoListMain({
                           onUpdateTask={onUpdateTask}
                           onToggleMyDay={handleToggleMyDay}
                           onScheduleTask={handleScheduleTask}
+                          isTaskScheduled={isTaskScheduled}
                           onReorderTasks={handleReorderTasks}
                           projects={projects}
                           currentProjectId={selectedProjectId}
                           showProjectName={isMyDaySelected}
+                          calendarEvents={calendarEvents}
+                          onNavigateToEvent={onNavigateToEvent}
+                          onDeleteEvent={onDeleteEvent}
                         />
                       )}
                     </TabsContent>
-                    
+
                     <TabsContent value="completed" className="mt-0">
                       <LoadingState isLoading={isLoading} />
                       <EmptyState isLoading={isLoading} itemsLength={filteredTasks.length} />
@@ -887,8 +934,12 @@ export default function CanDoListMain({
                                     onUpdateTask={onUpdateTask}
                                     onToggleMyDay={handleToggleMyDay}
                                     onScheduleTask={handleScheduleTask}
+                                    isScheduled={isTaskScheduled(task.id)}
                                     projects={projects}
                                     tasks={tasks}
+                                    calendarEvents={calendarEvents}
+                                    onNavigateToEvent={onNavigateToEvent}
+                                    onDeleteEvent={onDeleteEvent}
                                   />
                                 </div>
                               );
@@ -907,6 +958,9 @@ export default function CanDoListMain({
                           projects={projects}
                           currentProjectId={selectedProjectId}
                           showProjectName={isMyDaySelected}
+                          calendarEvents={calendarEvents}
+                          onNavigateToEvent={onNavigateToEvent}
+                          onDeleteEvent={onDeleteEvent}
                         />
                       )}
                     </TabsContent>

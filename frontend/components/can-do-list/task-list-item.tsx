@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import { useState } from 'react';
-import { Edit, Trash2, Clock, Zap, Calendar, Copy, Shield, AlertCircle, Lock, Sun } from 'lucide-react';
+import { Edit, Trash2, Clock, Zap, Calendar, Copy, Shield, AlertCircle, Lock, Sun, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import EditTaskDialog from './edit-task-dialog';
 import BlockedTaskCompletionModal from './blocked-task-completion-modal';
@@ -23,12 +23,16 @@ interface TaskListItemProps {
   readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
   readonly onToggleMyDay?: (id: string) => Promise<void>;
   readonly onScheduleTask?: (taskId: string) => Promise<void>;
+  readonly isScheduled?: boolean;
   readonly projects?: ProjectDecrypted[];
   readonly tasks?: CanDoItemDecrypted[];
   readonly showProjectName?: boolean;
+  readonly calendarEvents?: any[];
+  readonly onNavigateToEvent?: (eventId: string) => void;
+  readonly onDeleteEvent?: (eventId: string) => Promise<void>;
 }
 
-export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, onToggleMyDay, onScheduleTask, projects = [], tasks = [], showProjectName = false }: TaskListItemProps) {
+export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, onToggleMyDay, onScheduleTask, isScheduled = false, projects = [], tasks = [], showProjectName = false, calendarEvents = [], onNavigateToEvent, onDeleteEvent }: TaskListItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -155,11 +159,32 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     }
   };
 
+  // Find linked event for this task
+  const linkedEvent = calendarEvents.find(event => event.task_id === task.id);
+  const linkedEventTitle = linkedEvent?.title || null;
+
+  // Handle navigation to linked event
+  const handleNavigateToEvent = linkedEvent && onNavigateToEvent ? () => {
+    onNavigateToEvent(linkedEvent.id);
+  } : undefined;
+
+  // Handle deletion of linked event
+  const handleDeleteLinkedEvent = linkedEvent && onDeleteEvent ? async () => {
+    try {
+      await onDeleteEvent(linkedEvent.id);
+      toast.success('Linked event deleted');
+    } catch (error) {
+      console.error('Failed to delete linked event:', error);
+      toast.error('Failed to delete linked event');
+    }
+  } : undefined;
+
   return (
     <>
       <div 
         ref={setNodeRef}
         style={style}
+        data-task-id={task.id}
         {...(!task.completed ? attributes : {})}
         {...(!task.completed ? listeners : {})}
         className={`flex rounded-md border task-transition ${
@@ -388,7 +413,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           </div>
           
           {/* Action buttons */}
-          {onScheduleTask && (
+          {onScheduleTask && !isScheduled && (
             <Button
               variant="ghost"
               size="sm"
@@ -399,6 +424,19 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             >
               <Calendar className="h-4 w-4" />
               <span className="sr-only">Schedule to calendar</span>
+            </Button>
+          )}
+          {isScheduled && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled
+              onPointerDown={(e) => e.stopPropagation()}
+              className="text-green-600 p-2 cursor-default opacity-100"
+              title="Task is scheduled"
+            >
+              <CheckCircle className="h-4 w-4" />
+              <span className="sr-only">Task is scheduled</span>
             </Button>
           )}
           {onToggleMyDay && (
@@ -455,6 +493,9 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
         isLoading={isUpdating}
         projects={projects}
         tasks={tasks}
+        linkedEventTitle={linkedEventTitle}
+        onNavigateToEvent={handleNavigateToEvent}
+        onDeleteLinkedEvent={handleDeleteLinkedEvent}
       />
 
       <BlockedTaskCompletionModal

@@ -276,6 +276,7 @@ export interface CalendarEventDecrypted {
   recurrence_exception?: string[];
   is_group_event?: boolean;
   parent_group_event_id?: string;
+  task_id?: string; // Link to a can-do list task
   created_at: string;
   updated_at: string;
   user_id: string;
@@ -307,6 +308,7 @@ export interface CreateCalendarEventDecryptedRequest {
   recurrence_rule?: string;
   is_group_event?: boolean;
   parent_group_event_id?: string;
+  task_id?: string;
 }
 
 export interface UpdateCalendarEventDecryptedRequest {
@@ -322,6 +324,7 @@ export interface UpdateCalendarEventDecryptedRequest {
   recurrence_exception?: string[];
   is_group_event?: boolean;
   parent_group_event_id?: string;
+  task_id?: string;
 }
 
 // Real-time subscription types

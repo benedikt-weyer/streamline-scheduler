@@ -68,6 +68,7 @@ export class CalendarEventsService {
     recurrenceRule?: string;
     isGroupEvent?: boolean;
     parentGroupEventId?: string;
+    taskId?: string;
   }): Promise<CalendarEvent> {
     try {
       // Ensure dates are Date objects
@@ -85,6 +86,7 @@ export class CalendarEventsService {
         recurrence_rule: eventData.recurrenceRule,
         is_group_event: eventData.isGroupEvent,
         parent_group_event_id: eventData.parentGroupEventId,
+        task_id: eventData.taskId,
       };
 
       const { data: newEvent } = await this.backend.calendarEvents.create(createData);
@@ -115,6 +117,7 @@ export class CalendarEventsService {
     recurrenceException?: string[];
     isGroupEvent?: boolean;
     parentGroupEventId?: string;
+    taskId?: string;
   }): Promise<CalendarEvent> {
     try {
       console.log('updateCalendarEvent called with updates:', updates);
@@ -142,6 +145,7 @@ export class CalendarEventsService {
         ...(updates.recurrenceException && { recurrence_exception: updates.recurrenceException }),
         ...(updates.isGroupEvent !== undefined && { is_group_event: updates.isGroupEvent }),
         ...(updates.parentGroupEventId !== undefined && { parent_group_event_id: updates.parentGroupEventId }),
+        ...(updates.taskId !== undefined && { task_id: updates.taskId }),
       };
 
       console.log('CalendarEventsService updateData:', updateData);

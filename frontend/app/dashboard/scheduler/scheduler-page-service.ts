@@ -240,7 +240,8 @@ export class SchedulerPageService {
         calendarId: values.calendarId,
         startTime: startDateTime,
         endTime: endDateTime,
-        isAllDay: values.isAllDay
+        isAllDay: values.isAllDay,
+        taskId: values.taskId
       });
       return { event: updatedEvent, isUpdate: true };
     } else {
@@ -251,7 +252,8 @@ export class SchedulerPageService {
         calendarId: values.calendarId,
         startTime: startDateTime,
         endTime: endDateTime,
-        isAllDay: values.isAllDay
+        isAllDay: values.isAllDay,
+        taskId: values.taskId
       });
       return { event: newEvent, isUpdate: false };
     }
