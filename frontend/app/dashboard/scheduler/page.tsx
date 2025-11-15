@@ -16,11 +16,13 @@ import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group'
 import { cn } from '@/lib/shadcn-utils';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toast } from 'sonner';
+import { useSchedulerNav } from '@/contexts/scheduler-nav-context';
 
 
 function SchedulerPageContent() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
   const { setError } = useError();
+  const { setSchedulerNavContent } = useSchedulerNav();
 
   // Initialize scheduler service (only in browser)
   const [schedulerPageService] = useState(() => {
@@ -809,23 +811,79 @@ function SchedulerPageContent() {
   }, [showTaskList, showCalendar, setShowTaskList, setShowCalendar]);
   
   // Handlers for toggling view panels (with constraint that at least one must be visible)
-  const handleToggleTaskList = () => {
+  const handleToggleTaskList = useCallback(() => {
     // Only allow toggling off if calendar is visible
     if (showTaskList && showCalendar) {
       setShowTaskList(false);
     } else if (!showTaskList) {
       setShowTaskList(true);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTaskList, showCalendar]);
 
-  const handleToggleCalendar = () => {
+  const handleToggleCalendar = useCallback(() => {
     // Only allow toggling off if task list is visible
     if (showCalendar && showTaskList) {
       setShowCalendar(false);
     } else if (!showCalendar) {
       setShowCalendar(true);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCalendar, showTaskList]);
+
+  // Set scheduler navigation in navbar using useEffect to handle mount/unmount
+  useEffect(() => {
+    setSchedulerNavContent(
+      <ButtonGroup>
+        <Button
+          variant={showTaskList ? "default" : "outline"}
+          size="sm"
+          onClick={() => {
+            if (window.innerWidth < 768) {
+              setShowTaskList(true);
+              setShowCalendar(false);
+            } else {
+              handleToggleTaskList();
+            }
+          }}
+          disabled={showTaskList && !showCalendar && window.innerWidth >= 768}
+          className={cn(
+            "flex items-center gap-2",
+            showTaskList && !showCalendar && "opacity-100 md:cursor-not-allowed"
+          )}
+        >
+          <LayoutList className="h-4 w-4" />
+          <span>Can-Do List</span>
+        </Button>
+        <ButtonGroupSeparator />
+        <Button
+          variant={showCalendar ? "default" : "outline"}
+          size="sm"
+          onClick={() => {
+            if (window.innerWidth < 768) {
+              setShowCalendar(true);
+              setShowTaskList(false);
+            } else {
+              handleToggleCalendar();
+            }
+          }}
+          disabled={showCalendar && !showTaskList && window.innerWidth >= 768}
+          className={cn(
+            "flex items-center gap-2",
+            showCalendar && !showTaskList && "opacity-100 md:cursor-not-allowed"
+          )}
+        >
+          <CalendarIcon className="h-4 w-4" />
+          <span>Calendar</span>
+        </Button>
+      </ButtonGroup>
+    );
+
+    return () => {
+      setSchedulerNavContent(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTaskList, showCalendar]);
 
   // Get default calendar for creating events from tasks
   const defaultCalendar = calendars.find((cal: Calendar) => cal.is_default) || calendars[0];
@@ -1014,60 +1072,6 @@ function SchedulerPageContent() {
 
   return (
     <div className="flex flex-col h-screen w-full">
-      {/* Top Navigation Bar - Unified for Mobile and Desktop */}
-      <div className="border-b bg-background px-4 py-2 flex items-center justify-center">
-        <ButtonGroup>
-          <Button
-            variant={showTaskList ? "default" : "outline"}
-            size="sm"
-            onClick={() => {
-              // On mobile: only one can be active (exclusive toggle)
-              // On desktop: at least one must be active (toggle with constraint)
-              if (window.innerWidth < 768) {
-                // Mobile: exclusive toggle
-                setShowTaskList(true);
-                setShowCalendar(false);
-              } else {
-                // Desktop: toggle with constraint
-                handleToggleTaskList();
-              }
-            }}
-            disabled={showTaskList && !showCalendar && window.innerWidth >= 768}
-            className={cn(
-              "flex items-center gap-2",
-              showTaskList && !showCalendar && "opacity-100 md:cursor-not-allowed"
-            )}
-          >
-            <LayoutList className="h-4 w-4" />
-            <span>Can-Do List</span>
-          </Button>
-          <ButtonGroupSeparator />
-          <Button
-            variant={showCalendar ? "default" : "outline"}
-            size="sm"
-            onClick={() => {
-              // On mobile: only one can be active (exclusive toggle)
-              // On desktop: at least one must be active (toggle with constraint)
-              if (window.innerWidth < 768) {
-                // Mobile: exclusive toggle
-                setShowCalendar(true);
-                setShowTaskList(false);
-                      } else {
-                // Desktop: toggle with constraint
-                handleToggleCalendar();
-              }
-            }}
-            disabled={showCalendar && !showTaskList && window.innerWidth >= 768}
-            className={cn(
-              "flex items-center gap-2",
-              showCalendar && !showTaskList && "opacity-100 md:cursor-not-allowed"
-            )}
-          >
-            <CalendarIcon className="h-4 w-4" />
-            <span>Calendar</span>
-          </Button>
-        </ButtonGroup>
-                  </div>
 
       {/* Main Content Area - Unified for Mobile and Desktop */}
       <div className="flex flex-1 overflow-hidden">

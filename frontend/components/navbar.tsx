@@ -8,6 +8,7 @@ import { Menu, X, Settings } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/shadcn-utils';
+import { useSchedulerNav } from '@/contexts/scheduler-nav-context';
 
 interface MobileNavbarProps {
   themeSwitcher: React.ReactNode;
@@ -18,6 +19,8 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const isSettingsPage = pathname === '/dashboard/settings';
+  const isSchedulerPage = pathname === '/dashboard/scheduler';
+  const { schedulerNavContent } = useSchedulerNav();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -30,7 +33,7 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
   return (
     <nav className="w-full">
       {/* Desktop and Mobile Header */}
-      <div className="flex justify-between items-center h-16 px-4 md:px-6 lg:px-10 border-b border-b-foreground/10">
+      <div className="flex items-center h-16 px-4 md:px-6 lg:px-10 border-b border-b-foreground/10">
         {/* Left side - Brand (links to scheduler) */}
         <Link href="/dashboard/scheduler" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <Image src="/icon.png" alt="Streamline Scheduler" width={25} height={25} />
@@ -39,8 +42,18 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
           </span>
         </Link>
 
+        {/* Center - Scheduler Navigation (only on scheduler page) */}
+        {isSchedulerPage && schedulerNavContent && (
+          <div className="flex-1 flex items-center justify-center">
+            {schedulerNavContent}
+          </div>
+        )}
+
         {/* Right side - Settings, Theme switcher and Auth */}
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className={cn(
+          "flex items-center gap-2 md:gap-4",
+          !isSchedulerPage && "ml-auto"
+        )}>
           {/* Settings icon - Hidden on mobile */}
           <Link href="/dashboard/settings" className="hidden md:flex">
             <Button 
