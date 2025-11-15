@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/ui/navigation';
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
-import Image from 'next/image'
+import { Menu, X, Settings } from 'lucide-react';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/shadcn-utils';
 
 interface MobileNavbarProps {
   themeSwitcher: React.ReactNode;
@@ -14,6 +16,8 @@ interface MobileNavbarProps {
 
 export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+  const isSettingsPage = pathname === '/dashboard/settings';
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -27,22 +31,28 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
     <nav className="w-full">
       {/* Desktop and Mobile Header */}
       <div className="flex justify-between items-center h-16 px-4 md:px-6 lg:px-10 border-b border-b-foreground/10">
-        {/* Left side - Brand */}
-        <div className="flex items-center gap-4">
+        {/* Left side - Brand (links to scheduler) */}
+        <Link href="/dashboard/scheduler" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <Image src="/icon.png" alt="Streamline Scheduler" width={25} height={25} />
-          <Link href="/" className="font-bold text-xl md:text-2xl">
+          <span className="font-bold text-xl md:text-2xl">
             Streamline Scheduler
-          </Link>
-        </div>
+          </span>
+        </Link>
 
-        {/* Desktop Navigation - Hidden on mobile */}
-        <div className="hidden md:flex items-center gap-4">
-          <NavLink href="/dashboard/scheduler">Scheduler</NavLink>
-          <NavLink href="/dashboard/settings">Settings</NavLink>
-        </div>
-
-        {/* Right side - Theme switcher and Auth */}
+        {/* Right side - Settings, Theme switcher and Auth */}
         <div className="flex items-center gap-2 md:gap-4">
+          {/* Settings icon - Hidden on mobile */}
+          <Link href="/dashboard/settings" className="hidden md:flex">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              aria-label="Settings"
+              className={cn(isSettingsPage && "bg-secondary")}
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+          </Link>
+          
           {themeSwitcher}
           {authComponent}
           
@@ -63,11 +73,6 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
       {isOpen && (
         <div className="md:hidden border-t border-t-foreground/10 bg-background relative z-50">
           <div className="flex flex-col space-y-2 p-4">
-            <div onClick={closeMenu}>
-              <NavLink href="/dashboard/scheduler" className="w-full justify-start">
-                Scheduler
-              </NavLink>
-            </div>
             <div onClick={closeMenu}>
               <NavLink href="/dashboard/settings" className="w-full justify-start">
                 Settings
