@@ -8,8 +8,8 @@ import { SchedulerPageService } from './scheduler-page-service';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { CanDoItemDecrypted, ProjectDecrypted, RealtimeSubscription, RealtimeMessage } from '@/utils/api/types';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
-import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, pointerWithin } from '@dnd-kit/core';
-import { SchedulerTaskList, SchedulerCalendar, SchedulerTaskItem, SchedulerMobile } from '@/components/dashboard/scheduler';
+import { SchedulerTaskList, SchedulerMobile } from '@/components/dashboard/scheduler';
+import { CalendarFullControlCrossPlatform } from '@/components/dashboard/calendar/calendar-full-control-cross-platform';
 import ProjectSidebarDynamic from '@/components/dashboard/can-do-list/project-bar/project-sidebar-dynamic';
 import { addMinutes, format } from 'date-fns';
 import { List, LayoutList, Calendar as CalendarIcon } from 'lucide-react';
@@ -654,8 +654,7 @@ function SchedulerPageContent() {
     }
   }, [schedulerPageService, setError]);
 
-  // Drag and drop state
-  const [activeTask, setActiveTask] = useState<CanDoItemDecrypted | null>(null);
+  // Taskbar collapse state
   const [isTaskbarCollapsed, setIsTaskbarCollapsed] = useState(false);
   
   // View state for showing/hiding panels
@@ -875,78 +874,6 @@ function SchedulerPageContent() {
     return organized;
   }, [tasks, projects]);
 
-  // Use pointer-based collision detection for precise targeting
-  const pointerCollisionDetection = useCallback((args: any) => {
-    // Use pointerWithin for the most accurate collision detection
-    // This will only detect collisions where the mouse pointer is actually located
-    return pointerWithin(args);
-  }, []);
-
-  // Handle drag start
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const taskId = event.active.id as string;
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      setActiveTask(task);
-      setIsTaskbarCollapsed(true);
-    }
-  }, [tasks]);
-
-  // Handle drag end
-  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
-    setActiveTask(null);
-    setIsTaskbarCollapsed(false);
-
-    const { active, over } = event;
-    
-    if (!over || !activeTask || !defaultCalendar) return;
-
-    // Debug logging
-    console.log('Drag end event:', {
-      overId: over.id,
-      overData: over.data?.current,
-      activeTaskId: activeTask?.id,
-      activeTaskContent: activeTask?.content
-    });
-
-    // Check if dropped on a quarter-hour time slot
-    if (over.id.toString().startsWith('quarter-') && over.data?.current?.time) {
-      const dropTime = over.data.current.time as Date;
-      const dropDate = over.data.current.date as Date;
-      
-      console.log('Dropping task on:', {
-        dropTime: format(dropTime, 'yyyy-MM-dd HH:mm'),
-        dropDate: format(dropDate, 'yyyy-MM-dd'),
-        overId: over.id
-      });
-      
-      // Create calendar event from task directly
-      const startTime = new Date(dropTime);
-      const duration = activeTask?.duration_minutes || 60; // Default 1 hour in minutes
-      const endTime = addMinutes(startTime, duration);
-
-      const eventData = {
-        title: activeTask?.content || '',
-        description: `Scheduled from task: ${activeTask?.content || ''}`,
-        startDate: format(startTime, 'yyyy-MM-dd'),
-        startTime: format(startTime, 'HH:mm'),
-        endDate: format(endTime, 'yyyy-MM-dd'),
-        endTime: format(endTime, 'HH:mm'),
-        calendarId: defaultCalendar.id
-      };
-
-      try {
-        await handleSubmitEvent(eventData);
-        console.log('Successfully created event:', eventData);
-        // Task remains active - just linked to calendar event
-      } catch (error) {
-        console.error('Error creating event from task:', error);
-        setError('Failed to create calendar event from task');
-      }
-    } else {
-      console.log('Drop target not recognized:', over.id);
-    }
-  }, [activeTask, defaultCalendar, handleSubmitEvent, setError]);
 
   if (isLoadingKey) {
     return (
@@ -1003,12 +930,7 @@ function SchedulerPageContent() {
       </div>
 
       {/* Desktop Layout */}
-      <DndContext 
-        onDragStart={handleDragStart} 
-        onDragEnd={handleDragEnd}
-        collisionDetection={pointerCollisionDetection}
-      >
-        <div className="hidden md:flex flex-col w-full">
+      <div className="hidden md:flex flex-col w-full">
           {/* Top Navigation Bar */}
           <div className="border-b bg-background px-4 py-2 flex items-center justify-center">
             <ButtonGroup>
@@ -1154,10 +1076,11 @@ function SchedulerPageContent() {
             {/* Calendar - Desktop (only show when calendar is visible) */}
             {showCalendar && (
               <div className={cn("h-full overflow-hidden", showTaskList ? "flex-1" : "w-full")}>
-            <SchedulerCalendar
-              events={[...calendarEvents, ...icsEvents]}
+            <CalendarFullControlCrossPlatform
               calendars={calendars}
-              onEventUpdate={onEventUpdate}
+              events={calendarEvents}
+              icsEvents={icsEvents}
+              isLoading={isLoadingCalendar}
               onCalendarToggle={handleCalendarToggle}
               onCalendarCreate={handleCalendarCreate}
               onICSCalendarCreate={handleICSCalendarCreate}
@@ -1165,33 +1088,19 @@ function SchedulerPageContent() {
               onCalendarEdit={handleCalendarEdit}
               onCalendarDelete={handleCalendarDelete}
               onSetDefaultCalendar={handleSetDefaultCalendar}
-              onClone={handleCloneEvent}
-              isLoading={isLoadingCalendar}
-              activeTask={activeTask}
+              onSubmitEvent={handleSubmitEvent}
+              onDeleteEvent={handleDeleteEvent}
+              onCloneEvent={handleCloneEvent}
+              onEventUpdate={onEventUpdate}
+              moveEventToCalendar={moveEventToCalendar}
+              onRefreshICSCalendar={handleICSCalendarRefresh}
+              isICSEvent={(event) => schedulerPageService?.isICSEvent(event, calendars) || false}
+              isReadOnlyCalendar={(calendarId) => schedulerPageService?.isReadOnlyCalendar(calendarId, calendars) || false}
             />
               </div>
             )}
           </div>
-
-          {/* Drag Overlay */}
-          <DragOverlay style={{ opacity: 0.5, width: '200px', maxWidth: '200px' }}>
-            {activeTask ? (
-              <div style={{ width: '200px', maxWidth: '200px' }}>
-                <SchedulerTaskItem
-                  task={activeTask}
-                  onToggleComplete={handleToggleComplete}
-                  onDeleteTask={handleDeleteTask}
-                  onUpdateTask={handleUpdateTask}
-                  projects={projects}
-                  isDragOverlay={true}
-                />
-              </div>
-            ) : null}
-          </DragOverlay>
-
-
         </div>
-      </DndContext>
     </div>
   );
 }

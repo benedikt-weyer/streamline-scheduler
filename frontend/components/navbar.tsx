@@ -37,8 +37,6 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
 
         {/* Desktop Navigation - Hidden on mobile */}
         <div className="hidden md:flex items-center gap-4">
-          <NavLink href="/dashboard/can-do-list">Can-Do List</NavLink>
-          <NavLink href="/dashboard/calendar">Calendar</NavLink>
           <NavLink href="/dashboard/scheduler">Scheduler</NavLink>
           <NavLink href="/dashboard/settings">Settings</NavLink>
         </div>
@@ -65,16 +63,6 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
       {isOpen && (
         <div className="md:hidden border-t border-t-foreground/10 bg-background relative z-50">
           <div className="flex flex-col space-y-2 p-4">
-            <div onClick={closeMenu}>
-              <NavLink href="/dashboard/can-do-list" className="w-full justify-start">
-                Can-Do List
-              </NavLink>
-            </div>
-            <div onClick={closeMenu}>
-              <NavLink href="/dashboard/calendar" className="w-full justify-start">
-                Calendar
-              </NavLink>
-            </div>
             <div onClick={closeMenu}>
               <NavLink href="/dashboard/scheduler" className="w-full justify-start">
                 Scheduler

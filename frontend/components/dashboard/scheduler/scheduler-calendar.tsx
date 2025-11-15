@@ -3,11 +3,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import { CalendarEvent, Calendar } from '@/utils/calendar/calendar-types';
 import { CalendarHeader } from '@/components/dashboard/calendar/calendar-header';
-import { SchedulerCalendarGrid } from './scheduler-calendar-grid';
+import { CalendarGrid } from '@/components/dashboard/calendar/calendar-grid';
 import { CalendarEventDialog, EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
 import { CalendarSidebar } from '@/components/dashboard/calendar/calendar-sidebar';
 import { getDaysOfWeek, getEventsInWeek } from '@/utils/calendar/calendarHelpers';
-// import { useDroppable } from '@dnd-kit/core'; // No longer needed
 import { addMinutes, format } from 'date-fns';
 
 interface SchedulerCalendarProps {
@@ -23,7 +22,6 @@ interface SchedulerCalendarProps {
   readonly onSetDefaultCalendar: (calendarId: string) => void;
   readonly onClone?: (event: CalendarEvent) => Promise<boolean>;
   readonly isLoading: boolean;
-  readonly activeTask?: { id: string; content: string; estimatedDuration?: number } | null;
 }
 
 export function SchedulerCalendar({
@@ -38,8 +36,7 @@ export function SchedulerCalendar({
   onCalendarDelete,
   onSetDefaultCalendar,
   onClone,
-  isLoading,
-  activeTask
+  isLoading
 }: SchedulerCalendarProps) {
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
