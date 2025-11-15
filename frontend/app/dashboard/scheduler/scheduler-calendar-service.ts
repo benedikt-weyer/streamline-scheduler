@@ -209,7 +209,7 @@ export class SchedulerCalendarService {
 
         // Check if it's the last regular calendar
         const regularCalendars = calendars.filter(cal => cal.type !== 'ics');
-        if (regularCalendars.length === 1 && calendar.type !== 'ics') {
+        if (regularCalendars.length === 1 && calendar.type === 'regular') {
           return {
             isValid: false,
             message: 'Cannot delete the last regular calendar'

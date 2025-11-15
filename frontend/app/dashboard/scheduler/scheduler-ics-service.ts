@@ -92,7 +92,7 @@ export class SchedulerICSService {
       
       // Update the last_sync timestamp
       const updatedCalendar = await this.calendarService.updateCalendar(calendarId, {
-        last_sync: new Date()
+        lastSync: new Date().toISOString()
       });
 
       return { events, calendar: updatedCalendar };
@@ -120,7 +120,7 @@ export class SchedulerICSService {
 
       // Update the last_sync timestamp
       const updatedCalendar = await this.calendarService.updateCalendar(calendarId, {
-        last_sync: new Date()
+        lastSync: new Date().toISOString()
       });
 
       return { calendar: updatedCalendar, shouldRefreshEvents: true };
