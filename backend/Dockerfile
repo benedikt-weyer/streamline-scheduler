@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.89-slim-trixie AS builder
+FROM rust:1.91.1-slim-trixie AS builder
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
