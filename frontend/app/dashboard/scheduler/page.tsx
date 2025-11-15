@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { CanDoListPageService } from '../can-do-list/can-do-list-page-service';
+import { CanDoListPageService } from './can-do-list-page-service';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 import { SchedulerPageService } from './scheduler-page-service';

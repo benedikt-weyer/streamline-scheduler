@@ -4,7 +4,7 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 import { CanDoItemDecrypted, ProjectDecrypted, RealtimeSubscription, RealtimeMessage } from '@/utils/api/types';
-import { CanDoListPageService } from './can-do-list-page-service';
+import { CanDoListPageService } from '../scheduler/can-do-list-page-service';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import CanDoListMain from '@/components/can-do-list/can-do-list-main';
 
