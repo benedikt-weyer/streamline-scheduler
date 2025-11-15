@@ -6,7 +6,7 @@ import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 import { CanDoItemDecrypted, ProjectDecrypted, RealtimeSubscription, RealtimeMessage } from '@/utils/api/types';
 import { CanDoListPageService } from './can-do-list-page-service';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
-import CanDoListMain from '@/components/dashboard/can-do-list/can-do-list-main';
+import CanDoListMain from '@/components/can-do-list/can-do-list-main';
 
 function CanDoListContent() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();

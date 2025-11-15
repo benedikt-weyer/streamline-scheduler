@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, CalendarEvent, CalendarType } from '@/utils/calendar/calendar-types';
-import { EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
+import { EventFormValues } from '@/components/calendar/calendar-event-dialog';
 import { CalendarService } from '@/services/calendar/calendar-service';
 import { CalendarEventsService } from '@/services/calendar-events/calendar-events-service';
 import { fetchAndParseICSCalendar } from '@/utils/calendar/ics-parser';

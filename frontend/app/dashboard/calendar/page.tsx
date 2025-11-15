@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useState, useRef } from 'react';
 
-import { CalendarFullControlCrossPlatform } from '@/components/dashboard/calendar/calendar-full-control-cross-platform';
+import { CalendarFullControlCrossPlatform } from '@/components/calendar/calendar-full-control-cross-platform';
 
 import { ErrorProvider, useError } from '@/utils/context/ErrorContext';
 import { Calendar, CalendarEvent } from '@/utils/calendar/calendar-types';
@@ -11,7 +11,7 @@ import { Calendar, CalendarEvent } from '@/utils/calendar/calendar-types';
 import { CalendarService } from '@/services/calendar/calendar-service';
 import { CalendarEventsService } from '@/services/calendar-events/calendar-events-service';
 import { CalendarPageService } from './calendar-page-service';
-import { EventFormValues } from '@/components/dashboard/calendar/calendar-event-dialog';
+import { EventFormValues } from '@/components/calendar/calendar-event-dialog';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { RealtimeSubscription, RealtimeMessage } from '@/utils/api/types';
 

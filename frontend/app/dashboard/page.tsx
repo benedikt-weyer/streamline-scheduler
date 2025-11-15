@@ -1,6 +1,6 @@
 'use client';
 
-import { CanDoListMain } from "@/components/dashboard/can-do-list";
+import { CanDoListMain } from "@/components/can-do-list";
 import { ErrorProvider } from "@/utils/context/ErrorContext";
 import { AuthGuard } from "@/components/auth/auth-guard";
 import Link from "next/link";
