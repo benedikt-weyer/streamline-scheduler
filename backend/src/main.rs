@@ -19,6 +19,7 @@ use std::env;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use std::io::{self, Write};
 
 use crate::{
     auth::AuthService,
@@ -45,6 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     tracing::info!("Starting Streamline Backend...");
+    std::io::stdout().flush().unwrap(); // force flush
 
     // Initialize database
     tracing::info!("Attempting to connect to database...");
