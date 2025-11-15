@@ -35,6 +35,7 @@ interface TaskListProps {
   onDeleteTask: (id: string) => Promise<void>;
   onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
   onToggleMyDay?: (id: string) => Promise<void>;
+  onScheduleTask?: (taskId: string) => Promise<void>;
   onReorderTasks?: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
   currentProjectId?: string;
 }
@@ -47,6 +48,7 @@ export default function TaskList({
   onDeleteTask, 
   onUpdateTask, 
   onToggleMyDay,
+  onScheduleTask,
   onReorderTasks,
   projects = [],
   currentProjectId,
@@ -148,6 +150,7 @@ export default function TaskList({
                   onDeleteTask={onDeleteTask}
                   onUpdateTask={onUpdateTask}
                   onToggleMyDay={onToggleMyDay}
+                  onScheduleTask={onScheduleTask}
                   projects={projects}
                   tasks={allTasks ?? tasks}
                   showProjectName={showProjectName}

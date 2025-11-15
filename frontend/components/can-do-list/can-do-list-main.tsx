@@ -74,6 +74,7 @@ interface CanDoListMainProps {
   handleBulkDeleteCompleted: (projectId?: string) => Promise<number>;
   handleReorderTasks: (sourceIndex: number, destinationIndex: number, projectId?: string) => Promise<boolean>;
   loadTasks: () => Promise<void>;
+  handleScheduleTask?: (taskId: string) => Promise<void>;
   
   // Project methods
   handleAddProject: (name: string, description?: string, color?: string, parentId?: string) => Promise<boolean>;
@@ -104,6 +105,7 @@ export default function CanDoListMain({
   handleBulkDeleteCompleted,
   handleReorderTasks,
   loadTasks,
+  handleScheduleTask,
   
   // Project methods
   handleAddProject,
@@ -577,6 +579,7 @@ export default function CanDoListMain({
                                     onDeleteTask={onDeleteTask}
                                     onUpdateTask={onUpdateTask}
                                     onToggleMyDay={handleToggleMyDay}
+                                    onScheduleTask={handleScheduleTask}
                                     projects={projects}
                                     tasks={tasks}
                                   />
@@ -594,6 +597,7 @@ export default function CanDoListMain({
                           onDeleteTask={onDeleteTask}
                           onUpdateTask={onUpdateTask}
                           onToggleMyDay={handleToggleMyDay}
+                          onScheduleTask={handleScheduleTask}
                           onReorderTasks={handleReorderTasks}
                           projects={projects}
                           currentProjectId={selectedProjectId}
@@ -632,6 +636,7 @@ export default function CanDoListMain({
                                     onDeleteTask={onDeleteTask}
                                     onUpdateTask={onUpdateTask}
                                     onToggleMyDay={handleToggleMyDay}
+                                    onScheduleTask={handleScheduleTask}
                                     projects={projects}
                                     tasks={tasks}
                                   />
@@ -824,6 +829,7 @@ export default function CanDoListMain({
                                     onDeleteTask={onDeleteTask}
                                     onUpdateTask={onUpdateTask}
                                     onToggleMyDay={handleToggleMyDay}
+                                    onScheduleTask={handleScheduleTask}
                                     projects={projects}
                                     tasks={tasks}
                                   />
@@ -841,6 +847,7 @@ export default function CanDoListMain({
                           onDeleteTask={onDeleteTask}
                           onUpdateTask={onUpdateTask}
                           onToggleMyDay={handleToggleMyDay}
+                          onScheduleTask={handleScheduleTask}
                           onReorderTasks={handleReorderTasks}
                           projects={projects}
                           currentProjectId={selectedProjectId}
@@ -879,6 +886,7 @@ export default function CanDoListMain({
                                     onDeleteTask={onDeleteTask}
                                     onUpdateTask={onUpdateTask}
                                     onToggleMyDay={handleToggleMyDay}
+                                    onScheduleTask={handleScheduleTask}
                                     projects={projects}
                                     tasks={tasks}
                                   />

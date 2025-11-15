@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { cn } from '@/lib/shadcn-utils';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { toast } from 'sonner';
 
 
 function SchedulerPageContent() {
@@ -786,6 +787,67 @@ function SchedulerPageContent() {
     await loadProjects();
   };
 
+  // Handler for scheduling a task to the next free slot
+  const handleScheduleTask = async (taskId: string): Promise<void> => {
+    if (!schedulerPageService) return;
+    
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) {
+        toast.error('Task not found');
+        return;
+      }
+      
+      // Use task duration or default to 60 minutes (1 hour)
+      const durationMinutes = task.duration_minutes || 60;
+      
+      // Find the next free slot
+      const freeSlot = await schedulerPageService.findNextFreeSlot(durationMinutes, calendars);
+      
+      if (!freeSlot) {
+        toast.error('No free slot found in the next 7 days');
+        return;
+      }
+      
+      // Get default calendar
+      const defaultCalendar = calendars.find(cal => cal.is_default) || calendars[0];
+      if (!defaultCalendar) {
+        toast.error('No calendar available');
+        return;
+      }
+      
+      // Create calendar event
+      // Format dates in local timezone to avoid UTC conversion issues
+      const formatLocalDate = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      
+      const eventData = {
+        id: 'new',
+        title: task.content,
+        description: `Task scheduled from Can-Do List${task.project_id ? `\nProject: ${projects.find(p => p.id === task.project_id)?.name || ''}` : ''}`,
+        calendarId: defaultCalendar.id,
+        isAllDay: false,
+        startDate: formatLocalDate(freeSlot.start),
+        startTime: `${freeSlot.start.getHours().toString().padStart(2, '0')}:${freeSlot.start.getMinutes().toString().padStart(2, '0')}`,
+        endDate: formatLocalDate(freeSlot.end),
+        endTime: `${freeSlot.end.getHours().toString().padStart(2, '0')}:${freeSlot.end.getMinutes().toString().padStart(2, '0')}`,
+        recurrenceFrequency: 'none' as const,
+        recurrenceInterval: 1,
+        isGroupEvent: false
+      };
+      
+      await handleSubmitEvent(eventData);
+      toast.success(`Task scheduled for ${freeSlot.start.toLocaleDateString()} at ${freeSlot.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+    } catch (error) {
+      console.error('Error scheduling task:', error);
+      toast.error('Failed to schedule task');
+    }
+  };
+
 
   if (isLoadingKey) {
     return (
@@ -901,6 +963,7 @@ function SchedulerPageContent() {
               handleBulkDeleteCompleted={handleBulkDeleteCompleted}
               handleReorderTasks={handleReorderTasks}
               loadTasks={wrappedLoadTasks}
+              handleScheduleTask={handleScheduleTask}
               handleAddProject={handleAddProject}
               handleUpdateProject={handleUpdateProject}
               handleDeleteProject={handleDeleteProject}

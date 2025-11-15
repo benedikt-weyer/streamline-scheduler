@@ -6,6 +6,8 @@ import { CalendarEventsService } from '@/services/calendar-events/calendar-event
 import { fetchAndParseICSCalendar } from '@/utils/calendar/ics-parser';
 import { DecryptedBackendInterface } from '@/utils/api/decrypted-backend-interface';
 import { EventFormValues } from '@/components/calendar/calendar-event-dialog';
+import { generateRecurrenceInstancesInRange } from '@/utils/calendar/calendar';
+import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 
 /**
  * Scheduler Page Service - provides scheduler-specific operations
@@ -327,7 +329,30 @@ export class SchedulerPageService {
   }
 
   /**
+   * Snap a time to the next 15-minute interval
+   */
+  private snapToNext15Minutes(date: Date): Date {
+    const snapped = new Date(date);
+    const minutes = snapped.getMinutes();
+    const remainder = minutes % 15;
+    
+    if (remainder !== 0) {
+      // Round up to next 15-minute mark
+      snapped.setMinutes(minutes + (15 - remainder));
+      snapped.setSeconds(0);
+      snapped.setMilliseconds(0);
+    } else {
+      // Already on a 15-minute mark, just clear seconds/milliseconds
+      snapped.setSeconds(0);
+      snapped.setMilliseconds(0);
+    }
+    
+    return snapped;
+  }
+
+  /**
    * Get available time slots for scheduling tasks
+   * Finds gaps between existing events throughout the entire day
    */
   async getAvailableTimeSlots(
     date: Date,
@@ -343,58 +368,146 @@ export class SchedulerPageService {
     const dateEnd = new Date(date);
     dateEnd.setHours(23, 59, 59, 999);
 
-    const dayEvents = events.filter(event => {
-      const eventStart = new Date(event.start_time);
-      const eventEnd = new Date(event.end_time);
-      return eventStart < dateEnd && eventEnd > dateStart;
-    });
+    // Expand recurring events to include their instances for this day
+    const expandedEvents: CalendarEvent[] = [];
+    
+    for (const event of events) {
+      // Check if this is a recurring event
+      const recurrencePattern = getRecurrencePattern(event);
+      
+      if (recurrencePattern && recurrencePattern.frequency !== 'none') {
+        // Generate recurring instances for this specific day
+        const instances = generateRecurrenceInstancesInRange(
+          event,
+          dateStart,
+          dateEnd,
+          recurrencePattern
+        );
+        
+        // Add the original event if it falls on this day
+        const eventStart = new Date(event.start_time);
+        const eventEnd = new Date(event.end_time);
+        if (eventStart < dateEnd && eventEnd > dateStart) {
+          expandedEvents.push(event);
+        }
+        
+        // Add all generated instances
+        expandedEvents.push(...instances);
+      } else {
+        // Non-recurring event, just add if it's on this day
+        const eventStart = new Date(event.start_time);
+        const eventEnd = new Date(event.end_time);
+        if (eventStart < dateEnd && eventEnd > dateStart) {
+          expandedEvents.push(event);
+        }
+      }
+    }
 
-    // Define working hours (9 AM to 6 PM)
-    const workStart = new Date(date);
-    workStart.setHours(9, 0, 0, 0);
-    const workEnd = new Date(date);
-    workEnd.setHours(18, 0, 0, 0);
-
-    // Find available slots
-    const availableSlots: { start: Date; end: Date }[] = [];
-    const sortedEvents = dayEvents
-      .filter(event => !event.all_day) // Exclude all-day events
+    // Sort events by start time, excluding all-day events
+    const sortedEvents = expandedEvents
+      .filter(event => !event.all_day)
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
-    let currentTime = new Date(workStart);
+    const availableSlots: { start: Date; end: Date }[] = [];
 
-    for (const event of sortedEvents) {
-      const eventStart = new Date(event.start_time);
-      const eventEnd = new Date(event.end_time);
+    // Determine the earliest possible start time for the day
+    // Use the current time if it's today, otherwise start of day
+    const now = new Date();
+    const isToday = dateStart.toDateString() === now.toDateString();
+    const earliestStart = isToday && now > dateStart ? now : dateStart;
+    
+    // Snap to next 15-minute interval
+    const snappedEarliestStart = this.snapToNext15Minutes(earliestStart);
 
-      // Check if there's a gap before this event
-      if (currentTime < eventStart) {
-        const gapDuration = eventStart.getTime() - currentTime.getTime();
+    // If no events exist, the entire day is available (from earliest start time)
+    if (sortedEvents.length === 0) {
+      availableSlots.push({
+        start: new Date(snappedEarliestStart),
+        end: new Date(snappedEarliestStart.getTime() + duration * 60 * 1000)
+      });
+      return availableSlots;
+    }
+
+    // Check for gap at the beginning of the day (before first event)
+    const firstEventStart = new Date(sortedEvents[0].start_time);
+    if (firstEventStart > snappedEarliestStart) {
+      const gapDuration = firstEventStart.getTime() - snappedEarliestStart.getTime();
+      if (gapDuration >= duration * 60 * 1000) {
+        availableSlots.push({
+          start: new Date(snappedEarliestStart),
+          end: new Date(snappedEarliestStart.getTime() + duration * 60 * 1000)
+        });
+      }
+    }
+
+    // Check for gaps between events
+    for (let i = 0; i < sortedEvents.length - 1; i++) {
+      const currentEventEnd = new Date(sortedEvents[i].end_time);
+      const nextEventStart = new Date(sortedEvents[i + 1].start_time);
+
+      if (currentEventEnd < nextEventStart) {
+        // Snap the gap start time to next 15-minute interval
+        const snappedGapStart = this.snapToNext15Minutes(currentEventEnd);
+        const gapDuration = nextEventStart.getTime() - snappedGapStart.getTime();
         if (gapDuration >= duration * 60 * 1000) {
-          // There's enough time for our task
           availableSlots.push({
-            start: new Date(currentTime),
-            end: new Date(Math.min(eventStart.getTime(), currentTime.getTime() + duration * 60 * 1000))
+            start: new Date(snappedGapStart),
+            end: new Date(snappedGapStart.getTime() + duration * 60 * 1000)
           });
         }
       }
-
-      // Move current time to after this event
-      currentTime = new Date(Math.max(currentTime.getTime(), eventEnd.getTime()));
     }
 
-    // Check if there's time at the end of the day
-    if (currentTime < workEnd) {
-      const remainingTime = workEnd.getTime() - currentTime.getTime();
-      if (remainingTime >= duration * 60 * 1000) {
+    // Check for gap at the end of the day (after last event)
+    const lastEventEnd = new Date(sortedEvents[sortedEvents.length - 1].end_time);
+    if (lastEventEnd < dateEnd) {
+      // Snap the gap start time to next 15-minute interval
+      const snappedGapStart = this.snapToNext15Minutes(lastEventEnd);
+      const gapDuration = dateEnd.getTime() - snappedGapStart.getTime();
+      if (gapDuration >= duration * 60 * 1000) {
         availableSlots.push({
-          start: new Date(currentTime),
-          end: new Date(Math.min(workEnd.getTime(), currentTime.getTime() + duration * 60 * 1000))
+          start: new Date(snappedGapStart),
+          end: new Date(snappedGapStart.getTime() + duration * 60 * 1000)
         });
       }
     }
 
     return availableSlots;
+  }
+
+  /**
+   * Find the next available free slot starting from now
+   */
+  async findNextFreeSlot(
+    durationMinutes: number,
+    calendars: Calendar[]
+  ): Promise<{ start: Date; end: Date } | null> {
+    const now = new Date();
+    const maxDaysToSearch = 7; // Search up to 7 days ahead
+    
+    for (let dayOffset = 0; dayOffset < maxDaysToSearch; dayOffset++) {
+      const searchDate = new Date(now);
+      searchDate.setDate(searchDate.getDate() + dayOffset);
+      
+      const availableSlots = await this.getAvailableTimeSlots(
+        searchDate,
+        durationMinutes,
+        calendars
+      );
+      
+      // Filter out slots that have already passed
+      const validSlots = availableSlots.filter(slot => {
+        // Always filter out slots in the past, regardless of day offset
+        return slot.start > now;
+      });
+      
+      if (validSlots.length > 0) {
+        // Return the first available slot
+        return validSlots[0];
+      }
+    }
+    
+    return null; // No free slot found in the next week
   }
 
   /**

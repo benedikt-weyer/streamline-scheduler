@@ -22,12 +22,13 @@ interface TaskListItemProps {
   readonly onDeleteTask: (id: string) => Promise<void>;
   readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
   readonly onToggleMyDay?: (id: string) => Promise<void>;
+  readonly onScheduleTask?: (taskId: string) => Promise<void>;
   readonly projects?: ProjectDecrypted[];
   readonly tasks?: CanDoItemDecrypted[];
   readonly showProjectName?: boolean;
 }
 
-export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, onToggleMyDay, projects = [], tasks = [], showProjectName = false }: TaskListItemProps) {
+export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, onToggleMyDay, onScheduleTask, projects = [], tasks = [], showProjectName = false }: TaskListItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -387,6 +388,19 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           </div>
           
           {/* Action buttons */}
+          {onScheduleTask && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onScheduleTask(task.id)}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="text-muted-foreground hover:text-foreground p-2"
+              title="Schedule to next free slot"
+            >
+              <Calendar className="h-4 w-4" />
+              <span className="sr-only">Schedule to calendar</span>
+            </Button>
+          )}
           {onToggleMyDay && (
             <Button
               variant="ghost"
