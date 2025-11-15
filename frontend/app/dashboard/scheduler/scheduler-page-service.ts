@@ -219,7 +219,7 @@ export class SchedulerPageService {
    * Submit an event (create or update)
    */
   async submitEvent(values: EventFormValues): Promise<{ event: CalendarEvent; isUpdate: boolean }> {
-    const isUpdate = !!values.id;
+    const isUpdate = !!values.id && values.id !== 'new';
     
     // Convert form values to proper Date objects
     const startDateTime = values.isAllDay 
