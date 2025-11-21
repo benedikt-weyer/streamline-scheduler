@@ -18,8 +18,8 @@ interface MobileNavbarProps {
 export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const isSettingsPage = pathname === '/dashboard/settings';
-  const isSchedulerPage = pathname === '/dashboard/scheduler';
+  const isSettingsPage = pathname === '/settings';
+  const isSchedulerPage = pathname === '/';
   const { schedulerNavContent } = useSchedulerNav();
 
   const toggleMenu = () => {
@@ -35,7 +35,7 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
       {/* Desktop and Mobile Header */}
       <div className="flex items-center h-16 px-4 md:px-6 lg:px-10 border-b border-b-foreground/10">
         {/* Left side - Brand (links to scheduler) */}
-        <Link href="/dashboard/scheduler" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <Image src="/icon.png" alt="Streamline Scheduler" width={25} height={25} />
           <span className="font-bold text-xl md:text-2xl">
             Streamline Scheduler
@@ -55,7 +55,7 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
           !isSchedulerPage && "ml-auto"
         )}>
           {/* Settings icon - Hidden on mobile */}
-          <Link href="/dashboard/settings" className="hidden md:flex">
+          <Link href="/settings" className="hidden md:flex">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -87,7 +87,7 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
         <div className="md:hidden border-t border-t-foreground/10 bg-background relative z-50">
           <div className="flex flex-col space-y-2 p-4">
             <div onClick={closeMenu}>
-              <NavLink href="/dashboard/settings" className="w-full justify-start">
+              <NavLink href="/settings" className="w-full justify-start">
                 Settings
               </NavLink>
             </div>

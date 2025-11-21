@@ -72,7 +72,7 @@ function SignInForm() {
       } else if (result.success) {
         // Small delay to allow auth state to propagate
         setTimeout(() => {
-          window.location.href = '/dashboard';
+          window.location.href = '/';
         }, 100);
       }
     } catch (error) {

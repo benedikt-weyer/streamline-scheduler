@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useError } from '@/utils/context/ErrorContext';
-import { exportUserData, type ExportedData, type DecryptedExportData, type DecryptedTask, type DecryptedProject, type DecryptedCalendar, type DecryptedCalendarEvent } from '@/app/dashboard/settings/api';
+import { exportUserData, type ExportedData, type DecryptedExportData, type DecryptedTask, type DecryptedProject, type DecryptedCalendar, type DecryptedCalendarEvent } from '@/app/settings/api';
 import { encryptData, generateIV, generateSalt, deriveKeyFromPassword, decryptData } from '@/utils/cryptography/encryption';
 import { Download, Lock, Unlock, Copy, FileText } from 'lucide-react';
 

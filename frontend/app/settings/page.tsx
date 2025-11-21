@@ -18,7 +18,7 @@ export default function SettingsPage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => router.push('/dashboard/scheduler')}
+              onClick={() => router.push('/')}
               aria-label="Back to scheduler"
             >
               <ArrowLeft className="h-5 w-5" />

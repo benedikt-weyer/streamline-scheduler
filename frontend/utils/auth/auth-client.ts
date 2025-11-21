@@ -67,7 +67,7 @@ export const forgotPasswordClient = async (formData: FormData): Promise<{ error?
     const backend = getBackend();
     const { error } = await backend.auth.resetPasswordForEmail({
       email,
-      redirectTo: `/auth/callback?redirect_to=/dashboard/reset-password`,
+      redirectTo: `/auth/callback?redirect_to=/reset-password`,
     });
 
     if (error) {

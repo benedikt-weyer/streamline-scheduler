@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useError } from '@/utils/context/ErrorContext';
-import { clearAllUserData } from '@/app/dashboard/settings/api';
+import { clearAllUserData } from '@/app/settings/api';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Trash2, AlertTriangle } from 'lucide-react';
 
@@ -32,7 +32,7 @@ export function DeleteSection() {
       alert('All your data has been deleted successfully. You will be redirected to the dashboard.');
       
       // Redirect to dashboard after successful deletion
-      window.location.href = '/dashboard';
+      window.location.href = '/';
     } catch (error) {
       console.error('Delete failed:', error);
       setError('Failed to delete data');
