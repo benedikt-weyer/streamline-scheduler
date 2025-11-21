@@ -357,8 +357,7 @@ We welcome contributions from the community! Please see the development setup ab
 - Improve documentation
 
 ## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under a custom license by Benedikt Weyer. You may use it for personal self-hosting only. Selling it, monetizing hosting, or including it in proprietary projects is prohibited. All contributions are covered under the same license. See LICENSE for full details.
 
 ## Support
 
