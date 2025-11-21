@@ -5,6 +5,7 @@ import { TaggedInput, Tag } from '@/components/ui/tagged-input';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { UseFormReturn } from 'react-hook-form';
 import { useState } from 'react';
+import { extractTaskDataFromTags } from '@/utils/can-do-list/hashtag-utils';
 
 interface AddTaskFormValues {
   content: string;
@@ -21,47 +22,17 @@ export default function AddTaskForm({ form, onSubmit, isLoading, projects = [] }
   const [tags, setTags] = useState<Tag[]>([]);
 
   const handleSubmit = async (values: AddTaskFormValues) => {
-    // Combine content with tags for submission
-    let submissionContent = (values.content || '').trim();
-    let selectedProjectId: string | undefined;
-    let isMyDay: boolean = false;
-    let duration: number | undefined;
-    let impact: number | undefined;
-    let urgency: number | undefined;
-    let dueDate: Date | undefined;
-    
-    // Extract tag information and only add custom tags back to content
-    tags.forEach(tag => {
-      if (tag.type === 'project') {
-        selectedProjectId = tag.projectId;
-        // Don't add project tags to content as they're handled separately
-      } else if (tag.type === 'my-day') {
-        isMyDay = tag.myDay || false;
-        // Don't add my-day tags to content as they're handled separately
-      } else if (tag.type === 'duration') {
-        duration = tag.duration;
-        // Don't add duration tags to content as they're handled separately
-      } else if (tag.type === 'priority') {
-        impact = tag.impact;
-        urgency = tag.urgency;
-        // Don't add priority tags to content as they're handled separately
-      } else if (tag.type === 'due-date') {
-        dueDate = tag.dueDate;
-        // Don't add due date tags to content as they're handled separately
-      } else {
-        // Only custom tags get added back to content
-        submissionContent += ` ${tag.text}`;
-      }
-    });
+    // Extract task data from tags and content
+    const taskData = extractTaskDataFromTags(values.content || '', tags);
     
     await onSubmit({ 
-      content: submissionContent, 
-      duration,
-      projectId: selectedProjectId, 
-      impact,
-      urgency,
-      dueDate,
-      myDay: isMyDay 
+      content: taskData.content, 
+      duration: taskData.duration,
+      projectId: taskData.projectId, 
+      impact: taskData.impact,
+      urgency: taskData.urgency,
+      dueDate: taskData.dueDate,
+      myDay: taskData.myDay 
     });
     
     // Clear tags after successful submission

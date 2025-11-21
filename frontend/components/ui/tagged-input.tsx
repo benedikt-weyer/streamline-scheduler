@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { X, Clock, Info, Zap, Calendar, Folder, Sun } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
+import { isValidHashtag, getLastWordBeforeCursor } from '@/utils/can-do-list/hashtag-utils';
 
 export interface Tag {
   id: string;
@@ -786,7 +787,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       }
 
       // Check for due date hashtag
-      const dueDateRegex = /#(?:due\d{4}-\d{2}-\d{2}|due\d+d|duetoday|duetomorrow|dueweek|due(?:next)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday))/i;
+      const dueDateRegex = /#(?:due\d{4}-\d{2}-\d{2}|due\d+d|duetoday|duetomorrow|dueweek|due(?:next)?(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))/i;
       const dueDateMatch = dueDateRegex.exec(lastWord);
       
       if (dueDateMatch) {
@@ -874,15 +875,27 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      // Call external onKeyDown first if provided
+      // Handle dropdown navigation first (before external handler)
+      if (handleDropdownNavigation(e)) return;
+
+      // Check if Enter key should create a tag instead of submitting
+      if (e.key === 'Enter' && !showDropdown) {
+        const cursorPosition = inputRef.current?.selectionStart ?? 0;
+        const lastWord = getLastWordBeforeCursor(inputValue, cursorPosition);
+        
+        if (isValidHashtag(lastWord)) {
+          // Process the hashtag instead of submitting
+          handleSpaceKeyForTags(e);
+          return; // Don't call external handler, preventing form submission
+        }
+      }
+      
+      // Call external onKeyDown if we didn't handle Enter above
       externalOnKeyDown?.(e);
       
       if (e.defaultPrevented) return;
 
-      // Handle dropdown navigation first
-      if (handleDropdownNavigation(e)) return;
-
-      // Handle space key for duration tags
+      // Handle space key for hashtags
       if (e.key === ' ') {
         handleSpaceKeyForTags(e);
       }

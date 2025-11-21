@@ -4,7 +4,7 @@
 
 /**
  * Parse due date hashtags from content
- * Supports formats: #due2024-12-25, #duetoday, #duetomorrow, #dueweek
+ * Supports formats: #due2024-12-25, #duetoday, #duetomorrow, #dueweek, #due4d, #duenextmonday
  */
 export interface ParsedDueDate {
   content: string;
@@ -35,29 +35,86 @@ export function parseDueDateFromContent(content: string): ParsedDueDate {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
+    // Parse #due4d (4 days from now)
+    const daysRegex = /#due(\d+)d/gi;
+    const daysMatches = [...content.matchAll(daysRegex)];
+    
+    for (const match of daysMatches) {
+      const fullMatch = match[0]; // e.g., "#due4d"
+      const days = parseInt(match[1], 10);
+      
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() + days);
+      dueDate = targetDate;
+      cleanedContent = cleanedContent.replace(fullMatch, '').trim();
+      break; // Only process first match
+    }
+    
+    // Parse named weekdays: #duenextmonday, #duemonday, etc.
+    if (!dueDate) {
+      const weekdayRegex = /#due(?:next)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi;
+      const weekdayMatches = [...content.matchAll(weekdayRegex)];
+      
+      for (const match of weekdayMatches) {
+        const fullMatch = match[0]; // e.g., "#duenextmonday"
+        const weekdayName = match[1].toLowerCase();
+        
+        const weekdayMap: { [key: string]: number } = {
+          'sunday': 0,
+          'monday': 1,
+          'tuesday': 2,
+          'wednesday': 3,
+          'thursday': 4,
+          'friday': 5,
+          'saturday': 6
+        };
+        
+        const targetWeekday = weekdayMap[weekdayName];
+        const currentWeekday = today.getDay();
+        
+        // Calculate days until next occurrence of the target weekday
+        let daysUntil = targetWeekday - currentWeekday;
+        if (daysUntil <= 0) {
+          daysUntil += 7; // Go to next week if target day has passed or is today
+        }
+        
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + daysUntil);
+        dueDate = targetDate;
+        cleanedContent = cleanedContent.replace(fullMatch, '').trim();
+        break; // Only process first match
+      }
+    }
+    
     // Parse #duetoday
-    const todayRegex = /#duetoday/gi;
-    if (todayRegex.test(content)) {
-      dueDate = today;
-      cleanedContent = cleanedContent.replace(todayRegex, '').trim();
+    if (!dueDate) {
+      const todayRegex = /#duetoday/gi;
+      if (todayRegex.test(content)) {
+        dueDate = today;
+        cleanedContent = cleanedContent.replace(todayRegex, '').trim();
+      }
     }
     
     // Parse #duetomorrow
-    const tomorrowRegex = /#duetomorrow/gi;
-    if (tomorrowRegex.test(content)) {
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
-      dueDate = tomorrow;
-      cleanedContent = cleanedContent.replace(tomorrowRegex, '').trim();
+    if (!dueDate) {
+      const tomorrowRegex = /#duetomorrow/gi;
+      if (tomorrowRegex.test(content)) {
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        dueDate = tomorrow;
+        cleanedContent = cleanedContent.replace(tomorrowRegex, '').trim();
+      }
     }
     
     // Parse #dueweek
-    const weekRegex = /#dueweek/gi;
-    if (weekRegex.test(content)) {
-      const nextWeek = new Date(today);
-      nextWeek.setDate(today.getDate() + 7);
-      dueDate = nextWeek;
-      cleanedContent = cleanedContent.replace(weekRegex, '').trim();
+    if (!dueDate) {
+      const weekRegex = /#dueweek/gi;
+      if (weekRegex.test(content)) {
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
+        dueDate = nextWeek;
+        cleanedContent = cleanedContent.replace(weekRegex, '').trim();
+      }
     }
   }
 
@@ -133,7 +190,9 @@ export function getDueDateExamples(): string[] {
   return [
     '#duetoday (due today)',
     '#duetomorrow (due tomorrow)',
+    '#due4d (due in 4 days)',
     '#dueweek (due in 1 week)',
+    '#duenextmonday (due next Monday)',
     `#due${today.getFullYear()}-12-25 (due on specific date)`
   ];
 } 
