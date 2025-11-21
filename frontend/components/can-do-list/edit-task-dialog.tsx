@@ -36,6 +36,43 @@ import { cn } from '@/lib/shadcn-utils';
 import { parseDurationInput, formatDurationInput } from '@/utils/can-do-list/duration-input-parser';
 import { DatePicker } from '@/components/ui/date-picker';
 
+// Helper to build hierarchical project list
+interface HierarchicalProject {
+  id: string;
+  name: string;
+  color: string;
+  level: number;
+  parentId?: string;
+}
+
+function buildHierarchicalProjectList(projects: ProjectDecrypted[]): HierarchicalProject[] {
+  const result: HierarchicalProject[] = [];
+  
+  const addProjectAndChildren = (parentId: string | undefined, level: number) => {
+    const children = projects
+      .filter(p => (p.parent_id ?? undefined) === parentId)
+      .sort((a, b) => a.order - b.order);
+    
+    children.forEach(project => {
+      result.push({
+        id: project.id,
+        name: project.name,
+        color: project.color || '#6b7280',
+        level,
+        parentId: project.parent_id ?? undefined
+      });
+      
+      // Recursively add children
+      addProjectAndChildren(project.id, level + 1);
+    });
+  };
+  
+  // Start with root level projects (no parent)
+  addProjectAndChildren(undefined, 0);
+  
+  return result;
+}
+
 // Predefined duration options in minutes
 const PREDEFINED_DURATIONS = [
   { label: '5m', value: 5 },
@@ -165,6 +202,9 @@ export default function EditTaskDialog({
     }
   };
 
+  // Build hierarchical project list
+  const hierarchicalProjects = buildHierarchicalProjectList(projects);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose} modal={false}>
       <DialogContent className="sm:max-w-[425px]" onKeyDown={handleKeyDown}>
@@ -275,11 +315,11 @@ export default function EditTaskDialog({
                     <span>{DEFAULT_PROJECT_NAME}</span>
                   </div>
                 </SelectItem>
-                {projects.map(project => (
+                {hierarchicalProjects.map(project => (
                   <SelectItem key={project.id} value={project.id}>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" style={{ paddingLeft: `${project.level * 16}px` }}>
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-3 h-3 rounded-full flex-shrink-0"
                         style={{ backgroundColor: project.color }}
                       />
                       <span>{project.name}</span>
