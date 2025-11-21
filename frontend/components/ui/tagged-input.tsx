@@ -98,7 +98,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       // Overview/help suggestions
       { id: 'help-duration', text: '#d...', description: 'Duration tags - #d15m, #d1h, #d2h30m', type: 'custom' },
       { id: 'help-priority', text: '#p...', description: 'Priority tags - #p5, #i7, #u3, #i7u3', type: 'custom' },
-      { id: 'help-due-date', text: '#due...', description: 'Due date tags - #due2024-12-25, #duetoday, #duetomorrow', type: 'custom' },
+      { id: 'help-due-date', text: '#due...', description: 'Due date tags - #due2024-12-25, #duetoday, #due4d, #duenextmonday', type: 'custom' },
       { id: 'help-project', text: '#pro', description: 'Project selection - fuzzy search your projects', type: 'custom' },
       { id: 'help-my-day', text: '#day', description: 'Add to My Day - #day', type: 'custom' },
       { id: 'help-custom', text: '#...', description: 'Custom tags - #urgent, #meeting, #personal', type: 'custom' },
@@ -129,7 +129,24 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       // Common due date tags
       { id: 'due-today', text: '#duetoday', description: 'Due today', type: 'due-date', dueDate: new Date() },
       { id: 'due-tomorrow', text: '#duetomorrow', description: 'Due tomorrow', type: 'due-date', dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+      { id: 'due-3d', text: '#due3d', description: 'Due in 3 days', type: 'due-date', dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
       { id: 'due-week', text: '#dueweek', description: 'Due in 1 week', type: 'due-date', dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+      { id: 'due-nextmonday', text: '#duenextmonday', description: 'Due next Monday', type: 'due-date', dueDate: (() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const daysUntilMonday = (1 - today.getDay() + 7) % 7 || 7;
+        const nextMonday = new Date(today);
+        nextMonday.setDate(today.getDate() + daysUntilMonday);
+        return nextMonday;
+      })() },
+      { id: 'due-nextfriday', text: '#duenextfriday', description: 'Due next Friday', type: 'due-date', dueDate: (() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const daysUntilFriday = (5 - today.getDay() + 7) % 7 || 7;
+        const nextFriday = new Date(today);
+        nextFriday.setDate(today.getDate() + daysUntilFriday);
+        return nextFriday;
+      })() },
       
       // My Day tag
       { id: 'my-day', text: '#day', description: 'Add to My Day', type: 'my-day', myDay: true },
@@ -522,6 +539,55 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
         };
       }
 
+      // Parse days offset format: #due4d (4 days from now)
+      const daysRegex = /#due(\d+)d/i;
+      const daysMatch = daysRegex.exec(text);
+      
+      if (daysMatch) {
+        const days = parseInt(daysMatch[1], 10);
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + days);
+        return {
+          dueDate: targetDate,
+          displayText: days === 1 ? 'Tomorrow' : `In ${days} days`
+        };
+      }
+
+      // Parse named weekday formats: #duenextmonday, #duemonday (next occurrence)
+      const weekdayRegex = /#due(?:next)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i;
+      const weekdayMatch = weekdayRegex.exec(text);
+      
+      if (weekdayMatch) {
+        const weekdayName = weekdayMatch[1].toLowerCase();
+        const weekdayMap: { [key: string]: number } = {
+          'sunday': 0,
+          'monday': 1,
+          'tuesday': 2,
+          'wednesday': 3,
+          'thursday': 4,
+          'friday': 5,
+          'saturday': 6
+        };
+        
+        const targetWeekday = weekdayMap[weekdayName];
+        const currentWeekday = today.getDay();
+        
+        // Calculate days until next occurrence of the target weekday
+        let daysUntil = targetWeekday - currentWeekday;
+        if (daysUntil <= 0) {
+          daysUntil += 7; // Go to next week if target day has passed or is today
+        }
+        
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + daysUntil);
+        
+        const weekdayDisplayName = weekdayName.charAt(0).toUpperCase() + weekdayName.slice(1);
+        return {
+          dueDate: targetDate,
+          displayText: daysUntil === 1 ? 'Tomorrow' : `Next ${weekdayDisplayName}`
+        };
+      }
+
       return null;
     };
 
@@ -720,7 +786,7 @@ export const TaggedInput = forwardRef<TaggedInputRef, TaggedInputProps>(
       }
 
       // Check for due date hashtag
-      const dueDateRegex = /#(?:due\d{4}-\d{2}-\d{2}|duetoday|duetomorrow|dueweek)/i;
+      const dueDateRegex = /#(?:due\d{4}-\d{2}-\d{2}|due\d+d|duetoday|duetomorrow|dueweek|due(?:next)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday))/i;
       const dueDateMatch = dueDateRegex.exec(lastWord);
       
       if (dueDateMatch) {

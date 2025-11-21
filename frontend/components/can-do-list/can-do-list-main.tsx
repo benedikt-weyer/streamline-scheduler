@@ -366,13 +366,33 @@ export default function CanDoListMain({
   }, [tasks, projects]);
 
   // Add a new task using react-hook-form
-  const onSubmit = async (values: { content: string; projectId?: string; myDay?: boolean }) => {
-    // Parse duration hashtags from content
-    const parsedDuration = parseDurationFromContent(values.content);
-    // Parse priority hashtags from content  
-    const parsedPriority = parsePriorityFromContent(parsedDuration.content);
-    // Parse due date hashtags from content
-    const parsedDueDate = parseDueDateFromContent(parsedPriority.content);
+  const onSubmit = async (values: { content: string; duration?: number; projectId?: string; impact?: number; urgency?: number; dueDate?: Date; myDay?: boolean }) => {
+    // If tags provided values, use them; otherwise parse from content as fallback
+    let content = values.content;
+    let duration = values.duration;
+    let impact = values.impact;
+    let urgency = values.urgency;
+    let dueDate = values.dueDate;
+    
+    // Parse from content only if not provided via tags
+    if (duration === undefined) {
+      const parsedDuration = parseDurationFromContent(content);
+      content = parsedDuration.content;
+      duration = parsedDuration.duration;
+    }
+    
+    if (impact === undefined && urgency === undefined) {
+      const parsedPriority = parsePriorityFromContent(content);
+      content = parsedPriority.content;
+      impact = parsedPriority.impact;
+      urgency = parsedPriority.urgency;
+    }
+    
+    if (dueDate === undefined) {
+      const parsedDueDate = parseDueDateFromContent(content);
+      content = parsedDueDate.content;
+      dueDate = parsedDueDate.dueDate;
+    }
     
     // Use project from tag if provided, otherwise use selected project
     const projectId = values.projectId || selectedProjectId;
@@ -381,12 +401,12 @@ export default function CanDoListMain({
     const myDay = values.myDay || isMyDaySelected;
     
     const success = await handleAddTask(
-      parsedDueDate.content, 
-      parsedDuration.duration, 
+      content, 
+      duration, 
       projectId,
-      parsedPriority.impact,
-      parsedPriority.urgency,
-      parsedDueDate.dueDate,
+      impact,
+      urgency,
+      dueDate,
       undefined, // blockedBy
       myDay // myDay
     );
