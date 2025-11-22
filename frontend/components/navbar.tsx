@@ -55,11 +55,11 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
           !isSchedulerPage && "ml-auto"
         )}>
           {/* Settings icon - Hidden on mobile */}
-          <Link href="/settings" className="hidden md:flex">
+          <Link href={isSettingsPage ? "/" : "/settings"} className="hidden md:flex">
             <Button 
               variant="ghost" 
               size="icon" 
-              aria-label="Settings"
+              aria-label={isSettingsPage ? "Back to Scheduler" : "Settings"}
               className={cn(isSettingsPage && "bg-secondary")}
             >
               <Settings className="h-5 w-5" />
@@ -87,8 +87,8 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
         <div className="md:hidden border-t border-t-foreground/10 bg-background relative z-50">
           <div className="flex flex-col space-y-2 p-4">
             <div onClick={closeMenu}>
-              <NavLink href="/settings" className="w-full justify-start">
-                Settings
+              <NavLink href={isSettingsPage ? "/" : "/settings"} className="w-full justify-start">
+                {isSettingsPage ? "Back to Scheduler" : "Settings"}
               </NavLink>
             </div>
           </div>
