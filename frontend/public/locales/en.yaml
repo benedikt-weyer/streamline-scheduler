@@ -13,6 +13,16 @@ common:
   today: Today
   yes: Yes
   no: No
+  
+sidebar:
+  projects: Projects
+  addProject: Add Project
+  searchProjects: Search projects...
+  clearSearch: Clear search
+  myDay: My Day
+  recommended: Recommended
+  inbox: Inbox
+  allTasks: All Tasks
   ok: OK
   error: Error
   success: Success

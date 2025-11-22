@@ -14,6 +14,7 @@ import ProjectTreeItem from './project-tree-item';
 import ProjectListItem from './project-list-item';
 import { Input } from '@/components/ui/input';
 import Fuse from 'fuse.js';
+import { useTranslation } from '@/utils/context/LanguageContext';
 
 interface ProjectSidebarProps {
   readonly projects: ProjectDecrypted[];
@@ -68,6 +69,7 @@ export default function ProjectSidebarWithDragDrop({
   isAllTasksSelected = false,
   isMyDaySelected = false
 }: ProjectSidebarProps) {
+  const { t } = useTranslation();
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectDecrypted | null>(null);
@@ -285,7 +287,7 @@ export default function ProjectSidebarWithDragDrop({
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-            Projects
+            {t('sidebar.projects')}
           </h2>
           <Button
             variant="ghost"
@@ -294,7 +296,7 @@ export default function ProjectSidebarWithDragDrop({
             className="h-6 w-6 p-0"
           >
             <Plus className="h-4 w-4" />
-            <span className="sr-only">Add Project</span>
+            <span className="sr-only">{t('sidebar.addProject')}</span>
           </Button>
         </div>
         
@@ -303,7 +305,7 @@ export default function ProjectSidebarWithDragDrop({
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search projects..."
+            placeholder={t('sidebar.searchProjects')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-7 pr-8 h-8 text-xs"
@@ -316,7 +318,7 @@ export default function ProjectSidebarWithDragDrop({
               className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
             >
               <X className="h-3 w-3" />
-              <span className="sr-only">Clear search</span>
+              <span className="sr-only">{t('sidebar.clearSearch')}</span>
             </Button>
           )}
         </div>
@@ -338,7 +340,7 @@ export default function ProjectSidebarWithDragDrop({
           >
             <div className="flex items-center gap-2 min-w-0">
               <Sun className="h-4 w-4 flex-shrink-0 text-amber-500" />
-              <span className="truncate font-medium">My Day</span>
+              <span className="truncate font-medium">{t('sidebar.myDay')}</span>
             </div>
             {myDayCount > 0 && (
               <Badge variant="secondary" className="text-xs">
@@ -359,7 +361,7 @@ export default function ProjectSidebarWithDragDrop({
             >
               <div className="flex items-center gap-2 min-w-0">
                 <Star className="h-4 w-4 flex-shrink-0 text-amber-500" />
-                <span className="truncate font-medium">Recommended</span>
+                <span className="truncate font-medium">{t('sidebar.recommended')}</span>
               </div>
               <Badge variant="secondary" className="text-xs">
                 {recommendedCount}
@@ -382,7 +384,7 @@ export default function ProjectSidebarWithDragDrop({
               ) : (
                 <Folder className="h-4 w-4 flex-shrink-0" />
               )}
-              <span className="truncate font-medium">{DEFAULT_PROJECT_NAME}</span>
+              <span className="truncate font-medium">{t('sidebar.inbox')}</span>
             </div>
             {inboxCount > 0 && (
               <Badge variant="secondary" className="text-xs">
@@ -402,7 +404,7 @@ export default function ProjectSidebarWithDragDrop({
           >
             <div className="flex items-center gap-2 min-w-0">
               <List className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate font-medium">All Tasks</span>
+              <span className="truncate font-medium">{t('sidebar.allTasks')}</span>
             </div>
             {allTasksCount > 0 && (
               <Badge variant="secondary" className="text-xs">

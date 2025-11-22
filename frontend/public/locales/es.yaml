@@ -13,6 +13,16 @@ common:
   today: Hoy
   yes: Sí
   no: No
+  
+sidebar:
+  projects: Proyectos
+  addProject: Agregar proyecto
+  searchProjects: Buscar proyectos...
+  clearSearch: Limpiar búsqueda
+  myDay: Mi Día
+  recommended: Recomendado
+  inbox: Bandeja de entrada
+  allTasks: Todas las tareas
   ok: OK
   error: Error
   success: Éxito
