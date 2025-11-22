@@ -242,6 +242,13 @@ time:
   ago: "{time} ago"
   in: "in {time}"
 
+dueDate:
+  today: Today
+  tomorrow: Tomorrow
+  yesterday: Yesterday
+  inDays: "In {count} days"
+  daysAgo: "{count} days ago"
+
 validation:
   required: This field is required
   invalidEmail: Invalid email address

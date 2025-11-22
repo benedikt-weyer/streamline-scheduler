@@ -16,6 +16,7 @@ import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from 
 import { formatDueDate, getDueDateColorClass } from '@/utils/can-do-list/due-date-utils';
 import { isTaskActuallyBlocked, isTaskUnblocked } from '@/utils/can-do-list/task-blocking-utils';
 import { useUserSettings } from '@/utils/context/UserSettingsContext';
+import { useTranslation, useDateLocale } from '@/utils/context/LanguageContext';
 
 interface TaskListItemProps {
   readonly task: CanDoItemDecrypted;
@@ -34,6 +35,8 @@ interface TaskListItemProps {
 }
 
 export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onUpdateTask, onToggleMyDay, onScheduleTask, isScheduled = false, projects = [], tasks = [], showProjectName = false, calendarEvents = [], onNavigateToEvent, onDeleteEvent }: TaskListItemProps) {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
@@ -344,7 +347,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
               {task.due_date && (
                 <span className={`text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getDueDateColorClass(new Date(task.due_date))}`}>
                   <Calendar className="h-3 w-3" />
-                  {formatDueDate(new Date(task.due_date))}
+                  {formatDueDate(new Date(task.due_date), t, dateLocale)}
                 </span>
               )}
             </div>
@@ -431,7 +434,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             {task.due_date && (
               <span className={`ml-2 text-xs px-2 py-[2px] rounded-sm flex items-center gap-1 ${getDueDateColorClass(new Date(task.due_date))}`}>
                 <Calendar className="h-3 w-3" />
-                {formatDueDate(new Date(task.due_date))}
+                {formatDueDate(new Date(task.due_date), t, dateLocale)}
               </span>
             )}
           </div>

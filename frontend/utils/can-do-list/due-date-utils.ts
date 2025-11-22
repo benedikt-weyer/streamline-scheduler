@@ -2,6 +2,8 @@
  * Utility functions for handling task due dates
  */
 
+import { format as formatDate, Locale } from 'date-fns';
+
 /**
  * Parse due date hashtags from content
  * Supports formats: #due2024-12-25, #duetoday, #duetomorrow, #dueweek, #due4d, #duenextmonday
@@ -130,9 +132,15 @@ export function parseDueDateFromContent(content: string): ParsedDueDate {
 /**
  * Format due date for display
  * @param date - The due date
+ * @param t - Translation function (optional, falls back to English)
+ * @param locale - date-fns locale for date formatting (optional)
  * @returns Formatted string for display
  */
-export function formatDueDate(date: Date): string {
+export function formatDueDate(
+  date: Date, 
+  t?: (key: string, params?: { [key: string]: string | number }) => string,
+  locale?: Locale
+): string {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -142,13 +150,17 @@ export function formatDueDate(date: Date): string {
   const diffTime = targetDate.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow';
-  if (diffDays === -1) return 'Yesterday';
-  if (diffDays > 0 && diffDays <= 7) return `In ${diffDays} days`;
-  if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
+  // Use translations if available, otherwise fall back to English
+  if (diffDays === 0) return t ? t('dueDate.today') : 'Today';
+  if (diffDays === 1) return t ? t('dueDate.tomorrow') : 'Tomorrow';
+  if (diffDays === -1) return t ? t('dueDate.yesterday') : 'Yesterday';
+  if (diffDays > 0 && diffDays <= 7) return t ? t('dueDate.inDays', { count: diffDays }) : `In ${diffDays} days`;
+  if (diffDays < 0 && diffDays >= -7) return t ? t('dueDate.daysAgo', { count: Math.abs(diffDays) }) : `${Math.abs(diffDays)} days ago`;
   
-  // For dates further away, show the actual date
+  // For dates further away, show the actual date with locale support
+  if (locale) {
+    return formatDate(date, 'PP', { locale });
+  }
   return date.toLocaleDateString();
 }
 

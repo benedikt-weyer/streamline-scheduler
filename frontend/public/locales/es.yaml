@@ -242,6 +242,13 @@ time:
   ago: "hace {time}"
   in: "en {time}"
 
+dueDate:
+  today: Hoy
+  tomorrow: Mañana
+  yesterday: Ayer
+  inDays: "En {count} días"
+  daysAgo: "Hace {count} días"
+
 validation:
   required: Este campo es obligatorio
   invalidEmail: Dirección de correo electrónico inválida

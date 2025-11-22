@@ -242,6 +242,13 @@ time:
   ago: "vor {time}"
   in: "in {time}"
 
+dueDate:
+  today: Heute
+  tomorrow: Morgen
+  yesterday: Gestern
+  inDays: "In {count} Tagen"
+  daysAgo: "Vor {count} Tagen"
+
 validation:
   required: Dieses Feld ist erforderlich
   invalidEmail: Ungültige E-Mail-Adresse
