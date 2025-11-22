@@ -23,11 +23,6 @@ sidebar:
   recommended: Empfohlen
   inbox: Eingang
   allTasks: Alle Aufgaben
-  ok: OK
-  error: Fehler
-  success: Erfolg
-  create: Erstellen
-  update: Aktualisieren
 
 navbar:
   appName: Streamline Scheduler
@@ -65,6 +60,13 @@ tasks:
   clickToEdit: Aufgabe zum Bearbeiten anklicken
   clickToEditDesc: Wenn aktiviert, öffnet das Klicken auf eine Aufgabe den Bearbeitungsdialog. Wenn deaktiviert, markiert das Klicken die Aufgabe als erledigt.
   canDoList: Aufgabenliste
+  parentTask: Übergeordnete Aufgabe
+  selectParentTask: Übergeordnete Aufgabe auswählen (optional)
+  noParentTask: Keine übergeordnete Aufgabe
+  subtask: Unteraufgabe
+  addSubtask: Unteraufgabe hinzufügen
+  maxNestingReached: Maximale Verschachtelungsebene (3) erreicht
+  cannotNestDeeper: Unteraufgabe kann nicht erstellt werden - maximale Verschachtelungsebene erreicht
 
 projects:
   addProject: Projekt hinzufügen

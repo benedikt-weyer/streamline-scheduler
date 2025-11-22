@@ -22,7 +22,7 @@ interface TaskListItemProps {
   readonly task: CanDoItemDecrypted;
   readonly onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   readonly onDeleteTask: (id: string) => Promise<void>;
-  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
+  readonly onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean, parentTaskId?: string) => Promise<void>;
   readonly onToggleMyDay?: (id: string) => Promise<void>;
   readonly onScheduleTask?: (taskId: string) => Promise<void>;
   readonly isScheduled?: boolean;
@@ -79,10 +79,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
     setIsEditDialogOpen(true);
   };
 
-  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => {
+  const handleSave = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean, parentTaskId?: string) => {
     setIsUpdating(true);
     try {
-      await onUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay);
+      await onUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay, parentTaskId);
     } finally {
       setIsUpdating(false);
     }

@@ -23,11 +23,6 @@ sidebar:
   recommended: Recomendado
   inbox: Bandeja de entrada
   allTasks: Todas las tareas
-  ok: OK
-  error: Error
-  success: Éxito
-  create: Crear
-  update: Actualizar
 
 navbar:
   appName: Streamline Scheduler
@@ -65,6 +60,13 @@ tasks:
   clickToEdit: Clic en tarea para editar
   clickToEditDesc: Cuando está habilitado, hacer clic en una tarea abre el diálogo de edición. Cuando está deshabilitado, hacer clic marca la tarea como completada.
   canDoList: Lista de Tareas
+  parentTask: Tarea principal
+  selectParentTask: Seleccionar tarea principal (opcional)
+  noParentTask: Sin tarea principal
+  subtask: Subtarea
+  addSubtask: Agregar subtarea
+  maxNestingReached: Nivel máximo de anidación (3) alcanzado
+  cannotNestDeeper: No se puede crear subtarea - nivel máximo de anidación alcanzado
 
 projects:
   addProject: Añadir Proyecto

@@ -23,11 +23,6 @@ sidebar:
   recommended: Recommended
   inbox: Inbox
   allTasks: All Tasks
-  ok: OK
-  error: Error
-  success: Success
-  create: Create
-  update: Update
 
 navbar:
   appName: Streamline Scheduler
@@ -65,6 +60,13 @@ tasks:
   clickToEdit: Click task to edit
   clickToEditDesc: When enabled, clicking a task opens the edit dialog. When disabled, clicking a task marks it as complete.
   canDoList: Can-Do List
+  parentTask: Parent Task
+  selectParentTask: Select parent task (optional)
+  noParentTask: No parent task
+  subtask: Subtask
+  addSubtask: Add Subtask
+  maxNestingReached: Maximum nesting level (3) reached
+  cannotNestDeeper: Cannot create subtask - maximum nesting level reached
 
 projects:
   addProject: Add Project

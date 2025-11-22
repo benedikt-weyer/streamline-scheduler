@@ -57,7 +57,8 @@ interface CanDoListMainProps {
     urgency?: number,
     dueDate?: Date,
     blockedBy?: string,
-    myDay?: boolean
+    myDay?: boolean,
+    parentTaskId?: string
   ) => Promise<boolean>;
   handleUpdateTask: (
     id: string,
@@ -68,7 +69,8 @@ interface CanDoListMainProps {
     urgency?: number,
     dueDate?: Date,
     blockedBy?: string,
-    myDay?: boolean
+    myDay?: boolean,
+    parentTaskId?: string
   ) => Promise<boolean>;
   handleToggleComplete: (id: string, completed: boolean) => Promise<boolean>;
   handleDeleteTask: (id: string) => Promise<boolean>;
@@ -366,7 +368,7 @@ export default function CanDoListMain({
   }, [tasks, projects]);
 
   // Add a new task using react-hook-form
-  const onSubmit = async (values: { content: string; duration?: number; projectId?: string; impact?: number; urgency?: number; dueDate?: Date; myDay?: boolean }) => {
+  const onSubmit = async (values: { content: string; duration?: number; projectId?: string; impact?: number; urgency?: number; dueDate?: Date; myDay?: boolean; parentTaskId?: string }) => {
     // If tags provided values, use them; otherwise parse from content as fallback
     let content = values.content;
     let duration = values.duration;
@@ -408,7 +410,8 @@ export default function CanDoListMain({
       urgency,
       dueDate,
       undefined, // blockedBy
-      myDay // myDay
+      myDay, // myDay
+      values.parentTaskId // parentTaskId
     );
     if (success) {
       form.reset();
@@ -425,9 +428,10 @@ export default function CanDoListMain({
     urgency?: number,
     dueDate?: Date,
     blockedBy?: string,
-    myDay?: boolean
+    myDay?: boolean,
+    parentTaskId?: string
   ) => {
-    await handleUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay);
+    await handleUpdateTask(id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay, parentTaskId);
   };
 
   // Handle toggle complete action

@@ -90,6 +90,7 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
       duration_minutes?: number;
       blocked_by?: string;
       my_day?: boolean;
+      parent_task_id?: string;
     }>(encrypted);
 
     return {
@@ -193,6 +194,7 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
         duration_minutes: request.duration_minutes,
         blocked_by: request.blocked_by,
         my_day: request.my_day ?? false,
+        parent_task_id: request.parent_task_id,
       });
 
       const encryptedRequest: CreateCanDoItemRequest = {
@@ -220,7 +222,7 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
           request.due_date !== undefined || request.impact !== undefined || 
           request.urgency !== undefined || request.tags !== undefined || 
           request.duration_minutes !== undefined || request.blocked_by !== undefined || 
-          request.my_day !== undefined) {
+          request.my_day !== undefined || request.parent_task_id !== undefined) {
         
         // Get current data to merge with updates (preserves fields not being updated)
         const currentResponse = await this.backend.canDoList.getById(request.id);
@@ -240,6 +242,7 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
           duration_minutes: request.duration_minutes !== undefined ? request.duration_minutes : currentData.duration_minutes,
           blocked_by: request.blocked_by !== undefined ? request.blocked_by : currentData.blocked_by,
           my_day: request.my_day !== undefined ? request.my_day : currentData.my_day,
+          parent_task_id: request.parent_task_id !== undefined ? request.parent_task_id : currentData.parent_task_id,
         };
         
         const encrypted = this.encryptItemData(dataToEncrypt);

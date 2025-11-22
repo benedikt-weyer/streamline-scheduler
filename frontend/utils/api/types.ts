@@ -72,6 +72,7 @@ export interface CanDoItemDecrypted {
   duration_minutes?: number;
   blocked_by?: string;
   my_day?: boolean;
+  parent_task_id?: string; // For subtasks - references parent task ID
 }
 
 
@@ -105,6 +106,7 @@ export interface CreateCanDoItemDecryptedRequest {
   display_order?: number;
   blocked_by?: string;
   my_day?: boolean;
+  parent_task_id?: string; // For subtasks
 }
 
 export interface UpdateCanDoItemDecryptedRequest {
@@ -120,6 +122,7 @@ export interface UpdateCanDoItemDecryptedRequest {
   display_order?: number;
   blocked_by?: string;
   my_day?: boolean;
+  parent_task_id?: string; // For subtasks
 }
 
 // Project types

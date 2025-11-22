@@ -50,9 +50,6 @@ export const decryptData = (encryptedData: string, key: string, iv: string, sile
     });
     
     const jsonString = decrypted.toString(CryptoJS.enc.Utf8);
-
-    console.log('Encrypted data:', encryptedData);
-    console.log('Decrypted data:', jsonString);
     
     if (!jsonString) {
       throw new Error('Decryption failed: Empty result');

@@ -20,7 +20,48 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+
+// Helper to organize tasks hierarchically
+interface TaskWithDepth extends CanDoItemDecrypted {
+  depth: number;
+}
+
+function organizeTasksHierarchically(tasks: CanDoItemDecrypted[], showCompleted: boolean = false): TaskWithDepth[] {
+  const result: TaskWithDepth[] = [];
+  
+  const addTaskAndChildren = (taskId: string | undefined, depth: number, processed: Set<string>, parentCompleted: boolean = false) => {
+    // Find children of this task
+    const children = tasks.filter(t => t.parent_task_id === taskId);
+    
+    children.forEach(task => {
+      // Prevent infinite loops
+      if (processed.has(task.id)) return;
+      processed.add(task.id);
+      
+      // Show subtasks if:
+      // 1. Parent is not completed (so we can see completed subtasks under active parent)
+      // 2. OR the subtask itself is not completed
+      // 3. OR we're showing all completed tasks
+      const shouldShow = !parentCompleted || !task.completed || showCompleted;
+      
+      if (shouldShow) {
+        // Add the task with its depth
+        result.push({ ...task, depth });
+        
+        // Recursively add its children (max depth is 3, so max nesting is 2)
+        if (depth < 2) {
+          addTaskAndChildren(task.id, depth + 1, processed, task.completed);
+        }
+      }
+    });
+  };
+  
+  // Start with root level tasks (no parent)
+  addTaskAndChildren(undefined, 0, new Set(), false);
+  
+  return result;
+}
 
 interface TaskListProps {
   tasks: CanDoItemDecrypted[];
@@ -33,7 +74,7 @@ interface TaskListProps {
   projects?: ProjectDecrypted[];
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
-  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string) => Promise<void>;
+  onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean, parentTaskId?: string) => Promise<void>;
   onToggleMyDay?: (id: string) => Promise<void>;
   onScheduleTask?: (taskId: string) => Promise<void>;
   isTaskScheduled?: (taskId: string) => boolean;
@@ -58,6 +99,7 @@ export default function TaskList({
   projects = [],
   currentProjectId,
   showProjectName = false,
+  showCompleted = false,
   calendarEvents,
   onNavigateToEvent,
   onDeleteEvent
@@ -65,6 +107,11 @@ export default function TaskList({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [localTasks, setLocalTasks] = useState(tasks);
+
+  // Organize tasks hierarchically with depth information
+  const hierarchicalTasks = useMemo(() => {
+    return organizeTasksHierarchically(localTasks, showCompleted);
+  }, [localTasks, showCompleted]);
 
   // Update local tasks when props change
   useEffect(() => {
@@ -124,9 +171,9 @@ export default function TaskList({
   if (isLoading || localTasks.length === 0) return null;
 
   // Only include active (non-completed) tasks in drag and drop operations
-  const activeTasks = localTasks.filter(task => !task.completed);
+  const activeTasks = hierarchicalTasks.filter(task => !task.completed);
   const taskIds = activeTasks.map(task => task.id);
-  const activeTask = activeId ? localTasks.find(task => task.id === activeId) : null;
+  const activeTask = activeId ? hierarchicalTasks.find(task => task.id === activeId) : null;
 
   return (
     <DndContext
@@ -138,15 +185,18 @@ export default function TaskList({
     >
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
         <ul className="space-y-2">
-          {localTasks.map((task, index) => {
+          {hierarchicalTasks.map((task, index) => {
             const isDropIndicatorVisible = activeId && overId === task.id && activeId !== task.id;
-            const activeIndex = activeId ? localTasks.findIndex(t => t.id === activeId) : -1;
+            const activeIndex = activeId ? hierarchicalTasks.findIndex(t => t.id === activeId) : -1;
             const currentIndex = index;
             const showIndicatorAbove = isDropIndicatorVisible && activeIndex > currentIndex;
             const showIndicatorBelow = isDropIndicatorVisible && activeIndex < currentIndex;
+            
+            // Calculate left margin for indentation (24px per level)
+            const indentStyle = { marginLeft: `${task.depth * 24}px` };
 
             return (
-              <li key={task.id} className="relative">
+              <li key={task.id} className="relative" style={indentStyle}>
                 {/* Drop indicator above */}
                 {showIndicatorAbove && (
                   <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
@@ -180,15 +230,17 @@ export default function TaskList({
       
       <DragOverlay>
         {activeTask ? (
-          <TaskListItem
-            task={activeTask}
-            onToggleComplete={onToggleComplete}
-            onDeleteTask={onDeleteTask}
-            onUpdateTask={onUpdateTask}
-            projects={projects}
-            tasks={allTasks ?? tasks}
-            showProjectName={showProjectName}
-          />
+          <div style={{ marginLeft: `${activeTask.depth * 24}px` }}>
+            <TaskListItem
+              task={activeTask}
+              onToggleComplete={onToggleComplete}
+              onDeleteTask={onDeleteTask}
+              onUpdateTask={onUpdateTask}
+              projects={projects}
+              tasks={allTasks ?? tasks}
+              showProjectName={showProjectName}
+            />
+          </div>
         ) : null}
       </DragOverlay>
     </DndContext>

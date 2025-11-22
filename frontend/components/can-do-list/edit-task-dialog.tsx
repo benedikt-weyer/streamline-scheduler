@@ -35,6 +35,7 @@ import { Check, ChevronsUpDown, Link2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/shadcn-utils';
 import { parseDurationInput, formatDurationInput } from '@/utils/can-do-list/duration-input-parser';
 import { DatePicker } from '@/components/ui/date-picker';
+import { useTranslation } from '@/utils/context/LanguageContext';
 
 // Helper to build hierarchical project list
 interface HierarchicalProject {
@@ -101,7 +102,8 @@ const editTaskSchema = z.object({
   urgency: z.number().int().min(0).max(10).optional(),
   dueDate: z.string().optional(),
   blockedBy: z.string().optional(),
-  myDay: z.boolean().optional()
+  myDay: z.boolean().optional(),
+  parentTaskId: z.string().optional()
 });
 
 type EditTaskFormValues = z.infer<typeof editTaskSchema>;
@@ -110,7 +112,7 @@ interface EditTaskDialogProps {
   readonly task: CanDoItemDecrypted | null;
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean) => Promise<void>;
+  readonly onSave: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean, parentTaskId?: string) => Promise<void>;
   readonly isLoading?: boolean;
   readonly projects?: ProjectDecrypted[];
   readonly tasks?: CanDoItemDecrypted[];
@@ -131,7 +133,41 @@ export default function EditTaskDialog({
   onNavigateToEvent,
   onDeleteLinkedEvent
 }: EditTaskDialogProps) {
+  const { t } = useTranslation();
   const [blockedByOpen, setBlockedByOpen] = useState(false);
+  const [parentTaskOpen, setParentTaskOpen] = useState(false);
+  
+  // Helper function to calculate nesting depth
+  const getTaskNestingDepth = (taskId: string, tasks: CanDoItemDecrypted[]): number => {
+    const findTask = tasks.find(t => t.id === taskId);
+    if (!findTask || !findTask.parent_task_id) return 0;
+    return 1 + getTaskNestingDepth(findTask.parent_task_id, tasks);
+  };
+  
+  // Helper function to check if a task is a descendant of another task
+  const isDescendant = (potentialDescendant: string, ancestor: string, tasks: CanDoItemDecrypted[]): boolean => {
+    const findTask = tasks.find(t => t.id === potentialDescendant);
+    if (!findTask || !findTask.parent_task_id) return false;
+    if (findTask.parent_task_id === ancestor) return true;
+    return isDescendant(findTask.parent_task_id, ancestor, tasks);
+  };
+  
+  // Calculate current task's depth
+  const currentTaskDepth = task ? getTaskNestingDepth(task.id, tasks) : 0;
+  
+  // Filter tasks that can be selected as parent (max nesting level is 3, so max depth is 2)
+  const availableParentTasks = tasks.filter(t => {
+    if (!task) return false;
+    // Can't select self as parent
+    if (t.id === task.id) return false;
+    // Can't select completed tasks as parent
+    if (t.completed) return false;
+    // Can't select a descendant as parent (would create circular dependency)
+    if (isDescendant(t.id, task.id, tasks)) return false;
+    // Can't select a task that's already at depth 2 (would make this task depth 3, which is max)
+    if (getTaskNestingDepth(t.id, tasks) >= 2) return false;
+    return true;
+  });
   
   const form = useForm<EditTaskFormValues>({
     resolver: zodResolver(editTaskSchema),
@@ -139,7 +175,8 @@ export default function EditTaskDialog({
       content: '',
       estimatedDuration: '',
       blockedBy: '',
-      myDay: false
+      myDay: false,
+      parentTaskId: ''
     }
   });
 
@@ -154,7 +191,8 @@ export default function EditTaskDialog({
         urgency: task.urgency ?? 0,
         dueDate: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : '',
         blockedBy: task.blocked_by ?? '',
-        myDay: task.my_day ?? false
+        myDay: task.my_day ?? false,
+        parentTaskId: task.parent_task_id ?? ''
       });
     }
   }, [task, isOpen, form]);
@@ -167,6 +205,7 @@ export default function EditTaskDialog({
     const dueDate = values.dueDate ? new Date(values.dueDate + 'T00:00:00.000Z') : undefined;
     const blockedBy = values.blockedBy || undefined;
     const projectId = values.projectId || undefined; // Convert empty string to undefined
+    const parentTaskId = values.parentTaskId || undefined; // Convert empty string to undefined
     
     // Safely handle content comparison with null/undefined checks
     const currentContent = (values.content || '').trim();
@@ -180,12 +219,13 @@ export default function EditTaskDialog({
       urgency === task.urgency &&
       dueDate?.getTime() === (task.due_date ? new Date(task.due_date).getTime() : undefined) &&
       blockedBy === task.blocked_by &&
-      values.myDay === task.my_day
+      values.myDay === task.my_day &&
+      parentTaskId === task.parent_task_id
     ) {
       onClose();
       return;
     }
-    await onSave(task.id, currentContent, duration, projectId, impact, urgency, dueDate, blockedBy, values.myDay);
+    await onSave(task.id, currentContent, duration, projectId, impact, urgency, dueDate, blockedBy, values.myDay, parentTaskId);
     onClose();
   };
 
@@ -421,6 +461,86 @@ export default function EditTaskDialog({
             {form.formState.errors.blockedBy && (
               <p className="text-sm text-destructive">
                 {form.formState.errors.blockedBy.message}
+              </p>
+            )}
+          </div>
+
+          {/* Parent Task Section */}
+          <div className="space-y-2">
+            <Label htmlFor="parentTask">{t('tasks.parentTask')}</Label>
+            <Popover open={parentTaskOpen} onOpenChange={setParentTaskOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={parentTaskOpen}
+                  className="w-full justify-between"
+                  disabled={isLoading}
+                >
+                  {form.watch('parentTaskId') ? 
+                    tasks.find(t => t.id === form.watch('parentTaskId'))?.content || t('tasks.selectParentTask') :
+                    t('tasks.selectParentTask')
+                  }
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[400px] p-0">
+                <Command>
+                  <CommandInput placeholder="Search tasks..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>No tasks found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="no parent"
+                        onSelect={() => {
+                          form.setValue('parentTaskId', '');
+                          setParentTaskOpen(false);
+                        }}
+                      >
+                        {t('tasks.noParentTask')}
+                        <Check
+                          className={cn(
+                            "ml-auto h-4 w-4",
+                            !form.watch('parentTaskId') ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                      </CommandItem>
+                      {availableParentTasks
+                        .sort((a, b) => a.content.localeCompare(b.content))
+                        .map(parentTask => (
+                          <CommandItem
+                            key={parentTask.id}
+                            value={parentTask.content}
+                            onSelect={() => {
+                              form.setValue('parentTaskId', parentTask.id);
+                              setParentTaskOpen(false);
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="truncate max-w-64">{parentTask.content}</span>
+                              {parentTask.project_id && (
+                                <span className="text-xs text-muted-foreground">
+                                  ({projects.find(p => p.id === parentTask.project_id)?.name || 'Unknown'})
+                                </span>
+                              )}
+                            </div>
+                            <Check
+                              className={cn(
+                                "ml-auto h-4 w-4",
+                                form.watch('parentTaskId') === parentTask.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                        ))
+                      }
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {form.formState.errors.parentTaskId && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.parentTaskId.message}
               </p>
             )}
           </div>

@@ -61,6 +61,7 @@ export class TaskService {
         ...taskData,
         project_id: taskData.project_id || undefined,
         blocked_by: taskData.blocked_by || undefined,
+        parent_task_id: taskData.parent_task_id || undefined,
       };
       
       const { data: task } = await this.backend.canDoList.create(cleanedTaskData);
@@ -84,6 +85,7 @@ export class TaskService {
         ...updateData,
         project_id: updateData.project_id || undefined,
         blocked_by: updateData.blocked_by || undefined,
+        parent_task_id: updateData.parent_task_id || undefined,
       };
       
       const { data: task } = await this.backend.canDoList.update(cleanedUpdateData);

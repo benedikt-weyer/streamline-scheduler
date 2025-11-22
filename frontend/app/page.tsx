@@ -178,7 +178,43 @@ function SchedulerPageContent() {
 
     try {
       const updatedTask = await canDoListPageService.toggleTaskComplete(id, completed);
-      setTasks(prev => prev.map(task => task.id === id ? updatedTask : task));
+      
+      // If marking as completed, also complete all subtasks
+      if (completed) {
+        // Find all subtasks recursively
+        const findAllSubtasks = (parentId: string, allTasks: CanDoItemDecrypted[]): CanDoItemDecrypted[] => {
+          const directChildren = allTasks.filter(t => t.parent_task_id === parentId);
+          const allSubtasks = [...directChildren];
+          
+          directChildren.forEach(child => {
+            allSubtasks.push(...findAllSubtasks(child.id, allTasks));
+          });
+          
+          return allSubtasks;
+        };
+        
+        const subtasks = findAllSubtasks(id, tasks);
+        
+        // Complete all subtasks
+        for (const subtask of subtasks) {
+          if (!subtask.completed) {
+            await canDoListPageService.toggleTaskComplete(subtask.id, true);
+          }
+        }
+        
+        // Update all tasks at once
+        setTasks(prev => prev.map(task => {
+          if (task.id === id) return updatedTask;
+          if (subtasks.find(st => st.id === task.id)) {
+            return { ...task, completed: true };
+          }
+          return task;
+        }));
+      } else {
+        // Just update the single task
+        setTasks(prev => prev.map(task => task.id === id ? updatedTask : task));
+      }
+      
       return true;
     } catch (error) {
       console.error('Failed to toggle task complete:', error);
@@ -212,12 +248,12 @@ function SchedulerPageContent() {
     }
   };
 
-  const handleUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean): Promise<boolean> => {
+  const handleUpdateTask = async (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean, parentTaskId?: string): Promise<boolean> => {
     if (!canDoListPageService) return false;
 
     try {
       const updatedTask = await canDoListPageService.updateTask(
-        id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay
+        id, content, estimatedDuration, projectId, impact, urgency, dueDate, blockedBy, myDay, parentTaskId
       );
       setTasks(prev => prev.map(task => task.id === id ? updatedTask : task));
       return true;
@@ -236,13 +272,14 @@ function SchedulerPageContent() {
     urgency?: number,
     dueDate?: Date,
     blockedBy?: string,
-    myDay?: boolean
+    myDay?: boolean,
+    parentTaskId?: string
   ): Promise<boolean> => {
     if (!canDoListPageService) return false;
 
     try {
       const { task, shouldRefreshProjects } = await canDoListPageService.createTask(
-        content, duration, projectId, impact, urgency, dueDate, blockedBy, myDay
+        content, duration, projectId, impact, urgency, dueDate, blockedBy, myDay, parentTaskId
       );
       
       // Prepend new task to the beginning of the list
@@ -902,10 +939,11 @@ function SchedulerPageContent() {
     urgency?: number,
     dueDate?: Date,
     blockedBy?: string,
-    myDay?: boolean
+    myDay?: boolean,
+    parentTaskId?: string
   ): Promise<boolean> => {
     if (content !== undefined) {
-      return await handleUpdateTask(id, content, duration, projectId, impact, urgency, dueDate, blockedBy, myDay);
+      return await handleUpdateTask(id, content, duration, projectId, impact, urgency, dueDate, blockedBy, myDay, parentTaskId);
     }
     return false;
   };

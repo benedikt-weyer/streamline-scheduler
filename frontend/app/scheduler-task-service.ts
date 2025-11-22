@@ -47,7 +47,8 @@ export class CanDoListPageService {
     urgency?: number,
     dueDate?: Date,
     blockedBy?: string,
-    myDay?: boolean
+    myDay?: boolean,
+    parentTaskId?: string
   ): Promise<{ task: CanDoItemDecrypted; shouldRefreshProjects: boolean }> {
     try {
       // Use the provided projectId as-is
@@ -66,6 +67,7 @@ export class CanDoListPageService {
         blocked_by: blockedBy,
         my_day: myDay || false,
         project_id: finalProjectId,
+        parent_task_id: parentTaskId,
         display_order: 0, // Will be set by backend
       };
 
@@ -90,7 +92,8 @@ export class CanDoListPageService {
     urgency?: number,
     dueDate?: Date,
     blockedBy?: string,
-    myDay?: boolean
+    myDay?: boolean,
+    parentTaskId?: string
   ): Promise<CanDoItemDecrypted> {
     try {
       const updateData: UpdateCanDoItemDecryptedRequest = {
@@ -103,6 +106,7 @@ export class CanDoListPageService {
         ...(dueDate !== undefined && { due_date: dueDate ? dueDate.toISOString() : undefined }),
         ...(blockedBy !== undefined && { blocked_by: blockedBy }),
         ...(myDay !== undefined && { my_day: myDay }),
+        ...(parentTaskId !== undefined && { parent_task_id: parentTaskId }),
       };
 
       return await this.taskService.updateTask(updateData);
