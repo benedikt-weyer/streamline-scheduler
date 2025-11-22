@@ -170,7 +170,7 @@ export function CalendarMain({
 
   // Calculate derived data using useMemo to avoid unnecessary recalculations
   const daysOfWeek = useMemo(() => 
-    getDaysOfWeek(currentWeek, weekStartsOn), [currentWeek, weekStartsOn]
+    getDaysOfWeek(currentWeek), [currentWeek]
   );
   
   // Combine regular events and ICS events

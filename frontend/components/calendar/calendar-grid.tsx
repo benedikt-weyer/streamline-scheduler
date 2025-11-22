@@ -241,7 +241,7 @@ export function CalendarGrid({
           newStartHour = Math.round(24 - windowSize);
         }
         
-        setZoomWindow(prev => ({
+        setZoomWindow((prev: { startHour: number; endHour: number }) => ({
           ...prev,
           startHour: newStartHour,
           endHour: newEndHour
@@ -394,7 +394,7 @@ export function CalendarGrid({
       startHour = Math.max(0, 24 - newWindowSize);
     }
     
-    setZoomWindow(prev => ({
+    setZoomWindow((prev: { startHour: number; endHour: number }) => ({
       ...prev,
       startHour,
       endHour
