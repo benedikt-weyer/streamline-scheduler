@@ -243,7 +243,8 @@ function SchedulerPageContent() {
         content, duration, projectId, impact, urgency, dueDate, blockedBy, myDay
       );
       
-      setTasks(prev => [...prev, task]);
+      // Prepend new task to the beginning of the list
+      setTasks(prev => [task, ...prev]);
       
       if (shouldRefreshProjects) {
         const updatedProjects = await canDoListPageService.projectService.getProjects();
