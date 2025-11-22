@@ -6,6 +6,7 @@ common:
   delete: Delete
   edit: Edit
   add: Add
+  create: Create
   close: Close
   back: Back
   loading: Loading...
