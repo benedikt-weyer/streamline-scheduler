@@ -3,22 +3,31 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getDecryptedBackend } from '@/utils/api/decrypted-backend';
 import { UserSettingsDecrypted } from '@/utils/api/types';
+import type { Language } from '@/utils/i18n/types';
 
 interface UserSettingsContextType {
   settings: UserSettingsDecrypted;
   updateSettings: (newSettings: Partial<UserSettingsDecrypted>) => Promise<void>;
   loading: boolean;
   error: string | null;
+  syncLanguage: (language: Language) => void;
 }
 
 const UserSettingsContext = createContext<UserSettingsContextType | undefined>(undefined);
 
 export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<UserSettingsDecrypted>({
-    hierarchicalProjectSelection: false,
+    taskClickBehavior: 'edit',
+    weekStartsOn: 1,
+    language: 'en',
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Callback to sync language from LanguageContext
+  const syncLanguage = React.useCallback((language: Language) => {
+    setSettings(prev => ({ ...prev, language }));
+  }, []);
 
   // Load settings on mount
   useEffect(() => {
@@ -34,6 +43,11 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
           setError(response.error);
         } else if (response.data) {
           setSettings(response.data);
+          
+          // Sync language to localStorage for LanguageContext to pick up on next load
+          if (response.data.language) {
+            localStorage.setItem('language', response.data.language);
+          }
         }
       } catch (err) {
         // If user is not authenticated, just use default settings
@@ -69,7 +83,7 @@ export const UserSettingsProvider: React.FC<{ children: ReactNode }> = ({ childr
   };
 
   return (
-    <UserSettingsContext.Provider value={{ settings, updateSettings, loading, error }}>
+    <UserSettingsContext.Provider value={{ settings, updateSettings, loading, error, syncLanguage }}>
       {children}
     </UserSettingsContext.Provider>
   );

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useUserSettings } from '@/utils/context/UserSettingsContext';
+import { LanguageSelector } from './language-selector';
 import { toast } from 'sonner';
 
 export function PreferencesSection() {
@@ -38,6 +39,8 @@ export function PreferencesSection() {
         <CardDescription>Customize how the application behaves</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <LanguageSelector />
+        
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <Label htmlFor="task-click-edit">Click task to edit</Label>

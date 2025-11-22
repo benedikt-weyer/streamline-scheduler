@@ -9,6 +9,7 @@ import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 import { SchedulerNavProvider } from "@/contexts/scheduler-nav-context";
 import { UserSettingsProvider } from "@/utils/context/UserSettingsContext";
+import { LanguageProvider } from "@/utils/context/LanguageContext";
 
 // Initialize backend connection
 import "@/utils/api/init";
@@ -38,18 +39,20 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <UserSettingsProvider>
-            <SchedulerNavProvider>
-              <Navbar 
-                themeSwitcher={<ThemeSwitcher />}
-                authComponent={<HeaderAuth />}
-              />
-              <main className="flex flex-col gap-20 w-full items-center">
-                {children}
-              </main>
-            </SchedulerNavProvider>
-            <Toaster />
-          </UserSettingsProvider>
+          <LanguageProvider>
+            <UserSettingsProvider>
+              <SchedulerNavProvider>
+                <Navbar 
+                  themeSwitcher={<ThemeSwitcher />}
+                  authComponent={<HeaderAuth />}
+                />
+                <main className="flex flex-col gap-20 w-full items-center">
+                  {children}
+                </main>
+              </SchedulerNavProvider>
+              <Toaster />
+            </UserSettingsProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

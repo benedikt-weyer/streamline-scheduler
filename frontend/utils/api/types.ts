@@ -373,10 +373,12 @@ export interface UserSettingsEncrypted {
 
 export type TaskClickBehavior = 'edit' | 'complete';
 export type WeekStartDay = 0 | 1; // 0 = Sunday, 1 = Monday
+export type Language = 'en' | 'de' | 'es';
 
 export interface UserSettingsDecrypted {
   taskClickBehavior?: TaskClickBehavior;
   weekStartsOn?: WeekStartDay;
+  language?: Language;
 }
 
 export interface UpdateUserSettingsRequest {

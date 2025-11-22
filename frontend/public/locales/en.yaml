@@ -1,0 +1,116 @@
+# English translations
+common:
+  save: Save
+  cancel: Cancel
+  delete: Delete
+  edit: Edit
+  add: Add
+  close: Close
+  back: Back
+  loading: Loading...
+  search: Search
+  today: Today
+  yes: Yes
+  no: No
+  ok: OK
+  error: Error
+  success: Success
+
+navbar:
+  appName: Streamline Scheduler
+  settings: Settings
+  backToScheduler: Back to Scheduler
+
+auth:
+  signIn: Sign In
+  signOut: Sign Out
+  signUp: Sign Up
+  email: Email
+  password: Password
+  forgotPassword: Forgot Password?
+  resetPassword: Reset Password
+
+tasks:
+  addTask: Add a new task...
+  addTaskPlaceholder: "Add a new task... (type # to see options, #pro for projects, #day for My Day)"
+  editTask: Edit Task
+  deleteTask: Delete Task
+  completeTask: Complete Task
+  taskContent: Task Content
+  estimatedDuration: Estimated Duration
+  project: Project
+  priority: Priority
+  dueDate: Due Date
+  noTasks: No tasks yet
+  activeTasks: Active Tasks
+  completedTasks: Completed Tasks
+  myDay: My Day
+  allTasks: All Tasks
+  recommended: Recommended
+  clickToEdit: Click task to edit
+  clickToEditDesc: When enabled, clicking a task opens the edit dialog. When disabled, clicking a task marks it as complete.
+
+projects:
+  addProject: Add Project
+  editProject: Edit Project
+  deleteProject: Delete Project
+  projectName: Project Name
+  projectColor: Project Color
+  noProjects: No projects yet
+
+calendar:
+  calendar: Calendar
+  addEvent: Add Event
+  editEvent: Edit Event
+  deleteEvent: Delete Event
+  eventTitle: Event Title
+  eventDescription: Description
+  startTime: Start Time
+  endTime: End Time
+  allDay: All Day
+  location: Location
+  noEvents: No events
+  weekView: Week View
+  monthView: Month View
+  previousWeek: Previous Week
+  nextWeek: Next Week
+  thisWeek: This Week
+
+settings:
+  settings: Settings
+  preferences: Preferences
+  dataManagement: Data Management
+  exportData: Export Data
+  importData: Import Data
+  fixData: Fix Data
+  deleteData: Delete Data
+  weekStartsMonday: Week starts on Monday
+  weekStartsMondayDesc: When enabled, weeks start on Monday. When disabled, weeks start on Sunday.
+  taskClickBehavior: Click task to edit
+  taskClickBehaviorDesc: When enabled, clicking a task opens the edit dialog. When disabled, clicking a task marks it as complete.
+  language: Language
+  languageDesc: Choose your preferred language for the interface
+  selectLanguage: Select language
+  languageUpdated: Language updated successfully
+
+time:
+  minutes: "{count} minutes"
+  hours: "{count} hours"
+  days: "{count} days"
+  weeks: "{count} weeks"
+  ago: "{time} ago"
+  in: "in {time}"
+
+validation:
+  required: This field is required
+  invalidEmail: Invalid email address
+  passwordTooShort: Password must be at least 8 characters
+  passwordsMustMatch: Passwords must match
+
+errors:
+  somethingWentWrong: Something went wrong
+  tryAgain: Please try again
+  notFound: Not found
+  unauthorized: Unauthorized
+  serverError: Server error
+

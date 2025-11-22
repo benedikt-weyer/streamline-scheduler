@@ -1,0 +1,116 @@
+# Spanish translations
+common:
+  save: Guardar
+  cancel: Cancelar
+  delete: Eliminar
+  edit: Editar
+  add: Añadir
+  close: Cerrar
+  back: Atrás
+  loading: Cargando...
+  search: Buscar
+  today: Hoy
+  yes: Sí
+  no: No
+  ok: OK
+  error: Error
+  success: Éxito
+
+navbar:
+  appName: Streamline Scheduler
+  settings: Configuración
+  backToScheduler: Volver al Programador
+
+auth:
+  signIn: Iniciar Sesión
+  signOut: Cerrar Sesión
+  signUp: Registrarse
+  email: Correo Electrónico
+  password: Contraseña
+  forgotPassword: ¿Olvidaste tu contraseña?
+  resetPassword: Restablecer Contraseña
+
+tasks:
+  addTask: Añadir una nueva tarea...
+  addTaskPlaceholder: "Añadir una nueva tarea... (escribe # para ver opciones, #pro para proyectos, #day para Mi Día)"
+  editTask: Editar Tarea
+  deleteTask: Eliminar Tarea
+  completeTask: Completar Tarea
+  taskContent: Contenido de la Tarea
+  estimatedDuration: Duración Estimada
+  project: Proyecto
+  priority: Prioridad
+  dueDate: Fecha de Vencimiento
+  noTasks: Aún no hay tareas
+  activeTasks: Tareas Activas
+  completedTasks: Tareas Completadas
+  myDay: Mi Día
+  allTasks: Todas las Tareas
+  recommended: Recomendado
+  clickToEdit: Clic en tarea para editar
+  clickToEditDesc: Cuando está habilitado, hacer clic en una tarea abre el diálogo de edición. Cuando está deshabilitado, hacer clic marca la tarea como completada.
+
+projects:
+  addProject: Añadir Proyecto
+  editProject: Editar Proyecto
+  deleteProject: Eliminar Proyecto
+  projectName: Nombre del Proyecto
+  projectColor: Color del Proyecto
+  noProjects: Aún no hay proyectos
+
+calendar:
+  calendar: Calendario
+  addEvent: Añadir Evento
+  editEvent: Editar Evento
+  deleteEvent: Eliminar Evento
+  eventTitle: Título del Evento
+  eventDescription: Descripción
+  startTime: Hora de Inicio
+  endTime: Hora de Finalización
+  allDay: Todo el Día
+  location: Ubicación
+  noEvents: No hay eventos
+  weekView: Vista Semanal
+  monthView: Vista Mensual
+  previousWeek: Semana Anterior
+  nextWeek: Semana Siguiente
+  thisWeek: Esta Semana
+
+settings:
+  settings: Configuración
+  preferences: Preferencias
+  dataManagement: Gestión de Datos
+  exportData: Exportar Datos
+  importData: Importar Datos
+  fixData: Reparar Datos
+  deleteData: Eliminar Datos
+  weekStartsMonday: La semana comienza en lunes
+  weekStartsMondayDesc: Cuando está habilitado, las semanas comienzan el lunes. Cuando está deshabilitado, las semanas comienzan el domingo.
+  taskClickBehavior: Clic en tarea para editar
+  taskClickBehaviorDesc: Cuando está habilitado, hacer clic en una tarea abre el diálogo de edición. Cuando está deshabilitado, hacer clic marca la tarea como completada.
+  language: Idioma
+  languageDesc: Elija su idioma preferido para la interfaz
+  selectLanguage: Seleccionar idioma
+  languageUpdated: Idioma actualizado correctamente
+
+time:
+  minutes: "{count} minutos"
+  hours: "{count} horas"
+  days: "{count} días"
+  weeks: "{count} semanas"
+  ago: "hace {time}"
+  in: "en {time}"
+
+validation:
+  required: Este campo es obligatorio
+  invalidEmail: Dirección de correo electrónico inválida
+  passwordTooShort: La contraseña debe tener al menos 8 caracteres
+  passwordsMustMatch: Las contraseñas deben coincidir
+
+errors:
+  somethingWentWrong: Algo salió mal
+  tryAgain: Por favor, inténtelo de nuevo
+  notFound: No encontrado
+  unauthorized: No autorizado
+  serverError: Error del servidor
+

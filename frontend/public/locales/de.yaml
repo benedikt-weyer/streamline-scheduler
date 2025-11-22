@@ -1,0 +1,116 @@
+# German translations
+common:
+  save: Speichern
+  cancel: Abbrechen
+  delete: Löschen
+  edit: Bearbeiten
+  add: Hinzufügen
+  close: Schließen
+  back: Zurück
+  loading: Lädt...
+  search: Suchen
+  today: Heute
+  yes: Ja
+  no: Nein
+  ok: OK
+  error: Fehler
+  success: Erfolg
+
+navbar:
+  appName: Streamline Scheduler
+  settings: Einstellungen
+  backToScheduler: Zurück zum Scheduler
+
+auth:
+  signIn: Anmelden
+  signOut: Abmelden
+  signUp: Registrieren
+  email: E-Mail
+  password: Passwort
+  forgotPassword: Passwort vergessen?
+  resetPassword: Passwort zurücksetzen
+
+tasks:
+  addTask: Neue Aufgabe hinzufügen...
+  addTaskPlaceholder: "Neue Aufgabe hinzufügen... (# für Optionen, #pro für Projekte, #day für Mein Tag)"
+  editTask: Aufgabe bearbeiten
+  deleteTask: Aufgabe löschen
+  completeTask: Aufgabe abschließen
+  taskContent: Aufgabeninhalt
+  estimatedDuration: Geschätzte Dauer
+  project: Projekt
+  priority: Priorität
+  dueDate: Fälligkeitsdatum
+  noTasks: Noch keine Aufgaben
+  activeTasks: Aktive Aufgaben
+  completedTasks: Erledigte Aufgaben
+  myDay: Mein Tag
+  allTasks: Alle Aufgaben
+  recommended: Empfohlen
+  clickToEdit: Aufgabe zum Bearbeiten anklicken
+  clickToEditDesc: Wenn aktiviert, öffnet das Klicken auf eine Aufgabe den Bearbeitungsdialog. Wenn deaktiviert, markiert das Klicken die Aufgabe als erledigt.
+
+projects:
+  addProject: Projekt hinzufügen
+  editProject: Projekt bearbeiten
+  deleteProject: Projekt löschen
+  projectName: Projektname
+  projectColor: Projektfarbe
+  noProjects: Noch keine Projekte
+
+calendar:
+  calendar: Kalender
+  addEvent: Termin hinzufügen
+  editEvent: Termin bearbeiten
+  deleteEvent: Termin löschen
+  eventTitle: Terminname
+  eventDescription: Beschreibung
+  startTime: Startzeit
+  endTime: Endzeit
+  allDay: Ganztägig
+  location: Ort
+  noEvents: Keine Termine
+  weekView: Wochenansicht
+  monthView: Monatsansicht
+  previousWeek: Vorherige Woche
+  nextWeek: Nächste Woche
+  thisWeek: Diese Woche
+
+settings:
+  settings: Einstellungen
+  preferences: Präferenzen
+  dataManagement: Datenverwaltung
+  exportData: Daten exportieren
+  importData: Daten importieren
+  fixData: Daten reparieren
+  deleteData: Daten löschen
+  weekStartsMonday: Woche beginnt am Montag
+  weekStartsMondayDesc: Wenn aktiviert, beginnt die Woche am Montag. Wenn deaktiviert, beginnt die Woche am Sonntag.
+  taskClickBehavior: Aufgabe zum Bearbeiten anklicken
+  taskClickBehaviorDesc: Wenn aktiviert, öffnet das Klicken auf eine Aufgabe den Bearbeitungsdialog. Wenn deaktiviert, markiert das Klicken die Aufgabe als erledigt.
+  language: Sprache
+  languageDesc: Wählen Sie Ihre bevorzugte Sprache für die Benutzeroberfläche
+  selectLanguage: Sprache auswählen
+  languageUpdated: Sprache erfolgreich aktualisiert
+
+time:
+  minutes: "{count} Minuten"
+  hours: "{count} Stunden"
+  days: "{count} Tage"
+  weeks: "{count} Wochen"
+  ago: "vor {time}"
+  in: "in {time}"
+
+validation:
+  required: Dieses Feld ist erforderlich
+  invalidEmail: Ungültige E-Mail-Adresse
+  passwordTooShort: Das Passwort muss mindestens 8 Zeichen lang sein
+  passwordsMustMatch: Passwörter müssen übereinstimmen
+
+errors:
+  somethingWentWrong: Etwas ist schief gelaufen
+  tryAgain: Bitte versuchen Sie es erneut
+  notFound: Nicht gefunden
+  unauthorized: Nicht autorisiert
+  serverError: Serverfehler
+
