@@ -56,18 +56,47 @@ export function CalendarGrid({
   const [selectedGroupEvent, setSelectedGroupEvent] = useState<CalendarEvent | null>(null);
   const [isDragHoverModalOpen, setIsDragHoverModalOpen] = useState(false);
 
-  // Zoom state management - initialize at 100% (no zoom)
-  const [isZoomActive, setIsZoomActive] = useState(false);
-  const [zoomWindow, setZoomWindow] = useState({
-    startHour: 0,   // Start at midnight (100% view)
-    endHour: 24,    // End at midnight next day (100% view)
-    windowHeight: 300 // Height of zoom window in pixels
+  // Zoom state management - initialize from localStorage or default to 100% (no zoom)
+  const [isZoomActive, setIsZoomActive] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('calendar-zoom-active');
+      return stored ? JSON.parse(stored) : false;
+    }
+    return false;
+  });
+  const [zoomWindow, setZoomWindow] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('calendar-zoom-window');
+      return stored ? JSON.parse(stored) : {
+        startHour: 0,
+        endHour: 24,
+        windowHeight: 300
+      };
+    }
+    return {
+      startHour: 0,
+      endHour: 24,
+      windowHeight: 300
+    };
   });
   const [isHoveringTimeline, setIsHoveringTimeline] = useState(false);
   const [isDraggingZoom, setIsDraggingZoom] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
   const [dragStartZoomWindow, setDragStartZoomWindow] = useState({ startHour: 0, endHour: 24 });
   const timelineRef = useRef<HTMLDivElement>(null);
+
+  // Persist zoom state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('calendar-zoom-active', JSON.stringify(isZoomActive));
+    }
+  }, [isZoomActive]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('calendar-zoom-window', JSON.stringify(zoomWindow));
+    }
+  }, [zoomWindow]);
 
   // Generate time slots based on zoom state with granular intervals
   // Only use zoom if it's not 100% (0-24 hours)
