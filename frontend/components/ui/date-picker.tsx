@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, X } from "lucide-react"
 
 import { cn } from "@/lib/shadcn-utils"
 import { Button } from "@/components/ui/button"
@@ -53,23 +53,34 @@ export function DatePicker({
     }
   }, [value])
 
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setDate(undefined)
+    if (onChange) {
+      onChange('')
+    }
+    setOpen(false)
+  }
+
   return (
-    <Popover modal={true} open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "w-full justify-start text-left font-normal",
-            !date && "text-muted-foreground",
-            className
-          )}
-          disabled={disabled}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "dd.MM.yyyy") : placeholder}
-        </Button>
-      </PopoverTrigger>
+    <div className={cn("flex gap-0", className)}>
+      <Popover modal={true} open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "justify-start text-left font-normal",
+              !date && "text-muted-foreground",
+              date && !disabled ? "rounded-r-none flex-1" : "w-full"
+            )}
+            disabled={disabled}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {date ? format(date, "dd.MM.yyyy") : placeholder}
+          </Button>
+        </PopoverTrigger>
       <PopoverContent 
         className="w-auto p-0" 
         align="start"
@@ -174,5 +185,19 @@ export function DatePicker({
         </div>
       </PopoverContent>
     </Popover>
+      {date && !disabled && (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={handleClear}
+          disabled={disabled}
+          className="rounded-l-none border-l-0"
+          aria-label="Clear date"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
   )
 }
