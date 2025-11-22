@@ -11,16 +11,8 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
-# Copy manifests
+# Copy manifests and source code
 COPY Cargo.toml Cargo.lock ./
-
-# Create a dummy main.rs to build dependencies
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-
-# Build dependencies (this will be cached as long as Cargo.toml doesn't change)
-RUN cargo build --release && rm -rf src
-
-# Copy source code
 COPY src ./src
 
 # Accept environment variables from host system as build arguments
