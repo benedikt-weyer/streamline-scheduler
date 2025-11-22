@@ -20,6 +20,17 @@ export function PreferencesSection() {
     }
   };
 
+  const handleToggleWeekStart = async (checked: boolean) => {
+    try {
+      // checked = true means Monday, false means Sunday
+      await updateSettings({ weekStartsOn: checked ? 1 : 0 });
+      toast.success('Week start day updated successfully');
+    } catch (error) {
+      toast.error('Failed to update setting');
+      console.error('Failed to update week start day:', error);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -38,6 +49,21 @@ export function PreferencesSection() {
             id="task-click-edit"
             checked={(settings.taskClickBehavior ?? 'edit') === 'edit'}
             onCheckedChange={handleToggleTaskClickBehavior}
+            disabled={loading}
+          />
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="week-start-monday">Week starts on Monday</Label>
+            <p className="text-sm text-muted-foreground">
+              When enabled, weeks start on Monday. When disabled, weeks start on Sunday.
+            </p>
+          </div>
+          <Switch
+            id="week-start-monday"
+            checked={(settings.weekStartsOn ?? 1) === 1}
+            onCheckedChange={handleToggleWeekStart}
             disabled={loading}
           />
         </div>

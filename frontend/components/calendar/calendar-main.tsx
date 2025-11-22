@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useLocalStorageDate } from '@/hooks/useLocalStorage';
 import { CalendarHeader } from './calendar-header';
 import { CalendarGrid } from './calendar-grid';
@@ -8,6 +8,7 @@ import { CalendarEventDialog, EventFormValues } from './calendar-event-dialog';
 import { RecurringEventModificationDialog } from './recurring-event-modification-dialog';
 import { CalendarSidebar } from './calendar-sidebar';
 import { CalendarHeaderMobile } from './calendar-header-mobile';
+import { useWeekStartDay } from '@/utils/context/UserSettingsContext';
 import { CalendarGridMobile } from './calendar-grid-mobile';
 
 import { CalendarEvent, Calendar, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
@@ -126,12 +127,13 @@ export function CalendarMain({
   className = '',
   loadingText = 'Loading your calendar...'
 }: CalendarMainProps) {
+  const weekStartsOn = useWeekStartDay();
   
   // Internal state management (only used if props not provided)
   // Use persistent storage for calendar state to remember user's last position
   const [internalCurrentWeek, setInternalCurrentWeek] = useLocalStorageDate(
     'calendar-current-week', 
-    startOfWeek(new Date(), { weekStartsOn: 1 })
+    startOfWeek(new Date(), { weekStartsOn })
   );
   const [internalSelectedDate, setInternalSelectedDate] = useLocalStorageDate(
     'calendar-selected-date', 
@@ -158,9 +160,17 @@ export function CalendarMain({
   const [pendingDraggedEvent, setPendingDraggedEvent] = useState<CalendarEvent | null>(null);
   const [originalEventBeforeDrag, setOriginalEventBeforeDrag] = useState<CalendarEvent | null>(null);
 
+  // When week start day setting changes, recalculate the current week
+  useEffect(() => {
+    const newWeekStart = startOfWeek(selectedDate, { weekStartsOn });
+    if (newWeekStart.getTime() !== currentWeek.getTime()) {
+      setCurrentWeek(newWeekStart);
+    }
+  }, [weekStartsOn, selectedDate, currentWeek, setCurrentWeek]);
+
   // Calculate derived data using useMemo to avoid unnecessary recalculations
   const daysOfWeek = useMemo(() => 
-    getDaysOfWeek(currentWeek), [currentWeek]
+    getDaysOfWeek(currentWeek, weekStartsOn), [currentWeek, weekStartsOn]
   );
   
   // Combine regular events and ICS events
@@ -551,19 +561,19 @@ export function CalendarMain({
   // Handle date selection from month overview
   const handleDateSelect = useCallback((date: Date) => {
     setSelectedDate(date);
-    // Navigate to the week containing the selected date (Monday as start of week)
-    const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+    // Navigate to the week containing the selected date
+    const weekStart = startOfWeek(date, { weekStartsOn });
     setCurrentWeek(weekStart);
-  }, [setSelectedDate, setCurrentWeek]);
+  }, [setSelectedDate, setCurrentWeek, weekStartsOn]);
 
   // Handle month change from month overview
   const handleMonthChange = useCallback((date: Date) => {
     // Navigate to the first week of the selected month
     const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const weekStart = startOfWeek(firstDayOfMonth, { weekStartsOn: 1 });
+    const weekStart = startOfWeek(firstDayOfMonth, { weekStartsOn });
     setCurrentWeek(weekStart);
     setSelectedDate(firstDayOfMonth);
-  }, [setCurrentWeek, setSelectedDate]);
+  }, [setCurrentWeek, setSelectedDate, weekStartsOn]);
 
   return (
     <div className={`flex w-full h-full overflow-hidden ${className}`}>

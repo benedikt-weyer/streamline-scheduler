@@ -83,3 +83,12 @@ export const useUserSettings = (): UserSettingsContextType => {
   return context;
 };
 
+/**
+ * Hook to get the week start day setting (0 = Sunday, 1 = Monday)
+ * Returns 1 (Monday) by default
+ */
+export const useWeekStartDay = (): 0 | 1 => {
+  const { settings } = useUserSettings();
+  return settings.weekStartsOn ?? 1;
+};
+

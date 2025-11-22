@@ -29,19 +29,19 @@ export const generateTimeSlots = (startHour = 0, endHour = 24) => {
 };
 
 // Get the days of the current week
-export const getDaysOfWeek = (currentWeek: Date) => {
+export const getDaysOfWeek = (currentWeek: Date, weekStartsOn: 0 | 1 = 1) => {
   return eachDayOfInterval({
     start: currentWeek,
-    end: endOfWeek(currentWeek, { weekStartsOn: 1 })
+    end: endOfWeek(currentWeek, { weekStartsOn })
   });
 };
 
 // Filter events for the current week
-export const filterEventsForWeek = (events: CalendarEvent[], currentWeek: Date) => {
+export const filterEventsForWeek = (events: CalendarEvent[], currentWeek: Date, weekStartsOn: 0 | 1 = 1) => {
   if (!events.length) return [];
   
   const weekStart = currentWeek;
-  const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(currentWeek, { weekStartsOn });
   
   // Get all events and their recurring instances that fall within this week
   const allEventsForWeek: CalendarEvent[] = [];

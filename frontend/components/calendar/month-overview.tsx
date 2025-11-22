@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useWeekStartDay } from '@/utils/context/UserSettingsContext';
 import { 
   format, 
   startOfMonth, 
@@ -46,11 +47,13 @@ export function MonthOverview({
     }
   }, [selectedDate, currentMonth]);
 
+  const weekStartsOn = useWeekStartDay();
+
   // Generate calendar days for the current month view
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(monthStart);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const startDate = startOfWeek(monthStart, { weekStartsOn });
+  const endDate = endOfWeek(monthEnd, { weekStartsOn });
 
   const days = eachDayOfInterval({ start: startDate, end: endDate });
 
@@ -70,8 +73,10 @@ export function MonthOverview({
     onDateSelect?.(date);
   };
 
-  // Week day labels (Monday first)
-  const weekDays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+  // Week day labels - dynamic based on week start setting
+  const weekDays = weekStartsOn === 1 
+    ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']  // Monday first
+    : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']; // Sunday first
 
   return (
     <div className="w-full border rounded-lg p-3 bg-card">
@@ -121,8 +126,8 @@ export function MonthOverview({
           
           // Check if this day is in the current selected week
           const isInSelectedWeek = currentWeek && isWithinInterval(day, {
-            start: startOfWeek(currentWeek, { weekStartsOn: 1 }),
-            end: endOfWeek(currentWeek, { weekStartsOn: 1 })
+            start: startOfWeek(currentWeek, { weekStartsOn }),
+            end: endOfWeek(currentWeek, { weekStartsOn })
           });
 
           return (

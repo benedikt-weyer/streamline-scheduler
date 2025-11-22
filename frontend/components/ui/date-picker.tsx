@@ -12,6 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { useWeekStartDay } from "@/utils/context/UserSettingsContext"
 
 interface DatePickerProps {
   value?: string
@@ -28,6 +29,7 @@ export function DatePicker({
   placeholder = "Pick a date",
   className,
 }: DatePickerProps) {
+  const weekStartsOn = useWeekStartDay();
   const [date, setDate] = React.useState<Date | undefined>(
     value ? new Date(value) : undefined
   )
@@ -128,7 +130,7 @@ export function DatePicker({
             onSelect={(selectedDate) => {
               handleDateSelect(selectedDate)
             }}
-            weekStartsOn={1} // Monday as first day of week
+            weekStartsOn={weekStartsOn}
             initialFocus
             classNames={{
               day: cn(
