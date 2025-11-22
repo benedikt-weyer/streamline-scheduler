@@ -15,6 +15,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from '@/utils/can-do-list/priority-utils';
 import { formatDueDate, getDueDateColorClass } from '@/utils/can-do-list/due-date-utils';
 import { isTaskActuallyBlocked, isTaskUnblocked } from '@/utils/can-do-list/task-blocking-utils';
+import { useUserSettings } from '@/utils/context/UserSettingsContext';
 
 interface TaskListItemProps {
   readonly task: CanDoItemDecrypted;
@@ -37,6 +38,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
+  
+  // Get user settings for task click behavior
+  const { settings } = useUserSettings();
+  const taskClickBehavior = settings.taskClickBehavior ?? 'edit';
 
   // Only enable sorting for active (non-completed) tasks
   const {
@@ -200,24 +205,43 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
         {/* Main content area */}
         <div className="flex-1 min-w-0">
           {/* Task name row */}
-          <div 
-            className="flex items-center space-x-3 p-3 md:p-3 py-4 md:py-3"
-            onClick={handleToggleCompleteClick}
-            onKeyDown={handleToggleCompleteKeyDown}
-            role="button"
-            tabIndex={0}
-          >
-            <Checkbox
-              checked={task.completed}
-              id={`task-${task.id}`}
-              onCheckedChange={handleToggleCompleteClick}
-              onPointerDown={(e) => e.stopPropagation()}
-            />
+          <div className="flex items-center space-x-3 p-3 md:p-3 py-4 md:py-3">
+            {/* Checkbox with generous clickable area */}
+            <div 
+              className="flex items-center justify-center cursor-pointer -ml-2 -my-2 py-2 px-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleCompleteClick();
+              }}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                handleToggleCompleteKeyDown(e);
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Mark "${task.content}" as ${task.completed ? 'incomplete' : 'complete'}`}
+            >
+              <Checkbox
+                checked={task.completed}
+                id={`task-${task.id}`}
+                onCheckedChange={handleToggleCompleteClick}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
             <span
-              className={`flex-1 min-w-0 cursor-pointer ${
+              className={`flex-1 min-w-0 ${taskClickBehavior === 'edit' ? 'cursor-pointer' : 'cursor-default'} ${
                 task.completed ? 'line-through text-muted-foreground' : ''
               }`}
-              aria-label={`Mark "${task.content}" as ${task.completed ? 'incomplete' : 'complete'}`}
+              onClick={taskClickBehavior === 'edit' ? handleEdit : undefined}
+              onKeyDown={taskClickBehavior === 'edit' ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleEdit();
+                }
+              } : undefined}
+              role={taskClickBehavior === 'edit' ? 'button' : undefined}
+              tabIndex={taskClickBehavior === 'edit' ? 0 : undefined}
             >
               <span className="block truncate">{task.content}</span>
             </span>
@@ -462,16 +486,19 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             <Copy className="h-4 w-4" />
             <span className="sr-only">Copy task content</span>
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleEdit}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="text-muted-foreground hover:text-foreground p-2"
-          >
-            <Edit className="h-4 w-4" />
-            <span className="sr-only">Edit</span>
-          </Button>
+          {/* Only show edit button when task click behavior is set to complete */}
+          {taskClickBehavior === 'complete' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleEdit}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="text-muted-foreground hover:text-foreground p-2"
+            >
+              <Edit className="h-4 w-4" />
+              <span className="sr-only">Edit</span>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

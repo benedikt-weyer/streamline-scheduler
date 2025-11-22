@@ -4,3 +4,4 @@ pub mod can_do_list;
 pub mod calendars;
 pub mod calendar_events;
 pub mod health;
+pub mod user_settings;

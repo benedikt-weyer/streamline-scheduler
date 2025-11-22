@@ -39,3 +39,10 @@ export function getDecryptedBackend(): DecryptedBackendInterface {
 export function clearDecryptedBackend(): void {
   decryptedBackendInstance = null;
 }
+
+/**
+ * Default export for convenience
+ */
+export const decryptedBackend = {
+  get: () => getDecryptedBackend(),
+};

@@ -28,6 +28,7 @@ import {
   CalendarEventEncrypted,
   CreateCalendarEventRequest,
   UpdateCalendarEventRequest,
+  UserSettingsEncrypted,
   RealtimeMessage,
   RealtimeSubscription,
   ApiResponse,
@@ -220,6 +221,19 @@ export interface BackendInterface {
      * Subscribe to real-time changes for calendar events
      */
     subscribe(callback: (payload: RealtimeMessage<CalendarEventEncrypted>) => void): RealtimeSubscription;
+  };
+
+  // User Settings methods
+  userSettings: {
+    /**
+     * Get user settings (encrypted)
+     */
+    get(): Promise<ApiResponse<UserSettingsEncrypted>>;
+
+    /**
+     * Update user settings with encrypted data
+     */
+    update(request: UserSettingsEncrypted): Promise<ApiResponse<UserSettingsEncrypted>>;
   };
 
   // Data import/export methods

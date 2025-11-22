@@ -358,6 +358,31 @@ export interface PaginatedResponse<T = any> {
   hasMore?: boolean;
 }
 
+// User Settings types
+export interface UserSettingsEncryptedData {
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+}
+
+export interface UserSettingsEncrypted {
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+}
+
+export type TaskClickBehavior = 'edit' | 'complete';
+
+export interface UserSettingsDecrypted {
+  taskClickBehavior?: TaskClickBehavior;
+}
+
+export interface UpdateUserSettingsRequest {
+  encrypted_data: string;
+  iv: string;
+  salt: string;
+}
+
 // Query filter types
 export interface QueryFilter {
   column: string;

@@ -15,6 +15,7 @@ import {
   CalendarEncrypted,
   CalendarEventDecrypted,
   CalendarEventEncrypted,
+  UserSettingsDecrypted,
   CreateCanDoItemDecryptedRequest,
   UpdateCanDoItemDecryptedRequest,
   CreateProjectDecryptedRequest,
@@ -63,6 +64,19 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
   private decryptItemData<T>(encrypted: { encrypted_data: string; iv: string; salt: string }): T {
     const derivedKey = deriveKeyFromPassword(this.encryptionKey, encrypted.salt);
     return decryptData(encrypted.encrypted_data, derivedKey, encrypted.iv) as T;
+  }
+
+  private encryptSettings(data: UserSettingsDecrypted): { encrypted_data: string; iv: string; salt: string } {
+    const salt = generateSalt();
+    const iv = generateIV();
+    const derivedKey = deriveKeyFromPassword(this.encryptionKey, salt);
+    const encrypted_data = encryptData(data, derivedKey, iv);
+    return { encrypted_data, iv, salt };
+  }
+
+  private decryptSettings(encrypted: { encrypted_data: string; iv: string; salt: string }): UserSettingsDecrypted {
+    const derivedKey = deriveKeyFromPassword(this.encryptionKey, encrypted.salt);
+    return decryptData(encrypted.encrypted_data, derivedKey, encrypted.iv) as UserSettingsDecrypted;
   }
 
   private decryptCanDoItem(encrypted: CanDoItemEncrypted): CanDoItemDecrypted {
@@ -569,6 +583,56 @@ export class DecryptedBackendImpl implements DecryptedBackendInterface {
         };
         callback(decryptedPayload);
       });
+    },
+  };
+
+  userSettings = {
+    get: async (): Promise<ApiResponse<UserSettingsDecrypted>> => {
+      const response = await this.backend.userSettings.get();
+      if (!response.data) {
+        return response as ApiResponse<UserSettingsDecrypted>;
+      }
+      
+      // Check if settings exist (empty iv/salt means no settings yet)
+      if (!response.data.iv || !response.data.salt || response.data.iv === '' || response.data.salt === '') {
+        // Return default settings if none exist
+        return {
+          data: {},
+          error: null,
+          status: 200,
+        };
+      }
+      
+      try {
+        const decrypted = this.decryptSettings(response.data);
+        return {
+          ...response,
+          data: decrypted,
+        };
+      } catch (error) {
+        console.error('Failed to decrypt user settings:', error);
+        // Return default settings if decryption fails
+        return {
+          data: {},
+          error: null,
+          status: 200,
+        };
+      }
+    },
+
+    update: async (settings: UserSettingsDecrypted): Promise<ApiResponse<UserSettingsDecrypted>> => {
+      const { encrypted_data, iv, salt } = this.encryptSettings(settings);
+      
+      const response = await this.backend.userSettings.update({ encrypted_data, iv, salt });
+      if (!response.data) {
+        return response as ApiResponse<UserSettingsDecrypted>;
+      }
+      
+      const decrypted = this.decryptSettings(response.data);
+      return {
+        ...response,
+        data: decrypted,
+      };
     },
   };
 

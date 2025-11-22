@@ -9,6 +9,7 @@ import {
   ProjectDecrypted,
   CalendarDecrypted,
   CalendarEventDecrypted,
+  UserSettingsDecrypted,
   CreateCanDoItemDecryptedRequest,
   UpdateCanDoItemDecryptedRequest,
   CreateProjectDecryptedRequest,
@@ -164,5 +165,18 @@ export interface DecryptedBackendInterface {
      * Subscribe to real-time changes for calendar events (decrypted)
      */
     subscribe(callback: (payload: RealtimeMessage<CalendarEventDecrypted>) => void): RealtimeSubscription;
+  };
+
+  // User Settings methods
+  userSettings: {
+    /**
+     * Get user settings (decrypted)
+     */
+    get(): Promise<ApiResponse<UserSettingsDecrypted>>;
+
+    /**
+     * Update user settings with decrypted data
+     */
+    update(settings: UserSettingsDecrypted): Promise<ApiResponse<UserSettingsDecrypted>>;
   };
 }

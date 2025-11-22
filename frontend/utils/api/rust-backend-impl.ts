@@ -28,6 +28,7 @@ import {
   CalendarEventEncrypted,
   CreateCalendarEventRequest,
   UpdateCalendarEventRequest,
+  UserSettingsEncrypted,
   RealtimeMessage,
   RealtimeSubscription,
   ApiResponse,
@@ -785,6 +786,20 @@ class RustBackendImpl implements BackendInterface {
     subscribe: (callback: (payload: RealtimeMessage<CalendarEventEncrypted>) => void): RealtimeSubscription => {
       return this.subscribe('calendar_events', callback);
     }
+  };
+
+  // User Settings methods
+  userSettings = {
+    get: async (): Promise<ApiResponse<UserSettingsEncrypted>> => {
+      return this.makeRequest<ApiResponse<UserSettingsEncrypted>>('/api/user-settings');
+    },
+
+    update: async (request: UserSettingsEncrypted): Promise<ApiResponse<UserSettingsEncrypted>> => {
+      return this.makeRequest<ApiResponse<UserSettingsEncrypted>>('/api/user-settings', {
+        method: 'PUT',
+        body: JSON.stringify(request),
+      });
+    },
   };
 
   // Data management methods

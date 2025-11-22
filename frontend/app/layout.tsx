@@ -8,6 +8,7 @@ import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 import { SchedulerNavProvider } from "@/contexts/scheduler-nav-context";
+import { UserSettingsProvider } from "@/utils/context/UserSettingsContext";
 
 // Initialize backend connection
 import "@/utils/api/init";
@@ -37,16 +38,18 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SchedulerNavProvider>
-            <Navbar 
-              themeSwitcher={<ThemeSwitcher />}
-              authComponent={<HeaderAuth />}
-            />
-            <main className="flex flex-col gap-20 w-full items-center">
-              {children}
-            </main>
-          </SchedulerNavProvider>
-          <Toaster />
+          <UserSettingsProvider>
+            <SchedulerNavProvider>
+              <Navbar 
+                themeSwitcher={<ThemeSwitcher />}
+                authComponent={<HeaderAuth />}
+              />
+              <main className="flex flex-col gap-20 w-full items-center">
+                {children}
+              </main>
+            </SchedulerNavProvider>
+            <Toaster />
+          </UserSettingsProvider>
         </ThemeProvider>
       </body>
     </html>

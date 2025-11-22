@@ -106,6 +106,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                get(crate::handlers::calendar_events::get_event)
                .put(crate::handlers::calendar_events::update_event)
                .delete(crate::handlers::calendar_events::delete_event))
+        .route("/api/user-settings",
+               get(crate::handlers::user_settings::get_user_settings)
+               .put(crate::handlers::user_settings::update_user_settings))
         .layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             auth_middleware,

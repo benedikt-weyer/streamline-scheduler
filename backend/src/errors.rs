@@ -27,6 +27,9 @@ pub enum AppError {
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
     
+    #[error("SeaORM error: {0}")]
+    SeaOrm(#[from] sea_orm::DbErr),
+    
     #[error("Internal server error: {0}")]
     Internal(String),
 }
@@ -43,6 +46,10 @@ impl IntoResponse for AppError {
             AppError::NotFound(_) => (StatusCode::NOT_FOUND, "Resource not found"),
             AppError::Jwt(_) => (StatusCode::UNAUTHORIZED, "Invalid token"),
             AppError::Serialization(_) => (StatusCode::BAD_REQUEST, "Invalid data format"),
+            AppError::SeaOrm(ref err) => {
+                tracing::error!("SeaORM error: {:?}", err);
+                (StatusCode::INTERNAL_SERVER_ERROR, "Database operation failed")
+            }
             AppError::Internal(ref err) => {
                 tracing::error!("Internal error: {:?}", err);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
