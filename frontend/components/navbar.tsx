@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/shadcn-utils';
 import { useSchedulerNav } from '@/contexts/scheduler-nav-context';
+import { useTranslation } from '@/utils/context/LanguageContext';
 
 interface MobileNavbarProps {
   themeSwitcher: React.ReactNode;
@@ -21,6 +22,7 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
   const isSettingsPage = pathname === '/settings';
   const isSchedulerPage = pathname === '/';
   const { schedulerNavContent } = useSchedulerNav();
+  const { t } = useTranslation();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -36,9 +38,9 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
       <div className="flex items-center h-16 px-4 md:px-6 lg:px-10 border-b border-b-foreground/10">
         {/* Left side - Brand (links to scheduler) */}
         <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
-          <Image src="/icon.png" alt="Streamline Scheduler" width={25} height={25} />
+          <Image src="/icon.png" alt={t('navbar.appName')} width={25} height={25} />
           <span className="font-bold text-xl md:text-2xl">
-            Streamline Scheduler
+            {t('navbar.appName')}
           </span>
         </Link>
 
@@ -59,7 +61,7 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
             <Button 
               variant="ghost" 
               size="icon" 
-              aria-label={isSettingsPage ? "Back to Scheduler" : "Settings"}
+              aria-label={isSettingsPage ? t('navbar.backToScheduler') : t('navbar.settings')}
               className={cn(isSettingsPage && "bg-secondary")}
             >
               <Settings className="h-5 w-5" />
@@ -75,7 +77,7 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
             size="sm"
             className="md:hidden"
             onClick={toggleMenu}
-            aria-label="Toggle navigation menu"
+            aria-label={t('navbar.toggleMenu')}
           >
             {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
@@ -88,7 +90,7 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
           <div className="flex flex-col space-y-2 p-4">
             <div onClick={closeMenu}>
               <NavLink href={isSettingsPage ? "/" : "/settings"} className="w-full justify-start">
-                {isSettingsPage ? "Back to Scheduler" : "Settings"}
+                {isSettingsPage ? t('navbar.backToScheduler') : t('navbar.settings')}
               </NavLink>
             </div>
           </div>

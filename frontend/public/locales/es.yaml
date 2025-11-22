@@ -20,6 +20,7 @@ navbar:
   appName: Streamline Scheduler
   settings: Configuración
   backToScheduler: Volver al Programador
+  toggleMenu: Alternar menú de navegación
 
 auth:
   signIn: Iniciar Sesión
@@ -29,6 +30,7 @@ auth:
   password: Contraseña
   forgotPassword: ¿Olvidaste tu contraseña?
   resetPassword: Restablecer Contraseña
+  hey: "¡Hola, {email}!"
 
 tasks:
   addTask: Añadir una nueva tarea...
@@ -49,6 +51,7 @@ tasks:
   recommended: Recomendado
   clickToEdit: Clic en tarea para editar
   clickToEditDesc: Cuando está habilitado, hacer clic en una tarea abre el diálogo de edición. Cuando está deshabilitado, hacer clic marca la tarea como completada.
+  canDoList: Lista de Tareas
 
 projects:
   addProject: Añadir Proyecto

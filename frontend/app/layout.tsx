@@ -41,16 +41,16 @@ export default function RootLayout({
         >
           <LanguageProvider>
             <UserSettingsProvider>
-              <SchedulerNavProvider>
-                <Navbar 
-                  themeSwitcher={<ThemeSwitcher />}
-                  authComponent={<HeaderAuth />}
-                />
-                <main className="flex flex-col gap-20 w-full items-center">
-                  {children}
-                </main>
-              </SchedulerNavProvider>
-              <Toaster />
+          <SchedulerNavProvider>
+            <Navbar 
+              themeSwitcher={<ThemeSwitcher />}
+              authComponent={<HeaderAuth />}
+            />
+            <main className="flex flex-col gap-20 w-full items-center">
+              {children}
+            </main>
+          </SchedulerNavProvider>
+          <Toaster />
             </UserSettingsProvider>
           </LanguageProvider>
         </ThemeProvider>

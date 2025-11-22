@@ -88,32 +88,32 @@ export function parseDueDateFromContent(content: string): ParsedDueDate {
     
     // Parse #duetoday
     if (!dueDate) {
-      const todayRegex = /#duetoday/gi;
-      if (todayRegex.test(content)) {
-        dueDate = today;
-        cleanedContent = cleanedContent.replace(todayRegex, '').trim();
+    const todayRegex = /#duetoday/gi;
+    if (todayRegex.test(content)) {
+      dueDate = today;
+      cleanedContent = cleanedContent.replace(todayRegex, '').trim();
       }
     }
     
     // Parse #duetomorrow
     if (!dueDate) {
-      const tomorrowRegex = /#duetomorrow/gi;
-      if (tomorrowRegex.test(content)) {
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-        dueDate = tomorrow;
-        cleanedContent = cleanedContent.replace(tomorrowRegex, '').trim();
+    const tomorrowRegex = /#duetomorrow/gi;
+    if (tomorrowRegex.test(content)) {
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      dueDate = tomorrow;
+      cleanedContent = cleanedContent.replace(tomorrowRegex, '').trim();
       }
     }
     
     // Parse #dueweek
     if (!dueDate) {
-      const weekRegex = /#dueweek/gi;
-      if (weekRegex.test(content)) {
-        const nextWeek = new Date(today);
-        nextWeek.setDate(today.getDate() + 7);
-        dueDate = nextWeek;
-        cleanedContent = cleanedContent.replace(weekRegex, '').trim();
+    const weekRegex = /#dueweek/gi;
+    if (weekRegex.test(content)) {
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+      dueDate = nextWeek;
+      cleanedContent = cleanedContent.replace(weekRegex, '').trim();
       }
     }
   }

@@ -18,12 +18,14 @@ import { cn } from '@/lib/shadcn-utils';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toast } from 'sonner';
 import { useSchedulerNav } from '@/contexts/scheduler-nav-context';
+import { useTranslation } from '@/utils/context/LanguageContext';
 
 
 function SchedulerPageContent() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
   const { setError } = useError();
   const { setSchedulerNavContent } = useSchedulerNav();
+  const { t } = useTranslation();
 
   // Initialize scheduler service (only in browser)
   const [schedulerPageService] = useState(() => {
@@ -851,7 +853,7 @@ function SchedulerPageContent() {
           className="flex items-center gap-2"
         >
           <LayoutList className="h-4 w-4" />
-          <span>Can-Do List</span>
+          <span>{t('tasks.canDoList')}</span>
         </Button>
         <ButtonGroupSeparator />
         <Button
@@ -868,7 +870,7 @@ function SchedulerPageContent() {
           className="flex items-center gap-2"
         >
           <CalendarIcon className="h-4 w-4" />
-          <span>Calendar</span>
+          <span>{t('calendar.calendar')}</span>
         </Button>
       </ButtonGroup>
     );

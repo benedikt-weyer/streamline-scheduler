@@ -5,11 +5,13 @@ import Link from "next/link";
 import { Button } from "../ui/button";
 import { getBackend } from "@/utils/api/backend-interface";
 import { AuthUser } from "@/utils/api/types";
+import { useTranslation } from "@/utils/context/LanguageContext";
 import SignOutButton from "./sign-out-button";
 
 export default function AuthButton() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     async function checkAuth() {
@@ -56,16 +58,16 @@ export default function AuthButton() {
 
   return user ? (
     <div className="flex items-center gap-2 md:gap-4">
-      <span className="hidden md:inline">Hey, {user.email}!</span>
+      <span className="hidden md:inline">{t('auth.hey', { email: user.email })}</span>
       <SignOutButton />
     </div>
   ) : (
     <div className="flex gap-2">
       <Button asChild size="sm" variant={"outline"}>
-        <Link href="/sign-in">Sign in</Link>
+        <Link href="/sign-in">{t('auth.signIn')}</Link>
       </Button>
       <Button asChild size="sm" variant={"default"}>
-        <Link href="/sign-up">Sign up</Link>
+        <Link href="/sign-up">{t('auth.signUp')}</Link>
       </Button>
     </div>
   );
