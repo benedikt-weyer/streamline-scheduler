@@ -38,31 +38,19 @@ export function SettingsMain() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="preferences" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="preferences">Preferences</TabsTrigger>
-          <TabsTrigger value="export">Export Data</TabsTrigger>
-          <TabsTrigger value="import">Import Data</TabsTrigger>
-          <TabsTrigger value="fix">Fix Data</TabsTrigger>
-          <TabsTrigger value="delete">Delete Data</TabsTrigger>
+          <TabsTrigger value="data">Data Management</TabsTrigger>
         </TabsList>
         
         <TabsContent value="preferences" className="space-y-4">
           <PreferencesSection />
         </TabsContent>
         
-        <TabsContent value="export" className="space-y-4">
+        <TabsContent value="data" className="space-y-4">
           <ExportSection encryptionKey={encryptionKey} />
-        </TabsContent>
-        
-        <TabsContent value="import" className="space-y-4">
           <ImportSection encryptionKey={encryptionKey} />
-        </TabsContent>
-        
-        <TabsContent value="fix" className="space-y-4">
           <FixSection encryptionKey={encryptionKey} />
-        </TabsContent>
-        
-        <TabsContent value="delete" className="space-y-4">
           <DeleteSection />
         </TabsContent>
       </Tabs>
