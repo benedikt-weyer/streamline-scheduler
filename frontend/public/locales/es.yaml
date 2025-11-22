@@ -79,6 +79,7 @@ calendar:
 settings:
   settings: Configuración
   preferences: Preferencias
+  preferencesDesc: Personalice el comportamiento de la aplicación
   dataManagement: Gestión de Datos
   exportData: Exportar Datos
   importData: Importar Datos
@@ -92,6 +93,97 @@ settings:
   languageDesc: Elija su idioma preferido para la interfaz
   selectLanguage: Seleccionar idioma
   languageUpdated: Idioma actualizado correctamente
+  settingUpdated: Configuración actualizada correctamente
+  weekStartUpdated: Día de inicio de semana actualizado correctamente
+  failedToUpdate: Error al actualizar la configuración
+  loading: Cargando...
+  encryptionKeyNotAvailable: Clave de cifrado no disponible
+  pleaseRefresh: Por favor, actualice la página e inténtelo de nuevo.
+  dangerZone: Zona de Peligro
+  dangerZoneDesc: Eliminar permanentemente todos sus datos. Esta acción no se puede deshacer.
+  deleteAllData: Eliminar Todos los Datos
+  deleteAllDataDesc: Esto eliminará permanentemente
+  deleteAllTasks: Todas sus tareas y elementos pendientes
+  deleteAllProjects: Todos sus proyectos y organización de proyectos
+  deleteAllCalendars: Todos sus calendarios y eventos de calendario
+  deleteAllProfile: Sus datos de perfil de usuario
+  deleteAllSettings: Todas las configuraciones y preferencias asociadas
+  deleteIrreversible: Esta acción es irreversible. Considere exportar sus datos primero.
+  deleteAllMyData: Eliminar Todos Mis Datos
+  confirmDataDeletion: Confirmar Eliminación de Datos
+  confirmDeletionMessage: Está a punto de eliminar permanentemente todos sus datos de Streamline Scheduler. Esto incluye todas las tareas, proyectos, calendarios, eventos e información de perfil.
+  cannotBeUndone: ¡Esta acción no se puede deshacer!
+  typeToConfirm: "Escriba {text} para confirmar:"
+  confirmationRequired: DELETE ALL MY DATA
+  deleting: Eliminando...
+  deleteTip: "Consejo: Antes de eliminar, considere usar la función de Exportar para hacer una copia de seguridad de sus datos."
+  deleteNote: "Nota: Su cuenta de usuario permanecerá activa, pero todos los datos de la aplicación serán eliminados."
+  dataDeletedSuccess: Todos sus datos han sido eliminados correctamente. Será redirigido al panel de control.
+  failedToDelete: Error al eliminar datos
+  pleaseTypeConfirmation: Por favor, escriba el texto de confirmación exacto
+  
+  # Export section
+  exportYourData: Exportar Sus Datos
+  exportDesc: Exporte todas sus tareas, proyectos, calendarios y eventos. Elija su formato preferido y opciones de seguridad.
+  exportConfiguration: Configuración de Exportación
+  dataFormat: Formato de Datos
+  encryptedFormat: Formato Cifrado (Formato Original de Base de Datos)
+  decryptedFormat: Formato Descifrado (Legible por Humanos)
+  encryptedFormatDesc: Exporte sus datos con el cifrado original intacto. Requiere su clave de cifrado para descifrar más tarde.
+  decryptedFormatDesc: Exporte sus datos como JSON legible por humanos, sin cifrar. Perfecto para respaldo o migración a otros sistemas.
+  addPasswordProtection: Agregar Protección con Contraseña
+  passwordProtectionDesc: Cifre su exportación con una contraseña adicional para mayor seguridad durante el transporte o almacenamiento.
+  exportPassword: Contraseña de Exportación
+  enterStrongPassword: Ingrese una contraseña segura
+  exporting: Exportando...
+  exportEncryptedData: "Exportar Datos Cifrados"
+  exportDecryptedData: "Exportar Datos Descifrados"
+  exportPasswordProtected: "(Protegido con Contraseña)"
+  exportSummary: Resumen de Exportación
+  exportDate: "Fecha de Exportación:"
+  dataSummary: "Resumen de Datos:"
+  version: "Versión:"
+  format: "Formato:"
+  passwordProtected: Protegido con Contraseña
+  decrypted: Descifrado
+  encrypted: Cifrado
+  passwordProtectedExportPreview: Vista Previa de Exportación Protegida
+  copy: Copiar
+  pleaseEnterPassword: Por favor, ingrese una contraseña para el cifrado
+  failedToExportData: "Error al exportar datos {format}"
+  tasksSummary: "{tasks} tareas, {projects} proyectos, {calendars} calendarios, {events} eventos de calendario"
+  
+  # Import section
+  importYourData: Importar Sus Datos
+  importDesc: Importe datos de una exportación anterior. Admite formatos cifrados y descifrados. Ejecute una prueba primero para obtener una vista previa de lo que se importará.
+  importFile: Archivo de Importación
+  chooseFile: Elegir Archivo
+  selectedFile: "Seleccionado: {filename} ({size}KB)"
+  passwordProtectedDetected: Formato Protegido con Contraseña Detectado
+  originallyDecrypted: "(Originalmente Descifrado)"
+  originallyEncrypted: "(Originalmente Cifrado)"
+  decryptedFormatDetected: Formato Descifrado Detectado
+  plainJsonEncrypted: Formato JSON Simple (Cifrado)
+  decryptionPassword: Contraseña de Descifrado
+  enterDecryptionPassword: Ingrese la contraseña utilizada para cifrar esta exportación
+  orPasteJson: O Pegue Datos JSON
+  pasteExportedJson: Pegue sus datos JSON exportados aquí...
+  dryRunPreview: Vista Previa de Prueba
+  analyzing: Analizando...
+  importDataButton: Importar Datos
+  importing: Importando...
+  importPreview: Vista Previa de Importación
+  validationFailed: Validación Fallida
+  exportVersion: "Versión de Exportación:"
+  warnings: "Advertencias:"
+  errors: "Errores:"
+  pleaseSelectFile: Por favor, seleccione un archivo o ingrese datos de importación
+  pleaseEnterDecryptionPassword: Por favor, ingrese la contraseña para datos cifrados
+  pleaseDryRunFirst: Por favor, ejecute una prueba primero para validar los datos
+  failedToAnalyze: Error al analizar datos de importación
+  importCompleted: "¡Importación de datos completada!\n\n{summary}\n\nNota: Los elementos duplicados se omitieron automáticamente. Por favor, actualice la página para ver sus datos importados."
+  importFailed: "Error en la importación: {error}"
+  processedForImport: "Procesado para importación (formato {format}): {summary}"
 
 time:
   minutes: "{count} minutos"

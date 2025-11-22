@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useError } from '@/utils/context/ErrorContext';
+import { useTranslation } from '@/utils/context/LanguageContext';
 import { importUserData, importDecryptedUserData, type ExportedData, type DecryptedExportData } from '@/app/settings/api';
 import { decryptData, deriveKeyFromPassword } from '@/utils/cryptography/encryption';
 import { Upload, Eye, AlertTriangle, CheckCircle, Lock, Unlock, FileText } from 'lucide-react';
@@ -35,6 +36,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
   const [isDecryptedFormat, setIsDecryptedFormat] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { setError } = useError();
+  const { t } = useTranslation();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -274,12 +276,12 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
 
   const handleDryRun = async () => {
     if (!importData) {
-      setError('Please select a file or enter import data');
+      setError(t('settings.pleaseSelectFile'));
       return;
     }
 
     if (isPasswordProtected && !password) {
-      setError('Please enter the password for encrypted data');
+      setError(t('settings.pleaseEnterDecryptionPassword'));
       return;
     }
 
@@ -319,7 +321,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
       }
 
       if (!parsedData) {
-        setError('Failed to decrypt or parse import data');
+        setError(t('settings.failedToAnalyze'));
         return;
       }
 
@@ -327,7 +329,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
       setPreview(preview);
     } catch (error) {
       console.error('Dry run failed:', error);
-      setError('Failed to analyze import data');
+      setError(t('settings.failedToAnalyze'));
     } finally {
       setIsDryRun(false);
     }
@@ -335,7 +337,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
 
   const handleImport = async () => {
     if (!preview?.isValid || !preview.data) {
-      setError('Please run a dry run first to validate the data');
+      setError(t('settings.pleaseDryRunFirst'));
       return;
     }
 
@@ -356,9 +358,12 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
       const dataObj = preview.data.data as any;
       const tasksCount = dataObj.tasks ? dataObj.tasks.length : (dataObj.can_do_list ? dataObj.can_do_list.length : 0);
       const calendarEventsCount = dataObj.calendarEvents ? dataObj.calendarEvents.length : (dataObj.calendar_events ? dataObj.calendar_events.length : 0);
-      const summary = `Processed for import (${formatType} format): ${tasksCount} tasks, ${dataObj.projects.length} projects, ${dataObj.calendars.length} calendars, ${calendarEventsCount} events`;
+      const summary = t('settings.processedForImport', {
+        format: formatType,
+        summary: `${tasksCount} tasks, ${dataObj.projects.length} projects, ${dataObj.calendars.length} calendars, ${calendarEventsCount} events`
+      });
       
-      alert(`Data import completed!\n\n${summary}\n\nNote: Duplicate items were automatically skipped. Please refresh the page to see your imported data.`);
+      alert(t('settings.importCompleted', { summary }));
       
       // Reset form
       setImportData('');
@@ -372,7 +377,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
     } catch (error) {
       console.error('Import failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setError(`Import failed: ${errorMessage}`);
+      setError(t('settings.importFailed', { error: errorMessage }));
     } finally {
       setIsImporting(false);
     }
@@ -381,16 +386,16 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold mb-2">Import Your Data</h2>
+        <h2 className="text-xl font-semibold mb-2">{t('settings.importYourData')}</h2>
         <p className="text-sm text-muted-foreground">
-          Import data from a previous export. Supports both encrypted and decrypted formats. Run a dry run first to preview what will be imported.
+          {t('settings.importDesc')}
         </p>
       </div>
 
       {/* File Upload */}
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="import-file">Import File</Label>
+          <Label htmlFor="import-file">{t('settings.importFile')}</Label>
           <div className="flex gap-2">
             <Input
               ref={fileInputRef}
@@ -405,13 +410,16 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="h-4 w-4 mr-2" />
-              Choose File
+              {t('settings.chooseFile')}
             </Button>
           </div>
           {importFile && (
             <div className="space-y-1">
               <p className="text-sm text-muted-foreground">
-                Selected: {importFile.name} ({(importFile.size / 1024).toFixed(1)}KB)
+                {t('settings.selectedFile', { 
+                  filename: importFile.name, 
+                  size: (importFile.size / 1024).toFixed(1) 
+                })}
               </p>
               {(isPasswordProtected || isDecryptedFormat) && (
                 <div className="flex items-center gap-2 text-xs">
@@ -419,18 +427,18 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
                     <>
                       <Lock className="h-3 w-3" />
                       <span className="text-amber-600">
-                        Password Protected Format Detected {isDecryptedFormat ? '(Originally Decrypted)' : '(Originally Encrypted)'}
+                        {t('settings.passwordProtectedDetected')} {isDecryptedFormat ? t('settings.originallyDecrypted') : t('settings.originallyEncrypted')}
                       </span>
                     </>
                   ) : isDecryptedFormat ? (
                     <>
                       <FileText className="h-3 w-3" />
-                      <span className="text-blue-600">Decrypted Format Detected</span>
+                      <span className="text-blue-600">{t('settings.decryptedFormatDetected')}</span>
                     </>
                   ) : (
                     <>
                       <Unlock className="h-3 w-3" />
-                      <span className="text-gray-600">Plain JSON (Encrypted) Format</span>
+                      <span className="text-gray-600">{t('settings.plainJsonEncrypted')}</span>
                     </>
                   )}
                 </div>
@@ -444,21 +452,21 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Lock className="h-4 w-4" />
-              <Label htmlFor="import-password">Decryption Password</Label>
+              <Label htmlFor="import-password">{t('settings.decryptionPassword')}</Label>
             </div>
             <Input
               id="import-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter the password used to encrypt this export"
+              placeholder={t('settings.enterDecryptionPassword')}
             />
           </div>
         )}
 
         {/* Manual Data Input */}
         <div className="space-y-2">
-          <Label htmlFor="import-data">Or Paste JSON Data</Label>
+          <Label htmlFor="import-data">{t('settings.orPasteJson')}</Label>
           <Textarea
             id="import-data"
             value={importData}
@@ -487,7 +495,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
                 setIsDecryptedFormat(false);
               }
             }}
-            placeholder="Paste your exported JSON data here..."
+            placeholder={t('settings.pasteExportedJson')}
             className="h-32 text-xs font-mono"
           />
         </div>
@@ -502,7 +510,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
           className="flex-1"
         >
           <Eye className="h-4 w-4 mr-2" />
-          {isDryRun ? 'Analyzing...' : 'Dry Run Preview'}
+          {isDryRun ? t('settings.analyzing') : t('settings.dryRunPreview')}
         </Button>
         <Button
           onClick={handleImport}
@@ -510,7 +518,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
           className="flex-1"
         >
           <Upload className="h-4 w-4 mr-2" />
-          {isImporting ? 'Importing...' : 'Import Data'}
+          {isImporting ? t('settings.importing') : t('settings.importDataButton')}
         </Button>
       </div>
 
@@ -524,44 +532,44 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
               <AlertTriangle className="h-5 w-5 text-red-600" />
             )}
             <h3 className="font-medium">
-              {preview.isValid ? 'Import Preview' : 'Validation Failed'}
+              {preview.isValid ? t('settings.importPreview') : t('settings.validationFailed')}
             </h3>
           </div>
 
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Data Summary:</span>
+              <span>{t('settings.dataSummary')}</span>
               <span>{preview.summary}</span>
             </div>
             {preview.data && (
               <>
                 <div className="flex justify-between text-sm">
-                  <span>Export Date:</span>
+                  <span>{t('settings.exportDate')}</span>
                   <span>{new Date(preview.data.timestamp).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Export Version:</span>
+                  <span>{t('settings.exportVersion')}</span>
                   <span>{preview.data.version}</span>
                 </div>
               </>
             )}
             <div className="flex justify-between text-sm">
-              <span>Format:</span>
+              <span>{t('settings.format')}</span>
               <span className="flex items-center gap-1">
                 {isPasswordProtected ? (
                   <>
                     <Lock className="h-3 w-3" />
-                    Password Protected
+                    {t('settings.passwordProtected')}
                   </>
                 ) : preview.isDecrypted ? (
                   <>
                     <FileText className="h-3 w-3" />
-                    Decrypted
+                    {t('settings.decrypted')}
                   </>
                 ) : (
                   <>
                     <Unlock className="h-3 w-3" />
-                    Plain JSON (Encrypted)
+                    {t('settings.plainJsonEncrypted')}
                   </>
                 )}
               </span>
@@ -571,7 +579,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
           {/* Warnings */}
           {preview.warnings.length > 0 && (
             <div className="space-y-2">
-              <h4 className="text-sm font-medium text-amber-600">Warnings:</h4>
+              <h4 className="text-sm font-medium text-amber-600">{t('settings.warnings')}</h4>
               <ul className="text-sm text-amber-700 space-y-1">
                 {preview.warnings.map((warning, index) => (
                   <li key={index} className="flex items-start gap-2">
@@ -586,7 +594,7 @@ export function ImportSection({ encryptionKey }: ImportSectionProps) {
           {/* Errors */}
           {preview.errors.length > 0 && (
             <div className="space-y-2">
-              <h4 className="text-sm font-medium text-red-600">Errors:</h4>
+              <h4 className="text-sm font-medium text-red-600">{t('settings.errors')}</h4>
               <ul className="text-sm text-red-700 space-y-1">
                 {preview.errors.map((error, index) => (
                   <li key={index} className="flex items-start gap-2">

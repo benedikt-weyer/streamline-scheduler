@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useError } from '@/utils/context/ErrorContext';
+import { useTranslation } from '@/utils/context/LanguageContext';
 import { exportUserData, type ExportedData, type DecryptedExportData, type DecryptedTask, type DecryptedProject, type DecryptedCalendar, type DecryptedCalendarEvent } from '@/app/settings/api';
 import { encryptData, generateIV, generateSalt, deriveKeyFromPassword, decryptData } from '@/utils/cryptography/encryption';
 import { Download, Lock, Unlock, Copy, FileText } from 'lucide-react';
@@ -24,6 +25,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
   const [decryptedExportedData, setDecryptedExportedData] = useState<DecryptedExportData | null>(null);
   const [encryptedExport, setEncryptedExport] = useState<string>('');
   const { setError } = useError();
+  const { t } = useTranslation();
 
   const decryptExportData = (rawData: ExportedData, key: string): DecryptedExportData => {
     const decryptTasks = (tasks: any[]): DecryptedTask[] => {
@@ -176,7 +178,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
 
   const handleExport = async () => {
     if (usePasswordProtection && !password.trim()) {
-      setError('Please enter a password for encryption');
+      setError(t('settings.pleaseEnterPassword'));
       return;
     }
 
@@ -247,7 +249,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
       }
     } catch (error) {
       console.error('Export failed:', error);
-      setError(`Failed to export ${exportFormat} data`);
+      setError(t('settings.failedToExportData', { format: exportFormat }));
     } finally {
       setIsExporting(false);
     }
@@ -260,37 +262,47 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
   const getDataSummary = (data: ExportedData | DecryptedExportData) => {
     if ('tasks' in data.data) {
       // DecryptedExportData
-      return `${data.data.tasks.length} tasks, ${data.data.projects.length} projects, ${data.data.calendars.length} calendars, ${data.data.calendarEvents.length} calendar events`;
+      return t('settings.tasksSummary', {
+        tasks: data.data.tasks.length,
+        projects: data.data.projects.length,
+        calendars: data.data.calendars.length,
+        events: data.data.calendarEvents.length
+      });
     } else {
       // ExportedData
-      return `${data.data.can_do_list.length} tasks, ${data.data.projects.length} projects, ${data.data.calendars.length} calendars, ${data.data.calendar_events.length} calendar events`;
+      return t('settings.tasksSummary', {
+        tasks: data.data.can_do_list.length,
+        projects: data.data.projects.length,
+        calendars: data.data.calendars.length,
+        events: data.data.calendar_events.length
+      });
     }
   };
 
   const getFormatDescription = () => {
     if (exportFormat === 'decrypted') {
-      return 'Export your data as human-readable, unencrypted JSON. Perfect for backup or migration to other systems.';
+      return t('settings.decryptedFormatDesc');
     } else {
-      return 'Export your data with the original encryption intact. Requires your encryption key to decrypt later.';
+      return t('settings.encryptedFormatDesc');
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold mb-2">Export Your Data</h2>
+        <h2 className="text-xl font-semibold mb-2">{t('settings.exportYourData')}</h2>
         <p className="text-sm text-muted-foreground">
-          Export all your tasks, projects, calendars, and events. Choose your preferred format and security options.
+          {t('settings.exportDesc')}
         </p>
       </div>
 
       {/* Export Configuration */}
       <div className="border rounded-lg p-4 space-y-4">
-        <h3 className="font-medium">Export Configuration</h3>
+        <h3 className="font-medium">{t('settings.exportConfiguration')}</h3>
         
         {/* Format Selection */}
         <div className="space-y-3">
-          <Label>Data Format</Label>
+          <Label>{t('settings.dataFormat')}</Label>
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
               <input
@@ -304,7 +316,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
               />
               <Label htmlFor="format-encrypted" className="flex items-center gap-2 cursor-pointer">
                 <Unlock className="h-4 w-4" />
-                Encrypted Format (Original Database Format)
+                {t('settings.encryptedFormat')}
               </Label>
             </div>
             <div className="flex items-center space-x-2">
@@ -319,7 +331,7 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
               />
               <Label htmlFor="format-decrypted" className="flex items-center gap-2 cursor-pointer">
                 <FileText className="h-4 w-4" />
-                Decrypted Format (Human Readable)
+                {t('settings.decryptedFormat')}
               </Label>
             </div>
           </div>
@@ -338,22 +350,22 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
             />
             <Label htmlFor="use-password" className="flex items-center gap-2 cursor-pointer">
               <Lock className="h-4 w-4" />
-              Add Password Protection
+              {t('settings.addPasswordProtection')}
             </Label>
           </div>
           <p className="text-sm text-muted-foreground">
-            Encrypt your export with an additional password for extra security during transport or storage.
+            {t('settings.passwordProtectionDesc')}
           </p>
           
           {usePasswordProtection && (
             <div className="space-y-2">
-              <Label htmlFor="export-password">Export Password</Label>
+              <Label htmlFor="export-password">{t('settings.exportPassword')}</Label>
               <Input
                 id="export-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter a strong password"
+                placeholder={t('settings.enterStrongPassword')}
               />
             </div>
           )}
@@ -367,44 +379,44 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
           size="lg"
         >
           <Download className="h-4 w-4 mr-2" />
-          {isExporting ? 'Exporting...' : `Export ${exportFormat === 'decrypted' ? 'Decrypted' : 'Encrypted'} Data${usePasswordProtection ? ' (Password Protected)' : ''}`}
+          {isExporting ? t('settings.exporting') : `${exportFormat === 'decrypted' ? t('settings.exportDecryptedData') : t('settings.exportEncryptedData')}${usePasswordProtection ? ` ${t('settings.exportPasswordProtected')}` : ''}`}
         </Button>
       </div>
 
       {/* Export Summary */}
       {(exportedData || decryptedExportedData) && (
         <div className="border rounded-lg p-4 space-y-4">
-          <h3 className="font-medium">Export Summary</h3>
+          <h3 className="font-medium">{t('settings.exportSummary')}</h3>
           <div className="grid gap-2 text-sm">
             <div className="flex justify-between">
-              <span>Export Date:</span>
+              <span>{t('settings.exportDate')}</span>
               <span>{new Date((decryptedExportedData || exportedData)!.timestamp).toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span>Data Summary:</span>
+              <span>{t('settings.dataSummary')}</span>
               <span>{getDataSummary(decryptedExportedData || exportedData!)}</span>
             </div>
             <div className="flex justify-between">
-              <span>Version:</span>
+              <span>{t('settings.version')}</span>
               <span>{(decryptedExportedData || exportedData)!.version}</span>
             </div>
             <div className="flex justify-between">
-              <span>Format:</span>
+              <span>{t('settings.format')}</span>
               <span className="flex items-center gap-1">
                 {encryptedExport ? (
                   <>
                     <Lock className="h-3 w-3" />
-                    Password Protected ({decryptedExportedData ? 'Decrypted' : 'Encrypted'})
+                    {t('settings.passwordProtected')} ({decryptedExportedData ? t('settings.decrypted') : t('settings.encrypted')})
                   </>
                 ) : decryptedExportedData ? (
                   <>
                     <FileText className="h-3 w-3" />
-                    Decrypted
+                    {t('settings.decrypted')}
                   </>
                 ) : (
                   <>
                     <Unlock className="h-3 w-3" />
-                    Encrypted
+                    {t('settings.encrypted')}
                   </>
                 )}
               </span>
@@ -414,14 +426,14 @@ export function ExportSection({ encryptionKey }: ExportSectionProps) {
           {encryptedExport && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Password Protected Export Preview</Label>
+                <Label>{t('settings.passwordProtectedExportPreview')}</Label>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => copyToClipboard(encryptedExport)}
                 >
                   <Copy className="h-4 w-4 mr-2" />
-                  Copy
+                  {t('settings.copy')}
                 </Button>
               </div>
               <Textarea

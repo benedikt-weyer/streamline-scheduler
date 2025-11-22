@@ -6,9 +6,11 @@ import { SettingsMain } from "@/components/dashboard/settings";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/utils/context/LanguageContext";
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   return (
     <AuthGuard>
@@ -23,7 +25,7 @@ export default function SettingsPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-3xl font-bold">Settings</h1>
+            <h1 className="text-3xl font-bold">{t('settings.settings')}</h1>
           </div>
           
           <SettingsMain />

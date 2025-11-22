@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useEncryptionKey } from '@/hooks/cryptography/useEncryptionKey';
 import { useError } from '@/utils/context/ErrorContext';
+import { useTranslation } from '@/utils/context/LanguageContext';
 import { ExportSection } from './export-section';
 import { ImportSection } from './import-section';
 import { DeleteSection } from './delete-section';
@@ -13,12 +14,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 export function SettingsMain() {
   const { encryptionKey, isLoading: isLoadingKey } = useEncryptionKey();
   const { setError } = useError();
+  const { t } = useTranslation();
 
   if (isLoadingKey) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
-          <p>Loading...</p>
+          <p>{t('settings.loading')}</p>
         </div>
       </div>
     );
@@ -28,8 +30,8 @@ export function SettingsMain() {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
-          <p className="text-red-600 mb-4">Encryption key not available</p>
-          <p>Please refresh the page and try again.</p>
+          <p className="text-red-600 mb-4">{t('settings.encryptionKeyNotAvailable')}</p>
+          <p>{t('settings.pleaseRefresh')}</p>
         </div>
       </div>
     );
@@ -39,8 +41,8 @@ export function SettingsMain() {
     <div className="space-y-6">
       <Tabs defaultValue="preferences" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="preferences">Preferences</TabsTrigger>
-          <TabsTrigger value="data">Data Management</TabsTrigger>
+          <TabsTrigger value="preferences">{t('settings.preferences')}</TabsTrigger>
+          <TabsTrigger value="data">{t('settings.dataManagement')}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="preferences" className="space-y-4">

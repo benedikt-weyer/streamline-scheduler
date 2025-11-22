@@ -79,6 +79,7 @@ calendar:
 settings:
   settings: Settings
   preferences: Preferences
+  preferencesDesc: Customize how the application behaves
   dataManagement: Data Management
   exportData: Export Data
   importData: Import Data
@@ -92,6 +93,97 @@ settings:
   languageDesc: Choose your preferred language for the interface
   selectLanguage: Select language
   languageUpdated: Language updated successfully
+  settingUpdated: Setting updated successfully
+  weekStartUpdated: Week start day updated successfully
+  failedToUpdate: Failed to update setting
+  loading: Loading...
+  encryptionKeyNotAvailable: Encryption key not available
+  pleaseRefresh: Please refresh the page and try again.
+  dangerZone: Danger Zone
+  dangerZoneDesc: Permanently delete all your data. This action cannot be undone.
+  deleteAllData: Delete All Data
+  deleteAllDataDesc: This will permanently delete
+  deleteAllTasks: All your tasks and to-do items
+  deleteAllProjects: All your projects and project organization
+  deleteAllCalendars: All your calendars and calendar events
+  deleteAllProfile: Your user profile data
+  deleteAllSettings: All associated settings and preferences
+  deleteIrreversible: This action is irreversible. Consider exporting your data first.
+  deleteAllMyData: Delete All My Data
+  confirmDataDeletion: Confirm Data Deletion
+  confirmDeletionMessage: You are about to permanently delete all your data from Streamline Scheduler. This includes all tasks, projects, calendars, events, and profile information.
+  cannotBeUndone: This action cannot be undone!
+  typeToConfirm: "Type {text} to confirm:"
+  confirmationRequired: DELETE ALL MY DATA
+  deleting: Deleting...
+  deleteTip: "Tip: Before deleting, consider using the Export feature to backup your data."
+  deleteNote: "Note: Your user account will remain active, but all application data will be removed."
+  dataDeletedSuccess: All your data has been deleted successfully. You will be redirected to the dashboard.
+  failedToDelete: Failed to delete data
+  pleaseTypeConfirmation: Please type the exact confirmation text
+  
+  # Export section
+  exportYourData: Export Your Data
+  exportDesc: Export all your tasks, projects, calendars, and events. Choose your preferred format and security options.
+  exportConfiguration: Export Configuration
+  dataFormat: Data Format
+  encryptedFormat: Encrypted Format (Original Database Format)
+  decryptedFormat: Decrypted Format (Human Readable)
+  encryptedFormatDesc: Export your data with the original encryption intact. Requires your encryption key to decrypt later.
+  decryptedFormatDesc: Export your data as human-readable, unencrypted JSON. Perfect for backup or migration to other systems.
+  addPasswordProtection: Add Password Protection
+  passwordProtectionDesc: Encrypt your export with an additional password for extra security during transport or storage.
+  exportPassword: Export Password
+  enterStrongPassword: Enter a strong password
+  exporting: Exporting...
+  exportEncryptedData: "Export Encrypted Data"
+  exportDecryptedData: "Export Decrypted Data"
+  exportPasswordProtected: "(Password Protected)"
+  exportSummary: Export Summary
+  exportDate: "Export Date:"
+  dataSummary: "Data Summary:"
+  version: "Version:"
+  format: "Format:"
+  passwordProtected: Password Protected
+  decrypted: Decrypted
+  encrypted: Encrypted
+  passwordProtectedExportPreview: Password Protected Export Preview
+  copy: Copy
+  pleaseEnterPassword: Please enter a password for encryption
+  failedToExportData: "Failed to export {format} data"
+  tasksSummary: "{tasks} tasks, {projects} projects, {calendars} calendars, {events} calendar events"
+  
+  # Import section
+  importYourData: Import Your Data
+  importDesc: Import data from a previous export. Supports both encrypted and decrypted formats. Run a dry run first to preview what will be imported.
+  importFile: Import File
+  chooseFile: Choose File
+  selectedFile: "Selected: {filename} ({size}KB)"
+  passwordProtectedDetected: Password Protected Format Detected
+  originallyDecrypted: "(Originally Decrypted)"
+  originallyEncrypted: "(Originally Encrypted)"
+  decryptedFormatDetected: Decrypted Format Detected
+  plainJsonEncrypted: Plain JSON (Encrypted) Format
+  decryptionPassword: Decryption Password
+  enterDecryptionPassword: Enter the password used to encrypt this export
+  orPasteJson: Or Paste JSON Data
+  pasteExportedJson: Paste your exported JSON data here...
+  dryRunPreview: Dry Run Preview
+  analyzing: Analyzing...
+  importDataButton: Import Data
+  importing: Importing...
+  importPreview: Import Preview
+  validationFailed: Validation Failed
+  exportVersion: "Export Version:"
+  warnings: "Warnings:"
+  errors: "Errors:"
+  pleaseSelectFile: Please select a file or enter import data
+  pleaseEnterDecryptionPassword: Please enter the password for encrypted data
+  pleaseDryRunFirst: Please run a dry run first to validate the data
+  failedToAnalyze: Failed to analyze import data
+  importCompleted: "Data import completed!\n\n{summary}\n\nNote: Duplicate items were automatically skipped. Please refresh the page to see your imported data."
+  importFailed: "Import failed: {error}"
+  processedForImport: "Processed for import ({format} format): {summary}"
 
 time:
   minutes: "{count} minutes"
