@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 
 import { format, isSameDay, differenceInMinutes } from 'date-fns';
+import { useDateLocale } from '@/utils/context/LanguageContext';
 
 import { CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { generateTimeSlots } from '@/utils/calendar/calendar';
@@ -35,6 +36,7 @@ export function CalendarGrid({
   openNewEventDialog,
   onEventUpdate 
 }: CalendarGridProps) {
+  const dateLocale = useDateLocale();
   const [calendarHeight, setCalendarHeight] = useState<number | null>(null);
   const [slotHeight, setSlotHeight] = useState(35); // default slot height
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1355,9 +1357,9 @@ export function CalendarGrid({
               key={day.toString()} 
               className="px-2 py-3 text-center border-r last:border-r-0 font-medium flex gap-2 items-center justify-center"
             >
-              <div>{format(day, "EEE.")}</div>
+              <div>{format(day, "EEE", { locale: dateLocale })}</div>
               <div className={`text-lg ${isSameDay(day, new Date()) ? 'bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center' : ''}`}>
-                {format(day, "d")}
+                {format(day, "d", { locale: dateLocale })}
               </div>
             </div>
           ))}

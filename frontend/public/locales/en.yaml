@@ -1,6 +1,7 @@
 # English translations
 common:
   save: Save
+  saving: Saving...
   cancel: Cancel
   delete: Delete
   edit: Edit
@@ -15,6 +16,8 @@ common:
   ok: OK
   error: Error
   success: Success
+  create: Create
+  update: Update
 
 navbar:
   appName: Streamline Scheduler
@@ -64,12 +67,16 @@ projects:
 calendar:
   calendar: Calendar
   addEvent: Add Event
+  addNewEvent: Add New Event
   editEvent: Edit Event
+  viewEvent: View Event
   deleteEvent: Delete Event
   eventTitle: Event Title
   eventDescription: Description
   startTime: Start Time
   endTime: End Time
+  startDate: Start Date
+  endDate: End Date
   allDay: All Day
   location: Location
   noEvents: No events
@@ -78,6 +85,45 @@ calendar:
   previousWeek: Previous Week
   nextWeek: Next Week
   thisWeek: This Week
+  addCalendar: Add Calendar
+  editCalendar: Edit Calendar
+  refreshCalendar: Refresh Calendar
+  createNewCalendar: Create New Calendar
+  calendarName: Calendar Name
+  calendarColor: Calendar Color
+  icsUrl: ICS URL
+  enterName: Enter calendar name
+  enterIcsUrl: Enter ICS URL
+  makeDefault: Make Default
+  regularCalendar: Regular Calendar
+  icsCalendar: ICS Calendar
+  recurring: Recurring
+  recurrenceFrequency: Recurrence
+  recurrenceEndDate: Recurrence End Date
+  daily: Daily
+  weekly: Weekly
+  monthly: Monthly
+  yearly: Yearly
+  none: None
+  everyXDays: "Every {interval} day(s)"
+  everyXWeeks: "Every {interval} week(s)"
+  everyXMonths: "Every {interval} month(s)"
+  everyXYears: "Every {interval} year(s)"
+  titleRequired: Title is required
+  calendarRequired: Calendar is required
+  validStartDateRequired: Valid start date is required
+  validEndDateRequired: Valid end date is required
+  linkedToTask: Linked to task
+  deleteConfirmTitle: Delete Event?
+  deleteConfirmMessage: Are you sure you want to delete this event?
+  deleteRecurringTitle: Delete Recurring Event
+  deleteThisOccurrence: Delete this occurrence
+  deleteThisAndFuture: Delete this and future occurrences
+  deleteAllInSeries: Delete all occurrences
+  modifyRecurringTitle: Modify Recurring Event
+  modifyThisOccurrence: Modify only this occurrence
+  modifyThisAndFuture: Modify this and future occurrences
+  modifyAllInSeries: Modify all occurrences
 
 settings:
   settings: Settings

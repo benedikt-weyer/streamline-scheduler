@@ -1,6 +1,7 @@
 # Spanish translations
 common:
   save: Guardar
+  saving: Guardando...
   cancel: Cancelar
   delete: Eliminar
   edit: Editar
@@ -15,6 +16,8 @@ common:
   ok: OK
   error: Error
   success: Éxito
+  create: Crear
+  update: Actualizar
 
 navbar:
   appName: Streamline Scheduler
@@ -64,12 +67,16 @@ projects:
 calendar:
   calendar: Calendario
   addEvent: Añadir Evento
+  addNewEvent: Añadir Nuevo Evento
   editEvent: Editar Evento
+  viewEvent: Ver Evento
   deleteEvent: Eliminar Evento
   eventTitle: Título del Evento
   eventDescription: Descripción
   startTime: Hora de Inicio
   endTime: Hora de Finalización
+  startDate: Fecha de Inicio
+  endDate: Fecha de Finalización
   allDay: Todo el Día
   location: Ubicación
   noEvents: No hay eventos
@@ -78,6 +85,45 @@ calendar:
   previousWeek: Semana Anterior
   nextWeek: Semana Siguiente
   thisWeek: Esta Semana
+  addCalendar: Añadir Calendario
+  editCalendar: Editar Calendario
+  refreshCalendar: Actualizar Calendario
+  createNewCalendar: Crear Nuevo Calendario
+  calendarName: Nombre del Calendario
+  calendarColor: Color del Calendario
+  icsUrl: URL ICS
+  enterName: Ingrese el nombre del calendario
+  enterIcsUrl: Ingrese la URL ICS
+  makeDefault: Establecer como predeterminado
+  regularCalendar: Calendario Regular
+  icsCalendar: Calendario ICS
+  recurring: Recurrente
+  recurrenceFrequency: Recurrencia
+  recurrenceEndDate: Fecha de Fin de Recurrencia
+  daily: Diario
+  weekly: Semanal
+  monthly: Mensual
+  yearly: Anual
+  none: Ninguno
+  everyXDays: "Cada {interval} día(s)"
+  everyXWeeks: "Cada {interval} semana(s)"
+  everyXMonths: "Cada {interval} mes(es)"
+  everyXYears: "Cada {interval} año(s)"
+  titleRequired: El título es obligatorio
+  calendarRequired: El calendario es obligatorio
+  validStartDateRequired: Se requiere una fecha de inicio válida
+  validEndDateRequired: Se requiere una fecha de finalización válida
+  linkedToTask: Vinculado a tarea
+  deleteConfirmTitle: ¿Eliminar Evento?
+  deleteConfirmMessage: ¿Está seguro de que desea eliminar este evento?
+  deleteRecurringTitle: Eliminar Evento Recurrente
+  deleteThisOccurrence: Eliminar esta ocurrencia
+  deleteThisAndFuture: Eliminar esta y futuras ocurrencias
+  deleteAllInSeries: Eliminar todas las ocurrencias
+  modifyRecurringTitle: Modificar Evento Recurrente
+  modifyThisOccurrence: Modificar solo esta ocurrencia
+  modifyThisAndFuture: Modificar esta y futuras ocurrencias
+  modifyAllInSeries: Modificar todas las ocurrencias
 
 settings:
   settings: Configuración

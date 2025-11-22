@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { CalendarEvent } from '@/utils/calendar/calendar-types';
 import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 import { calculateEventLayout } from '@/utils/calendar/calendar-render';
+import { useDateLocale } from '@/utils/context/LanguageContext';
 
 interface CalendarGridMobileProps {
   readonly days: Date[];
@@ -27,6 +28,7 @@ export function CalendarGridMobile({
   onEventUpdate,
   shouldSelectToday = false
 }: CalendarGridMobileProps) {
+  const dateLocale = useDateLocale();
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   
@@ -256,7 +258,7 @@ export function CalendarGridMobile({
               )}
               
               <div className="font-medium">
-                {format(day, 'EEE')}
+                {format(day, 'EEE', { locale: dateLocale })}
               </div>
               <div className={`text-lg font-bold ${
                 isSelected 

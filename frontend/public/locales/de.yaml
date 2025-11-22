@@ -1,6 +1,7 @@
 # German translations
 common:
   save: Speichern
+  saving: Wird gespeichert...
   cancel: Abbrechen
   delete: Löschen
   edit: Bearbeiten
@@ -15,6 +16,8 @@ common:
   ok: OK
   error: Fehler
   success: Erfolg
+  create: Erstellen
+  update: Aktualisieren
 
 navbar:
   appName: Streamline Scheduler
@@ -64,12 +67,16 @@ projects:
 calendar:
   calendar: Kalender
   addEvent: Termin hinzufügen
+  addNewEvent: Neuen Termin hinzufügen
   editEvent: Termin bearbeiten
+  viewEvent: Termin ansehen
   deleteEvent: Termin löschen
   eventTitle: Terminname
   eventDescription: Beschreibung
   startTime: Startzeit
   endTime: Endzeit
+  startDate: Startdatum
+  endDate: Enddatum
   allDay: Ganztägig
   location: Ort
   noEvents: Keine Termine
@@ -78,6 +85,45 @@ calendar:
   previousWeek: Vorherige Woche
   nextWeek: Nächste Woche
   thisWeek: Diese Woche
+  addCalendar: Kalender hinzufügen
+  editCalendar: Kalender bearbeiten
+  refreshCalendar: Kalender aktualisieren
+  createNewCalendar: Neuen Kalender erstellen
+  calendarName: Kalendername
+  calendarColor: Kalenderfarbe
+  icsUrl: ICS-URL
+  enterName: Kalendernamen eingeben
+  enterIcsUrl: ICS-URL eingeben
+  makeDefault: Als Standard festlegen
+  regularCalendar: Regulärer Kalender
+  icsCalendar: ICS-Kalender
+  recurring: Wiederkehrend
+  recurrenceFrequency: Wiederholung
+  recurrenceEndDate: Wiederholungsende
+  daily: Täglich
+  weekly: Wöchentlich
+  monthly: Monatlich
+  yearly: Jährlich
+  none: Keine
+  everyXDays: "Alle {interval} Tag(e)"
+  everyXWeeks: "Alle {interval} Woche(n)"
+  everyXMonths: "Alle {interval} Monat(e)"
+  everyXYears: "Alle {interval} Jahr(e)"
+  titleRequired: Titel ist erforderlich
+  calendarRequired: Kalender ist erforderlich
+  validStartDateRequired: Gültiges Startdatum ist erforderlich
+  validEndDateRequired: Gültiges Enddatum ist erforderlich
+  linkedToTask: Mit Aufgabe verknüpft
+  deleteConfirmTitle: Termin löschen?
+  deleteConfirmMessage: Möchten Sie diesen Termin wirklich löschen?
+  deleteRecurringTitle: Wiederkehrenden Termin löschen
+  deleteThisOccurrence: Dieses Vorkommen löschen
+  deleteThisAndFuture: Dieses und zukünftige Vorkommen löschen
+  deleteAllInSeries: Alle Vorkommen löschen
+  modifyRecurringTitle: Wiederkehrenden Termin ändern
+  modifyThisOccurrence: Nur dieses Vorkommen ändern
+  modifyThisAndFuture: Dieses und zukünftige Vorkommen ändern
+  modifyAllInSeries: Alle Vorkommen ändern
 
 settings:
   settings: Einstellungen

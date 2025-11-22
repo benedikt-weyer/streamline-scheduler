@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWeekStartDay } from '@/utils/context/UserSettingsContext';
+import { useDateLocale } from '@/utils/context/LanguageContext';
 import { 
   format, 
   startOfMonth, 
@@ -32,6 +33,7 @@ export function MonthOverview({
   onDateSelect,
   onMonthChange 
 }: MonthOverviewProps) {
+  const dateLocale = useDateLocale();
   const [currentMonth, setCurrentMonth] = useState<Date>(selectedDate);
 
   // Update current month when selected date changes
@@ -73,10 +75,11 @@ export function MonthOverview({
     onDateSelect?.(date);
   };
 
-  // Week day labels - dynamic based on week start setting
-  const weekDays = weekStartsOn === 1 
-    ? ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']  // Monday first
-    : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']; // Sunday first
+  // Week day labels - dynamic based on week start setting and locale
+  const weekDays = eachDayOfInterval({
+    start: startOfWeek(new Date(), { weekStartsOn }),
+    end: endOfWeek(new Date(), { weekStartsOn })
+  }).map(day => format(day, 'EEEEEE', { locale: dateLocale })); // EEEEEE gives 2-letter abbreviation
 
   return (
     <div className="w-full border rounded-lg p-3 bg-card">
@@ -92,7 +95,7 @@ export function MonthOverview({
         </Button>
         
         <div className="text-sm font-semibold">
-          {format(currentMonth, 'MMMM yyyy')}
+          {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
         </div>
         
         <Button

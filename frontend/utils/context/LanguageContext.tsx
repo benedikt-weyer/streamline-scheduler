@@ -1,8 +1,10 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { Locale } from 'date-fns';
 import { Language, TranslationParams } from '@/utils/i18n/types';
 import { t as translate, setLanguage, getLanguage, initI18n, getLanguageName, getAvailableLanguages } from '@/utils/i18n/i18n';
+import { getDateLocale } from '@/utils/i18n/date-locale';
 
 interface LanguageContextType {
   language: Language;
@@ -11,6 +13,7 @@ interface LanguageContextType {
   availableLanguages: Language[];
   getLanguageName: (lang: Language) => string;
   isLoading: boolean;
+  dateLocale: Locale;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -64,6 +67,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return translate(key, params);
   }, [initialized]);
 
+  const dateLocale = getDateLocale(language);
+
   return (
     <LanguageContext.Provider
       value={{
@@ -73,6 +78,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         availableLanguages: getAvailableLanguages(),
         getLanguageName,
         isLoading,
+        dateLocale,
       }}
     >
       {children}
@@ -92,5 +98,11 @@ export function useLanguage() {
 export function useTranslation() {
   const { t } = useLanguage();
   return { t };
+}
+
+// Hook for date locale
+export function useDateLocale() {
+  const { dateLocale } = useLanguage();
+  return dateLocale;
 }
 

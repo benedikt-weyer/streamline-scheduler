@@ -24,6 +24,7 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
 import { RecurringEventModificationDialog } from './recurring-event-modification-dialog';
+import { useTranslation } from '@/utils/context/LanguageContext';
 
 // Define schema for event validation
 export const eventFormSchema = z.object({
@@ -167,6 +168,8 @@ export function CalendarEventDialog({
   linkedTaskTitle,
   onNavigateToTask
 }: CalendarEventDialogProps) {
+  const { t } = useTranslation();
+  
   // Determine which calendar ID to use
   const initialCalendarId = selectedEvent?.calendar_id ?? defaultCalendarId ?? 
     (calendars.length > 0 ? calendars.find(cal => cal.is_default)?.id ?? calendars[0].id : '');
@@ -417,7 +420,7 @@ export function CalendarEventDialog({
       <DialogContent onInteractOutside={handleMainDialogInteractOutside}>
         <DialogHeader>
           <DialogTitle>
-            {isReadOnly ? 'View Event' : (selectedEvent ? 'Edit Event' : 'Add New Event')}
+            {isReadOnly ? t('calendar.viewEvent') : (selectedEvent ? t('calendar.editEvent') : t('calendar.addNewEvent'))}
           </DialogTitle>
           {isReadOnly && (
             <div className="mt-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-md">
@@ -493,7 +496,7 @@ export function CalendarEventDialog({
               name="calendarId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Calendar</FormLabel>
+                  <FormLabel>{t('calendar.calendar')}</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
                     defaultValue={field.value}
@@ -561,7 +564,7 @@ export function CalendarEventDialog({
                 name="startDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Date</FormLabel>
+                    <FormLabel>{t('calendar.startDate')}</FormLabel>
                     <FormControl>
                       <DatePicker 
                         value={field.value} 
@@ -580,7 +583,7 @@ export function CalendarEventDialog({
                   name="startTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Start Time</FormLabel>
+                      <FormLabel>{t('calendar.startTime')}</FormLabel>
                       <FormControl>
                         <TimeInput 
                           {...field} 
@@ -606,7 +609,7 @@ export function CalendarEventDialog({
                 name="endDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Date</FormLabel>
+                    <FormLabel>{t('calendar.endDate')}</FormLabel>
                     <FormControl>
                       <DatePicker 
                         value={field.value} 
@@ -625,7 +628,7 @@ export function CalendarEventDialog({
                   name="endTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>End Time</FormLabel>
+                      <FormLabel>{t('calendar.endTime')}</FormLabel>
                       <FormControl>
                         <TimeInput 
                           {...field} 
@@ -646,7 +649,7 @@ export function CalendarEventDialog({
                 name="recurrenceFrequency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Recurrence</FormLabel>
+                    <FormLabel>{t('calendar.recurrenceFrequency')}</FormLabel>
                     <FormControl>
                       <Select
                         {...field}
@@ -695,7 +698,7 @@ export function CalendarEventDialog({
                     name="recurrenceEndDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Recurrence End Date</FormLabel>
+                        <FormLabel>{t('calendar.recurrenceEndDate')}</FormLabel>
                         <FormControl>
                           <DatePicker 
                             value={field.value} 

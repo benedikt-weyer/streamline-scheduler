@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, CalendarType } from '@/utils/calendar/calendar-types';
 import { MonthOverview } from './month-overview';
+import { useTranslation } from '@/utils/context/LanguageContext';
 
 interface CalendarSidebarProps {
   calendars: Calendar[];
@@ -39,6 +40,7 @@ export function CalendarSidebar({
   onDateSelect,
   onMonthChange
 }: CalendarSidebarProps) {
+  const { t } = useTranslation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newCalendarName, setNewCalendarName] = useState('');
@@ -137,7 +139,7 @@ export function CalendarSidebar({
           onClick={() => setIsCreateDialogOpen(true)}
           size="icon"
           variant="ghost"
-          title="Add Calendar"
+          title={t('calendar.addCalendar')}
         >
           <Plus className="h-4 w-4" />
         </Button>
@@ -210,7 +212,7 @@ export function CalendarSidebar({
                 size="icon"
                 variant="ghost"
                 className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 h-8 w-8"
-                title="Edit Calendar"
+                title={t('calendar.editCalendar')}
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -223,7 +225,7 @@ export function CalendarSidebar({
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New Calendar</DialogTitle>
+            <DialogTitle>{t('calendar.createNewCalendar')}</DialogTitle>
           </DialogHeader>
           <Tabs defaultValue="regular" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -239,7 +241,7 @@ export function CalendarSidebar({
             
             <TabsContent value="regular" className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="calendarName" className="text-sm font-medium">Calendar Name</label>
+                <label htmlFor="calendarName" className="text-sm font-medium">{t('calendar.calendarName')}</label>
                 <Input
                   id="calendarName"
                   value={newCalendarName}
@@ -264,14 +266,14 @@ export function CalendarSidebar({
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreateCalendar}>Create</Button>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>{t('common.cancel')}</Button>
+                <Button onClick={handleCreateCalendar}>{t('common.create')}</Button>
               </div>
             </TabsContent>
             
             <TabsContent value="ics" className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="icsCalendarName" className="text-sm font-medium">Calendar Name</label>
+                <label htmlFor="icsCalendarName" className="text-sm font-medium">{t('calendar.calendarName')}</label>
                 <Input
                   id="icsCalendarName"
                   value={newCalendarName}
@@ -315,8 +317,8 @@ export function CalendarSidebar({
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreateICSCalendar}>Create</Button>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>{t('common.cancel')}</Button>
+                <Button onClick={handleCreateICSCalendar}>{t('common.create')}</Button>
               </div>
             </TabsContent>
           </Tabs>
@@ -336,7 +338,7 @@ export function CalendarSidebar({
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Calendar</DialogTitle>
+            <DialogTitle>{t('calendar.editCalendar')}</DialogTitle>
             {selectedCalendar?.is_default && (
               <div className="text-sm text-amber-600 mt-1 px-2 py-1 bg-amber-50 rounded-md">
                 This is your default calendar. It will be pre-selected when creating new events.
@@ -346,7 +348,7 @@ export function CalendarSidebar({
           {selectedCalendar && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <label htmlFor="editCalendarName" className="text-sm font-medium">Calendar Name</label>
+                <label htmlFor="editCalendarName" className="text-sm font-medium">{t('calendar.calendarName')}</label>
                 <Input
                   id="editCalendarName"
                   value={newCalendarName}
@@ -434,8 +436,8 @@ export function CalendarSidebar({
                 setNewCalendarColor('#4f46e5');
                 setNewCalendarICSUrl('');
                 setIsEditDialogOpen(false);
-              }}>Cancel</Button>
-              <Button onClick={handleEditCalendar}>Save</Button>
+              }}>{t('common.cancel')}</Button>
+              <Button onClick={handleEditCalendar}>{t('common.save')}</Button>
             </div>
           </DialogFooter>
         </DialogContent>
