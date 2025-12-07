@@ -594,6 +594,7 @@ export function CalendarMain({
             onCalendarDelete={handleCalendarDeleteWithEvents}
             onSetDefaultCalendar={onSetDefaultCalendar}
             onTodaySelected={handleTodaySelected}
+            setSelectedDate={setSelectedDate}
           />
         </div>
 
@@ -652,6 +653,7 @@ export function CalendarMain({
               setCurrentWeek={setCurrentWeek}
               openNewEventDialog={openNewEventDialogHandler}
               onTodaySelected={handleTodaySelected}
+              setSelectedDate={setSelectedDate}
             />
             
             {error && (

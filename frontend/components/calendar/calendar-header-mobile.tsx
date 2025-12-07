@@ -26,6 +26,7 @@ interface CalendarHeaderMobileProps {
   onCalendarDelete: (calendarId: string) => void;
   onSetDefaultCalendar: (calendarId: string) => void;
   onTodaySelected?: () => void;
+  setSelectedDate?: React.Dispatch<React.SetStateAction<Date>>;
 }
 
 export function CalendarHeaderMobile({ 
@@ -40,23 +41,37 @@ export function CalendarHeaderMobile({
   onCalendarEdit,
   onCalendarDelete,
   onSetDefaultCalendar,
-  onTodaySelected
+  onTodaySelected,
+  setSelectedDate
 }: CalendarHeaderMobileProps) {
   const [isCalendarMenuOpen, setIsCalendarMenuOpen] = useState(false);
 
   // Navigate to previous week
   const goToPreviousWeek = () => {
-    setCurrentWeek(prevWeek => subWeeks(prevWeek, 1));
+    setCurrentWeek(prevWeek => {
+      const newWeek = subWeeks(prevWeek, 1);
+      // Also update selected date to keep them in sync
+      setSelectedDate?.(newWeek);
+      return newWeek;
+    });
   };
 
   // Navigate to next week
   const goToNextWeek = () => {
-    setCurrentWeek(prevWeek => addWeeks(prevWeek, 1));
+    setCurrentWeek(prevWeek => {
+      const newWeek = addWeeks(prevWeek, 1);
+      // Also update selected date to keep them in sync
+      setSelectedDate?.(newWeek);
+      return newWeek;
+    });
   };
 
   // Go to current week
   const goToCurrentWeek = () => {
-    setCurrentWeek(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    const today = new Date();
+    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+    setCurrentWeek(weekStart);
+    setSelectedDate?.(today);
     onTodaySelected?.();
   };
 
