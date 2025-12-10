@@ -235,7 +235,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
               role={taskClickBehavior === 'edit' ? 'button' : undefined}
               tabIndex={taskClickBehavior === 'edit' ? 0 : undefined}
             >
-              <span className="block truncate">{task.content}</span>
+              <span className="block line-clamp-2 md:truncate">{task.content}</span>
             </span>
             {/* Show blocked indicator on the same line for mobile */}
             {isBlocked && (
