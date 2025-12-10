@@ -963,8 +963,18 @@ export function CalendarGrid({
     } : {};
     
     // Get child events if this is a group event
+    // For recurring group event instances, extract the base ID
+    const baseGroupEventId = event.id.includes('-recurrence-') 
+      ? event.id.split('-recurrence-')[0] 
+      : event.id;
+    
     const childEvents = event.is_group_event 
-      ? events.filter(e => e.parent_group_event_id === event.id && isSameDay(new Date(e.start_time), day))
+      ? events.filter(e => {
+          // Match child events by base parent ID (handles both regular and recurring group events)
+          const matchesParent = e.parent_group_event_id === baseGroupEventId;
+          const matchesDay = isSameDay(new Date(e.start_time), day);
+          return matchesParent && matchesDay;
+        })
       : [];
     
     // Calculate group time range for positioning child events
@@ -1529,7 +1539,13 @@ export function CalendarGrid({
         isOpen={isGroupModalOpen}
         onOpenChange={setIsGroupModalOpen}
         groupEvent={selectedGroupEvent}
-        childEvents={events.filter(e => e.parent_group_event_id === selectedGroupEvent?.id)}
+        childEvents={events.filter(e => {
+          if (!selectedGroupEvent) return false;
+          const baseGroupEventId = selectedGroupEvent.id.includes('-recurrence-')
+            ? selectedGroupEvent.id.split('-recurrence-')[0]
+            : selectedGroupEvent.id;
+          return e.parent_group_event_id === baseGroupEventId;
+        })}
         calendars={calendars?.map(cal => ({
           id: cal.id,
           name: cal.name,
@@ -1554,7 +1570,13 @@ export function CalendarGrid({
         isOpen={isDragHoverModalOpen}
         onOpenChange={setIsDragHoverModalOpen}
         groupEvent={selectedGroupEvent}
-        childEvents={events.filter(e => e.parent_group_event_id === selectedGroupEvent?.id)}
+        childEvents={events.filter(e => {
+          if (!selectedGroupEvent) return false;
+          const baseGroupEventId = selectedGroupEvent.id.includes('-recurrence-')
+            ? selectedGroupEvent.id.split('-recurrence-')[0]
+            : selectedGroupEvent.id;
+          return e.parent_group_event_id === baseGroupEventId;
+        })}
         calendars={calendars?.map(cal => ({
           id: cal.id,
           name: cal.name,

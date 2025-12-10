@@ -368,7 +368,11 @@ export function CalendarEventDialog({
         startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime || '00:00'),
         endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59'),
         isGroupEvent: pendingModificationData.isGroupEvent,
-        parentGroupEventId: pendingModificationData.parentGroupEventId
+        parentGroupEventId: pendingModificationData.parentGroupEventId,
+        recurrenceFrequency: pendingModificationData.recurrenceFrequency,
+        recurrenceEndDate: pendingModificationData.recurrenceEndDate,
+        recurrenceInterval: pendingModificationData.recurrenceInterval,
+        daysOfWeek: pendingModificationData.daysOfWeek
       };
       await onModifyThisOccurrence(event, modifiedData);
     }
@@ -384,7 +388,11 @@ export function CalendarEventDialog({
         startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime || '00:00'),
         endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59'),
         isGroupEvent: pendingModificationData.isGroupEvent,
-        parentGroupEventId: pendingModificationData.parentGroupEventId
+        parentGroupEventId: pendingModificationData.parentGroupEventId,
+        recurrenceFrequency: pendingModificationData.recurrenceFrequency,
+        recurrenceEndDate: pendingModificationData.recurrenceEndDate,
+        recurrenceInterval: pendingModificationData.recurrenceInterval,
+        daysOfWeek: pendingModificationData.daysOfWeek
       };
       await onModifyThisAndFuture(event, modifiedData);
     }
@@ -400,7 +408,11 @@ export function CalendarEventDialog({
         startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime || '00:00'),
         endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59'),
         isGroupEvent: pendingModificationData.isGroupEvent,
-        parentGroupEventId: pendingModificationData.parentGroupEventId
+        parentGroupEventId: pendingModificationData.parentGroupEventId,
+        recurrenceFrequency: pendingModificationData.recurrenceFrequency,
+        recurrenceEndDate: pendingModificationData.recurrenceEndDate,
+        recurrenceInterval: pendingModificationData.recurrenceInterval,
+        daysOfWeek: pendingModificationData.daysOfWeek
       };
       await onModifyAllInSeries(event, modifiedData);
     }

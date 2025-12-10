@@ -30,6 +30,17 @@ export class SchedulerEventService {
       ? new Date(`${values.endDate}T23:59:59`)
       : new Date(`${values.endDate}T${values.endTime}`);
     
+    // Build recurrence rule if recurrence is specified
+    let recurrenceRule: string | undefined = undefined;
+    if (values.recurrenceFrequency && values.recurrenceFrequency !== 'none') {
+      recurrenceRule = JSON.stringify({
+        frequency: values.recurrenceFrequency,
+        end_date: values.recurrenceEndDate ? new Date(values.recurrenceEndDate).toISOString() : undefined,
+        interval: values.recurrenceInterval ?? 1,
+        days_of_week: values.daysOfWeek
+      });
+    }
+    
     if (isUpdate) {
       const updatedEvent = await this.calendarEventsService.updateCalendarEvent(values.id!, {
         title: values.title,
@@ -39,6 +50,7 @@ export class SchedulerEventService {
         startTime: startDateTime,
         endTime: endDateTime,
         isAllDay: values.isAllDay,
+        recurrenceRule: recurrenceRule,
         isGroupEvent: values.isGroupEvent,
         parentGroupEventId: values.parentGroupEventId,
         taskId: values.taskId
@@ -53,6 +65,7 @@ export class SchedulerEventService {
         startTime: startDateTime,
         endTime: endDateTime,
         isAllDay: values.isAllDay,
+        recurrenceRule: recurrenceRule,
         isGroupEvent: values.isGroupEvent,
         parentGroupEventId: values.parentGroupEventId,
         taskId: values.taskId
