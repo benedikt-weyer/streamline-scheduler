@@ -15,6 +15,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { isSSOEnabled, redirectToSSOLogin } from "@/utils/auth/sso-utils";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 // Define the schema for form validation
 const signInSchema = z.object({
@@ -82,6 +85,8 @@ function SignInForm() {
     }
   };
 
+  const ssoEnabled = isSSOEnabled();
+
   return (
     <Form {...form}>
       <form 
@@ -96,7 +101,33 @@ function SignInForm() {
             Sign up
           </Link>
         </p>
-        <div className="flex flex-col gap-4 mt-8">
+        
+        {ssoEnabled && (
+          <div className="mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full gap-2"
+              onClick={redirectToSSOLogin}
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+              Sign in with Streamline Account
+            </Button>
+            
+            <div className="relative my-6">
+              <Separator />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                Or continue with email
+              </span>
+            </div>
+          </div>
+        )}
+        
+        <div className={`flex flex-col gap-4 ${ssoEnabled ? '' : 'mt-8'}`}>
           <FormField
             control={form.control}
             name="email"
