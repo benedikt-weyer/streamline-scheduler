@@ -711,14 +711,66 @@ function SchedulerPageContent() {
       };
       const eventWithUpdates = await schedulerPageService.updateEvent(updatedEvent.id, updateData);
       
-      setCalendarEvents(prev => prev.map(event => event.id === updatedEvent.id ? eventWithUpdates : event));
+      // If this is a group event being moved, update all child events
+      const updatedChildEvents: CalendarEvent[] = [];
+      if (updatedEvent.is_group_event) {
+        // Find the original event to calculate the time offset
+        const originalEvent = calendarEvents.find(e => e.id === updatedEvent.id);
+        if (originalEvent) {
+          const originalStartTime = new Date(originalEvent.start_time).getTime();
+          const newStartTime = new Date(updatedEvent.start_time).getTime();
+          const timeOffset = newStartTime - originalStartTime;
+          
+          // Only update child events if the group event actually moved
+          if (timeOffset !== 0) {
+            // Find all child events
+            const childEvents = calendarEvents.filter(e => e.parent_group_event_id === updatedEvent.id);
+            
+            // Update each child event with the same time offset
+            for (const childEvent of childEvents) {
+              const childStartTime = new Date(childEvent.start_time);
+              const childEndTime = new Date(childEvent.end_time);
+              
+              const newChildStartTime = new Date(childStartTime.getTime() + timeOffset);
+              const newChildEndTime = new Date(childEndTime.getTime() + timeOffset);
+              
+              const childUpdateData = {
+                title: childEvent.title,
+                description: childEvent.description,
+                location: childEvent.location,
+                calendarId: childEvent.calendar_id,
+                startTime: newChildStartTime,
+                endTime: newChildEndTime,
+                isAllDay: childEvent.all_day,
+                isGroupEvent: childEvent.is_group_event,
+                parentGroupEventId: childEvent.parent_group_event_id,
+              };
+              
+              const updatedChild = await schedulerPageService.updateEvent(childEvent.id, childUpdateData);
+              updatedChildEvents.push(updatedChild);
+            }
+          }
+        }
+      }
+      
+      // Update state for the group event and all affected child events
+      setCalendarEvents(prev => prev.map(event => {
+        if (event.id === updatedEvent.id) {
+          return eventWithUpdates;
+        }
+        const updatedChild = updatedChildEvents.find(child => child.id === event.id);
+        if (updatedChild) {
+          return updatedChild;
+        }
+        return event;
+      }));
       return true;
     } catch (error) {
       console.error('Failed to update event:', error);
       setError('Failed to update event');
       return false;
     }
-  }, [schedulerPageService, setError]);
+  }, [schedulerPageService, setError, calendarEvents]);
 
   const moveEventToCalendar = useCallback(async (eventId: string, targetCalendarId: string): Promise<void> => {
     if (!schedulerPageService) return;

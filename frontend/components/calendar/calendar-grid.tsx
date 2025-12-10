@@ -1115,7 +1115,7 @@ export function CalendarGrid({
         )}
         
         {/* Render child events inside the group */}
-        {event.is_group_event && childEvents.length > 0 && (
+        {event.is_group_event && childEvents.length > 0 && !(activeEvent && isDraggingRef.current && activeEvent.event.id === event.id) && (
           <div className="absolute inset-0 pointer-events-none z-0">
             {childEvents.map(childEvent => {
               const childStart = new Date(childEvent.start_time);
@@ -1418,11 +1418,51 @@ export function CalendarGrid({
       end_time: dragPosition.endTime.toISOString()
     };
     
+    // If this is a group event, also render child events in the preview
+    const childEventPreviews: JSX.Element[] = [];
+    if (activeEvent.event.is_group_event) {
+      // Calculate time offset for child events
+      const originalStartTime = new Date(activeEvent.event.start_time).getTime();
+      const newStartTime = dragPosition.startTime.getTime();
+      const timeOffset = newStartTime - originalStartTime;
+      
+      // Find and render child events with the same offset
+      const childEvents = events.filter(e => e.parent_group_event_id === activeEvent.event.id);
+      childEvents.forEach((childEvent) => {
+        const childStartTime = new Date(childEvent.start_time);
+        const childEndTime = new Date(childEvent.end_time);
+        
+        const newChildStartTime = new Date(childStartTime.getTime() + timeOffset);
+        const newChildEndTime = new Date(childEndTime.getTime() + timeOffset);
+        
+        // Only render if the child event overlaps with this day
+        if (areDatesOverlapping(
+          newChildStartTime,
+          newChildEndTime,
+          day,
+          getEndOfDay(day)
+        )) {
+          const draggedChildEvent: CalendarEvent = {
+            ...childEvent,
+            start_time: newChildStartTime.toISOString(),
+            end_time: newChildEndTime.toISOString()
+          };
+          
+          childEventPreviews.push(
+            <div key={`drag-child-${childEvent.id}`} style={{ pointerEvents: 'none', position: 'relative' }}>
+              {renderSingleEvent(draggedChildEvent, day, dayIndex, 99998, 80)}
+            </div>
+          );
+        }
+      });
+    }
+    
     // Use a wrapper div to apply the opacity and prevent pointer events
     // Use z-index higher than modal overlay (Dialog uses z-50, we use 99999 to be above everything)
     return (
       <div key={`drag-helper-${activeEvent.event.id}`} style={{ pointerEvents: 'none', position: 'relative', zIndex: 99999 }}>
         {renderSingleEvent(draggedEvent, day, dayIndex, 99999, 80)}
+        {childEventPreviews}
       </div>
     );
   }
