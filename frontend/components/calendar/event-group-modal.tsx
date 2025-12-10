@@ -329,30 +329,48 @@ export function EventGroupModal({
   // Early return after all hooks to comply with Rules of Hooks
   if (!groupEvent) return null;
 
-  // Calculate time slots - align to clock hours
+  // Generate time marks - always include start and end times
+  const timeMarks: Array<{ time: Date; label: string; isMainMark: boolean }> = [];
+  
+  // Always add the start time
+  timeMarks.push({
+    time: new Date(groupStart),
+    label: format(groupStart, 'HH:mm'),
+    isMainMark: true,
+  });
+  
+  // Calculate intermediate marks aligned to clock hours
   const firstHourStart = new Date(groupStart);
   firstHourStart.setMinutes(0, 0, 0);
   if (firstHourStart < groupStart) {
     firstHourStart.setHours(firstHourStart.getHours() + 1);
   }
-
-  // Generate time marks aligned to clock
-  const timeMarks: Array<{ time: Date; label: string; isMainMark: boolean }> = [];
+  
   let currentTime = new Date(firstHourStart);
   
-  while (currentTime <= groupEnd) {
+  while (currentTime < groupEnd) {
     const minutesFromGroupStart = differenceInMinutes(currentTime, groupStart);
-    if (minutesFromGroupStart >= 0 && minutesFromGroupStart <= totalMinutes) {
+    if (minutesFromGroupStart > 0 && minutesFromGroupStart < totalMinutes) {
       const minutes = currentTime.getMinutes();
       const isMainMark = minutes === 0; // Full hours are main marks
       
       timeMarks.push({
         time: new Date(currentTime),
-        label: format(currentTime, isMainMark ? 'HH:mm' : 'HH:mm'),
+        label: format(currentTime, 'HH:mm'),
         isMainMark,
       });
     }
     currentTime = addMinutes(currentTime, timeGridInterval);
+  }
+  
+  // Always add the end time (if not already added)
+  const lastMarkTime = timeMarks[timeMarks.length - 1]?.time;
+  if (!lastMarkTime || differenceInMinutes(groupEnd, lastMarkTime) > 1) {
+    timeMarks.push({
+      time: new Date(groupEnd),
+      label: format(groupEnd, 'HH:mm'),
+      isMainMark: true,
+    });
   }
 
   // Handle drag start
@@ -468,13 +486,21 @@ export function EventGroupModal({
                     const minutesFromStart = differenceInMinutes(mark.time, groupStart);
                     const topPercent = (minutesFromStart / totalMinutes) * 100;
                     
+                    // Adjust positioning for first and last labels to prevent cutoff
+                    let transform = 'translateY(-50%)';
+                    if (topPercent === 0) {
+                      transform = 'translateY(0)'; // Align top for first label
+                    } else if (topPercent === 100) {
+                      transform = 'translateY(-100%)'; // Align bottom for last label
+                    }
+                    
                     return (
                       <div
                         key={i}
                         className={`absolute w-full text-xs text-right pr-2 ${
                           mark.isMainMark ? 'text-foreground font-medium' : 'text-muted-foreground'
                         }`}
-                        style={{ top: `${topPercent}%`, transform: 'translateY(-50%)' }}
+                        style={{ top: `${topPercent}%`, transform }}
                       >
                         {mark.label}
                       </div>
