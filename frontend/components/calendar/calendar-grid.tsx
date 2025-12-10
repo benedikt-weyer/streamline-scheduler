@@ -657,6 +657,15 @@ export function CalendarGrid({
         ? selectedGroupEvent 
         : findGroupEventAtPosition(e.clientX, e.clientY);
       
+      // If dropping into a recurring group instance, extract the base group ID
+      let parentGroupEventId = activeEvent.event.parent_group_event_id;
+      if (groupEvent && !activeEvent.event.is_group_event) {
+        // Extract base ID if this is a recurring instance (e.g., groupId-recurrence-2024-12-10 -> groupId)
+        parentGroupEventId = groupEvent.id.includes('-recurrence-')
+          ? groupEvent.id.split('-recurrence-')[0]
+          : groupEvent.id;
+      }
+      
       // Create updated event - explicitly preserve is_group_event
       const updatedEvent: CalendarEvent = {
         ...activeEvent.event,
@@ -666,7 +675,7 @@ export function CalendarGrid({
         // Explicitly preserve is_group_event flag
         is_group_event: activeEvent.event.is_group_event,
         // Set parent group if dropped on a group (and not a group itself)
-        parent_group_event_id: (groupEvent && !activeEvent.event.is_group_event) ? groupEvent.id : activeEvent.event.parent_group_event_id
+        parent_group_event_id: parentGroupEventId
       };
       
       // Update the event

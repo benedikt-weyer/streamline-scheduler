@@ -476,10 +476,10 @@ export function CalendarMain({
     const isRecurringEvent = recurrencePattern && 
       recurrencePattern.frequency !== RecurrenceFrequency.None;
 
-    // Check if this is a child event of a recurring group
-    // (Even if the child itself is not recurring, if its parent group is recurring,
-    // we should show the modification dialog)
+    // Check if this event is being added to or is already a child of a recurring group
+    // Show dialog for both: adding to a recurring group OR modifying an existing child
     let isChildOfRecurringGroup = false;
+    
     if (updatedEvent.parent_group_event_id || isVirtualRecurrenceInstance) {
       // Get the base parent group ID (remove -recurrence suffix if present)
       const baseParentGroupId = updatedEvent.parent_group_event_id?.includes('-recurrence-')
@@ -515,7 +515,9 @@ export function CalendarMain({
         description: pendingDraggedEvent.description,
         location: pendingDraggedEvent.location,
         start_time: pendingDraggedEvent.start_time,
-        end_time: pendingDraggedEvent.end_time
+        end_time: pendingDraggedEvent.end_time,
+        parent_group_event_id: pendingDraggedEvent.parent_group_event_id,
+        is_group_event: pendingDraggedEvent.is_group_event
       };
       // Pass the original event before drag, not the current event
       await onModifyThisOccurrence(originalEventBeforeDrag, modifiedData);
@@ -531,7 +533,9 @@ export function CalendarMain({
         description: pendingDraggedEvent.description,
         location: pendingDraggedEvent.location,
         start_time: pendingDraggedEvent.start_time,
-        end_time: pendingDraggedEvent.end_time
+        end_time: pendingDraggedEvent.end_time,
+        parent_group_event_id: pendingDraggedEvent.parent_group_event_id,
+        is_group_event: pendingDraggedEvent.is_group_event
       };
       // Pass the original event before drag, not the current event
       await onModifyThisAndFuture(originalEventBeforeDrag, modifiedData);
@@ -548,7 +552,9 @@ export function CalendarMain({
         description: pendingDraggedEvent.description,
         location: pendingDraggedEvent.location,
         start_time: pendingDraggedEvent.start_time,
-        end_time: pendingDraggedEvent.end_time
+        end_time: pendingDraggedEvent.end_time,
+        parent_group_event_id: pendingDraggedEvent.parent_group_event_id,
+        is_group_event: pendingDraggedEvent.is_group_event
       };
       // Pass the original event before drag, not the current event
       await onModifyAllInSeries(originalEventBeforeDrag, modifiedData);
