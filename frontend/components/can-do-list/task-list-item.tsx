@@ -16,6 +16,7 @@ import { isTaskActuallyBlocked, isTaskUnblocked } from '@/utils/can-do-list/task
 import { useUserSettings } from '@/utils/context/UserSettingsContext';
 import { useTranslation, useDateLocale } from '@/utils/context/LanguageContext';
 import { useDraggable } from '@/lib/flexyDND';
+import { useSwipeable } from '@/lib/easySwipe';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +47,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
+  const [swipeOffset, setSwipeOffset] = useState(0);
   
   // Get user settings for task click behavior
   const { settings } = useUserSettings();
@@ -62,6 +64,36 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
       task: task,
     },
     disabled: task.completed,
+  });
+
+  // EasySwipe for mobile swipe gestures
+  const { ref: swipeRef } = useSwipeable({
+    onSwipeRight: () => {
+      // Swipe right to complete
+      if (!task.completed) {
+        handleToggleCompleteClick();
+      }
+    },
+    onSwipeLeft: () => {
+      // Swipe left to delete
+      onDeleteTask(task.id);
+    },
+    onSwipeMove: (distance, direction) => {
+      // Update visual feedback during swipe
+      if (direction === 'left' || direction === 'right') {
+        // Limit swipe distance
+        const maxSwipe = 100;
+        const clampedDistance = Math.max(-maxSwipe, Math.min(maxSwipe, distance));
+        setSwipeOffset(clampedDistance);
+      }
+    },
+    onSwipeEnd: () => {
+      // Reset swipe offset
+      setSwipeOffset(0);
+    },
+  }, {
+    threshold: 80,
+    direction: 'horizontal',
   });
 
   // Format duration for display
@@ -190,7 +222,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   return (
     <>
       <div 
-        ref={dragRef as any}
+        ref={(node) => {
+          (dragRef as any).current = node;
+          (swipeRef as any).current = node;
+        }}
         data-task-id={task.id}
         className={`flex rounded-md border task-transition ${
           isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
@@ -198,8 +233,24 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
           task.completed ? 'bg-muted' : isBlocked ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50' : isUnblocked ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50' : ''
         } ${
           isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
-        }`}
+        } relative`}
+        style={{
+          transform: swipeOffset !== 0 ? `translateX(${swipeOffset}px)` : undefined,
+          transition: swipeOffset === 0 ? 'transform 0.2s ease-out' : 'none',
+        }}
       >
+        {/* Swipe action indicators */}
+        {swipeOffset > 0 && (
+          <div className="absolute inset-y-0 left-0 flex items-center justify-start pl-4 pointer-events-none bg-green-500/20 rounded-l-md" style={{ width: `${Math.min(swipeOffset, 100)}px` }}>
+            <CheckCircle className="h-5 w-5 text-green-600" />
+          </div>
+        )}
+        {swipeOffset < 0 && (
+          <div className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 pointer-events-none bg-red-500/20 rounded-r-md" style={{ width: `${Math.min(Math.abs(swipeOffset), 100)}px` }}>
+            <Trash2 className="h-5 w-5 text-red-600" />
+          </div>
+        )}
+      
         {/* Main content area */}
         <div className="flex-1 min-w-0">
           {/* Task name row */}
