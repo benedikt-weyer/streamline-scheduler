@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
 import { useState } from 'react';
-import { Edit, Trash2, Clock, Zap, Calendar, Copy, Shield, AlertCircle, Lock, Sun, CheckCircle } from 'lucide-react';
+import { Edit, Trash2, Clock, Zap, Calendar, Copy, Shield, AlertCircle, Lock, Sun, CheckCircle, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import EditTaskDialog from './edit-task-dialog';
 import BlockedTaskCompletionModal from './blocked-task-completion-modal';
@@ -16,6 +16,12 @@ import { isTaskActuallyBlocked, isTaskUnblocked } from '@/utils/can-do-list/task
 import { useUserSettings } from '@/utils/context/UserSettingsContext';
 import { useTranslation, useDateLocale } from '@/utils/context/LanguageContext';
 import { useDraggable } from '@/lib/flexyDND';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface TaskListItemProps {
   readonly task: CanDoItemDecrypted;
@@ -345,7 +351,58 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
         
         {/* Action buttons - vertically centered */}
         <div className="flex items-center space-x-1 pr-2 self-center">
-          {/* Desktop badges - hidden on mobile */}
+          {/* Mobile: 3-dot menu */}
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-2 text-muted-foreground hover:text-foreground"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">More actions</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                {onScheduleTask && !isScheduled && (
+                  <DropdownMenuItem onClick={() => onScheduleTask(task.id)}>
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule to calendar
+                  </DropdownMenuItem>
+                )}
+                {isScheduled && (
+                  <DropdownMenuItem disabled className="text-green-600">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Task is scheduled
+                  </DropdownMenuItem>
+                )}
+                {onToggleMyDay && (
+                  <DropdownMenuItem onClick={() => onToggleMyDay(task.id)}>
+                    <Sun className={`h-4 w-4 mr-2 ${task.my_day ? 'text-amber-500' : ''}`} />
+                    {task.my_day ? 'Remove from My Day' : 'Add to My Day'}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={handleCopy}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy task content
+                </DropdownMenuItem>
+                {taskClickBehavior === 'complete' && (
+                  <DropdownMenuItem onClick={handleEdit}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => onDeleteTask(task.id)} className="text-destructive focus:text-destructive">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
+          {/* Desktop: All buttons visible */}
           <div className="hidden md:flex items-center space-x-1">
             {isBlocked && (
               <span className="ml-2 text-xs text-red-800 dark:text-red-200 bg-red-100 dark:bg-red-900/50 px-2 py-[2px] rounded-sm flex items-center gap-1">
@@ -428,7 +485,8 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             )}
           </div>
           
-          {/* Action buttons */}
+          {/* Desktop: Action buttons */}
+          <div className="hidden md:flex items-center space-x-1">
           {onScheduleTask && !isScheduled && (
             <Button
               variant="ghost"
@@ -501,6 +559,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             <Trash2 className="h-4 w-4" />
             <span className="sr-only">Delete</span>
           </Button>
+          </div>
         </div>
       </div>
 
