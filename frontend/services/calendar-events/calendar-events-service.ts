@@ -486,7 +486,7 @@ export class CalendarEventsService {
     }
 
     const occurrenceStartTime = validation.occurrenceStartTime!;
-    // recurrencePattern already declared above
+    const recurrencePattern = getRecurrencePattern(masterEvent);
     const originalRecurrenceEndDate = recurrencePattern?.endDate ? new Date(recurrencePattern.endDate) : undefined;
 
     try {
@@ -1224,7 +1224,7 @@ export class CalendarEventsService {
         parent_group_event_id: modifiedEventData.parentGroupEventId ?? modifiedEventData.parent_group_event_id ?? masterEvent.parent_group_event_id,
         recurrence_rule: JSON.stringify({
           frequency: modifiedEventData.recurrenceFrequency ?? recurrencePattern?.frequency ?? 'none',
-          end_date: modifiedEventData.recurrenceEndDate !== undefined
+          end_date: 'recurrenceEndDate' in modifiedEventData
             ? (modifiedEventData.recurrenceEndDate && modifiedEventData.recurrenceEndDate.trim() !== '' 
                 ? new Date(modifiedEventData.recurrenceEndDate).toISOString() 
                 : undefined)
@@ -1253,7 +1253,7 @@ export class CalendarEventsService {
           parent_group_event_id: modifiedEventData.parentGroupEventId ?? modifiedEventData.parent_group_event_id ?? masterEvent.parent_group_event_id,
           recurrence_rule: JSON.stringify({
             frequency: modifiedEventData.recurrenceFrequency ?? recurrencePattern?.frequency ?? 'none',
-            end_date: modifiedEventData.recurrenceEndDate !== undefined
+            end_date: 'recurrenceEndDate' in modifiedEventData
               ? (modifiedEventData.recurrenceEndDate && modifiedEventData.recurrenceEndDate.trim() !== '' 
                   ? new Date(modifiedEventData.recurrenceEndDate).toISOString() 
                   : undefined)
