@@ -39,6 +39,8 @@ export class SchedulerEventService {
         startTime: startDateTime,
         endTime: endDateTime,
         isAllDay: values.isAllDay,
+        isGroupEvent: values.isGroupEvent,
+        parentGroupEventId: values.parentGroupEventId,
         taskId: values.taskId
       });
       return { event: updatedEvent, isUpdate: true };
@@ -51,6 +53,8 @@ export class SchedulerEventService {
         startTime: startDateTime,
         endTime: endDateTime,
         isAllDay: values.isAllDay,
+        isGroupEvent: values.isGroupEvent,
+        parentGroupEventId: values.parentGroupEventId,
         taskId: values.taskId
       });
       return { event: newEvent, isUpdate: false };
@@ -149,6 +153,8 @@ export class SchedulerEventService {
     endTime?: Date;
     isAllDay?: boolean;
     calendarId?: string;
+    isGroupEvent?: boolean;
+    parentGroupEventId?: string;
   }): Promise<CalendarEvent> {
     return await this.calendarEventsService.updateCalendarEvent(eventId, updates);
   }

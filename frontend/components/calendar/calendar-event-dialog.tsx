@@ -366,7 +366,9 @@ export function CalendarEventDialog({
         location: pendingModificationData.location,
         calendarId: pendingModificationData.calendarId,
         startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime || '00:00'),
-        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59')
+        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59'),
+        isGroupEvent: pendingModificationData.isGroupEvent,
+        parentGroupEventId: pendingModificationData.parentGroupEventId
       };
       await onModifyThisOccurrence(event, modifiedData);
     }
@@ -380,7 +382,9 @@ export function CalendarEventDialog({
         location: pendingModificationData.location,
         calendarId: pendingModificationData.calendarId,
         startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime || '00:00'),
-        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59')
+        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59'),
+        isGroupEvent: pendingModificationData.isGroupEvent,
+        parentGroupEventId: pendingModificationData.parentGroupEventId
       };
       await onModifyThisAndFuture(event, modifiedData);
     }
@@ -394,7 +398,9 @@ export function CalendarEventDialog({
         location: pendingModificationData.location,
         calendarId: pendingModificationData.calendarId,
         startTime: combineDateAndTime(pendingModificationData.startDate, pendingModificationData.startTime || '00:00'),
-        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59')
+        endTime: combineDateAndTime(pendingModificationData.endDate, pendingModificationData.endTime || '23:59'),
+        isGroupEvent: pendingModificationData.isGroupEvent,
+        parentGroupEventId: pendingModificationData.parentGroupEventId
       };
       await onModifyAllInSeries(event, modifiedData);
     }

@@ -745,7 +745,9 @@ export class CalendarEventsService {
         calendar_id: modifiedEventData.calendarId ?? modifiedEventData.calendar_id ?? masterEvent.calendar_id,
         start_time: newStartTime.toISOString(),
         end_time: newEndTime.toISOString(),
-        all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false
+        all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
+        is_group_event: modifiedEventData.isGroupEvent ?? modifiedEventData.is_group_event ?? masterEvent.is_group_event ?? false,
+        parent_group_event_id: modifiedEventData.parentGroupEventId ?? modifiedEventData.parent_group_event_id ?? masterEvent.parent_group_event_id
       };
 
       const rawSingleEventRecord = await this.backend.calendarEvents.create(singleEventData);
@@ -908,6 +910,8 @@ export class CalendarEventsService {
         start_time: newSeriesStartTime.toISOString(),
         end_time: newSeriesEndTime.toISOString(),
         all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
+        is_group_event: modifiedEventData.isGroupEvent ?? modifiedEventData.is_group_event ?? masterEvent.is_group_event ?? false,
+        parent_group_event_id: modifiedEventData.parentGroupEventId ?? modifiedEventData.parent_group_event_id ?? masterEvent.parent_group_event_id,
         recurrence_rule: JSON.stringify({
           frequency: recurrencePattern!.frequency,
           interval: recurrencePattern!.interval,
@@ -1085,6 +1089,8 @@ export class CalendarEventsService {
         start_time: updatedStartTime.toISOString(),
         end_time: updatedEndTime.toISOString(),
         all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
+        is_group_event: modifiedEventData.isGroupEvent ?? modifiedEventData.is_group_event ?? masterEvent.is_group_event ?? false,
+        parent_group_event_id: modifiedEventData.parentGroupEventId ?? modifiedEventData.parent_group_event_id ?? masterEvent.parent_group_event_id,
         recurrence_rule: JSON.stringify({
           frequency: modifiedEventData.recurrenceFrequency ?? recurrencePattern?.frequency ?? 'none',
           end_date: modifiedEventData.recurrenceEndDate !== undefined
@@ -1112,6 +1118,8 @@ export class CalendarEventsService {
           start_time: updatedStartTime.toISOString(),
           end_time: updatedEndTime.toISOString(),
           all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
+          is_group_event: modifiedEventData.isGroupEvent ?? modifiedEventData.is_group_event ?? masterEvent.is_group_event ?? false,
+          parent_group_event_id: modifiedEventData.parentGroupEventId ?? modifiedEventData.parent_group_event_id ?? masterEvent.parent_group_event_id,
           recurrence_rule: JSON.stringify({
             frequency: modifiedEventData.recurrenceFrequency ?? recurrencePattern?.frequency ?? 'none',
             end_date: modifiedEventData.recurrenceEndDate !== undefined
