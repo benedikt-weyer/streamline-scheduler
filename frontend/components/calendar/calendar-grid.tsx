@@ -1656,6 +1656,39 @@ export function CalendarGrid({
           openEditDialog(event);
         }}
         onEventClick={(event) => {
+          // Check if this is a virtual recurrence instance of a child event
+          const isRecurrenceInstance = event.id.includes('-recurrence-');
+          
+          if (isRecurrenceInstance) {
+            // Find the master event for this child
+            const masterEventId = event.id.split('-recurrence-')[0];
+            const masterEvent = events.find(e => e.id === masterEventId);
+            
+            if (masterEvent) {
+              // Check if the master event's parent group is recurring
+              const parentGroupId = masterEvent.parent_group_event_id;
+              const parentGroup = parentGroupId ? events.find(e => e.id === parentGroupId) : null;
+              
+              if (parentGroup) {
+                const parentRecurrencePattern = getRecurrencePattern(parentGroup);
+                const isParentRecurring = parentRecurrencePattern && 
+                  parentRecurrencePattern.frequency !== RecurrenceFrequency.None;
+                
+                if (isParentRecurring) {
+                  // This is a child event in a recurring group
+                  // Open the dialog with the master event but mark it as a recurring instance
+                  openEditDialog({
+                    ...masterEvent,
+                    clickedOccurrenceDate: event.start_time, // start_time of the clicked instance
+                    isRecurrenceInstance: true // Mark it as an instance for the dialog
+                  } as CalendarEvent);
+                  return;
+                }
+              }
+            }
+          }
+          
+          // For non-recurring child events or regular events, just open the dialog normally
           openEditDialog(event);
         }}
         onEventUpdate={onEventUpdate}
@@ -1681,6 +1714,39 @@ export function CalendarGrid({
           openEditDialog(event);
         }}
         onEventClick={(event) => {
+          // Check if this is a virtual recurrence instance of a child event
+          const isRecurrenceInstance = event.id.includes('-recurrence-');
+          
+          if (isRecurrenceInstance) {
+            // Find the master event for this child
+            const masterEventId = event.id.split('-recurrence-')[0];
+            const masterEvent = events.find(e => e.id === masterEventId);
+            
+            if (masterEvent) {
+              // Check if the master event's parent group is recurring
+              const parentGroupId = masterEvent.parent_group_event_id;
+              const parentGroup = parentGroupId ? events.find(e => e.id === parentGroupId) : null;
+              
+              if (parentGroup) {
+                const parentRecurrencePattern = getRecurrencePattern(parentGroup);
+                const isParentRecurring = parentRecurrencePattern && 
+                  parentRecurrencePattern.frequency !== RecurrenceFrequency.None;
+                
+                if (isParentRecurring) {
+                  // This is a child event in a recurring group
+                  // Open the dialog with the master event but mark it as a recurring instance
+                  openEditDialog({
+                    ...masterEvent,
+                    clickedOccurrenceDate: event.start_time, // start_time of the clicked instance
+                    isRecurrenceInstance: true // Mark it as an instance for the dialog
+                  } as CalendarEvent);
+                  return;
+                }
+              }
+            }
+          }
+          
+          // For non-recurring child events or regular events, just open the dialog normally
           openEditDialog(event);
         }}
         onEventUpdate={onEventUpdate}

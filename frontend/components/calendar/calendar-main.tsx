@@ -415,9 +415,11 @@ export function CalendarMain({
     // Find the original event before drag to calculate the offset
     // For child events (recurrence instances), we need to find the master event
     let originalEvent = events.find(e => e.id === updatedEvent.id);
+    let isVirtualRecurrenceInstance = false;
     
     if (!originalEvent && updatedEvent.id.includes('-recurrence-')) {
       // This is a recurrence instance, find the master event and calculate the original instance time
+      isVirtualRecurrenceInstance = true;
       const masterEventId = updatedEvent.id.split('-recurrence-')[0];
       const masterEvent = events.find(e => e.id === masterEventId);
       if (masterEvent) {
@@ -469,12 +471,32 @@ export function CalendarMain({
       setOriginalEventBeforeDrag(originalEvent);
     }
     
-    // Check if this is a recurring event
+    // Check if this is a recurring event itself
     const recurrencePattern = getRecurrencePattern(updatedEvent);
     const isRecurringEvent = recurrencePattern && 
       recurrencePattern.frequency !== RecurrenceFrequency.None;
 
-    if (isRecurringEvent) {
+    // Check if this is a child event of a recurring group
+    // (Even if the child itself is not recurring, if its parent group is recurring,
+    // we should show the modification dialog)
+    let isChildOfRecurringGroup = false;
+    if (updatedEvent.parent_group_event_id || isVirtualRecurrenceInstance) {
+      // Get the base parent group ID (remove -recurrence suffix if present)
+      const baseParentGroupId = updatedEvent.parent_group_event_id?.includes('-recurrence-')
+        ? updatedEvent.parent_group_event_id.split('-recurrence-')[0]
+        : updatedEvent.parent_group_event_id;
+      
+      if (baseParentGroupId) {
+        const parentGroup = events.find(e => e.id === baseParentGroupId);
+        if (parentGroup) {
+          const parentRecurrencePattern = getRecurrencePattern(parentGroup);
+          isChildOfRecurringGroup = parentRecurrencePattern && 
+            parentRecurrencePattern.frequency !== RecurrenceFrequency.None;
+        }
+      }
+    }
+
+    if (isRecurringEvent || isChildOfRecurringGroup) {
       // Store the updated event and show the modification choice modal
       setPendingDraggedEvent(updatedEvent);
       setIsDragModificationModalOpen(true);
