@@ -177,16 +177,6 @@ function DroppableTaskItem({
         const sourceIndex = filteredTasks.findIndex(t => t.id === draggedTaskId);
         const targetIndex = filteredTasks.findIndex(t => t.id === task.id);
         
-        console.log('Reorder indices:', {
-          currentProjectId,
-          filteredTasksCount: filteredTasks.length,
-          sourceIndex,
-          targetIndex,
-          isAbove,
-          draggedTask: filteredTasks[sourceIndex]?.content,
-          targetTask: filteredTasks[targetIndex]?.content,
-        });
-        
         if (sourceIndex !== -1 && targetIndex !== -1 && sourceIndex !== targetIndex) {
           let destinationIndex = isAbove ? targetIndex : targetIndex + 1;
           
@@ -195,11 +185,7 @@ function DroppableTaskItem({
             destinationIndex--;
           }
           
-          console.log('Calling onReorderTasks:', sourceIndex, '->', destinationIndex, 'projectId:', currentProjectId);
-          const success = await onReorderTasks(sourceIndex, destinationIndex, currentProjectId);
-          console.log('Reorder result:', success);
-        } else {
-          console.log('Skipping reorder - invalid indices or same position');
+          await onReorderTasks(sourceIndex, destinationIndex, currentProjectId);
         }
       }
     }

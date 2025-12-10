@@ -266,6 +266,37 @@ function SchedulerPageContent() {
     }
   };
 
+  const handleTaskDropToProject = useCallback(async (taskId: string, projectId: string) => {
+    if (!canDoListPageService) return;
+    
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+      
+      // Update the task's project
+      const updatedTask = await canDoListPageService.updateTask(
+        taskId,
+        task.content,
+        task.duration_minutes,
+        projectId,
+        task.impact,
+        task.urgency,
+        task.due_date ? new Date(task.due_date) : undefined,
+        task.blocked_by,
+        task.my_day,
+        task.parent_task_id
+      );
+      
+      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
+      
+      const project = projects.find(p => p.id === projectId);
+      toast.success(`Task moved to ${project?.name || 'project'}`);
+    } catch (error) {
+      console.error('Failed to move task to project:', error);
+      toast.error('Failed to move task');
+    }
+  }, [canDoListPageService, tasks, projects]);
+
   const handleAddTask = async (
     content: string,
     duration?: number,
@@ -1226,6 +1257,7 @@ function SchedulerPageContent() {
               handleDeleteProject={handleDeleteProject}
               handleBulkReorderProjects={handleBulkReorderProjects}
               handleUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
+              handleTaskDropToProject={handleTaskDropToProject}
               loadProjects={wrappedLoadProjects}
               onNavigateToEvent={handleNavigateToEvent}
               onDeleteEvent={handleDeleteEventFromTask}

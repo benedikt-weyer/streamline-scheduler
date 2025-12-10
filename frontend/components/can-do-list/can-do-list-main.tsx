@@ -85,6 +85,7 @@ interface CanDoListMainProps {
   handleDeleteProject: (id: string) => Promise<boolean>;
   handleBulkReorderProjects: (projectUpdates: Array<{ id: string; displayOrder: number; parentId?: string }>) => Promise<boolean>;
   handleUpdateProjectCollapsedState: (id: string, isCollapsed: boolean) => Promise<boolean>;
+  handleTaskDropToProject?: (taskId: string, projectId: string) => void;
   loadProjects: () => Promise<void>;
   
   // Optional styling
@@ -123,6 +124,7 @@ export default function CanDoListMain({
   handleDeleteProject,
   handleBulkReorderProjects,
   handleUpdateProjectCollapsedState,
+  handleTaskDropToProject,
   loadProjects,
   
   // Optional styling
@@ -741,6 +743,7 @@ export default function CanDoListMain({
                 onDeleteProject={handleDeleteProject}
                 onBulkReorderProjects={handleBulkReorderProjects}
                 onUpdateProjectCollapsedState={handleUpdateProjectCollapsedState}
+                onTaskDrop={handleTaskDropToProject}
                 isLoading={isLoading}
                 itemCounts={taskCounts}
                 isRecommendedSelected={isRecommendedSelected}

@@ -45,6 +45,7 @@ interface ProjectSidebarDynamicProps {
   readonly onDeleteProject: (id: string) => Promise<boolean>;
   readonly onBulkReorderProjects: (updates: Array<{ id: string; parentId?: string; displayOrder: number }>) => Promise<boolean>;
   readonly onUpdateProjectCollapsedState: (id: string, isCollapsed: boolean) => Promise<boolean>;
+  readonly onTaskDrop?: (taskId: string, projectId: string) => void;
   readonly isLoading?: boolean;
   readonly itemCounts?: Record<string, number>;
   readonly isCollapsed?: boolean;

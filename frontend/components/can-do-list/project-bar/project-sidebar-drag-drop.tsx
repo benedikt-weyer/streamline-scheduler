@@ -29,6 +29,7 @@ interface ProjectSidebarProps {
   readonly onDeleteProject: (id: string) => Promise<boolean>;
   readonly onBulkReorderProjects: (updates: Array<{ id: string; parentId?: string; displayOrder: number }>) => Promise<boolean>;
   readonly onUpdateProjectCollapsedState: (id: string, isCollapsed: boolean) => Promise<boolean>;
+  readonly onTaskDrop?: (taskId: string, projectId: string) => void;
   readonly isLoading?: boolean;
   readonly itemCounts?: Record<string, number>;
   readonly isCollapsed?: boolean;
@@ -47,6 +48,7 @@ interface TreeItemData {
   onSelect: () => void;
   onEdit: () => void;
   onAddChild: () => void;
+  onTaskDrop?: (taskId: string, projectId: string) => void;
 }
 
 export default function ProjectSidebarWithDragDrop({
@@ -62,6 +64,7 @@ export default function ProjectSidebarWithDragDrop({
   onDeleteProject,
   onBulkReorderProjects,
   onUpdateProjectCollapsedState,
+  onTaskDrop,
   isLoading = false,
   itemCounts = {},
   isCollapsed = false,
@@ -162,6 +165,11 @@ export default function ProjectSidebarWithDragDrop({
     const createSelectHandler = (projectId: string) => () => onProjectSelect(projectId);
     const createEditHandler = (project: ProjectDecrypted) => () => setEditingProject(project);
     const createAddChildHandler = (projectId: string) => () => openAddDialogForParent(projectId);
+    const createTaskDropHandler = (projectId: string) => (taskId: string, targetProjectId: string) => {
+      if (onTaskDrop) {
+        onTaskDrop(taskId, targetProjectId);
+      }
+    };
 
     // When searching, show flat list of matching projects with hierarchical names
     if (searchQuery.trim()) {
@@ -176,6 +184,7 @@ export default function ProjectSidebarWithDragDrop({
         onSelect: createSelectHandler(project.id),
         onEdit: createEditHandler(project),
         onAddChild: createAddChildHandler(project.id),
+        onTaskDrop: createTaskDropHandler(project.id),
         children: [], // Flat list when searching
         collapsed: false
       }));
@@ -202,6 +211,7 @@ export default function ProjectSidebarWithDragDrop({
         onSelect: createSelectHandler(project.id),
         onEdit: createEditHandler(project),
         onAddChild: createAddChildHandler(project.id),
+        onTaskDrop: createTaskDropHandler(project.id),
         children: buildTree(project.id),
         collapsed: project.collapsed
       }));
@@ -209,7 +219,7 @@ export default function ProjectSidebarWithDragDrop({
 
     const result = buildTree();
     return result;
-  }, [filteredProjects, itemCounts, selectedProjectId, onProjectSelect, searchQuery]);
+  }, [filteredProjects, itemCounts, selectedProjectId, onProjectSelect, onTaskDrop, searchQuery]);
 
   // Handle tree items change from drag and drop or collapse/expand
   const handleItemsChanged = async (newItems: TreeItems<TreeItemData>) => {

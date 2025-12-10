@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Settings, Folder, FolderOpen, ChevronDown, ChevronRight } from 'lucide-react';
 import { SimpleTreeItemWrapper, TreeItemComponentProps } from 'dnd-kit-sortable-tree';
+import { useDroppable, DragData } from '@/lib/flexyDND';
 
 interface TreeItemData {
   id: string;
@@ -16,6 +17,7 @@ interface TreeItemData {
   onSelect: () => void;
   onEdit: () => void;
   onAddChild: () => void;
+  onTaskDrop?: (taskId: string, projectId: string) => void;
 }
 
 const ProjectTreeItem = React.forwardRef<
@@ -35,13 +37,39 @@ const ProjectTreeItem = React.forwardRef<
     }
   };
 
+  // Track hover state for visual feedback
+  const [isOver, setIsOver] = React.useState(false);
+
+  // FlexyDND drop handling for tasks
+  const { dropRef } = useDroppable({
+    id: `project-${item.id}`,
+    accept: 'task',
+    onDragEnter: () => {
+      setIsOver(true);
+    },
+    onDragLeave: () => {
+      setIsOver(false);
+    },
+    onDrop: (dragData: DragData) => {
+      setIsOver(false);
+      if (dragData.type === 'task' && dragData.data?.taskId && item.onTaskDrop) {
+        item.onTaskDrop(dragData.data.taskId, item.id);
+      }
+    },
+  });
+
   return (
     <SimpleTreeItemWrapper 
       {...props} 
       ref={ref} 
       className="no-border-tree-item"
     >
-      <div className="relative flex items-center w-full group">
+      <div 
+        ref={dropRef}
+        className={`relative flex items-center w-full group transition-colors ${
+          isOver ? 'bg-primary/10 rounded-md' : ''
+        }`}
+      >
         {/* Custom Collapse/Expand button for projects with children */}
         <div className="w-3 h-6 mr-2 flex items-center justify-center">
           {hasChildren && (
