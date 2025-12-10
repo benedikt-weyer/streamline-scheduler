@@ -73,6 +73,7 @@ interface DayColumnProps {
   onTaskDrop?: (taskId: string, startTime: Date, durationMinutes: number) => Promise<void>;
   calculateTimeFromPosition: (day: Date, position: FlexyDragPosition, dayElement: HTMLElement) => Date;
   setDropHoverPosition: React.Dispatch<React.SetStateAction<{ day: Date; time: Date } | null>>;
+  currentDragData: any;
 }
 
 function DayColumn({
@@ -91,24 +92,20 @@ function DayColumn({
   onTaskDrop,
   calculateTimeFromPosition,
   setDropHoverPosition,
+  currentDragData,
 }: DayColumnProps) {
   const dayColumnRef = useRef<HTMLDivElement | null>(null);
   
   const handleDrop = useCallback(async (dragData: DragData, position: FlexyDragPosition) => {
-    console.log('Drop handler called:', { dragData, position, hasDropHandler: !!onTaskDrop });
     if (dayColumnRef.current && onTaskDrop) {
       const dropTime = calculateTimeFromPosition(day, position, dayColumnRef.current);
       const taskData = dragData.data;
-      console.log('Calling onTaskDrop with:', { taskId: taskData.taskId, dropTime, duration: taskData.durationMinutes });
       try {
         await onTaskDrop(taskData.taskId, dropTime, taskData.durationMinutes || 60);
-        console.log('Task drop successful');
       } catch (error) {
         console.error('Task drop failed:', error);
       }
       setDropHoverPosition(null);
-    } else {
-      console.log('Drop rejected:', { hasDayRef: !!dayColumnRef.current, hasHandler: !!onTaskDrop });
     }
   }, [day, onTaskDrop, calculateTimeFromPosition, setDropHoverPosition]);
 
@@ -171,15 +168,43 @@ function DayColumn({
       {/* Drag helper for this day */}
       {renderDragHelper(dayIndex, day, null)}
       
-      {/* Drop indicator for task drops */}
-      {dropHoverPosition && isSameDay(dropHoverPosition.day, day) && (
-        <div
-          className="absolute left-0 right-0 h-1 bg-blue-500 opacity-75 pointer-events-none z-50"
-          style={{
-            top: `${(dropHoverPosition.time.getHours() * 60 + dropHoverPosition.time.getMinutes()) * (slotHeight / 60)}px`,
-          }}
-        />
-      )}
+      {/* Drop indicator for task drops - render as transparent event preview */}
+      {dropHoverPosition && isSameDay(dropHoverPosition.day, day) && (() => {
+        const startMinutes = dropHoverPosition.time.getHours() * 60 + dropHoverPosition.time.getMinutes();
+        // Get duration from the current drag data (default 60 minutes)
+        const durationMinutes = currentDragData?.data?.durationMinutes || 60;
+        const taskContent = currentDragData?.data?.taskContent || 'Task';
+        const endMinutes = startMinutes + durationMinutes;
+        
+        // Calculate position adjusting for zoom
+        const startHour = isZoomActive ? zoomWindow.startHour : 0;
+        const endHour = isZoomActive ? zoomWindow.endHour : 24;
+        const totalMinutes = (endHour - startHour) * 60;
+        const startOffset = startMinutes - (startHour * 60);
+        
+        const top = (startOffset / totalMinutes) * (calendarHeight || slotHeight * timeSlots.length);
+        const height = (durationMinutes / totalMinutes) * (calendarHeight || slotHeight * timeSlots.length);
+        
+        const endTime = new Date(dropHoverPosition.time);
+        endTime.setMinutes(endTime.getMinutes() + durationMinutes);
+        
+        return (
+          <div
+            className="absolute left-0 right-0 bg-primary/30 border-2 border-primary border-dashed rounded pointer-events-none z-50 px-2 py-1 overflow-hidden"
+            style={{
+              top: `${top}px`,
+              height: `${Math.max(height, 20)}px`,
+            }}
+          >
+            <div className="text-xs font-semibold text-primary truncate">
+              {taskContent}
+            </div>
+            <div className="text-[10px] text-primary/80">
+              {format(dropHoverPosition.time, 'HH:mm')} - {format(endTime, 'HH:mm')}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -1783,6 +1808,7 @@ export function CalendarGrid({
               onTaskDrop={onTaskDrop}
               calculateTimeFromPosition={calculateTimeFromPosition}
               setDropHoverPosition={setDropHoverPosition}
+              currentDragData={flexyDND.currentDragData}
             />
           ))}
         </div>

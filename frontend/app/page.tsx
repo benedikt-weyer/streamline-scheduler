@@ -1103,16 +1103,10 @@ function SchedulerPageContent() {
 
   // Handle task drop onto calendar
   const handleTaskDrop = async (taskId: string, startTime: Date, durationMinutes: number): Promise<void> => {
-    console.log('handleTaskDrop called:', { taskId, startTime, durationMinutes, hasService: !!schedulerPageService });
-    
-    if (!schedulerPageService) {
-      console.error('No schedulerPageService available');
-      return;
-    }
+    if (!schedulerPageService) return;
     
     try {
       const task = tasks.find(t => t.id === taskId);
-      console.log('Found task:', task);
       
       if (!task) {
         toast.error('Task not found');
@@ -1121,7 +1115,6 @@ function SchedulerPageContent() {
       
       // Get default calendar
       const defaultCalendar = calendars.find(cal => cal.is_default) || calendars[0];
-      console.log('Using calendar:', defaultCalendar);
       
       if (!defaultCalendar) {
         toast.error('No calendar available');
@@ -1129,9 +1122,7 @@ function SchedulerPageContent() {
       }
       
       // Create calendar event from task
-      console.log('Creating event from task...');
       const newEvent = await schedulerPageService.createEventFromTask(task, defaultCalendar.id, startTime);
-      console.log('Event created:', newEvent);
       
       // Update state with new event
       setCalendarEvents([...calendarEvents, newEvent]);
