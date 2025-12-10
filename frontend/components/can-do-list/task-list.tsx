@@ -15,8 +15,10 @@ function organizeTasksHierarchically(tasks: CanDoItemDecrypted[], showCompleted:
   const result: TaskWithDepth[] = [];
   
   const addTaskAndChildren = (taskId: string | undefined, depth: number, processed: Set<string>, parentCompleted: boolean = false) => {
-    // Find children of this task
-    const children = tasks.filter(t => t.parent_task_id === taskId);
+    // Find children of this task and sort by display_order
+    const children = tasks
+      .filter(t => t.parent_task_id === taskId)
+      .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
     
     children.forEach(task => {
       // Prevent infinite loops
@@ -51,7 +53,8 @@ function organizeTasksHierarchically(tasks: CanDoItemDecrypted[], showCompleted:
 interface DroppableTaskItemProps {
   task: TaskWithDepth;
   index: number;
-  totalTasks: number;
+  hierarchicalTasks: TaskWithDepth[];
+  allTasks: CanDoItemDecrypted[];
   onToggleComplete: (id: string, completed: boolean) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
   onUpdateTask: (id: string, content: string, estimatedDuration?: number, projectId?: string, impact?: number, urgency?: number, dueDate?: Date, blockedBy?: string, myDay?: boolean, parentTaskId?: string) => Promise<void>;
@@ -59,7 +62,6 @@ interface DroppableTaskItemProps {
   onScheduleTask?: (taskId: string) => Promise<void>;
   isScheduled: boolean;
   projects: ProjectDecrypted[];
-  allTasks: CanDoItemDecrypted[];
   showProjectName: boolean;
   calendarEvents?: any[];
   onNavigateToEvent?: (eventId: string) => void;
@@ -71,7 +73,8 @@ interface DroppableTaskItemProps {
 function DroppableTaskItem({
   task,
   index,
-  totalTasks,
+  hierarchicalTasks,
+  allTasks,
   onToggleComplete,
   onDeleteTask,
   onUpdateTask,
@@ -79,7 +82,6 @@ function DroppableTaskItem({
   onScheduleTask,
   isScheduled,
   projects,
-  allTasks,
   showProjectName,
   calendarEvents,
   onNavigateToEvent,
@@ -131,15 +133,74 @@ function DroppableTaskItem({
         task.id // Set as parent
       );
     } else {
-      // Reorder - determine if above or below based on top/bottom zones
+      // Reorder - move task to be a sibling of target task
       const isAbove = relativeY < centerZoneStart;
+      const targetParentId = task.parent_task_id;
       
+      console.log('Reordering task:', {
+        draggedTaskId,
+        draggedTaskParent: draggedTask.parent_task_id,
+        targetTaskId: task.id,
+        targetParentId,
+        isAbove,
+      });
+      
+      // If changing parent level, update that first
+      if (draggedTask.parent_task_id !== targetParentId) {
+        console.log('Changing parent from', draggedTask.parent_task_id, 'to', targetParentId);
+        await onUpdateTask(
+          draggedTaskId,
+          draggedTask.content,
+          draggedTask.duration_minutes,
+          draggedTask.project_id,
+          draggedTask.impact,
+          draggedTask.urgency,
+          draggedTask.due_date ? new Date(draggedTask.due_date) : undefined,
+          draggedTask.blocked_by,
+          draggedTask.my_day,
+          targetParentId
+        );
+      }
+      
+      // Use onReorderTasks to position it correctly
       if (onReorderTasks) {
-        // Find source and destination indices in the flat list
-        const sourceIndex = index; // This would need to be calculated from all tasks
-        const destinationIndex = isAbove ? index : index + 1;
+        // IMPORTANT: onReorderTasks filters by project OR all non-completed tasks
+        // Match the service filter exactly:
+        // const tasks = projectId 
+        //   ? allTasks.filter(task => task.project_id === projectId && !task.completed)
+        //   : allTasks.filter(task => !task.completed);
         
-        await onReorderTasks(sourceIndex, destinationIndex, currentProjectId);
+        const filteredTasks = currentProjectId 
+          ? allTasks.filter(t => t.project_id === currentProjectId && !t.completed)
+          : allTasks.filter(t => !t.completed);
+        
+        const sourceIndex = filteredTasks.findIndex(t => t.id === draggedTaskId);
+        const targetIndex = filteredTasks.findIndex(t => t.id === task.id);
+        
+        console.log('Reorder indices:', {
+          currentProjectId,
+          filteredTasksCount: filteredTasks.length,
+          sourceIndex,
+          targetIndex,
+          isAbove,
+          draggedTask: filteredTasks[sourceIndex]?.content,
+          targetTask: filteredTasks[targetIndex]?.content,
+        });
+        
+        if (sourceIndex !== -1 && targetIndex !== -1 && sourceIndex !== targetIndex) {
+          let destinationIndex = isAbove ? targetIndex : targetIndex + 1;
+          
+          // Adjust destination if source is before target
+          if (sourceIndex < destinationIndex) {
+            destinationIndex--;
+          }
+          
+          console.log('Calling onReorderTasks:', sourceIndex, '->', destinationIndex, 'projectId:', currentProjectId);
+          const success = await onReorderTasks(sourceIndex, destinationIndex, currentProjectId);
+          console.log('Reorder result:', success);
+        } else {
+          console.log('Skipping reorder - invalid indices or same position');
+        }
       }
     }
     
@@ -285,7 +346,8 @@ export default function TaskList({
             <DroppableTaskItem
               task={task}
               index={index}
-              totalTasks={hierarchicalTasks.length}
+              hierarchicalTasks={hierarchicalTasks}
+              allTasks={allTasks ?? tasks}
               onToggleComplete={onToggleComplete}
               onDeleteTask={onDeleteTask}
               onUpdateTask={onUpdateTask}
@@ -293,7 +355,6 @@ export default function TaskList({
               onScheduleTask={onScheduleTask}
               isScheduled={isTaskScheduled ? isTaskScheduled(task.id) : false}
               projects={projects}
-              allTasks={allTasks ?? tasks}
               showProjectName={showProjectName}
               calendarEvents={calendarEvents}
               onNavigateToEvent={onNavigateToEvent}
