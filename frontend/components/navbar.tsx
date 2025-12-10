@@ -39,7 +39,7 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
         {/* Left side - Brand (links to scheduler) */}
         <Link href="/" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
           <Image src="/icon.png" alt={t('navbar.appName')} width={25} height={25} />
-          <span className="font-bold text-xl md:text-2xl">
+          <span className="font-bold text-xl md:text-2xl hidden md:inline">
             {t('navbar.appName')}
           </span>
         </Link>
@@ -68,8 +68,11 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
             </Button>
           </Link>
           
-          {themeSwitcher}
-          {authComponent}
+          {/* Desktop only - theme switcher and auth */}
+          <div className="hidden md:flex items-center gap-2 md:gap-4">
+            {themeSwitcher}
+            {authComponent}
+          </div>
           
           {/* Mobile menu button - Only visible on mobile */}
           <Button
@@ -92,6 +95,12 @@ export function Navbar({ themeSwitcher, authComponent }: MobileNavbarProps) {
               <NavLink href={isSettingsPage ? "/" : "/settings"} className="w-full justify-start">
                 {isSettingsPage ? t('navbar.backToScheduler') : t('navbar.settings')}
               </NavLink>
+            </div>
+            
+            {/* Theme switcher and auth in mobile menu */}
+            <div className="flex items-center gap-2 pt-2 border-t border-border">
+              {themeSwitcher}
+              {authComponent}
             </div>
           </div>
         </div>
