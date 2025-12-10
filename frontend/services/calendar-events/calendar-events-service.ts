@@ -486,7 +486,7 @@ export class CalendarEventsService {
     }
 
     const occurrenceStartTime = validation.occurrenceStartTime!;
-    const recurrencePattern = getRecurrencePattern(masterEvent);
+    // recurrencePattern already declared above
     const originalRecurrenceEndDate = recurrencePattern?.endDate ? new Date(recurrencePattern.endDate) : undefined;
 
     try {
@@ -677,7 +677,9 @@ export class CalendarEventsService {
   }> {
     // If this is a recurrence instance, find the master event
     let masterEvent = eventToModify;
+    let isVirtualRecurrenceInstance = false;
     if (eventToModify.id.includes('-recurrence-')) {
+      isVirtualRecurrenceInstance = true;
       const masterEventId = eventToModify.id.split('-recurrence-')[0];
       const foundMasterEvent = allEvents.find(e => e.id === masterEventId);
       if (foundMasterEvent) {
@@ -689,14 +691,73 @@ export class CalendarEventsService {
       }
     }
 
-    // Validate event data
+    // Check if this is a child event of a recurring group (not a recurring event itself)
+    const recurrencePattern = getRecurrencePattern(masterEvent);
+    const isRecurringEvent = recurrencePattern && recurrencePattern.frequency !== 'none';
+    
+    // If this is a virtual instance of a child event in a recurring group (not a recurring event itself),
+    // just update the master child event directly for "this occurrence"
+    if (isVirtualRecurrenceInstance && !isRecurringEvent && masterEvent.parent_group_event_id) {
+      try {
+        // For child events in recurring groups, update the base child event
+        // This will affect this occurrence only in the UI, but update the underlying child event
+        let newStartTime: Date;
+        let newEndTime: Date;
+        
+        if (modifiedEventData.startDate && modifiedEventData.startTime) {
+          newStartTime = new Date(`${modifiedEventData.startDate}T${modifiedEventData.startTime}`);
+          newEndTime = new Date(`${modifiedEventData.endDate}T${modifiedEventData.endTime}`);
+        } else if (modifiedEventData.start_time && modifiedEventData.end_time) {
+          newStartTime = new Date(modifiedEventData.start_time);
+          newEndTime = new Date(modifiedEventData.end_time);
+        } else {
+          newStartTime = new Date(eventToModify.start_time);
+          const duration = new Date(masterEvent.end_time).getTime() - new Date(masterEvent.start_time).getTime();
+          newEndTime = new Date(newStartTime.getTime() + duration);
+        }
+
+        const updateData = {
+          id: masterEvent.id,
+          ...(modifiedEventData.title !== undefined && { title: modifiedEventData.title }),
+          ...(modifiedEventData.description !== undefined && { description: modifiedEventData.description }),
+          ...(modifiedEventData.location !== undefined && { location: modifiedEventData.location }),
+          ...(modifiedEventData.calendarId !== undefined && { calendar_id: modifiedEventData.calendarId }),
+          start_time: newStartTime.toISOString(),
+          end_time: newEndTime.toISOString(),
+          ...(modifiedEventData.isAllDay !== undefined && { all_day: modifiedEventData.isAllDay }),
+          // Preserve parent_group_event_id to maintain the relationship with the group
+          parent_group_event_id: masterEvent.parent_group_event_id,
+          // Preserve is_group_event flag
+          is_group_event: masterEvent.is_group_event || false,
+        };
+
+        await this.backend.calendarEvents.update(updateData);
+
+        const updatedEvents = allEvents.map(event =>
+          event.id === masterEvent.id
+            ? {
+                ...event,
+                ...updateData,
+                updated_at: new Date().toISOString()
+              }
+            : event
+        );
+
+        return { success: true, updatedEvents };
+      } catch (error) {
+        console.error('Failed to modify child event:', error);
+        return { success: false, error: 'Failed to modify child event' };
+      }
+    }
+
+    // Validate event data (for actual recurring events)
     const validation = this.validateEventForOccurrenceDeletion(masterEvent);
     if (!validation.isValid) {
       return { success: false, error: validation.error ?? 'Validation failed' };
     }
 
     const occurrenceStartTime = validation.occurrenceStartTime!;
-    const recurrencePattern = getRecurrencePattern(masterEvent);
+    // recurrencePattern already declared above
     const originalRecurrenceEndDate = recurrencePattern?.endDate ? new Date(recurrencePattern.endDate) : undefined;
 
     try {
@@ -836,7 +897,9 @@ export class CalendarEventsService {
   }> {
     // If this is a recurrence instance, find the master event
     let masterEvent = eventToModify;
+    let isVirtualRecurrenceInstance = false;
     if (eventToModify.id.includes('-recurrence-')) {
+      isVirtualRecurrenceInstance = true;
       const masterEventId = eventToModify.id.split('-recurrence-')[0];
       const foundMasterEvent = allEvents.find(e => e.id === masterEventId);
       if (foundMasterEvent) {
@@ -848,14 +911,73 @@ export class CalendarEventsService {
       }
     }
 
-    // Validate event data
+    // Check if this is a child event of a recurring group (not a recurring event itself)
+    const recurrencePattern = getRecurrencePattern(masterEvent);
+    const isRecurringEvent = recurrencePattern && recurrencePattern.frequency !== 'none';
+    
+    // If this is a virtual instance of a child event in a recurring group (not a recurring event itself),
+    // just update the master child event directly for "this and future"
+    if (isVirtualRecurrenceInstance && !isRecurringEvent && masterEvent.parent_group_event_id) {
+      try {
+        // For child events in recurring groups, update the base child event
+        // This will affect all future occurrences in the UI
+        let newStartTime: Date;
+        let newEndTime: Date;
+        
+        if (modifiedEventData.startDate && modifiedEventData.startTime) {
+          newStartTime = new Date(`${modifiedEventData.startDate}T${modifiedEventData.startTime}`);
+          newEndTime = new Date(`${modifiedEventData.endDate}T${modifiedEventData.endTime}`);
+        } else if (modifiedEventData.start_time && modifiedEventData.end_time) {
+          newStartTime = new Date(modifiedEventData.start_time);
+          newEndTime = new Date(modifiedEventData.end_time);
+        } else {
+          newStartTime = new Date(eventToModify.start_time);
+          const duration = new Date(masterEvent.end_time).getTime() - new Date(masterEvent.start_time).getTime();
+          newEndTime = new Date(newStartTime.getTime() + duration);
+        }
+
+        const updateData = {
+          id: masterEvent.id,
+          ...(modifiedEventData.title !== undefined && { title: modifiedEventData.title }),
+          ...(modifiedEventData.description !== undefined && { description: modifiedEventData.description }),
+          ...(modifiedEventData.location !== undefined && { location: modifiedEventData.location }),
+          ...(modifiedEventData.calendarId !== undefined && { calendar_id: modifiedEventData.calendarId }),
+          start_time: newStartTime.toISOString(),
+          end_time: newEndTime.toISOString(),
+          ...(modifiedEventData.isAllDay !== undefined && { all_day: modifiedEventData.isAllDay }),
+          // Preserve parent_group_event_id to maintain the relationship with the group
+          parent_group_event_id: masterEvent.parent_group_event_id,
+          // Preserve is_group_event flag
+          is_group_event: masterEvent.is_group_event || false,
+        };
+
+        await this.backend.calendarEvents.update(updateData);
+
+        const updatedEvents = allEvents.map(event =>
+          event.id === masterEvent.id
+            ? {
+                ...event,
+                ...updateData,
+                updated_at: new Date().toISOString()
+              }
+            : event
+        );
+
+        return { success: true, updatedEvents };
+      } catch (error) {
+        console.error('Failed to modify child event:', error);
+        return { success: false, error: 'Failed to modify child event' };
+      }
+    }
+
+    // Validate event data (for actual recurring events)
     const validation = this.validateEventForOccurrenceDeletion(masterEvent);
     if (!validation.isValid) {
       return { success: false, error: validation.error ?? 'Validation failed' };
     }
 
     const occurrenceStartTime = validation.occurrenceStartTime!;
-    const recurrencePattern = getRecurrencePattern(masterEvent);
+    // recurrencePattern already declared above
     const originalRecurrenceEndDate = recurrencePattern?.endDate ? new Date(recurrencePattern.endDate) : undefined;
 
     try {
