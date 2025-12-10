@@ -850,7 +850,10 @@ export class CalendarEventsService {
         user_id: singleEventRecord.user_id,
         all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
         created_at: singleEventRecord.created_at,
-        updated_at: singleEventRecord.updated_at || new Date().toISOString()
+        updated_at: singleEventRecord.updated_at || new Date().toISOString(),
+        // Preserve group event properties
+        is_group_event: modifiedEventData.isGroupEvent ?? modifiedEventData.is_group_event ?? masterEvent.is_group_event ?? false,
+        parent_group_event_id: modifiedEventData.parentGroupEventId ?? modifiedEventData.parent_group_event_id ?? masterEvent.parent_group_event_id
       };
       updatedEvents.push(newSingleEvent);
 
@@ -868,7 +871,10 @@ export class CalendarEventsService {
           all_day: masterEvent.all_day || false,
           recurrence_rule: createResult.newEvent.data.recurrence_rule,
           created_at: createResult.newEvent.record.created_at,
-          updated_at: createResult.newEvent.record.updated_at || new Date().toISOString()
+          updated_at: createResult.newEvent.record.updated_at || new Date().toISOString(),
+          // Preserve group event properties from master
+          is_group_event: masterEvent.is_group_event ?? false,
+          parent_group_event_id: masterEvent.parent_group_event_id
         };
         updatedEvents.push(newRecurringEvent);
       }
@@ -1082,7 +1088,10 @@ export class CalendarEventsService {
         all_day: modifiedEventData.isAllDay ?? modifiedEventData.all_day ?? masterEvent.all_day ?? false,
         recurrence_rule: newRecurringEventData.recurrence_rule,
         created_at: newEventRecord.created_at,
-        updated_at: newEventRecord.updated_at || new Date().toISOString()
+        updated_at: newEventRecord.updated_at || new Date().toISOString(),
+        // Preserve group event properties
+        is_group_event: modifiedEventData.isGroupEvent ?? modifiedEventData.is_group_event ?? masterEvent.is_group_event ?? false,
+        parent_group_event_id: modifiedEventData.parentGroupEventId ?? modifiedEventData.parent_group_event_id ?? masterEvent.parent_group_event_id
       };
       updatedEvents.push(newRecurringEvent);
 
