@@ -15,6 +15,44 @@ import {
 } from '@/utils/calendar/calendar-drag';
 import { EventGroupModal } from './event-group-modal';
 
+// Helper function to generate virtual child events for recurring group instances
+const getChildEventsForGroupInstance = (
+  groupEvent: CalendarEvent | null,
+  allEvents: CalendarEvent[]
+): CalendarEvent[] => {
+  if (!groupEvent) return [];
+  
+  const baseGroupEventId = groupEvent.id.includes('-recurrence-')
+    ? groupEvent.id.split('-recurrence-')[0]
+    : groupEvent.id;
+  
+  const baseChildEvents = allEvents.filter(e => e.parent_group_event_id === baseGroupEventId);
+  const isRecurringInstance = groupEvent.id.includes('-recurrence-');
+  
+  if (isRecurringInstance) {
+    // For recurring group instances, create virtual child events with adjusted times
+    const recurringGroupStart = new Date(groupEvent.start_time);
+    
+    // Find the original (non-recurring) group event to calculate time offsets
+    const originalGroupEvent = allEvents.find(e => e.id === baseGroupEventId);
+    if (originalGroupEvent) {
+      const originalGroupStartTime = new Date(originalGroupEvent.start_time).getTime();
+      const recurringGroupStartTime = recurringGroupStart.getTime();
+      const timeOffset = recurringGroupStartTime - originalGroupStartTime;
+      
+      // Create virtual child events with adjusted times
+      return baseChildEvents.map(child => ({
+        ...child,
+        id: `${child.id}-recurrence-${format(recurringGroupStart, 'yyyy-MM-dd')}`,
+        start_time: new Date(new Date(child.start_time).getTime() + timeOffset).toISOString(),
+        end_time: new Date(new Date(child.end_time).getTime() + timeOffset).toISOString()
+      }));
+    }
+  }
+  
+  return baseChildEvents;
+};
+
 
 // -------- Prop Interfaces --------
 interface CalendarGridProps {
@@ -968,14 +1006,38 @@ export function CalendarGrid({
       ? event.id.split('-recurrence-')[0] 
       : event.id;
     
-    const childEvents = event.is_group_event 
-      ? events.filter(e => {
-          // Match child events by base parent ID (handles both regular and recurring group events)
-          const matchesParent = e.parent_group_event_id === baseGroupEventId;
-          const matchesDay = isSameDay(new Date(e.start_time), day);
-          return matchesParent && matchesDay;
-        })
-      : [];
+    const isRecurringInstance = event.id.includes('-recurrence-');
+    
+    let childEvents: CalendarEvent[] = [];
+    if (event.is_group_event) {
+      // Get base child events (those stored in DB with parent_group_event_id)
+      const baseChildEvents = events.filter(e => e.parent_group_event_id === baseGroupEventId);
+      
+      if (isRecurringInstance) {
+        // For recurring group instances, create virtual child events with adjusted times
+        const originalGroupStart = new Date(baseChildEvents[0]?.start_time).getTime() || 0;
+        const recurringGroupStart = new Date(event.start_time);
+        
+        // Find the original (non-recurring) group event to calculate time offsets
+        const originalGroupEvent = events.find(e => e.id === baseGroupEventId);
+        if (originalGroupEvent) {
+          const originalGroupStartTime = new Date(originalGroupEvent.start_time).getTime();
+          const recurringGroupStartTime = recurringGroupStart.getTime();
+          const timeOffset = recurringGroupStartTime - originalGroupStartTime;
+          
+          // Create virtual child events with adjusted times
+          childEvents = baseChildEvents.map(child => ({
+            ...child,
+            id: `${child.id}-recurrence-${format(recurringGroupStart, 'yyyy-MM-dd')}`,
+            start_time: new Date(new Date(child.start_time).getTime() + timeOffset).toISOString(),
+            end_time: new Date(new Date(child.end_time).getTime() + timeOffset).toISOString()
+          })).filter(e => isSameDay(new Date(e.start_time), day));
+        }
+      } else {
+        // For non-recurring group events, just filter by day
+        childEvents = baseChildEvents.filter(e => isSameDay(new Date(e.start_time), day));
+      }
+    }
     
     // Calculate group time range for positioning child events
     const groupStart = new Date(event.start_time);
@@ -1539,13 +1601,7 @@ export function CalendarGrid({
         isOpen={isGroupModalOpen}
         onOpenChange={setIsGroupModalOpen}
         groupEvent={selectedGroupEvent}
-        childEvents={events.filter(e => {
-          if (!selectedGroupEvent) return false;
-          const baseGroupEventId = selectedGroupEvent.id.includes('-recurrence-')
-            ? selectedGroupEvent.id.split('-recurrence-')[0]
-            : selectedGroupEvent.id;
-          return e.parent_group_event_id === baseGroupEventId;
-        })}
+        childEvents={getChildEventsForGroupInstance(selectedGroupEvent, events)}
         calendars={calendars?.map(cal => ({
           id: cal.id,
           name: cal.name,
@@ -1570,13 +1626,7 @@ export function CalendarGrid({
         isOpen={isDragHoverModalOpen}
         onOpenChange={setIsDragHoverModalOpen}
         groupEvent={selectedGroupEvent}
-        childEvents={events.filter(e => {
-          if (!selectedGroupEvent) return false;
-          const baseGroupEventId = selectedGroupEvent.id.includes('-recurrence-')
-            ? selectedGroupEvent.id.split('-recurrence-')[0]
-            : selectedGroupEvent.id;
-          return e.parent_group_event_id === baseGroupEventId;
-        })}
+        childEvents={getChildEventsForGroupInstance(selectedGroupEvent, events)}
         calendars={calendars?.map(cal => ({
           id: cal.id,
           name: cal.name,
