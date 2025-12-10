@@ -47,7 +47,6 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
-  const [swipeOffset, setSwipeOffset] = useState(0);
   
   // Get user settings for task click behavior
   const { settings } = useUserSettings();
@@ -67,7 +66,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   });
 
   // EasySwipe for mobile swipe gestures
-  const { ref: swipeRef } = useSwipeable({
+  const { ref: swipeRef, swipeOffset = 0 } = useSwipeable({
     onSwipeRight: () => {
       // Swipe right to complete
       if (!task.completed) {
@@ -78,23 +77,16 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
       // Swipe left to delete
       onDeleteTask(task.id);
     },
-    onSwipeMove: (distance, direction) => {
-      // Update visual feedback during swipe
-      if (direction === 'left' || direction === 'right') {
-        // Limit swipe distance
-        const maxSwipe = 100;
-        const clampedDistance = Math.max(-maxSwipe, Math.min(maxSwipe, distance));
-        setSwipeOffset(clampedDistance);
-      }
-    },
-    onSwipeEnd: () => {
-      // Reset swipe offset
-      setSwipeOffset(0);
-    },
   }, {
     threshold: 80,
     direction: 'horizontal',
+    lockAfterFirstDirection: true, // Lock to left or right after first swipe direction is determined
+    trackSwipeOffset: true, // Track swipe offset for visual feedback
   });
+
+  const clampedOffset = Math.max(-100, Math.min(100, swipeOffset));
+  const swipeThreshold = 80; // Must match the threshold in useSwipeable config
+  const willTriggerAction = Math.abs(swipeOffset) >= swipeThreshold;
 
   // Format duration for display
   const formatDuration = (minutes?: number) => {
@@ -221,36 +213,72 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
 
   return (
     <>
+      {/* Outer container for background indicators */}
       <div 
         ref={(node) => {
           (dragRef as any).current = node;
           (swipeRef as any).current = node;
         }}
-        data-task-id={task.id}
-        className={`flex rounded-md border task-transition ${
-          isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
-        } ${
-          task.completed ? 'bg-muted' : isBlocked ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50' : isUnblocked ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50' : ''
-        } ${
-          isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
-        } relative`}
-        style={{
-          transform: swipeOffset !== 0 ? `translateX(${swipeOffset}px)` : undefined,
-          transition: swipeOffset === 0 ? 'transform 0.2s ease-out' : 'none',
-        }}
+        className="relative overflow-hidden rounded-md"
       >
-        {/* Swipe action indicators */}
+        {/* Background swipe indicators - fixed position, fill entire space */}
         {swipeOffset > 0 && (
-          <div className="absolute inset-y-0 left-0 flex items-center justify-start pl-4 pointer-events-none bg-green-500/20 rounded-l-md" style={{ width: `${Math.min(swipeOffset, 100)}px` }}>
-            <CheckCircle className="h-5 w-5 text-green-600" />
+          <div 
+            className={`absolute inset-y-0 left-0 flex items-center justify-start pl-4 rounded-l-md z-0 ${
+              willTriggerAction ? 'bg-green-600' : 'bg-green-500/30'
+            }`}
+            style={{ 
+              width: `${Math.abs(clampedOffset)}px`,
+              transition: 'background-color 0.15s ease-out'
+            }}
+          >
+            <CheckCircle 
+              className={`text-white ${
+                willTriggerAction ? 'h-6 w-6' : 'h-5 w-5'
+              }`}
+              strokeWidth={willTriggerAction ? 2.5 : 2}
+              style={{ transition: 'all 0.15s ease-out' }}
+            />
           </div>
         )}
         {swipeOffset < 0 && (
-          <div className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 pointer-events-none bg-red-500/20 rounded-r-md" style={{ width: `${Math.min(Math.abs(swipeOffset), 100)}px` }}>
-            <Trash2 className="h-5 w-5 text-red-600" />
+          <div 
+            className={`absolute inset-y-0 right-0 flex items-center justify-end pr-4 rounded-r-md z-0 ${
+              willTriggerAction ? 'bg-red-600' : 'bg-red-500/30'
+            }`}
+            style={{ 
+              width: `${Math.abs(clampedOffset)}px`,
+              transition: 'background-color 0.15s ease-out'
+            }}
+          >
+            <Trash2 
+              className={`text-white ${
+                willTriggerAction ? 'h-6 w-6' : 'h-5 w-5'
+              }`}
+              strokeWidth={willTriggerAction ? 2.5 : 2}
+              style={{ transition: 'all 0.15s ease-out' }}
+            />
           </div>
         )}
-      
+
+        {/* Inner container - this moves with swipe */}
+        <div 
+          data-task-id={task.id}
+          data-swipe-offset={clampedOffset}
+          className={`flex border ${
+            isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+          } ${
+            task.completed ? 'bg-muted' : isBlocked ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50' : isUnblocked ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50' : 'bg-background'
+          } ${
+            isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
+          }`}
+          style={{
+            position: 'relative',
+            left: `${clampedOffset}px`,
+            transition: swipeOffset === 0 ? 'left 0.2s ease-out' : 'none',
+            zIndex: 10,
+          }}
+        >
         {/* Main content area */}
         <div className="flex-1 min-w-0">
           {/* Task name row */}
@@ -611,6 +639,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             <span className="sr-only">Delete</span>
           </Button>
           </div>
+        </div>
         </div>
       </div>
 

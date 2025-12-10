@@ -13,6 +13,8 @@ A simple, lightweight swipe gesture library for React.
 
 ## Usage
 
+### Basic Usage
+
 ```tsx
 import { useSwipeable } from '@/lib/easySwipe';
 
@@ -20,16 +22,39 @@ function MyComponent() {
   const { ref } = useSwipeable({
     onSwipeLeft: () => console.log('Swiped left!'),
     onSwipeRight: () => console.log('Swiped right!'),
-    onSwipeMove: (distance, direction) => {
-      // Update UI during swipe
-      console.log(`Swiping ${direction}: ${distance}px`);
-    },
   }, {
-    threshold: 80, // Minimum distance to trigger swipe
-    direction: 'horizontal', // Only allow horizontal swipes
+    threshold: 80,
+    direction: 'horizontal',
   });
 
   return <div ref={ref}>Swipe me!</div>;
+}
+```
+
+### With Visual Feedback (Tracked Offset)
+
+```tsx
+function MyComponent() {
+  const { ref, swipeOffset, direction } = useSwipeable({
+    onSwipeLeft: () => deleteItem(),
+    onSwipeRight: () => completeItem(),
+  }, {
+    threshold: 80,
+    direction: 'horizontal',
+    trackSwipeOffset: true, // Enable offset tracking
+  });
+
+  return (
+    <div 
+      ref={ref}
+      style={{
+        transform: `translateX(${swipeOffset}px)`,
+        transition: swipeOffset === 0 ? 'transform 0.2s' : 'none',
+      }}
+    >
+      Swipe me and I move with your finger!
+    </div>
+  );
 }
 ```
 
@@ -53,22 +78,48 @@ function MyComponent() {
 - `velocityThreshold` - Minimum velocity to trigger swipe (default: 0.3)
 - `preventDefaultTouchMove` - Prevent default touch move behavior (default: false)
 - `direction` - Allowed swipe directions: 'horizontal' | 'vertical' | 'all' (default: 'all')
+- `lockAfterFirstDirection` - Lock to first swipe direction, prevent changing mid-swipe (default: true)
+- `trackSwipeOffset` - Track and return current swipe offset for visual feedback (default: false)
+
+#### Return Values
+
+- `ref` - Ref to attach to the swipeable element
+- `isSwiping` - Boolean indicating if currently swiping (when `trackSwipeOffset` is true)
+- `swipeOffset` - Current swipe distance in pixels (when `trackSwipeOffset` is true)
+- `direction` - Current swipe direction (when `trackSwipeOffset` is true)
 
 ## Example: Task List Swipe Actions
 
 ```tsx
-const { ref } = useSwipeable({
+const { ref, swipeOffset } = useSwipeable({
   onSwipeRight: () => completeTask(),
   onSwipeLeft: () => deleteTask(),
-  onSwipeMove: (distance, direction) => {
-    setSwipeOffset(distance);
-  },
-  onSwipeEnd: () => {
-    setSwipeOffset(0);
-  },
 }, {
   threshold: 80,
   direction: 'horizontal',
+  lockAfterFirstDirection: true, // Once user swipes left or right, lock to that direction
+  trackSwipeOffset: true, // Get real-time swipe offset
 });
+
+return (
+  <div 
+    ref={ref}
+    style={{
+      transform: swipeOffset !== 0 ? `translateX(${swipeOffset}px)` : undefined,
+      transition: swipeOffset === 0 ? 'transform 0.2s ease-out' : 'none',
+    }}
+  >
+    {/* Show action indicators based on swipe direction */}
+    {swipeOffset > 0 && <CompleteIcon />}
+    {swipeOffset < 0 && <DeleteIcon />}
+    Task content
+  </div>
+);
 ```
+
+## Direction Locking
+
+By default, `lockAfterFirstDirection` is `true`, which means once the user starts swiping in a direction (e.g., left), they cannot change to the opposite direction (right) in the same gesture. This provides a better UX for actions like swipe-to-delete vs swipe-to-complete.
+
+Set `lockAfterFirstDirection: false` if you want to allow direction changes mid-swipe.
 
