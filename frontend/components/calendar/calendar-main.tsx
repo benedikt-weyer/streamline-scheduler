@@ -53,6 +53,7 @@ export interface CalendarMainProps {
   onCloneEvent: (event: CalendarEvent) => Promise<boolean>;
   onEventUpdate: (updatedEvent: CalendarEvent) => Promise<boolean>;
   moveEventToCalendar: (eventId: string, targetCalendarId: string) => Promise<void>;
+  onTaskSchedule?: (taskId: string, startTime: Date, durationMinutes: number) => Promise<void>;
   
   // Recurrence event handlers
   onDeleteThisOccurrence?: (event: CalendarEvent) => Promise<boolean>;
@@ -110,6 +111,7 @@ export function CalendarMain({
   onCloneEvent,
   onEventUpdate,
   moveEventToCalendar,
+  onTaskSchedule,
   
   // Recurrence event handlers
   onDeleteThisOccurrence,
@@ -709,6 +711,7 @@ export function CalendarMain({
                   openEditDialog={openEditDialog}
                   openNewEventDialog={openNewEventDialogWithDayHandler}
                   onEventUpdate={handleEventUpdateWithRecurrenceCheck}
+                  onTaskDrop={onTaskSchedule}
                 />
             )}
           </div>

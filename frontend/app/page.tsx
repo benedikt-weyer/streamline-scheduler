@@ -19,6 +19,8 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toast } from 'sonner';
 import { useSchedulerNav } from '@/contexts/scheduler-nav-context';
 import { useTranslation } from '@/utils/context/LanguageContext';
+import { FlexyDNDProvider } from '@/lib/flexyDND';
+import { TaskDragPreview } from '@/components/calendar/TaskDragPreview';
 
 
 function SchedulerPageContent() {
@@ -1099,6 +1101,47 @@ function SchedulerPageContent() {
     }
   };
 
+  // Handle task drop onto calendar
+  const handleTaskDrop = async (taskId: string, startTime: Date, durationMinutes: number): Promise<void> => {
+    console.log('handleTaskDrop called:', { taskId, startTime, durationMinutes, hasService: !!schedulerPageService });
+    
+    if (!schedulerPageService) {
+      console.error('No schedulerPageService available');
+      return;
+    }
+    
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      console.log('Found task:', task);
+      
+      if (!task) {
+        toast.error('Task not found');
+        return;
+      }
+      
+      // Get default calendar
+      const defaultCalendar = calendars.find(cal => cal.is_default) || calendars[0];
+      console.log('Using calendar:', defaultCalendar);
+      
+      if (!defaultCalendar) {
+        toast.error('No calendar available');
+        return;
+      }
+      
+      // Create calendar event from task
+      console.log('Creating event from task...');
+      const newEvent = await schedulerPageService.createEventFromTask(task, defaultCalendar.id, startTime);
+      console.log('Event created:', newEvent);
+      
+      // Update state with new event
+      setCalendarEvents([...calendarEvents, newEvent]);
+      toast.success(`Scheduled: ${task.content}`);
+    } catch (error) {
+      console.error('Error scheduling task:', error);
+      toast.error('Failed to schedule task');
+    }
+  };
+
   // Handle navigation from task to event
   const handleNavigateToEvent = (eventId: string) => {
     // Set the calendar to be visible
@@ -1237,6 +1280,7 @@ function SchedulerPageContent() {
               onCloneEvent={handleCloneEvent}
               onEventUpdate={onEventUpdate}
               moveEventToCalendar={moveEventToCalendar}
+              onTaskSchedule={handleTaskDrop}
               onDeleteThisOccurrence={handleDeleteThisOccurrence}
               onDeleteThisAndFuture={handleDeleteThisAndFuture}
               onModifyThisOccurrence={handleModifyThisOccurrence}
@@ -1256,11 +1300,14 @@ function SchedulerPageContent() {
 export default function SchedulerPage() {
   return (
     <AuthGuard>
-      <div className="fixed top-16 left-0 right-0 bottom-0 overflow-hidden">
-        <ErrorProvider>
-          <SchedulerPageContent />
-        </ErrorProvider>
-      </div>
+      <FlexyDNDProvider>
+        <div className="fixed top-16 left-0 right-0 bottom-0 overflow-hidden">
+          <ErrorProvider>
+            <SchedulerPageContent />
+          </ErrorProvider>
+        </div>
+        <TaskDragPreview />
+      </FlexyDNDProvider>
     </AuthGuard>
   );
 } 

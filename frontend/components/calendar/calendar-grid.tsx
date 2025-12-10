@@ -1,7 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 import { format, isSameDay, differenceInMinutes } from 'date-fns';
 import { useDateLocale } from '@/utils/context/LanguageContext';
+import { useDroppable, useFlexyDND } from '@/lib/flexyDND';
+import type { DragData, DragPosition as FlexyDragPosition } from '@/lib/flexyDND';
 
 import { CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { generateTimeSlots } from '@/utils/calendar/calendar';
@@ -54,6 +56,134 @@ const getChildEventsForGroupInstance = (
 };
 
 
+// -------- DayColumn Component --------
+interface DayColumnProps {
+  day: Date;
+  dayIndex: number;
+  calendarHeight: number | null;
+  slotHeight: number;
+  timeSlots: any[];
+  isZoomActive: boolean;
+  zoomWindow: { startHour: number; endHour: number; windowHeight: number };
+  renderCurrentTimeLine: (day: Date) => JSX.Element | null;
+  renderEvents: (day: Date, dayIndex: number) => JSX.Element[];
+  renderDragHelper: (dayIndex: number, day: Date, dragPosition: DragPosition | null) => JSX.Element | null;
+  handleDayClick: (day: Date, e: React.MouseEvent<HTMLDivElement>) => void;
+  dropHoverPosition: { day: Date; time: Date } | null;
+  onTaskDrop?: (taskId: string, startTime: Date, durationMinutes: number) => Promise<void>;
+  calculateTimeFromPosition: (day: Date, position: FlexyDragPosition, dayElement: HTMLElement) => Date;
+  setDropHoverPosition: React.Dispatch<React.SetStateAction<{ day: Date; time: Date } | null>>;
+}
+
+function DayColumn({
+  day,
+  dayIndex,
+  calendarHeight,
+  slotHeight,
+  timeSlots,
+  isZoomActive,
+  zoomWindow,
+  renderCurrentTimeLine,
+  renderEvents,
+  renderDragHelper,
+  handleDayClick,
+  dropHoverPosition,
+  onTaskDrop,
+  calculateTimeFromPosition,
+  setDropHoverPosition,
+}: DayColumnProps) {
+  const dayColumnRef = useRef<HTMLDivElement | null>(null);
+  
+  const handleDrop = useCallback(async (dragData: DragData, position: FlexyDragPosition) => {
+    console.log('Drop handler called:', { dragData, position, hasDropHandler: !!onTaskDrop });
+    if (dayColumnRef.current && onTaskDrop) {
+      const dropTime = calculateTimeFromPosition(day, position, dayColumnRef.current);
+      const taskData = dragData.data;
+      console.log('Calling onTaskDrop with:', { taskId: taskData.taskId, dropTime, duration: taskData.durationMinutes });
+      try {
+        await onTaskDrop(taskData.taskId, dropTime, taskData.durationMinutes || 60);
+        console.log('Task drop successful');
+      } catch (error) {
+        console.error('Task drop failed:', error);
+      }
+      setDropHoverPosition(null);
+    } else {
+      console.log('Drop rejected:', { hasDayRef: !!dayColumnRef.current, hasHandler: !!onTaskDrop });
+    }
+  }, [day, onTaskDrop, calculateTimeFromPosition, setDropHoverPosition]);
+
+  const handleDragOver = useCallback((dragData: DragData, position: FlexyDragPosition) => {
+    if (dayColumnRef.current) {
+      const dropTime = calculateTimeFromPosition(day, position, dayColumnRef.current);
+      setDropHoverPosition({ day, time: dropTime });
+    }
+  }, [day, calculateTimeFromPosition, setDropHoverPosition]);
+
+  const handleDragLeave = useCallback(() => {
+    setDropHoverPosition(null);
+  }, [setDropHoverPosition]);
+
+  const { dropRef } = useDroppable({
+    id: `calendar-day-${format(day, 'yyyy-MM-dd')}`,
+    accept: 'task',
+    onDrop: handleDrop,
+    onDragEnter: () => {},
+    onDragLeave: handleDragLeave,
+    onDragOver: handleDragOver,
+  });
+
+  return (
+    <div 
+      ref={(el) => {
+        dayColumnRef.current = el;
+        (dropRef as any).current = el;
+      }}
+      className="relative border-r last:border-r-0 day-column"
+      onClick={(e) => handleDayClick(day, e)}
+      style={{ height: calendarHeight ? `${calendarHeight}px` : `${slotHeight * timeSlots.length}px` }}
+      data-date={format(day, "yyyy-MM-dd")}
+    >
+      {/* Time slot lines */}
+      {timeSlots.map((slot, i) => {
+        const timeString = typeof slot === 'string' ? slot : slot.time;
+        const isMain = typeof slot === 'string' ? true : slot.isMain;
+        
+        return (
+          <div 
+            key={`slot-${day.toISOString()}-${i}`}
+            className={`absolute border-b w-full ${
+              isMain ? 'border-border' : 'border-border/30'
+            }`}
+            style={{ 
+              top: `${i * slotHeight}px`,
+              height: `${slotHeight}px` 
+            }}
+          />
+        );
+      })}
+      
+      {/* Current time indicator line */}
+      {renderCurrentTimeLine(day)}
+      
+      {/* Events for this day */}
+      {renderEvents(day, dayIndex)}
+      
+      {/* Drag helper for this day */}
+      {renderDragHelper(dayIndex, day, null)}
+      
+      {/* Drop indicator for task drops */}
+      {dropHoverPosition && isSameDay(dropHoverPosition.day, day) && (
+        <div
+          className="absolute left-0 right-0 h-1 bg-blue-500 opacity-75 pointer-events-none z-50"
+          style={{
+            top: `${(dropHoverPosition.time.getHours() * 60 + dropHoverPosition.time.getMinutes()) * (slotHeight / 60)}px`,
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 // -------- Prop Interfaces --------
 interface CalendarGridProps {
   readonly days: Date[];
@@ -62,6 +192,7 @@ interface CalendarGridProps {
   readonly openEditDialog: (event: CalendarEvent) => void;
   readonly openNewEventDialog: (day: Date, isAllDay?: boolean) => void;
   readonly onEventUpdate?: (updatedEvent: CalendarEvent) => void;
+  readonly onTaskDrop?: (taskId: string, startTime: Date, durationMinutes: number) => Promise<void>;
 }
 
 
@@ -72,7 +203,8 @@ export function CalendarGrid({
   calendars, // Added calendars parameter
   openEditDialog, 
   openNewEventDialog,
-  onEventUpdate 
+  onEventUpdate,
+  onTaskDrop
 }: CalendarGridProps) {
   const dateLocale = useDateLocale();
   const [calendarHeight, setCalendarHeight] = useState<number | null>(null);
@@ -95,6 +227,37 @@ export function CalendarGrid({
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [selectedGroupEvent, setSelectedGroupEvent] = useState<CalendarEvent | null>(null);
   const [isDragHoverModalOpen, setIsDragHoverModalOpen] = useState(false);
+
+  // FlexyDND state for task dropping
+  const [dropHoverPosition, setDropHoverPosition] = useState<{ day: Date; time: Date } | null>(null);
+  const flexyDND = useFlexyDND();
+
+  // Helper function to calculate time from drop position
+  const calculateTimeFromPosition = (day: Date, position: FlexyDragPosition, dayElement: HTMLElement): Date => {
+    const rect = dayElement.getBoundingClientRect();
+    const relativeY = position.y - rect.top;
+    const totalHeight = rect.height;
+    
+    // Calculate hours and minutes based on zoom window if active
+    const startHour = isZoomActive ? zoomWindow.startHour : 0;
+    const endHour = isZoomActive ? zoomWindow.endHour : 24;
+    const totalHours = endHour - startHour;
+    
+    // Calculate the time position
+    const hoursFraction = (relativeY / totalHeight) * totalHours;
+    const totalMinutes = (startHour + hoursFraction) * 60;
+    
+    // Snap to 15-minute intervals
+    const snappedMinutes = Math.round(totalMinutes / 15) * 15;
+    const hours = Math.floor(snappedMinutes / 60);
+    const minutes = snappedMinutes % 60;
+    
+    // Create date with calculated time
+    const resultDate = new Date(day);
+    resultDate.setHours(hours, minutes, 0, 0);
+    
+    return resultDate;
+  };
 
   // Zoom state management - initialize from localStorage or default to 100% (no zoom)
   const [isZoomActive, setIsZoomActive] = useState(() => {
@@ -1603,43 +1766,24 @@ export function CalendarGrid({
         {/* Days grid */}
         <div className="grid grid-cols-7">
           {days.map((day, dayIndex) => (
-            <div 
-              key={day.toString()} 
-              className="relative border-r last:border-r-0 day-column"
-              onClick={(e) => handleDayClick(day, e)}
-              style={{ height: calendarHeight ? `${calendarHeight}px` : `${slotHeight * timeSlots.length}px` }}
-              data-date={format(day, "yyyy-MM-dd")}
-            >
-              {/* Time slot lines */}
-              {timeSlots.map((slot, i) => {
-                // Handle both old string format and new object format
-                const timeString = typeof slot === 'string' ? slot : slot.time;
-                const isMain = typeof slot === 'string' ? true : slot.isMain;
-                
-                return (
-                  <div 
-                    key={`slot-${day.toISOString()}-${i}`}
-                    className={`absolute border-b w-full ${
-                      isMain ? 'border-border' : 'border-border/30'
-                    }`}
-                    style={{ 
-                      top: `${i * slotHeight}px`,
-                      height: `${slotHeight}px` 
-                    }}
-                  />
-                );
-              })}
-              
-              {/* Current time indicator line */}
-              {renderCurrentTimeLine(day)}
-              
-              {/* Events for this day */}
-              {renderEvents(day, dayIndex)}
-              
-              {/* Drag helper for this day */}
-              {renderDragHelper(dayIndex, day, dragPosition)}
-              
-            </div>
+            <DayColumn
+              key={day.toString()}
+              day={day}
+              dayIndex={dayIndex}
+              calendarHeight={calendarHeight}
+              slotHeight={slotHeight}
+              timeSlots={timeSlots}
+              isZoomActive={isZoomActive}
+              zoomWindow={zoomWindow}
+              renderCurrentTimeLine={renderCurrentTimeLine}
+              renderEvents={renderEvents}
+              renderDragHelper={renderDragHelper}
+              handleDayClick={handleDayClick}
+              dropHoverPosition={dropHoverPosition}
+              onTaskDrop={onTaskDrop}
+              calculateTimeFromPosition={calculateTimeFromPosition}
+              setDropHoverPosition={setDropHoverPosition}
+            />
           ))}
         </div>
       </div>

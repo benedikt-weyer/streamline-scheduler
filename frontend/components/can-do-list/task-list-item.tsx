@@ -10,13 +10,12 @@ import EditTaskDialog from './edit-task-dialog';
 import BlockedTaskCompletionModal from './blocked-task-completion-modal';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from '@/utils/can-do-list/priority-utils';
 import { formatDueDate, getDueDateColorClass } from '@/utils/can-do-list/due-date-utils';
 import { isTaskActuallyBlocked, isTaskUnblocked } from '@/utils/can-do-list/task-blocking-utils';
 import { useUserSettings } from '@/utils/context/UserSettingsContext';
 import { useTranslation, useDateLocale } from '@/utils/context/LanguageContext';
+import { useDraggable } from '@/lib/flexyDND';
 
 interface TaskListItemProps {
   readonly task: CanDoItemDecrypted;
@@ -46,23 +45,18 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const { settings } = useUserSettings();
   const taskClickBehavior = settings.taskClickBehavior ?? 'edit';
 
-  // Only enable sorting for active (non-completed) tasks
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ 
-    id: task.id,
-    disabled: task.completed // Disable dragging for completed tasks
+  // FlexyDND for dragging tasks
+  const { dragRef, isDraggable } = useDraggable({
+    id: `task-${task.id}`,
+    type: 'task',
+    data: {
+      taskId: task.id,
+      taskContent: task.content,
+      durationMinutes: task.duration_minutes || 60,
+      task: task,
+    },
+    disabled: task.completed,
   });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
 
   // Format duration for display
   const formatDuration = (minutes?: number) => {
@@ -190,19 +184,14 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   return (
     <>
       <div 
-        ref={setNodeRef}
-        style={style}
+        ref={dragRef as any}
         data-task-id={task.id}
-        {...(!task.completed ? attributes : {})}
-        {...(!task.completed ? listeners : {})}
         className={`flex rounded-md border task-transition ${
-          !task.completed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+          isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
         } ${
           task.completed ? 'bg-muted' : isBlocked ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50' : isUnblocked ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50' : ''
         } ${
           isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
-        } ${
-          isDragging ? 'opacity-50' : ''
         }`}
       >
         {/* Main content area */}
