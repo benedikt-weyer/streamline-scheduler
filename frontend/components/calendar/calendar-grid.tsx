@@ -1001,38 +1001,50 @@ export function CalendarGrid({
           />
         )}
         
-        <div className={`font-medium truncate flex items-center gap-1 ${event.is_group_event ? 'text-gray-900 dark:text-gray-100' : ''}`}>
-          {event.is_group_event ? (
-            <span className="inline-flex items-center flex-shrink-0" style={{ color: borderColor }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-              </svg>
-            </span>
-          ) : (isRecurring || isRecurrenceInstance) ? (
-            <span className="inline-flex items-center flex-shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"></path>
-                <path d="M12 7v5l2.5 2.5"></path>
-              </svg>
-            </span>
-          ) : null}
-          <span className="truncate">{event.title}</span>
-        </div>
-        <div className={`text-xs truncate ${event.is_group_event ? 'text-gray-700 dark:text-gray-300' : ''}`}>
-          {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
-        </div>
+        {event.is_group_event ? (
+          <div className="relative z-10 -mx-2 -mt-2 px-2 pt-2 pb-1 bg-white/80 dark:bg-gray-900/80 group-hover:bg-white/10 dark:group-hover:bg-gray-900/10 transition-colors">
+            <div className="font-medium truncate flex items-center gap-1 text-gray-900 dark:text-gray-100 group-hover:opacity-10 transition-opacity">
+              <span className="inline-flex items-center flex-shrink-0" style={{ color: borderColor }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+              </span>
+              <span className="truncate">{event.title}</span>
+            </div>
+            <div className="text-xs truncate text-gray-700 dark:text-gray-300 group-hover:opacity-10 transition-opacity">
+              {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="font-medium truncate flex items-center gap-1">
+              {(isRecurring || isRecurrenceInstance) ? (
+                <span className="inline-flex items-center flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"></path>
+                    <path d="M12 7v5l2.5 2.5"></path>
+                  </svg>
+                </span>
+              ) : null}
+              <span className="truncate">{event.title}</span>
+            </div>
+            <div className="text-xs truncate">
+              {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+            </div>
+          </>
+        )}
         {event.location && (
-          <div className={`text-xs truncate opacity-90 ${event.is_group_event ? 'text-gray-700 dark:text-gray-300' : ''}`}>
+          <div className={`text-xs truncate opacity-90 ${event.is_group_event ? 'relative z-10 text-gray-700 dark:text-gray-300' : ''}`}>
             📍 {event.location}
           </div>
         )}
         
         {/* Render child events inside the group */}
         {event.is_group_event && childEvents.length > 0 && (
-          <div className="absolute inset-0 pointer-events-none mt-12">
+          <div className="absolute inset-0 pointer-events-none z-0">
             {childEvents.map(childEvent => {
               const childStart = new Date(childEvent.start_time);
               const childEnd = new Date(childEvent.end_time);
