@@ -191,6 +191,52 @@ export function EventGroupModal({
     };
   }, [dragState, onEventUpdate, totalMinutes, groupStart, timeGridInterval, onOpenChange]);
 
+  // Initialize external drag position when modal opens with external drag event
+  useEffect(() => {
+    if (!externalDragEvent || !eventsContainerRef.current || !isOpen) {
+      return;
+    }
+
+    // Get current mouse position and calculate initial position
+    const initializePosition = (e: MouseEvent) => {
+      if (!eventsContainerRef.current) return;
+
+      const rect = eventsContainerRef.current.getBoundingClientRect();
+      const relativeY = e.clientY - rect.top;
+      
+      // Only initialize if mouse is within bounds
+      if (relativeY >= 0 && relativeY <= rect.height) {
+        const pixelsPerMinute = rect.height / totalMinutes;
+        const minutesFromTop = Math.max(0, Math.min(totalMinutes, relativeY / pixelsPerMinute));
+        const snappedMinutes = Math.round(minutesFromTop / 15) * 15;
+        
+        const eventStart = new Date(externalDragEvent.start_time);
+        const eventEnd = new Date(externalDragEvent.end_time);
+        const eventDuration = differenceInMinutes(eventEnd, eventStart);
+        
+        const topPercent = (snappedMinutes / totalMinutes) * 100;
+        const heightPercent = Math.min(100 - topPercent, (eventDuration / totalMinutes) * 100);
+        
+        setExternalDragPosition({
+          top: topPercent,
+          height: heightPercent,
+        });
+      }
+    };
+
+    // Capture the first mousemove to initialize position
+    const handleInitialMove = (e: MouseEvent) => {
+      initializePosition(e);
+      document.removeEventListener('mousemove', handleInitialMove);
+    };
+
+    document.addEventListener('mousemove', handleInitialMove);
+
+    return () => {
+      document.removeEventListener('mousemove', handleInitialMove);
+    };
+  }, [externalDragEvent, isOpen, totalMinutes]);
+
   // Handle external drag event tracking
   useEffect(() => {
     if (!externalDragEvent || !eventsContainerRef.current || !onExternalDrop) {
@@ -391,7 +437,7 @@ export function EventGroupModal({
             </h3>
           </div>
 
-          {childEvents.length === 0 ? (
+          {childEvents.length === 0 && !externalDragEvent ? (
             <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -438,6 +484,23 @@ export function EventGroupModal({
 
                 {/* Events container */}
                 <div ref={eventsContainerRef} className="ml-16 relative h-full">
+                  {/* Grid lines */}
+                  {timeMarks.map((mark, i) => {
+                    const minutesFromStart = differenceInMinutes(mark.time, groupStart);
+                    if (minutesFromStart === 0) return null; // Skip first line at top
+                    const topPercent = (minutesFromStart / totalMinutes) * 100;
+                    
+                    return (
+                      <div
+                        key={`grid-${i}`}
+                        className={`absolute left-0 right-0 border-t ${
+                          mark.isMainMark ? 'border-border/50' : 'border-border/20'
+                        }`}
+                        style={{ top: `${topPercent}%` }}
+                      />
+                    );
+                  })}
+
                   {childEvents.map(event => {
                     // Skip rendering the event being dragged in its original position
                     if (dragState && event.id === dragState.event.id && isDraggingRef.current) {
@@ -569,23 +632,6 @@ export function EventGroupModal({
                     })()
                   )}
                 </div>
-
-                {/* Grid lines */}
-                {timeMarks.map((mark, i) => {
-                  const minutesFromStart = differenceInMinutes(mark.time, groupStart);
-                  if (minutesFromStart === 0) return null; // Skip first line at top
-                  const topPercent = (minutesFromStart / totalMinutes) * 100;
-                  
-                  return (
-                    <div
-                      key={i}
-                      className={`absolute left-16 right-0 border-t ${
-                        mark.isMainMark ? 'border-border/50' : 'border-border/20'
-                      }`}
-                      style={{ top: `${topPercent}%` }}
-                    />
-                  );
-                })}
               </div>
             </div>
           )}
