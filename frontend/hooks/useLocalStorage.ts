@@ -21,7 +21,7 @@ export function useLocalStorage<T>(
     if (typeof window !== 'undefined') {
       try {
         const item = window.localStorage.getItem(key);
-        if (item) {
+        if (item && item !== 'undefined' && item !== 'null') {
           const parsedValue = JSON.parse(item);
           setStoredValue(parsedValue);
         }
@@ -72,7 +72,7 @@ export function useLocalStorageDate(
     if (typeof window !== 'undefined') {
       try {
         const item = window.localStorage.getItem(key);
-        if (item) {
+        if (item && item !== 'undefined' && item !== 'null') {
           const parsedDate = new Date(JSON.parse(item));
           // Validate that it's a valid date
           if (!isNaN(parsedDate.getTime())) {
