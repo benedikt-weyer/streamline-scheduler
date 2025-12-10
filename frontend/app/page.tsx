@@ -880,12 +880,14 @@ function SchedulerPageContent() {
   }, [schedulerPageService, calendarEvents, setError]);
 
   // View state for showing/hiding panels (persisted in localStorage)
-  const [showTaskList, setShowTaskList] = useLocalStorage('scheduler-show-task-list', true);
-  const [showCalendar, setShowCalendar] = useLocalStorage('scheduler-show-calendar', true);
+  const [showTaskList, setShowTaskList, isTaskListHydrated] = useLocalStorage('scheduler-show-task-list', true);
+  const [showCalendar, setShowCalendar, isCalendarHydrated] = useLocalStorage('scheduler-show-calendar', true);
   
   // Ensure on mobile only one panel is active (default to calendar if both are active)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // Wait until localStorage values are loaded before applying mobile logic
+    if (!isTaskListHydrated || !isCalendarHydrated) return;
     
     const checkMobileState = () => {
       if (window.innerWidth < 768 && showTaskList && showCalendar) {
@@ -901,7 +903,7 @@ function SchedulerPageContent() {
     // Check on window resize
     window.addEventListener('resize', checkMobileState);
     return () => window.removeEventListener('resize', checkMobileState);
-  }, [showTaskList, showCalendar, setShowTaskList, setShowCalendar]);
+  }, [showTaskList, showCalendar, setShowTaskList, setShowCalendar, isTaskListHydrated, isCalendarHydrated]);
   
   // Handlers for toggling view panels (with constraint that at least one must be visible)
   const handleToggleTaskList = useCallback(() => {

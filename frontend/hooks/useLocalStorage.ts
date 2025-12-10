@@ -6,12 +6,12 @@ import { useState, useEffect } from 'react';
  * Custom hook for persisting state in localStorage
  * @param key - The localStorage key
  * @param initialValue - The initial value if no stored value exists
- * @returns [storedValue, setValue] - Similar to useState but persisted
+ * @returns [storedValue, setValue, isHydrated] - Similar to useState but persisted, with hydration flag
  */
 export function useLocalStorage<T>(
   key: string,
   initialValue: T
-): [T, (value: T | ((val: T) => T)) => void] {
+): [T, (value: T | ((val: T) => T)) => void, boolean] {
   // Always start with initialValue to ensure server/client consistency
   const [storedValue, setStoredValue] = useState<T>(initialValue);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -52,7 +52,7 @@ export function useLocalStorage<T>(
     }
   };
 
-  return [storedValue, setValue];
+  return [storedValue, setValue, isHydrated];
 }
 
 /**
