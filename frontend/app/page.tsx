@@ -554,17 +554,29 @@ function SchedulerPageContent() {
   const handleCalendarToggle = useCallback(async (calendarId: string, isVisible: boolean): Promise<void> => {
     if (!schedulerPageService) return;
     
+    // Optimistic update - update UI immediately
+    const previousCalendars = calendars;
+    setCalendars(prev => prev.map(cal => 
+      cal.id === calendarId 
+        ? { ...cal, is_visible: isVisible }
+        : cal
+    ));
+    
     try {
       const updatedCalendar = await schedulerPageService.toggleCalendarVisibility(calendarId, isVisible);
+      // Confirm the update with server response
       setCalendars(prev => prev.map(cal => 
         cal.id === calendarId 
           ? { ...cal, ...updatedCalendar }
           : cal
       ));
     } catch (error) {
-      setError('Failed to update calendar visibility');
+      // Rollback on error
+      console.error('Failed to toggle calendar visibility:', error);
+      setCalendars(previousCalendars);
+      toast.error('Failed to update calendar visibility');
     }
-  }, [schedulerPageService, setError]);
+  }, [schedulerPageService, calendars]);
 
   const handleCalendarCreate = useCallback(async (name: string, color: string): Promise<Calendar> => {
     if (!schedulerPageService) throw new Error('Service not available');
