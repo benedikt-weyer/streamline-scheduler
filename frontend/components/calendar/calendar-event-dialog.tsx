@@ -50,6 +50,7 @@ export const eventFormSchema = z.object({
   recurrenceFrequency: z.nativeEnum(RecurrenceFrequency).default(RecurrenceFrequency.None),
   recurrenceEndDate: z.string().optional(),
   recurrenceInterval: z.coerce.number().min(1).default(1),
+  daysOfWeek: z.array(z.number()).optional(),
   // Event group fields
   isGroupEvent: z.boolean().default(false),
   parentGroupEventId: z.string().optional(),

@@ -492,8 +492,8 @@ export function CalendarMain({
         const parentGroup = events.find(e => e.id === baseParentGroupId);
         if (parentGroup) {
           const parentRecurrencePattern = getRecurrencePattern(parentGroup);
-          isChildOfRecurringGroup = parentRecurrencePattern && 
-            parentRecurrencePattern.frequency !== RecurrenceFrequency.None;
+          isChildOfRecurringGroup = !!(parentRecurrencePattern && 
+            parentRecurrencePattern.frequency !== RecurrenceFrequency.None);
         }
       }
     }

@@ -133,32 +133,42 @@ export function FlexyDNDProvider({ children }: FlexyDNDProviderProps) {
 
       if (isOver) {
         // Check if drag type matches drop zone type
-        const acceptedTypes = Array.isArray(zone.type) ? zone.type : [zone.type];
+        const acceptedTypes: string[] = Array.isArray(zone.type) ? zone.type : [zone.type];
         if (acceptedTypes.includes(dragData.type)) {
           foundZone = zone;
         }
       }
     });
 
+    // Store foundZone in a const to help TypeScript with type narrowing
+    const currentZone: DropZone | null = foundZone;
+
     // Handle zone changes
-    if (foundZone !== currentDropZoneRef.current) {
+    const previousZone = currentDropZoneRef.current;
+    if (currentZone !== previousZone) {
       // Leave old zone
-      if (currentDropZoneRef.current?.onDragLeave) {
-        currentDropZoneRef.current.onDragLeave();
+      if (previousZone?.onDragLeave) {
+        previousZone.onDragLeave();
       }
       
       // Enter new zone
-      if (foundZone?.onDragEnter) {
-        foundZone.onDragEnter(dragData);
+      if (currentZone) {
+        const zone = currentZone as DropZone;
+        if (zone.onDragEnter) {
+          zone.onDragEnter(dragData);
+        }
       }
       
-      currentDropZoneRef.current = foundZone;
+      currentDropZoneRef.current = currentZone;
     }
 
     // Notify current zone of drag over
-    if (foundZone?.onDragOver) {
-      const position = { x: event.clientX, y: event.clientY };
-      foundZone.onDragOver(dragData, position);
+    if (currentZone) {
+      const zone = currentZone as DropZone;
+      if (zone.onDragOver) {
+        const position = { x: event.clientX, y: event.clientY };
+        zone.onDragOver(dragData, position);
+      }
     }
   };
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 
 import { format, isSameDay, differenceInMinutes } from 'date-fns';
 import { useDateLocale } from '@/utils/context/LanguageContext';
@@ -65,9 +65,9 @@ interface DayColumnProps {
   timeSlots: any[];
   isZoomActive: boolean;
   zoomWindow: { startHour: number; endHour: number; windowHeight: number };
-  renderCurrentTimeLine: (day: Date) => JSX.Element | null;
-  renderEvents: (day: Date, dayIndex: number) => JSX.Element[];
-  renderDragHelper: (dayIndex: number, day: Date, dragPosition: DragPosition | null) => JSX.Element | null;
+  renderCurrentTimeLine: (day: Date) => React.ReactNode;
+  renderEvents: (day: Date, dayIndex: number) => React.ReactNode;
+  renderDragHelper: (dayIndex: number, day: Date, dragPosition: DragPosition | null) => React.ReactNode;
   handleDayClick: (day: Date, e: React.MouseEvent<HTMLDivElement>) => void;
   dropHoverPosition: { day: Date; time: Date } | null;
   onTaskDrop?: (taskId: string, startTime: Date, durationMinutes: number) => Promise<void>;
@@ -1411,7 +1411,7 @@ export function CalendarGrid({
       dayEvents = dayEvents.filter(event => event.id !== activeEvent.event.id);
     }
     
-    if (!dayEvents.length) return null;
+    if (!dayEvents.length) return [];
 
     // Group overlapping events
     const eventGroups = groupOverlappingEvents(dayEvents);
@@ -1616,7 +1616,7 @@ export function CalendarGrid({
     };
     
     // If this is a group event, also render child events in the preview
-    const childEventPreviews: JSX.Element[] = [];
+    const childEventPreviews: React.ReactElement[] = [];
     if (activeEvent.event.is_group_event) {
       // Calculate time offset for child events
       const originalStartTime = new Date(activeEvent.event.start_time).getTime();

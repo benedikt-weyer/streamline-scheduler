@@ -65,7 +65,7 @@ const ProjectTreeItem = React.forwardRef<
       className="no-border-tree-item"
     >
       <div 
-        ref={dropRef}
+        ref={dropRef as React.RefObject<HTMLDivElement>}
         className={`relative flex items-center w-full group transition-colors ${
           isOver ? 'bg-primary/10 rounded-md' : ''
         }`}
