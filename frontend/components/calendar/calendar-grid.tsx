@@ -74,6 +74,7 @@ interface DayColumnProps {
   calculateTimeFromPosition: (day: Date, position: FlexyDragPosition, dayElement: HTMLElement) => Date;
   setDropHoverPosition: React.Dispatch<React.SetStateAction<{ day: Date; time: Date } | null>>;
   currentDragData: any;
+  dragPosition: DragPosition | null;
 }
 
 function DayColumn({
@@ -93,6 +94,7 @@ function DayColumn({
   calculateTimeFromPosition,
   setDropHoverPosition,
   currentDragData,
+  dragPosition,
 }: DayColumnProps) {
   const dayColumnRef = useRef<HTMLDivElement | null>(null);
   
@@ -166,7 +168,7 @@ function DayColumn({
       {renderEvents(day, dayIndex)}
       
       {/* Drag helper for this day */}
-      {renderDragHelper(dayIndex, day, null)}
+      {renderDragHelper(dayIndex, day, dragPosition)}
       
       {/* Drop indicator for task drops - render as transparent event preview */}
       {dropHoverPosition && isSameDay(dropHoverPosition.day, day) && (() => {
@@ -1657,8 +1659,9 @@ export function CalendarGrid({
     // Use a wrapper div to apply the opacity and prevent pointer events
     // Use z-index higher than modal overlay (Dialog uses z-50, we use 99999 to be above everything)
     return (
-      <div key={`drag-helper-${activeEvent.event.id}`} style={{ pointerEvents: 'none', position: 'relative', zIndex: 99999 }}>
-        {renderSingleEvent(draggedEvent, day, dayIndex, 99999, 80)}
+      <div key={`drag-container-${activeEvent.event.id}`} style={{ pointerEvents: 'none', position: 'relative', zIndex: 99999 }}>
+        {/* Event preview with reduced opacity (ghost event) */}
+        {renderSingleEvent(draggedEvent, day, dayIndex, 99999, 50)}
         {childEventPreviews}
       </div>
     );
@@ -1809,6 +1812,7 @@ export function CalendarGrid({
               calculateTimeFromPosition={calculateTimeFromPosition}
               setDropHoverPosition={setDropHoverPosition}
               currentDragData={flexyDND.currentDragData}
+              dragPosition={dragPosition}
             />
           ))}
         </div>
