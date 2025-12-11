@@ -5,7 +5,8 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Streamline Scheduler',
     short_name: 'StreamlineScheduler',
     description: 'Streamline Scheduler',
-    start_url: '/',
+    start_url: '/?source=pwa',
+    scope: '/',
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#000000',
@@ -14,11 +15,13 @@ export default function manifest(): MetadataRoute.Manifest {
         src: '/icon-192x192.png',
         sizes: '192x192',
         type: 'image/png',
+        purpose: 'any maskable',
       },
       {
         src: '/icon-512x512.png',
         sizes: '512x512',
         type: 'image/png',
+        purpose: 'any maskable',
       },
     ],
   }

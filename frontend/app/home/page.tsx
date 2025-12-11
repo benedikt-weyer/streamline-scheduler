@@ -27,7 +27,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="text-base px-8 py-6" asChild>
-                <Link href="/dashboard">
+                <Link href="/">
                   Get Started
                   <Zap className="ml-2 h-5 w-5" />
                 </Link>
@@ -162,7 +162,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button size="lg" variant="secondary" className="text-base px-8 py-6" asChild>
-                  <Link href="/dashboard">
+                  <Link href="/">
                     Start Using Now
                     <Zap className="ml-2 h-5 w-5" />
                   </Link>
