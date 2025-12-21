@@ -1,0 +1,77 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE_NAME: ${{ github.repository_owner }}/planera-backend
+  FRONTEND_IMAGE_NAME: ${{ github.repository_owner }}/planera-frontend
+
+jobs:
+  deploy-to-production:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://app.planera.app
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Create namespace if not exists
+        run: |
+          kubectl apply -f k8s/production/namespace.yaml
+
+      - name: Create image pull secret
+        run: |
+          kubectl create secret docker-registry ghcr-secret \
+            --docker-server=${{ env.REGISTRY }} \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+            --namespace=planera-production \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy to production
+        run: |
+          kubectl apply -f k8s/production/postgres.yaml
+          kubectl apply -f k8s/production/backend.yaml
+          kubectl apply -f k8s/production/frontend.yaml
+          kubectl apply -f k8s/production/ingress.yaml
+
+      - name: Wait for backend deployment
+        run: |
+          kubectl rollout status deployment/backend -n planera-production --timeout=5m
+
+      - name: Wait for frontend deployment
+        run: |
+          kubectl rollout status deployment/frontend -n planera-production --timeout=5m
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n planera-production
+          kubectl get services -n planera-production
+          kubectl get ingress -n planera-production
+
+      - name: Run smoke tests
+        run: |
+          echo "Waiting 30 seconds for services to stabilize..."
+          sleep 30
+          
+          echo "Testing backend health endpoint..."
+          kubectl run curl-test --image=curlimages/curl:latest --rm -i --restart=Never --namespace=planera-production -- \
+            curl -f http://backend.planera-production.svc.cluster.local:8080/health || exit 1
+          
+          echo "All smoke tests passed!"

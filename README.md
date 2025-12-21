@@ -33,9 +33,32 @@ Streamline Scheduler is an open source self-hostable calendar-todolist combo wit
 
 ## Self-Hosting
 
-Streamline Scheduler can be easily self-hosted on your own server or cloud provider using the new Rust backend architecture.
+Streamline Scheduler (rebranding to Planera) can be easily self-hosted on your own server or cloud provider using the new Rust backend architecture.
 
-### Quick Start with Docker Compose (Recommended)
+### Deployment Options
+
+1. **Kubernetes** (Recommended for production) - See [K8S_QUICKSTART.md](./K8S_QUICKSTART.md) and [KUBERNETES_DEPLOYMENT.md](./KUBERNETES_DEPLOYMENT.md)
+2. **Docker Compose** (Good for local development and simple deployments)
+
+### Quick Start with Kubernetes
+
+For Kubernetes deployment with staging and production environments:
+
+```bash
+# Quick setup - see K8S_QUICKSTART.md for details
+kubectl apply -f k8s/staging/  # For staging
+kubectl apply -f k8s/production/  # For production
+```
+
+**Key features**:
+- Separate staging and production namespaces
+- Automatic deployment via GitHub Actions
+- TLS certificates via cert-manager
+- Horizontal scaling support
+
+See [K8S_QUICKSTART.md](./K8S_QUICKSTART.md) for quick start and [KUBERNETES_DEPLOYMENT.md](./KUBERNETES_DEPLOYMENT.md) for comprehensive documentation.
+
+### Quick Start with Docker Compose
 
 1. **Clone the repository**:
    ```bash

@@ -1,0 +1,26 @@
+name: Deploy to Staging (Orchestrator)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-images:
+    name: Build Docker Images
+    uses: ./.github/workflows/build-images.yml
+    secrets: inherit
+    with:
+      environment: staging
+
+  deploy-to-staging:
+    name: Deploy to Kubernetes
+    needs: [build-images]
+    uses: ./.github/workflows/deploy-staging.yml
+    secrets: inherit
+

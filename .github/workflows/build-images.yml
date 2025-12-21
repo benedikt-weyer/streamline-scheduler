@@ -1,0 +1,123 @@
+name: Build Docker Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment (staging or production)'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+        default: 'staging'
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-backend:
+    name: Build Backend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image tags
+        id: tags
+        run: |
+          if [ "${{ inputs.environment }}" = "staging" ]; then
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:staging-latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:staging-${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+  build-frontend:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image tags
+        id: tags
+        run: |
+          if [ "${{ inputs.environment }}" = "staging" ]; then
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:staging-latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:staging-${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+  summary:
+    name: Build Summary
+    needs: [build-backend, build-frontend]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Build summary
+        run: |
+          echo "## 🐳 Docker Images Built" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Status:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend**: ${{ needs.build-backend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend**: ${{ needs.build-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Images:" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.environment }}" = "staging" ]; then
+            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:staging-latest\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:staging-latest\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:latest\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:latest\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
