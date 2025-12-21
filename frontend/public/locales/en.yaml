@@ -26,7 +26,7 @@ sidebar:
   allTasks: All Tasks
 
 navbar:
-  appName: Streamline Scheduler
+  appName: Plandera
   settings: Settings
   backToScheduler: Back to Scheduler
   toggleMenu: Toggle navigation menu
@@ -173,7 +173,7 @@ settings:
   deleteIrreversible: This action is irreversible. Consider exporting your data first.
   deleteAllMyData: Delete All My Data
   confirmDataDeletion: Confirm Data Deletion
-  confirmDeletionMessage: You are about to permanently delete all your data from Streamline Scheduler. This includes all tasks, projects, calendars, events, and profile information.
+  confirmDeletionMessage: You are about to permanently delete all your data from Plandera. This includes all tasks, projects, calendars, events, and profile information.
   cannotBeUndone: This action cannot be undone!
   typeToConfirm: "Type {text} to confirm:"
   confirmationRequired: DELETE ALL MY DATA

@@ -45,14 +45,14 @@ function SSOCallbackContent() {
         const encryptionKey = hashPasswordForEncryption(keyMaterial);
         storeEncryptionKey(encryptionKey);
 
-        setStatus('Connecting to Streamline Scheduler...');
+        setStatus('Connecting to Plandera...');
         
         // Exchange SSO token for scheduler auth token
         const backendURL = process.env.NEXT_PUBLIC_BACKEND_HTTP_URL || 'http://localhost:3001';
         const exchange = await exchangeSSOToken(ssoToken, backendURL);
         
         if (exchange.error || !exchange.token) {
-          setError(exchange.error || 'Failed to authenticate with Streamline Scheduler');
+          setError(exchange.error || 'Failed to authenticate with Plandera');
           return;
         }
 

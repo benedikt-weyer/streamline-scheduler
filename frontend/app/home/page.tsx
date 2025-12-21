@@ -18,7 +18,7 @@ export default function Home() {
               Open Source • Self-Hostable • Privacy-First
             </Badge>
             <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent mb-6">
-              Streamline Scheduler
+              Plandera
             </h1>
             <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
               The perfect calendar-todolist combo for efficient task and event management. 

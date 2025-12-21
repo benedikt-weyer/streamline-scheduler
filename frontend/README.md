@@ -1,6 +1,6 @@
-# Streamline Scheduler - Frontend
+# Plandera - Frontend
 
-The frontend for Streamline Scheduler is built with Next.js 14+, React 19, TypeScript, Tailwind CSS, and shadcn/ui components. It features client-side end-to-end encryption and a modern, responsive interface.
+The frontend for Plandera is built with Next.js 14+, React 19, TypeScript, Tailwind CSS, and shadcn/ui components. It features client-side end-to-end encryption and a modern, responsive interface.
 
 ## Tech Stack
 

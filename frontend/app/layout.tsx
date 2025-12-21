@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={geistSans.className} suppressHydrationWarning>
       <head>
-        <title>Streamline Scheduler</title>
+        <title>Plandera</title>
         <meta name="description" content="Open source self hostable secure calendar todolist combo" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/icon.png" />

@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Streamline Scheduler',
-    short_name: 'StreamlineScheduler',
-    description: 'Streamline Scheduler',
+    name: 'Plandera',
+    short_name: 'Plandera',
+    description: 'Plandera',
     start_url: '/?source=pwa',
     scope: '/',
     display: 'standalone',
