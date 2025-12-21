@@ -8,6 +8,8 @@ env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE_NAME: ${{ github.repository_owner }}/plandera-backend
   FRONTEND_IMAGE_NAME: ${{ github.repository_owner }}/plandera-frontend
+  PRODUCTION_APP_DOMAIN: ${{ vars.PRODUCTION_APP_DOMAIN || 'app.plandera.com' }}
+  PRODUCTION_API_DOMAIN: ${{ vars.PRODUCTION_API_DOMAIN || 'api.plandera.com' }}
 
 jobs:
   deploy-to-production:
@@ -46,6 +48,10 @@ jobs:
 
       - name: Deploy to production
         run: |
+          # Replace domain placeholders in ingress manifest
+          sed -i "s|__PRODUCTION_APP_DOMAIN__|${{ env.PRODUCTION_APP_DOMAIN }}|g" k8s/production/ingress.yaml
+          sed -i "s|__PRODUCTION_API_DOMAIN__|${{ env.PRODUCTION_API_DOMAIN }}|g" k8s/production/ingress.yaml
+          
           kubectl apply -f k8s/production/postgres.yaml
           kubectl apply -f k8s/production/backend.yaml
           kubectl apply -f k8s/production/frontend.yaml

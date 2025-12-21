@@ -9,7 +9,7 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   rules:
-  - host: api.plandera.app
+  - host: __PRODUCTION_API_DOMAIN__
     http:
       paths:
       - path: /
@@ -21,7 +21,7 @@ spec:
               number: 8080
   tls:
   - hosts:
-    - api.plandera.app
+    - __PRODUCTION_API_DOMAIN__
     secretName: production-backend-tls
 ---
 apiVersion: networking.k8s.io/v1
@@ -35,7 +35,7 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   rules:
-  - host: app.plandera.app
+  - host: __PRODUCTION_APP_DOMAIN__
     http:
       paths:
       - path: /
@@ -47,6 +47,6 @@ spec:
               number: 3000
   tls:
   - hosts:
-    - app.plandera.app
+    - __PRODUCTION_APP_DOMAIN__
     secretName: production-frontend-tls
 

@@ -8,6 +8,8 @@ env:
   REGISTRY: ghcr.io
   BACKEND_IMAGE_NAME: ${{ github.repository_owner }}/plandera-backend
   FRONTEND_IMAGE_NAME: ${{ github.repository_owner }}/plandera-frontend
+  STAGING_APP_DOMAIN: ${{ vars.STAGING_APP_DOMAIN || 'staging-app.plandera.com' }}
+  STAGING_API_DOMAIN: ${{ vars.STAGING_API_DOMAIN || 'staging-api.plandera.com' }}
 
 jobs:
   deploy-to-staging:
@@ -43,6 +45,10 @@ jobs:
 
       - name: Deploy to staging
         run: |
+          # Replace domain placeholders in ingress manifest
+          sed -i "s|__STAGING_APP_DOMAIN__|${{ env.STAGING_APP_DOMAIN }}|g" k8s/staging/ingress.yaml
+          sed -i "s|__STAGING_API_DOMAIN__|${{ env.STAGING_API_DOMAIN }}|g" k8s/staging/ingress.yaml
+          
           kubectl apply -f k8s/staging/postgres.yaml
           kubectl apply -f k8s/staging/backend.yaml
           kubectl apply -f k8s/staging/frontend.yaml

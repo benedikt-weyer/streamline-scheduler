@@ -9,7 +9,7 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   rules:
-  - host: staging-api.plandera.app
+  - host: __STAGING_API_DOMAIN__
     http:
       paths:
       - path: /
@@ -21,7 +21,7 @@ spec:
               number: 8080
   tls:
   - hosts:
-    - staging-api.plandera.app
+    - __STAGING_API_DOMAIN__
     secretName: staging-backend-tls
 ---
 apiVersion: networking.k8s.io/v1
@@ -35,7 +35,7 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   rules:
-  - host: staging.plandera.app
+  - host: __STAGING_APP_DOMAIN__
     http:
       paths:
       - path: /
@@ -47,6 +47,6 @@ spec:
               number: 3000
   tls:
   - hosts:
-    - staging.plandera.app
+    - __STAGING_APP_DOMAIN__
     secretName: staging-frontend-tls
 
