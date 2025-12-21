@@ -1,6 +1,6 @@
 # Streamline Scheduler Workflows - Architecture
 
-The Planera app repository uses an **orchestrated workflow architecture** where building and deploying are separated into modular, reusable workflows.
+The Plandera app repository uses an **orchestrated workflow architecture** where building and deploying are separated into modular, reusable workflows.
 
 ## Workflow Structure
 
@@ -16,7 +16,7 @@ The Planera app repository uses an **orchestrated workflow architecture** where 
              │   └─ Build frontend:staging-latest
              │
              └─► deploy-staging.yml
-                 └─ Deploy to planera-staging namespace
+                 └─ Deploy to plandera-staging namespace
 
 ┌─────────────────────────────────────────────────────────────┐
 │           Production Orchestrator                            │
@@ -31,7 +31,7 @@ The Planera app repository uses an **orchestrated workflow architecture** where 
              │   └─ Build frontend:latest
              │
              └─► deploy-production.yml
-                 └─ Deploy to planera-production namespace
+                 └─ Deploy to plandera-production namespace
 ```
 
 ## Available Workflows
@@ -110,7 +110,7 @@ git push origin main
 # Automatically:
 # 1. Builds backend:staging-latest
 # 2. Builds frontend:staging-latest
-# 3. Deploys to planera-staging
+# 3. Deploys to plandera-staging
 ```
 
 ### Scenario 2: Deploy to Production (Manual)
@@ -126,7 +126,7 @@ Actions → "Deploy to Production (Orchestrator)"
 # 1. Validates confirmation
 # 2. Builds backend:latest
 # 3. Builds frontend:latest
-# 4. Deploys to planera-production
+# 4. Deploys to plandera-production
 ```
 
 ### Scenario 3: Build Images Only
@@ -159,16 +159,16 @@ Actions → "Deploy to Staging" or "Deploy to Production"
 ## Image Naming Convention
 
 ### Staging
-- `ghcr.io/{owner}/planera-backend:staging-latest`
-- `ghcr.io/{owner}/planera-backend:staging-{sha}`
-- `ghcr.io/{owner}/planera-frontend:staging-latest`
-- `ghcr.io/{owner}/planera-frontend:staging-{sha}`
+- `ghcr.io/{owner}/plandera-backend:staging-latest`
+- `ghcr.io/{owner}/plandera-backend:staging-{sha}`
+- `ghcr.io/{owner}/plandera-frontend:staging-latest`
+- `ghcr.io/{owner}/plandera-frontend:staging-{sha}`
 
 ### Production
-- `ghcr.io/{owner}/planera-backend:latest`
-- `ghcr.io/{owner}/planera-backend:{sha}`
-- `ghcr.io/{owner}/planera-frontend:latest`
-- `ghcr.io/{owner}/planera-frontend:{sha}`
+- `ghcr.io/{owner}/plandera-backend:latest`
+- `ghcr.io/{owner}/plandera-backend:{sha}`
+- `ghcr.io/{owner}/plandera-frontend:latest`
+- `ghcr.io/{owner}/plandera-frontend:{sha}`
 
 ## Workflow Files
 

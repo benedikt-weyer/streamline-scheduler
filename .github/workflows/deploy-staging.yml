@@ -6,8 +6,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE_NAME: ${{ github.repository_owner }}/planera-backend
-  FRONTEND_IMAGE_NAME: ${{ github.repository_owner }}/planera-frontend
+  BACKEND_IMAGE_NAME: ${{ github.repository_owner }}/plandera-backend
+  FRONTEND_IMAGE_NAME: ${{ github.repository_owner }}/plandera-frontend
 
 jobs:
   deploy-to-staging:
@@ -38,7 +38,7 @@ jobs:
             --docker-server=${{ env.REGISTRY }} \
             --docker-username=${{ github.actor }} \
             --docker-password=${{ secrets.GITHUB_TOKEN }} \
-            --namespace=planera-staging \
+            --namespace=plandera-staging \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy to staging
@@ -50,14 +50,14 @@ jobs:
 
       - name: Wait for backend deployment
         run: |
-          kubectl rollout status deployment/backend -n planera-staging --timeout=5m
+          kubectl rollout status deployment/backend -n plandera-staging --timeout=5m
 
       - name: Wait for frontend deployment
         run: |
-          kubectl rollout status deployment/frontend -n planera-staging --timeout=5m
+          kubectl rollout status deployment/frontend -n plandera-staging --timeout=5m
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n planera-staging
-          kubectl get services -n planera-staging
-          kubectl get ingress -n planera-staging
+          kubectl get pods -n plandera-staging
+          kubectl get services -n plandera-staging
+          kubectl get ingress -n plandera-staging

@@ -2,14 +2,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: backend-ingress
-  namespace: planera-staging
+  namespace: plandera-staging
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   rules:
-  - host: staging-api.planera.app
+  - host: staging-api.plandera.app
     http:
       paths:
       - path: /
@@ -21,21 +21,21 @@ spec:
               number: 8080
   tls:
   - hosts:
-    - staging-api.planera.app
+    - staging-api.plandera.app
     secretName: staging-backend-tls
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: frontend-ingress
-  namespace: planera-staging
+  namespace: plandera-staging
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   rules:
-  - host: staging.planera.app
+  - host: staging.plandera.app
     http:
       paths:
       - path: /
@@ -47,6 +47,6 @@ spec:
               number: 3000
   tls:
   - hosts:
-    - staging.planera.app
+    - staging.plandera.app
     secretName: staging-frontend-tls
 

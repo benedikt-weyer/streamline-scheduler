@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to help set up Kubernetes secrets for Planera deployment
+# Script to help set up Kubernetes secrets for Plandera deployment
 
 set -e
 
@@ -89,7 +89,7 @@ create_production_secrets() {
 # Create GitHub image pull secret
 create_image_pull_secret() {
     local env=$1
-    local namespace="planera-${env}"
+    local namespace="plandera-${env}"
     local github_username=$2
     local github_token=$3
     
@@ -114,7 +114,7 @@ create_image_pull_secret() {
 
 # Show help
 show_help() {
-    echo "Planera Kubernetes Secrets Setup Helper"
+    echo "Plandera Kubernetes Secrets Setup Helper"
     echo ""
     echo "Usage: $0 [command] [options]"
     echo ""

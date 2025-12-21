@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deployment helper script for Planera Kubernetes deployment
+# Deployment helper script for Plandera Kubernetes deployment
 
 set -e
 
@@ -56,11 +56,11 @@ deploy_staging() {
     kubectl apply -f k8s/staging/ingress.yaml
     
     print_info "Waiting for deployments to be ready..."
-    kubectl rollout status deployment/backend -n planera-staging --timeout=5m || true
-    kubectl rollout status deployment/frontend -n planera-staging --timeout=5m || true
+    kubectl rollout status deployment/backend -n plandera-staging --timeout=5m || true
+    kubectl rollout status deployment/frontend -n plandera-staging --timeout=5m || true
     
     print_success "Staging deployment complete!"
-    print_info "View status with: kubectl get pods -n planera-staging"
+    print_info "View status with: kubectl get pods -n plandera-staging"
 }
 
 # Deploy to production
@@ -82,17 +82,17 @@ deploy_production() {
     kubectl apply -f k8s/production/ingress.yaml
     
     print_info "Waiting for deployments to be ready..."
-    kubectl rollout status deployment/backend -n planera-production --timeout=5m || true
-    kubectl rollout status deployment/frontend -n planera-production --timeout=5m || true
+    kubectl rollout status deployment/backend -n plandera-production --timeout=5m || true
+    kubectl rollout status deployment/frontend -n plandera-production --timeout=5m || true
     
     print_success "Production deployment complete!"
-    print_info "View status with: kubectl get pods -n planera-production"
+    print_info "View status with: kubectl get pods -n plandera-production"
 }
 
 # Status check
 check_status() {
     local env=$1
-    local namespace="planera-${env}"
+    local namespace="plandera-${env}"
     
     print_info "Status for ${env} environment:"
     echo ""
@@ -113,7 +113,7 @@ check_status() {
 view_logs() {
     local env=$1
     local component=$2
-    local namespace="planera-${env}"
+    local namespace="plandera-${env}"
     
     if [ -z "$component" ]; then
         print_error "Please specify component: backend or frontend"
@@ -128,7 +128,7 @@ view_logs() {
 rollback_deployment() {
     local env=$1
     local component=$2
-    local namespace="planera-${env}"
+    local namespace="plandera-${env}"
     
     if [ -z "$component" ]; then
         print_error "Please specify component: backend or frontend"
@@ -145,7 +145,7 @@ rollback_deployment() {
 restart_deployment() {
     local env=$1
     local component=$2
-    local namespace="planera-${env}"
+    local namespace="plandera-${env}"
     
     if [ -z "$component" ]; then
         print_error "Please specify component: backend or frontend"
@@ -160,7 +160,7 @@ restart_deployment() {
 
 # Show help
 show_help() {
-    echo "Planera Kubernetes Deployment Helper"
+    echo "Plandera Kubernetes Deployment Helper"
     echo ""
     echo "Usage: $0 [command] [options]"
     echo ""

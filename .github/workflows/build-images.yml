@@ -43,9 +43,9 @@ jobs:
         id: tags
         run: |
           if [ "${{ inputs.environment }}" = "staging" ]; then
-            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:staging-latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:staging-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:staging-latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:staging-${{ github.sha }}" >> $GITHUB_OUTPUT
           else
-            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:${{ github.sha }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push backend image
@@ -81,9 +81,9 @@ jobs:
         id: tags
         run: |
           if [ "${{ inputs.environment }}" = "staging" ]; then
-            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:staging-latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:staging-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:staging-latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:staging-${{ github.sha }}" >> $GITHUB_OUTPUT
           else
-            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:${{ github.sha }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push frontend image
@@ -114,10 +114,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Images:" >> $GITHUB_STEP_SUMMARY
           if [ "${{ inputs.environment }}" = "staging" ]; then
-            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:staging-latest\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:staging-latest\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:staging-latest\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:staging-latest\`" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-backend:latest\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/planera-frontend:latest\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:latest\`" >> $GITHUB_STEP_SUMMARY
+            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:latest\`" >> $GITHUB_STEP_SUMMARY
           fi
 

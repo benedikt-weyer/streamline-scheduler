@@ -1,10 +1,10 @@
 # Kubernetes Deployment Guide
 
-This guide covers deploying Planera (formerly Streamline Scheduler) to a Kubernetes cluster with separate staging and production environments.
+This guide covers deploying Plandera (formerly Streamline Scheduler) to a Kubernetes cluster with separate staging and production environments.
 
 ## Architecture Overview
 
-- **Namespace Structure**: `planera-staging` and `planera-production`
+- **Namespace Structure**: `plandera-staging` and `plandera-production`
 - **Components**: PostgreSQL database, Rust backend, Next.js frontend
 - **CI/CD**: GitHub Actions for automated deployments
 - **Ingress**: Traefik with automatic TLS via cert-manager
@@ -47,13 +47,13 @@ Update the ingress configurations in the following files to match your domains:
 
 **Staging:**
 - `k8s/staging/ingress.yaml`:
-  - Frontend: `staging.planera.app`
-  - Backend: `staging-api.planera.app`
+  - Frontend: `staging.plandera.app`
+  - Backend: `staging-api.plandera.app`
 
 **Production:**
 - `k8s/production/ingress.yaml`:
-  - Frontend: `app.planera.app`
-  - Backend: `api.planera.app`
+  - Frontend: `app.plandera.app`
+  - Backend: `api.plandera.app`
 
 ### 4. Configure Secrets
 
@@ -63,7 +63,7 @@ Update the ingress configurations in the following files to match your domains:
 ```yaml
 stringData:
   POSTGRES_PASSWORD: <strong-random-password>
-  DATABASE_URL: postgresql://planera:<strong-random-password>@postgres:5432/planera_db
+  DATABASE_URL: postgresql://plandera:<strong-random-password>@postgres:5432/plandera_db
   JWT_SECRET: <strong-random-jwt-secret-at-least-32-chars>
 ```
 
@@ -79,10 +79,10 @@ kubectl get svc -n kube-system traefik
 ```
 
 Create A records:
-- `staging.planera.app` → your-cluster-ip
-- `staging-api.planera.app` → your-cluster-ip
-- `app.planera.app` → your-cluster-ip
-- `api.planera.app` → your-cluster-ip
+- `staging.plandera.app` → your-cluster-ip
+- `staging-api.plandera.app` → your-cluster-ip
+- `app.plandera.app` → your-cluster-ip
+- `api.plandera.app` → your-cluster-ip
 
 ## Deployment
 
@@ -127,7 +127,7 @@ kubectl create secret docker-registry ghcr-secret \
   --docker-server=ghcr.io \
   --docker-username=<github-username> \
   --docker-password=<github-token> \
-  --namespace=planera-staging
+  --namespace=plandera-staging
 
 # Deploy all components
 kubectl apply -f k8s/staging/postgres.yaml
@@ -136,8 +136,8 @@ kubectl apply -f k8s/staging/frontend.yaml
 kubectl apply -f k8s/staging/ingress.yaml
 
 # Monitor deployment
-kubectl rollout status deployment/backend -n planera-staging
-kubectl rollout status deployment/frontend -n planera-staging
+kubectl rollout status deployment/backend -n plandera-staging
+kubectl rollout status deployment/frontend -n plandera-staging
 ```
 
 #### Deploy Production
@@ -151,7 +151,7 @@ kubectl create secret docker-registry ghcr-secret \
   --docker-server=ghcr.io \
   --docker-username=<github-username> \
   --docker-password=<github-token> \
-  --namespace=planera-production
+  --namespace=plandera-production
 
 # Deploy all components
 kubectl apply -f k8s/production/postgres.yaml
@@ -160,8 +160,8 @@ kubectl apply -f k8s/production/frontend.yaml
 kubectl apply -f k8s/production/ingress.yaml
 
 # Monitor deployment
-kubectl rollout status deployment/backend -n planera-production
-kubectl rollout status deployment/frontend -n planera-production
+kubectl rollout status deployment/backend -n plandera-production
+kubectl rollout status deployment/frontend -n plandera-production
 ```
 
 ## Monitoring and Debugging
@@ -170,40 +170,40 @@ kubectl rollout status deployment/frontend -n planera-production
 
 ```bash
 # Staging
-kubectl get pods -n planera-staging
-kubectl logs -f deployment/backend -n planera-staging
-kubectl logs -f deployment/frontend -n planera-staging
+kubectl get pods -n plandera-staging
+kubectl logs -f deployment/backend -n plandera-staging
+kubectl logs -f deployment/frontend -n plandera-staging
 
 # Production
-kubectl get pods -n planera-production
-kubectl logs -f deployment/backend -n planera-production
-kubectl logs -f deployment/frontend -n planera-production
+kubectl get pods -n plandera-production
+kubectl logs -f deployment/backend -n plandera-production
+kubectl logs -f deployment/frontend -n plandera-production
 ```
 
 ### Check Services and Ingress
 
 ```bash
 # Staging
-kubectl get svc -n planera-staging
-kubectl get ingress -n planera-staging
-kubectl describe ingress backend-ingress -n planera-staging
+kubectl get svc -n plandera-staging
+kubectl get ingress -n plandera-staging
+kubectl describe ingress backend-ingress -n plandera-staging
 
 # Production
-kubectl get svc -n planera-production
-kubectl get ingress -n planera-production
-kubectl describe ingress backend-ingress -n planera-production
+kubectl get svc -n plandera-production
+kubectl get ingress -n plandera-production
+kubectl describe ingress backend-ingress -n plandera-production
 ```
 
 ### Access Database
 
 ```bash
 # Port-forward to access PostgreSQL directly
-kubectl port-forward svc/postgres 5432:5432 -n planera-staging
+kubectl port-forward svc/postgres 5432:5432 -n plandera-staging
 # or
-kubectl port-forward svc/postgres 5432:5432 -n planera-production
+kubectl port-forward svc/postgres 5432:5432 -n plandera-production
 
 # Connect with psql
-psql postgresql://planera:<password>@localhost:5432/planera_db
+psql postgresql://plandera:<password>@localhost:5432/plandera_db
 ```
 
 ### Common Issues
@@ -219,18 +219,18 @@ kubectl logs <pod-name> -n <namespace>
 
 ```bash
 # Check if postgres is ready
-kubectl exec -it deployment/postgres -n planera-staging -- pg_isready -U planera
+kubectl exec -it deployment/postgres -n plandera-staging -- pg_isready -U plandera
 
 # Check database exists
-kubectl exec -it deployment/postgres -n planera-staging -- psql -U planera -c '\l'
+kubectl exec -it deployment/postgres -n plandera-staging -- psql -U plandera -c '\l'
 ```
 
 #### Certificate issues
 
 ```bash
 # Check certificate status
-kubectl get certificates -n planera-staging
-kubectl describe certificate staging-backend-tls -n planera-staging
+kubectl get certificates -n plandera-staging
+kubectl describe certificate staging-backend-tls -n plandera-staging
 
 # Check cert-manager logs
 kubectl logs -n cert-manager deployment/cert-manager
@@ -242,14 +242,14 @@ If you need to rollback a deployment:
 
 ```bash
 # Rollback to previous version
-kubectl rollout undo deployment/backend -n planera-production
-kubectl rollout undo deployment/frontend -n planera-production
+kubectl rollout undo deployment/backend -n plandera-production
+kubectl rollout undo deployment/frontend -n plandera-production
 
 # Check rollout history
-kubectl rollout history deployment/backend -n planera-production
+kubectl rollout history deployment/backend -n plandera-production
 
 # Rollback to specific revision
-kubectl rollout undo deployment/backend -n planera-production --to-revision=2
+kubectl rollout undo deployment/backend -n plandera-production --to-revision=2
 ```
 
 ## Scaling
@@ -258,10 +258,10 @@ kubectl rollout undo deployment/backend -n planera-production --to-revision=2
 
 ```bash
 # Scale backend in production
-kubectl scale deployment/backend --replicas=3 -n planera-production
+kubectl scale deployment/backend --replicas=3 -n plandera-production
 
 # Scale frontend in production
-kubectl scale deployment/frontend --replicas=3 -n planera-production
+kubectl scale deployment/frontend --replicas=3 -n plandera-production
 ```
 
 To make scaling permanent, update the replica count in the deployment YAML files.
@@ -275,7 +275,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: backend-hpa
-  namespace: planera-production
+  namespace: plandera-production
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
@@ -298,20 +298,20 @@ spec:
 
 ```bash
 # Create backup
-kubectl exec deployment/postgres -n planera-production -- \
-  pg_dump -U planera planera_db > backup-$(date +%Y%m%d-%H%M%S).sql
+kubectl exec deployment/postgres -n plandera-production -- \
+  pg_dump -U plandera plandera_db > backup-$(date +%Y%m%d-%H%M%S).sql
 
 # Or use pg_dumpall for all databases
-kubectl exec deployment/postgres -n planera-production -- \
-  pg_dumpall -U planera > backup-all-$(date +%Y%m%d-%H%M%S).sql
+kubectl exec deployment/postgres -n plandera-production -- \
+  pg_dumpall -U plandera > backup-all-$(date +%Y%m%d-%H%M%S).sql
 ```
 
 ### Restore PostgreSQL
 
 ```bash
 # Restore from backup
-cat backup.sql | kubectl exec -i deployment/postgres -n planera-production -- \
-  psql -U planera planera_db
+cat backup.sql | kubectl exec -i deployment/postgres -n plandera-production -- \
+  psql -U plandera plandera_db
 ```
 
 ### Automated Backups
@@ -323,7 +323,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: postgres-backup
-  namespace: planera-production
+  namespace: plandera-production
 spec:
   schedule: "0 2 * * *"  # Daily at 2 AM
   jobTemplate:
@@ -337,12 +337,12 @@ spec:
             - /bin/sh
             - -c
             - |
-              pg_dump -h postgres -U planera planera_db | gzip > /backup/backup-$(date +%Y%m%d-%H%M%S).sql.gz
+              pg_dump -h postgres -U plandera plandera_db | gzip > /backup/backup-$(date +%Y%m%d-%H%M%S).sql.gz
             env:
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: planera-secrets
+                  name: plandera-secrets
                   key: POSTGRES_PASSWORD
             volumeMounts:
             - name: backup-storage
@@ -451,13 +451,13 @@ The CI/CD pipeline handles updates automatically:
 ### Remove Staging Environment
 
 ```bash
-kubectl delete namespace planera-staging
+kubectl delete namespace plandera-staging
 ```
 
 ### Remove Production Environment
 
 ```bash
-kubectl delete namespace planera-production
+kubectl delete namespace plandera-production
 ```
 
 ## Support

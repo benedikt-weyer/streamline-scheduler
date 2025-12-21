@@ -33,7 +33,7 @@ Streamline Scheduler is an open source self-hostable calendar-todolist combo wit
 
 ## Self-Hosting
 
-Streamline Scheduler (rebranding to Planera) can be easily self-hosted on your own server or cloud provider using the new Rust backend architecture.
+Streamline Scheduler (rebranding to Plandera) can be easily self-hosted on your own server or cloud provider using the new Rust backend architecture.
 
 ### Deployment Options
 

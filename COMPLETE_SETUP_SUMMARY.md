@@ -19,16 +19,16 @@ This document summarizes all changes made across the three workspaces to impleme
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Kubernetes Cluster                            │
 │  ┌──────────────────────┬─────────────────────────────────────┐ │
-│  │  Planera App Repo    │    Webpage Repo                     │ │
+│  │  Plandera App Repo    │    Webpage Repo                     │ │
 │  │  (streamline-        │    (streamline-scheduler-webpage)   │ │
 │  │   scheduler)         │                                     │ │
 │  ├──────────────────────┼─────────────────────────────────────┤ │
-│  │ planera-staging      │  planera-webpage-staging            │ │
+│  │ plandera-staging      │  plandera-webpage-staging            │ │
 │  │ - Backend (1 rep)    │  - Webpage (1 rep)                  │ │
 │  │ - Frontend (1 rep)   │  - PostgreSQL                       │ │
 │  │ - PostgreSQL         │                                     │ │
 │  ├──────────────────────┼─────────────────────────────────────┤ │
-│  │ planera-production   │  planera-webpage-production         │ │
+│  │ plandera-production   │  plandera-webpage-production         │ │
 │  │ - Backend (2 rep)    │  - Webpage (2 rep)                  │ │
 │  │ - Frontend (2 rep)   │  - PostgreSQL                       │ │
 │  │ - PostgreSQL         │                                     │ │
@@ -64,9 +64,9 @@ ansible-playbook -i ansible/inventory/hosts.yml ansible/deploy-cert-manager.yml
 
 ---
 
-### 2. streamline-scheduler (Planera App)
+### 2. streamline-scheduler (Plandera App)
 
-**Purpose**: Main Planera application with self-contained deployment
+**Purpose**: Main Plandera application with self-contained deployment
 
 **New Files Created:**
 
@@ -74,13 +74,13 @@ ansible-playbook -i ansible/inventory/hosts.yml ansible/deploy-cert-manager.yml
 ```
 k8s/
 ├── staging/
-│   ├── namespace.yaml       # planera-staging namespace
+│   ├── namespace.yaml       # plandera-staging namespace
 │   ├── postgres.yaml        # PostgreSQL + secrets + config
 │   ├── backend.yaml         # Backend deployment + service
 │   ├── frontend.yaml        # Frontend deployment + service
 │   └── ingress.yaml         # Ingress rules for staging
 └── production/
-    ├── namespace.yaml       # planera-production namespace
+    ├── namespace.yaml       # plandera-production namespace
     ├── postgres.yaml        # PostgreSQL + secrets + config
     ├── backend.yaml         # Backend deployment (2 replicas)
     ├── frontend.yaml        # Frontend deployment (2 replicas)
@@ -113,15 +113,15 @@ k8s/
 - `README.md` - Added Kubernetes deployment section
 
 **Staging Environment:**
-- Namespace: `planera-staging`
-- Frontend: `staging.planera.app`
-- Backend: `staging-api.planera.app`
+- Namespace: `plandera-staging`
+- Frontend: `staging.plandera.app`
+- Backend: `staging-api.plandera.app`
 - Auto-deploys on merge to `main`
 
 **Production Environment:**
-- Namespace: `planera-production`
-- Frontend: `app.planera.app`
-- Backend: `api.planera.app`
+- Namespace: `plandera-production`
+- Frontend: `app.plandera.app`
+- Backend: `api.plandera.app`
 - Manual deployment via GitHub Actions
 
 ---
@@ -136,12 +136,12 @@ k8s/
 ```
 k8s/
 ├── staging/
-│   ├── namespace.yaml       # planera-webpage-staging namespace
+│   ├── namespace.yaml       # plandera-webpage-staging namespace
 │   ├── postgres.yaml        # PostgreSQL + secrets + config
 │   ├── webpage.yaml         # Webpage deployment + service
 │   └── ingress.yaml         # Ingress rules for staging
 └── production/
-    ├── namespace.yaml       # planera-webpage-production namespace
+    ├── namespace.yaml       # plandera-webpage-production namespace
     ├── postgres.yaml        # PostgreSQL + secrets + config
     ├── webpage.yaml         # Webpage deployment (2 replicas)
     └── ingress.yaml         # Ingress rules for production
@@ -164,13 +164,13 @@ k8s/
 - `README.md` - Added Kubernetes deployment section
 
 **Staging Environment:**
-- Namespace: `planera-webpage-staging`
-- URL: `staging-www.planera.app`
+- Namespace: `plandera-webpage-staging`
+- URL: `staging-www.plandera.app`
 - Auto-deploys on merge to `main`
 
 **Production Environment:**
-- Namespace: `planera-webpage-production`
-- URLs: `www.planera.app`, `planera.app`
+- Namespace: `plandera-webpage-production`
+- URLs: `www.plandera.app`, `plandera.app`
 - Manual deployment via GitHub Actions
 
 ---
@@ -193,7 +193,7 @@ ssh user@vps "sudo cat /etc/rancher/k3s/k3s.yaml" | base64 -w 0
 
 ### Application Deployments
 
-#### Planera App (streamline-scheduler)
+#### Plandera App (streamline-scheduler)
 
 **Staging** (Automatic):
 ```bash
@@ -229,20 +229,20 @@ git push origin main  # Auto-deploys to staging
 
 ## Domain Structure
 
-### Planera App
+### Plandera App
 - **Staging**:
-  - Frontend: `staging.planera.app`
-  - Backend API: `staging-api.planera.app`
+  - Frontend: `staging.plandera.app`
+  - Backend API: `staging-api.plandera.app`
 - **Production**:
-  - Frontend: `app.planera.app`
-  - Backend API: `api.planera.app`
+  - Frontend: `app.plandera.app`
+  - Backend API: `api.plandera.app`
 
 ### Webpage
 - **Staging**:
-  - Webpage: `staging-www.planera.app`
+  - Webpage: `staging-www.plandera.app`
 - **Production**:
-  - Webpage: `www.planera.app`
-  - Webpage: `planera.app` (redirect to www)
+  - Webpage: `www.plandera.app`
+  - Webpage: `plandera.app` (redirect to www)
 
 ---
 
@@ -257,13 +257,13 @@ kubectl get svc -n kube-system traefik
 
 **DNS Records (A Records):**
 ```
-staging.planera.app           → CLUSTER_IP
-staging-api.planera.app       → CLUSTER_IP
-app.planera.app               → CLUSTER_IP
-api.planera.app               → CLUSTER_IP
-staging-www.planera.app       → CLUSTER_IP
-www.planera.app               → CLUSTER_IP
-planera.app                   → CLUSTER_IP
+staging.plandera.app           → CLUSTER_IP
+staging-api.plandera.app       → CLUSTER_IP
+app.plandera.app               → CLUSTER_IP
+api.plandera.app               → CLUSTER_IP
+staging-www.plandera.app       → CLUSTER_IP
+www.plandera.app               → CLUSTER_IP
+plandera.app                   → CLUSTER_IP
 ```
 
 ---
@@ -272,7 +272,7 @@ planera.app                   → CLUSTER_IP
 
 ### Before First Production Deployment
 
-#### Planera App
+#### Plandera App
 Update `streamline-scheduler/k8s/production/postgres.yaml`:
 ```yaml
 stringData:
@@ -335,32 +335,32 @@ kubectl get namespaces
 kubectl get pods --all-namespaces
 ```
 
-### Planera App
+### Plandera App
 ```bash
 # Status
-kubectl get pods -n planera-staging
-kubectl get pods -n planera-production
+kubectl get pods -n plandera-staging
+kubectl get pods -n plandera-production
 
 # Logs
-kubectl logs -f deployment/backend -n planera-production
-kubectl logs -f deployment/frontend -n planera-staging
+kubectl logs -f deployment/backend -n plandera-production
+kubectl logs -f deployment/frontend -n plandera-staging
 
 # Restart
-kubectl rollout restart deployment/backend -n planera-production
+kubectl rollout restart deployment/backend -n plandera-production
 ```
 
 ### Webpage
 ```bash
 # Status
-kubectl get pods -n planera-webpage-staging
-kubectl get pods -n planera-webpage-production
+kubectl get pods -n plandera-webpage-staging
+kubectl get pods -n plandera-webpage-production
 
 # Logs
-kubectl logs -f deployment/webpage -n planera-webpage-production
+kubectl logs -f deployment/webpage -n plandera-webpage-production
 
 # Migrations
-POD=$(kubectl get pod -l app=webpage -n planera-webpage-production -o jsonpath='{.items[0].metadata.name}')
-kubectl exec -n planera-webpage-production $POD -- pnpm prisma migrate deploy
+POD=$(kubectl get pod -l app=webpage -n plandera-webpage-production -o jsonpath='{.items[0].metadata.name}')
+kubectl exec -n plandera-webpage-production $POD -- pnpm prisma migrate deploy
 ```
 
 ---
@@ -423,7 +423,7 @@ kubectl exec -n planera-webpage-production $POD -- pnpm prisma migrate deploy
 ## Summary
 
 ✅ **Infrastructure repo** cleaned up - focuses only on cluster setup
-✅ **Planera app** has complete self-contained deployment
+✅ **Plandera app** has complete self-contained deployment
 ✅ **Webpage** has complete self-contained deployment
 ✅ **Separation of concerns** achieved
 ✅ **Automated CI/CD** for both apps

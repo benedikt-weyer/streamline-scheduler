@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: postgres-data
-  namespace: planera-staging
+  namespace: plandera-staging
 spec:
   accessModes:
     - ReadWriteOnce
@@ -14,29 +14,29 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: planera-config
-  namespace: planera-staging
+  name: plandera-config
+  namespace: plandera-staging
 data:
-  POSTGRES_USER: planera
-  POSTGRES_DB: planera_db
+  POSTGRES_USER: plandera
+  POSTGRES_DB: plandera_db
   RUST_LOG: debug
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: planera-secrets
-  namespace: planera-staging
+  name: plandera-secrets
+  namespace: plandera-staging
 type: Opaque
 stringData:
   POSTGRES_PASSWORD: changeme-staging
-  DATABASE_URL: postgresql://planera:changeme-staging@postgres:5432/planera_db
+  DATABASE_URL: postgresql://plandera:changeme-staging@postgres:5432/plandera_db
   JWT_SECRET: changeme-staging-jwt-secret-at-least-32-chars
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
-  namespace: planera-staging
+  namespace: plandera-staging
 spec:
   replicas: 1
   selector:
@@ -56,17 +56,17 @@ spec:
         - name: POSTGRES_USER
           valueFrom:
             configMapKeyRef:
-              name: planera-config
+              name: plandera-config
               key: POSTGRES_USER
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: planera-secrets
+              name: plandera-secrets
               key: POSTGRES_PASSWORD
         - name: POSTGRES_DB
           valueFrom:
             configMapKeyRef:
-              name: planera-config
+              name: plandera-config
               key: POSTGRES_DB
         volumeMounts:
         - name: postgres-data
@@ -76,7 +76,7 @@ spec:
             command:
             - pg_isready
             - -U
-            - planera
+            - plandera
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
@@ -84,7 +84,7 @@ spec:
             command:
             - pg_isready
             - -U
-            - planera
+            - plandera
           initialDelaySeconds: 5
           periodSeconds: 5
       volumes:
@@ -96,7 +96,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres
-  namespace: planera-staging
+  namespace: plandera-staging
 spec:
   selector:
     app: postgres

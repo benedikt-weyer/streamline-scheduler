@@ -6,15 +6,15 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE_NAME: ${{ github.repository_owner }}/planera-backend
-  FRONTEND_IMAGE_NAME: ${{ github.repository_owner }}/planera-frontend
+  BACKEND_IMAGE_NAME: ${{ github.repository_owner }}/plandera-backend
+  FRONTEND_IMAGE_NAME: ${{ github.repository_owner }}/plandera-frontend
 
 jobs:
   deploy-to-production:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://app.planera.app
+      url: https://app.plandera.app
     
     steps:
       - name: Checkout repository
@@ -41,7 +41,7 @@ jobs:
             --docker-server=${{ env.REGISTRY }} \
             --docker-username=${{ github.actor }} \
             --docker-password=${{ secrets.GITHUB_TOKEN }} \
-            --namespace=planera-production \
+            --namespace=plandera-production \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy to production
@@ -53,17 +53,17 @@ jobs:
 
       - name: Wait for backend deployment
         run: |
-          kubectl rollout status deployment/backend -n planera-production --timeout=5m
+          kubectl rollout status deployment/backend -n plandera-production --timeout=5m
 
       - name: Wait for frontend deployment
         run: |
-          kubectl rollout status deployment/frontend -n planera-production --timeout=5m
+          kubectl rollout status deployment/frontend -n plandera-production --timeout=5m
 
       - name: Verify deployment
         run: |
-          kubectl get pods -n planera-production
-          kubectl get services -n planera-production
-          kubectl get ingress -n planera-production
+          kubectl get pods -n plandera-production
+          kubectl get services -n plandera-production
+          kubectl get ingress -n plandera-production
 
       - name: Run smoke tests
         run: |
@@ -71,7 +71,7 @@ jobs:
           sleep 30
           
           echo "Testing backend health endpoint..."
-          kubectl run curl-test --image=curlimages/curl:latest --rm -i --restart=Never --namespace=planera-production -- \
-            curl -f http://backend.planera-production.svc.cluster.local:8080/health || exit 1
+          kubectl run curl-test --image=curlimages/curl:latest --rm -i --restart=Never --namespace=plandera-production -- \
+            curl -f http://backend.plandera-production.svc.cluster.local:8080/health || exit 1
           
           echo "All smoke tests passed!"

@@ -2,14 +2,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: backend-ingress
-  namespace: planera-production
+  namespace: plandera-production
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   rules:
-  - host: api.planera.app
+  - host: api.plandera.app
     http:
       paths:
       - path: /
@@ -21,21 +21,21 @@ spec:
               number: 8080
   tls:
   - hosts:
-    - api.planera.app
+    - api.plandera.app
     secretName: production-backend-tls
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: frontend-ingress
-  namespace: planera-production
+  namespace: plandera-production
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   rules:
-  - host: app.planera.app
+  - host: app.plandera.app
     http:
       paths:
       - path: /
@@ -47,6 +47,6 @@ spec:
               number: 3000
   tls:
   - hosts:
-    - app.planera.app
+    - app.plandera.app
     secretName: production-frontend-tls
 

@@ -1,6 +1,6 @@
 # CI/CD Pipeline Overview
 
-This document provides an overview of the CI/CD pipeline for Planera (formerly Streamline Scheduler).
+This document provides an overview of the CI/CD pipeline for Plandera (formerly Streamline Scheduler).
 
 ## Architecture
 
@@ -26,7 +26,7 @@ This document provides an overview of the CI/CD pipeline for Planera (formerly S
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    Kubernetes Cluster                                │
 ├────────────────────────────┬─────────────────────────────────────────┤
-│  planera-staging           │  planera-production                     │
+│  plandera-staging           │  plandera-production                     │
 │  Namespace                 │  Namespace                              │
 ├────────────────────────────┼─────────────────────────────────────────┤
 │  ┌──────────────────────┐  │  ┌──────────────────────────────────┐  │
@@ -46,8 +46,8 @@ This document provides an overview of the CI/CD pipeline for Planera (formerly S
              ▼                            ▼
 ┌────────────────────────────┐  ┌────────────────────────────────────┐
 │ Traefik Ingress            │  │ Traefik Ingress                    │
-│ staging.planera.app        │  │ app.planera.app                    │
-│ staging-api.planera.app    │  │ api.planera.app                    │
+│ staging.plandera.app        │  │ app.plandera.app                    │
+│ staging-api.plandera.app    │  │ api.plandera.app                    │
 └────────────────────────────┘  └────────────────────────────────────┘
 ```
 
@@ -59,19 +59,19 @@ This document provides an overview of the CI/CD pipeline for Planera (formerly S
 
 1. **Build Backend**
    - Build Docker image from `backend/Dockerfile`
-   - Tag: `ghcr.io/<username>/planera-backend:staging-latest`
-   - Tag: `ghcr.io/<username>/planera-backend:staging-<sha>`
+   - Tag: `ghcr.io/<username>/plandera-backend:staging-latest`
+   - Tag: `ghcr.io/<username>/plandera-backend:staging-<sha>`
    - Push to GitHub Container Registry
 
 2. **Build Frontend**
    - Build Docker image from `frontend/Dockerfile`
-   - Tag: `ghcr.io/<username>/planera-frontend:staging-latest`
-   - Tag: `ghcr.io/<username>/planera-frontend:staging-<sha>`
+   - Tag: `ghcr.io/<username>/plandera-frontend:staging-latest`
+   - Tag: `ghcr.io/<username>/plandera-frontend:staging-<sha>`
    - Push to GitHub Container Registry
 
 3. **Deploy to Staging**
    - Apply Kubernetes manifests from `k8s/staging/`
-   - Create/update namespace: `planera-staging`
+   - Create/update namespace: `plandera-staging`
    - Deploy PostgreSQL, Backend, Frontend
    - Create/update Ingress rules
    - Wait for rollout completion
@@ -92,21 +92,21 @@ This document provides an overview of the CI/CD pipeline for Planera (formerly S
 
 2. **Build Backend**
    - Build Docker image from `backend/Dockerfile`
-   - Tag: `ghcr.io/<username>/planera-backend:latest`
-   - Tag: `ghcr.io/<username>/planera-backend:<sha>`
-   - Tag: `ghcr.io/<username>/planera-backend:<tag>` (if tagged)
+   - Tag: `ghcr.io/<username>/plandera-backend:latest`
+   - Tag: `ghcr.io/<username>/plandera-backend:<sha>`
+   - Tag: `ghcr.io/<username>/plandera-backend:<tag>` (if tagged)
    - Push to GitHub Container Registry
 
 3. **Build Frontend**
    - Build Docker image from `frontend/Dockerfile`
-   - Tag: `ghcr.io/<username>/planera-frontend:latest`
-   - Tag: `ghcr.io/<username>/planera-frontend:<sha>`
-   - Tag: `ghcr.io/<username>/planera-frontend:<tag>` (if tagged)
+   - Tag: `ghcr.io/<username>/plandera-frontend:latest`
+   - Tag: `ghcr.io/<username>/plandera-frontend:<sha>`
+   - Tag: `ghcr.io/<username>/plandera-frontend:<tag>` (if tagged)
    - Push to GitHub Container Registry
 
 4. **Deploy to Production**
    - Apply Kubernetes manifests from `k8s/production/`
-   - Create/update namespace: `planera-production`
+   - Create/update namespace: `plandera-production`
    - Deploy PostgreSQL, Backend (2 replicas), Frontend (2 replicas)
    - Create/update Ingress rules
    - Wait for rollout completion
@@ -138,23 +138,23 @@ If issues are detected:
 
 ```bash
 # Rollback backend
-kubectl rollout undo deployment/backend -n planera-production
+kubectl rollout undo deployment/backend -n plandera-production
 
 # Rollback frontend
-kubectl rollout undo deployment/frontend -n planera-production
+kubectl rollout undo deployment/frontend -n plandera-production
 ```
 
 ## Environment Differences
 
 | Aspect | Staging | Production |
 |--------|---------|------------|
-| Namespace | `planera-staging` | `planera-production` |
+| Namespace | `plandera-staging` | `plandera-production` |
 | Backend Replicas | 1 | 2 |
 | Frontend Replicas | 1 | 2 |
 | Database Storage | 10Gi | 20Gi |
 | Log Level | `debug` | `info` |
 | Resource Limits | Lower | Higher |
-| Domains | `staging.planera.app`<br/>`staging-api.planera.app` | `app.planera.app`<br/>`api.planera.app` |
+| Domains | `staging.plandera.app`<br/>`staging-api.plandera.app` | `app.plandera.app`<br/>`api.plandera.app` |
 | Deployment | Automatic on main | Manual with confirmation |
 
 ## Security Measures
@@ -222,10 +222,10 @@ Before deploying to production:
 If production issues occur:
 
 - [ ] Identify the issue
-- [ ] Check logs: `kubectl logs -f deployment/backend -n planera-production`
-- [ ] Check pod status: `kubectl get pods -n planera-production`
-- [ ] Rollback if necessary: `kubectl rollout undo deployment/backend -n planera-production`
-- [ ] Verify rollback: `kubectl rollout status deployment/backend -n planera-production`
+- [ ] Check logs: `kubectl logs -f deployment/backend -n plandera-production`
+- [ ] Check pod status: `kubectl get pods -n plandera-production`
+- [ ] Rollback if necessary: `kubectl rollout undo deployment/backend -n plandera-production`
+- [ ] Verify rollback: `kubectl rollout status deployment/backend -n plandera-production`
 - [ ] Document the issue
 - [ ] Create fix in feature branch
 

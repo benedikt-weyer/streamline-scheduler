@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
-  namespace: planera-staging
+  namespace: plandera-staging
 spec:
   replicas: 1
   selector:
@@ -17,14 +17,14 @@ spec:
       - name: ghcr-secret
       containers:
       - name: frontend
-        image: ghcr.io/benedikt-weyer/planera-frontend:staging-latest
+        image: ghcr.io/benedikt-weyer/plandera-frontend:staging-latest
         ports:
         - containerPort: 3000
         env:
         - name: NEXT_PUBLIC_BACKEND_HTTP_URL
-          value: https://staging-api.planera.app
+          value: https://staging-api.plandera.app
         - name: NEXT_PUBLIC_BACKEND_WS_URL
-          value: wss://staging-api.planera.app
+          value: wss://staging-api.plandera.app
         livenessProbe:
           httpGet:
             path: /
@@ -42,7 +42,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: frontend
-  namespace: planera-staging
+  namespace: plandera-staging
 spec:
   selector:
     app: frontend

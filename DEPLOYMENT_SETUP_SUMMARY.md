@@ -1,24 +1,24 @@
 # Kubernetes Deployment - Setup Summary
 
-This document provides a complete overview of the Kubernetes deployment setup for Planera (formerly Streamline Scheduler).
+This document provides a complete overview of the Kubernetes deployment setup for Plandera (formerly Streamline Scheduler).
 
 ## What Has Been Created
 
 ### Kubernetes Manifests
 
 #### Staging Environment (`k8s/staging/`)
-- **namespace.yaml** - Creates `planera-staging` namespace
+- **namespace.yaml** - Creates `plandera-staging` namespace
 - **postgres.yaml** - PostgreSQL database with 10Gi storage
 - **backend.yaml** - Backend deployment (1 replica) and service
 - **frontend.yaml** - Frontend deployment (1 replica) and service
-- **ingress.yaml** - Ingress rules for `staging.planera.app` and `staging-api.planera.app`
+- **ingress.yaml** - Ingress rules for `staging.plandera.app` and `staging-api.plandera.app`
 
 #### Production Environment (`k8s/production/`)
-- **namespace.yaml** - Creates `planera-production` namespace
+- **namespace.yaml** - Creates `plandera-production` namespace
 - **postgres.yaml** - PostgreSQL database with 20Gi storage
 - **backend.yaml** - Backend deployment (2 replicas) and service
 - **frontend.yaml** - Frontend deployment (2 replicas) and service
-- **ingress.yaml** - Ingress rules for `app.planera.app` and `api.planera.app`
+- **ingress.yaml** - Ingress rules for `app.plandera.app` and `api.plandera.app`
 
 ### CI/CD Workflows (`.github/workflows/`)
 
@@ -104,7 +104,7 @@ git push origin main  # Automatic deployment
 - ✅ Independent deployment pipeline
 
 ### Environment Isolation
-- ✅ Separate namespaces: `planera-staging` and `planera-production`
+- ✅ Separate namespaces: `plandera-staging` and `plandera-production`
 - ✅ Independent resources and configurations
 - ✅ Different scaling and resource limits
 
@@ -163,20 +163,20 @@ streamline-scheduler/
 ```
 Push to main → GitHub Actions → Build Images → Push to GHCR → Deploy to K8s
                      ↓
-              planera-staging namespace
+              plandera-staging namespace
                      ↓
-         staging.planera.app (frontend)
-         staging-api.planera.app (backend)
+         staging.plandera.app (frontend)
+         staging-api.plandera.app (backend)
 ```
 
 ### Production
 ```
 Manual Trigger → Confirm → GitHub Actions → Build Images → Push to GHCR → Deploy to K8s
                                 ↓
-                    planera-production namespace
+                    plandera-production namespace
                                 ↓
-                   app.planera.app (frontend)
-                   api.planera.app (backend)
+                   app.plandera.app (frontend)
+                   api.plandera.app (backend)
 ```
 
 ## Configuration Checklist
@@ -206,14 +206,14 @@ Manual Trigger → Confirm → GitHub Actions → Build Images → Push to GHCR 
 After deployment, your application will be available at:
 
 ### Staging
-- **Frontend**: https://staging.planera.app
-- **Backend API**: https://staging-api.planera.app
-- **Health Check**: https://staging-api.planera.app/health
+- **Frontend**: https://staging.plandera.app
+- **Backend API**: https://staging-api.plandera.app
+- **Health Check**: https://staging-api.plandera.app/health
 
 ### Production
-- **Frontend**: https://app.planera.app
-- **Backend API**: https://api.planera.app
-- **Health Check**: https://api.planera.app/health
+- **Frontend**: https://app.plandera.app
+- **Backend API**: https://api.plandera.app
+- **Health Check**: https://api.plandera.app/health
 
 ## Common Commands
 
@@ -237,12 +237,12 @@ After deployment, your application will be available at:
 ./deploy.sh logs production frontend
 
 # Check pods
-kubectl get pods -n planera-staging
-kubectl get pods -n planera-production
+kubectl get pods -n plandera-staging
+kubectl get pods -n plandera-production
 
 # Check ingress
-kubectl get ingress -n planera-staging
-kubectl get ingress -n planera-production
+kubectl get ingress -n plandera-staging
+kubectl get ingress -n plandera-production
 ```
 
 ### Management
@@ -254,21 +254,21 @@ kubectl get ingress -n planera-production
 ./deploy.sh rollback production backend
 
 # Scale deployment
-kubectl scale deployment/backend --replicas=3 -n planera-production
+kubectl scale deployment/backend --replicas=3 -n plandera-production
 ```
 
 ## Monitoring and Debugging
 
 ### Check Deployment Status
 ```bash
-kubectl get pods -n planera-staging
-kubectl get pods -n planera-production
+kubectl get pods -n plandera-staging
+kubectl get pods -n plandera-production
 ```
 
 ### View Logs
 ```bash
-kubectl logs -f deployment/backend -n planera-staging
-kubectl logs -f deployment/frontend -n planera-production
+kubectl logs -f deployment/backend -n plandera-staging
+kubectl logs -f deployment/frontend -n plandera-production
 ```
 
 ### Debug Pod Issues
@@ -279,9 +279,9 @@ kubectl get events -n <namespace> --sort-by='.lastTimestamp'
 
 ### Check Ingress and Certificates
 ```bash
-kubectl get ingress -n planera-staging
-kubectl get certificates -n planera-staging
-kubectl describe certificate staging-backend-tls -n planera-staging
+kubectl get ingress -n plandera-staging
+kubectl get certificates -n plandera-staging
+kubectl describe certificate staging-backend-tls -n plandera-staging
 ```
 
 ## Backup and Recovery
@@ -289,12 +289,12 @@ kubectl describe certificate staging-backend-tls -n planera-staging
 ### Database Backup
 ```bash
 # Backup
-kubectl exec deployment/postgres -n planera-production -- \
-  pg_dump -U planera planera_db > backup-$(date +%Y%m%d).sql
+kubectl exec deployment/postgres -n plandera-production -- \
+  pg_dump -U plandera plandera_db > backup-$(date +%Y%m%d).sql
 
 # Restore
-cat backup.sql | kubectl exec -i deployment/postgres -n planera-production -- \
-  psql -U planera planera_db
+cat backup.sql | kubectl exec -i deployment/postgres -n plandera-production -- \
+  psql -U plandera plandera_db
 ```
 
 ## Troubleshooting
@@ -318,7 +318,7 @@ kubectl create secret docker-registry ghcr-secret \
 ### Database Connection Issues
 ```bash
 # Check if postgres is ready
-kubectl exec -it deployment/postgres -n <namespace> -- pg_isready -U planera
+kubectl exec -it deployment/postgres -n <namespace> -- pg_isready -U plandera
 
 # Check database logs
 kubectl logs deployment/postgres -n <namespace>
@@ -349,7 +349,7 @@ kubectl logs -n cert-manager deployment/cert-manager
 3. **Set Up DNS**
    - Point domains to cluster ingress IP
    - Wait for DNS propagation
-   - Verify with `nslookup staging.planera.app`
+   - Verify with `nslookup staging.plandera.app`
 
 4. **Configure GitHub Actions**
    - Add KUBECONFIG secret

@@ -13,7 +13,7 @@ This guide explains how to configure GitHub Actions secrets for automated deploy
 
 1. Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
 2. Click "Generate new token (classic)"
-3. Give it a descriptive name: "Planera K8s Deployment"
+3. Give it a descriptive name: "Plandera K8s Deployment"
 4. Select scopes:
    - `write:packages` - for pushing Docker images to GHCR
    - `read:packages` - for pulling Docker images from GHCR
@@ -120,8 +120,8 @@ Update in `.github/workflows/deploy-staging.yml` and `.github/workflows/deploy-p
 ```yaml
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE_NAME: YOUR_USERNAME/planera-backend
-  FRONTEND_IMAGE_NAME: YOUR_USERNAME/planera-frontend
+  BACKEND_IMAGE_NAME: YOUR_USERNAME/plandera-backend
+  FRONTEND_IMAGE_NAME: YOUR_USERNAME/plandera-frontend
 ```
 
 ### Kubernetes Manifests
@@ -135,12 +135,12 @@ Update in all deployment files:
 
 Replace:
 ```yaml
-image: ghcr.io/benedikt-weyer/planera-backend:staging-latest
+image: ghcr.io/benedikt-weyer/plandera-backend:staging-latest
 ```
 
 With:
 ```yaml
-image: ghcr.io/YOUR_USERNAME/planera-backend:staging-latest
+image: ghcr.io/YOUR_USERNAME/plandera-backend:staging-latest
 ```
 
 ## Step 6: Test the Setup
@@ -189,7 +189,7 @@ image: ghcr.io/YOUR_USERNAME/planera-backend:staging-latest
     --docker-server=ghcr.io \
     --docker-username=YOUR_USERNAME \
     --docker-password=$GITHUB_TOKEN \
-    --namespace=planera-staging \
+    --namespace=plandera-staging \
     --dry-run=client -o yaml | kubectl apply -f -
   ```
 
@@ -216,7 +216,7 @@ For extra protection on production deployments:
    ```yaml
    environment:
      name: production
-     url: https://app.planera.app
+     url: https://app.plandera.app
    ```
 
 ## Monitoring Deployments
@@ -229,23 +229,23 @@ For extra protection on production deployments:
 ### Check deployment status
 ```bash
 # Check pods
-kubectl get pods -n planera-staging
-kubectl get pods -n planera-production
+kubectl get pods -n plandera-staging
+kubectl get pods -n plandera-production
 
 # Check deployment rollout status
-kubectl rollout status deployment/backend -n planera-staging
-kubectl rollout status deployment/frontend -n planera-production
+kubectl rollout status deployment/backend -n plandera-staging
+kubectl rollout status deployment/frontend -n plandera-production
 ```
 
 ### View application logs
 ```bash
 # Staging
-kubectl logs -f deployment/backend -n planera-staging
-kubectl logs -f deployment/frontend -n planera-staging
+kubectl logs -f deployment/backend -n plandera-staging
+kubectl logs -f deployment/frontend -n plandera-staging
 
 # Production
-kubectl logs -f deployment/backend -n planera-production
-kubectl logs -f deployment/frontend -n planera-production
+kubectl logs -f deployment/backend -n plandera-production
+kubectl logs -f deployment/frontend -n plandera-production
 ```
 
 ## Next Steps

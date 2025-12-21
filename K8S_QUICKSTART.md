@@ -1,6 +1,6 @@
 # Kubernetes Deployment Quick Start
 
-This is a quick reference for deploying Planera to Kubernetes. For detailed information, see [KUBERNETES_DEPLOYMENT.md](./KUBERNETES_DEPLOYMENT.md).
+This is a quick reference for deploying Plandera to Kubernetes. For detailed information, see [KUBERNETES_DEPLOYMENT.md](./KUBERNETES_DEPLOYMENT.md).
 
 ## Prerequisites
 
@@ -27,7 +27,7 @@ cat ~/.kube/config | base64 -w 0
 ```yaml
 stringData:
   POSTGRES_PASSWORD: <use-strong-random-password>
-  DATABASE_URL: postgresql://planera:<same-password>@postgres:5432/planera_db
+  DATABASE_URL: postgresql://plandera:<same-password>@postgres:5432/plandera_db
   JWT_SECRET: <use-strong-random-jwt-secret-min-32-chars>
 ```
 
@@ -36,12 +36,12 @@ stringData:
 Update domains in ingress files:
 
 - Staging: `k8s/staging/ingress.yaml`
-  - `staging.planera.app` (frontend)
-  - `staging-api.planera.app` (backend)
+  - `staging.plandera.app` (frontend)
+  - `staging-api.plandera.app` (backend)
 
 - Production: `k8s/production/ingress.yaml`
-  - `app.planera.app` (frontend)
-  - `api.planera.app` (backend)
+  - `app.plandera.app` (frontend)
+  - `api.plandera.app` (backend)
 
 ## Configure DNS
 
@@ -73,7 +73,7 @@ kubectl create secret docker-registry ghcr-secret \
   --docker-server=ghcr.io \
   --docker-username=<username> \
   --docker-password=<token> \
-  --namespace=planera-staging
+  --namespace=plandera-staging
 kubectl apply -f k8s/staging/
 ```
 
@@ -84,7 +84,7 @@ kubectl create secret docker-registry ghcr-secret \
   --docker-server=ghcr.io \
   --docker-username=<username> \
   --docker-password=<token> \
-  --namespace=planera-production
+  --namespace=plandera-production
 kubectl apply -f k8s/production/
 ```
 
@@ -92,32 +92,32 @@ kubectl apply -f k8s/production/
 
 ```bash
 # Check pods
-kubectl get pods -n planera-staging
-kubectl get pods -n planera-production
+kubectl get pods -n plandera-staging
+kubectl get pods -n plandera-production
 
 # Check logs
-kubectl logs -f deployment/backend -n planera-staging
-kubectl logs -f deployment/frontend -n planera-production
+kubectl logs -f deployment/backend -n plandera-staging
+kubectl logs -f deployment/frontend -n plandera-production
 
 # Check ingress
-kubectl get ingress -n planera-staging
-kubectl get ingress -n planera-production
+kubectl get ingress -n plandera-staging
+kubectl get ingress -n plandera-production
 ```
 
 ## Common Commands
 
 ```bash
 # Restart deployment
-kubectl rollout restart deployment/backend -n planera-production
+kubectl rollout restart deployment/backend -n plandera-production
 
 # Scale replicas
-kubectl scale deployment/backend --replicas=3 -n planera-production
+kubectl scale deployment/backend --replicas=3 -n plandera-production
 
 # Rollback
-kubectl rollout undo deployment/backend -n planera-production
+kubectl rollout undo deployment/backend -n plandera-production
 
 # Access database
-kubectl port-forward svc/postgres 5432:5432 -n planera-production
+kubectl port-forward svc/postgres 5432:5432 -n plandera-production
 ```
 
 ## Troubleshooting
@@ -136,12 +136,12 @@ kubectl get certificates -n <namespace>
 ## Environment URLs
 
 - **Staging**: 
-  - Frontend: https://staging.planera.app
-  - Backend: https://staging-api.planera.app
+  - Frontend: https://staging.plandera.app
+  - Backend: https://staging-api.plandera.app
 
 - **Production**:
-  - Frontend: https://app.planera.app
-  - Backend: https://api.planera.app
+  - Frontend: https://app.plandera.app
+  - Backend: https://api.plandera.app
 
 ## Workflow
 
