@@ -5,6 +5,7 @@ import { Search, X } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import Fuse from 'fuse.js';
 import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
+import { useTranslation } from '@/utils/context/LanguageContext';
 
 interface TaskSearchInputProps {
   searchQuery: string;
@@ -28,11 +29,12 @@ export function TaskSearchInput({
   placeholder = "Search tasks...",
   className = "w-64"
 }: TaskSearchInputProps) {
+  const { t } = useTranslation();
   return (
     <div className={`relative flex-shrink-0 ${className}`}>
       <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
       <Input
-        placeholder={placeholder}
+        placeholder={t('common.search')}
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
         className="pl-8 pr-8 h-8 text-sm"

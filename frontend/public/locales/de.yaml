@@ -139,6 +139,7 @@ calendar:
   modifyAllInSeries: Alle Vorkommen ändern
   searchEvents: Termine suchen...
   noEventsFound: Keine Termine gefunden
+  myCalendars: Meine Kalender
 
 settings:
   settings: Einstellungen

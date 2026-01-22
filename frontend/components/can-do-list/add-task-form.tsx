@@ -6,6 +6,7 @@ import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { UseFormReturn } from 'react-hook-form';
 import { useState } from 'react';
 import { extractTaskDataFromTags } from '@/utils/can-do-list/hashtag-utils';
+import { useTranslation } from '@/utils/context/LanguageContext';
 
 interface AddTaskFormValues {
   content: string;
@@ -19,8 +20,7 @@ interface AddTaskFormProps {
 }
 
 export default function AddTaskForm({ form, onSubmit, isLoading, projects = [] }: AddTaskFormProps) {
-  const [tags, setTags] = useState<Tag[]>([]);
-
+  const [tags, setTags] = useState<Tag[]>([]);  const { t } = useTranslation();
   const handleSubmit = async (values: AddTaskFormValues) => {
     // Extract task data from tags and content
     const taskData = extractTaskDataFromTags(values.content || '', tags);
@@ -51,7 +51,7 @@ export default function AddTaskForm({ form, onSubmit, isLoading, projects = [] }
                 <FormControl>
                   <TaggedInput
                     {...field}
-                    placeholder="Add a new task... (type # to see options, #pro for projects, #day for My Day)"
+                    placeholder={t('tasks.addTaskPlaceholder')}
                     disabled={isLoading}
                     tags={tags}
                     onTagsChange={setTags}

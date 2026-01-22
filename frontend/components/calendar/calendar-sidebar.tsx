@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, CalendarType } from '@/utils/calendar/calendar-types';
-import { MonthOverview } from './month-overview';
 import { useTranslation } from '@/utils/context/LanguageContext';
+import { MonthOverview } from './month-overview';
 
 interface CalendarSidebarProps {
   calendars: Calendar[];
@@ -134,7 +134,7 @@ export function CalendarSidebar({
       </div>
 
       <div className="flex justify-between items-center mb-4">
-        <h2 className="font-semibold text-lg">My Calendars</h2>
+        <h2 className="font-semibold text-lg">{t('calendar.myCalendars')}</h2>
         <Button
           onClick={() => setIsCreateDialogOpen(true)}
           size="icon"

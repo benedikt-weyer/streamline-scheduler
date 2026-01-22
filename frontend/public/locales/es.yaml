@@ -139,6 +139,7 @@ calendar:
   modifyAllInSeries: Modificar todas las ocurrencias
   searchEvents: Buscar eventos...
   noEventsFound: No se encontraron eventos
+  myCalendars: Mis Calendarios
 
 settings:
   settings: Configuración
