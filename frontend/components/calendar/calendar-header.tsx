@@ -2,6 +2,8 @@ import { Button } from '@/components/ui/button';
 import { subWeeks, addWeeks, startOfWeek, format } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useTranslation, useDateLocale } from '@/utils/context/LanguageContext';
+import { CalendarSearch } from './calendar-search';
+import { CalendarEvent } from '@/utils/calendar/calendar-types';
 
 interface CalendarHeaderProps {
   currentWeek: Date;
@@ -9,9 +11,11 @@ interface CalendarHeaderProps {
   openNewEventDialog: () => void;
   onTodaySelected?: () => void;
   setSelectedDate?: React.Dispatch<React.SetStateAction<Date>>;
+  events?: CalendarEvent[];
+  onEventSelect?: (eventId: string, eventStartTime: Date) => void;
 }
 
-export function CalendarHeader({ currentWeek, setCurrentWeek, openNewEventDialog, onTodaySelected, setSelectedDate }: CalendarHeaderProps) {
+export function CalendarHeader({ currentWeek, setCurrentWeek, openNewEventDialog, onTodaySelected, setSelectedDate, events = [], onEventSelect }: CalendarHeaderProps) {
   const { t } = useTranslation();
   const dateLocale = useDateLocale();
   
@@ -64,7 +68,12 @@ export function CalendarHeader({ currentWeek, setCurrentWeek, openNewEventDialog
           {format(currentWeek, 'MMMM yyyy', { locale: dateLocale })} - Week {format(currentWeek, 'w', { locale: dateLocale })}
         </h2>
       </div>
-      <div>
+      <div className="flex items-center gap-2">
+        <CalendarSearch 
+          events={events}
+          onEventSelect={(eventId, eventStartTime) => onEventSelect?.(eventId, eventStartTime)}
+          className="w-64"
+        />
         <Button onClick={openNewEventDialog} size="sm">
           {t('calendar.addEvent')}
         </Button>

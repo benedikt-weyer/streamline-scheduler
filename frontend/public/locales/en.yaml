@@ -137,6 +137,8 @@ calendar:
   modifyThisOccurrence: Modify only this occurrence
   modifyThisAndFuture: Modify this and future occurrences
   modifyAllInSeries: Modify all occurrences
+  searchEvents: Search events...
+  noEventsFound: No events found
 
 settings:
   settings: Settings

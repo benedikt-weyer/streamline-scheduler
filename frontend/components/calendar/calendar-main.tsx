@@ -652,6 +652,12 @@ export function CalendarMain({
     setSelectedDate(firstDayOfMonth);
   }, [setCurrentWeek, setSelectedDate, weekStartsOn]);
 
+  // Handle event selection from search
+  const handleEventSearchSelect = useCallback((eventId: string, eventStartTime: Date) => {
+    const { navigateToEvent } = useCalendar.getState();
+    navigateToEvent(eventId, eventStartTime, weekStartsOn);
+  }, [weekStartsOn]);
+
   return (
     <div className={`flex w-full h-full overflow-hidden ${className}`}>
       {/* Mobile Layout */}
@@ -731,6 +737,8 @@ export function CalendarMain({
               openNewEventDialog={openNewEventDialogHandler}
               onTodaySelected={handleTodaySelected}
               setSelectedDate={setSelectedDate}
+              events={allEvents}
+              onEventSelect={handleEventSearchSelect}
             />
             
             {error && (

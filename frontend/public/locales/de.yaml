@@ -137,6 +137,8 @@ calendar:
   modifyThisOccurrence: Nur dieses Vorkommen ändern
   modifyThisAndFuture: Dieses und zukünftige Vorkommen ändern
   modifyAllInSeries: Alle Vorkommen ändern
+  searchEvents: Termine suchen...
+  noEventsFound: Keine Termine gefunden
 
 settings:
   settings: Einstellungen
