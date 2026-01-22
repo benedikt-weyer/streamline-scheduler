@@ -182,7 +182,7 @@ export class CalendarEventsService {
     try {
       // Create a copy of the event with a new title and updated timestamps
       const clonedEventData = {
-        title: `${event.title} (Copy)`,
+        title: event.title,
         description: event.description,
         location: event.location,
         calendarId: event.calendar_id,
