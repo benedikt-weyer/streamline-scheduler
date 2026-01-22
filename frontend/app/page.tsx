@@ -1193,7 +1193,7 @@ function SchedulerPageContent() {
     const event = calendarEvents.find(e => e.id === eventId);
     if (event) {
       // Navigate to the event using the store
-      navigateToEventInCalendar(eventId, event.start_time, weekStartsOn);
+      navigateToEventInCalendar(eventId, new Date(event.start_time), weekStartsOn);
     }
   };
 

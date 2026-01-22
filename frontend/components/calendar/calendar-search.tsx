@@ -70,7 +70,7 @@ export function CalendarSearch({ events, onEventSelect, className }: CalendarSea
   };
 
   const formatEventTime = (event: CalendarEvent) => {
-    if (event.is_all_day) {
+    if (event.all_day) {
       return t('calendar.allDay');
     }
     const start = format(new Date(event.start_time), 'p', { locale: dateLocale });
