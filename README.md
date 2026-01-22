@@ -37,7 +37,7 @@ Streamline Scheduler (rebranding to Plandera) can be easily self-hosted on your 
 
 ### Deployment Options
 
-1. **Kubernetes** (Recommended for production) - See [K8S_QUICKSTART.md](./K8S_QUICKSTART.md) and [KUBERNETES_DEPLOYMENT.md](./KUBERNETES_DEPLOYMENT.md)
+1. **Kubernetes** (Recommended for production) - See [docs/deployment/K8S_QUICKSTART.md](./docs/deployment/K8S_QUICKSTART.md) and [docs/deployment/KUBERNETES_DEPLOYMENT.md](./docs/deployment/KUBERNETES_DEPLOYMENT.md)
 2. **Docker Compose** (Good for local development and simple deployments)
 
 ### Quick Start with Kubernetes
@@ -45,7 +45,7 @@ Streamline Scheduler (rebranding to Plandera) can be easily self-hosted on your 
 For Kubernetes deployment with staging and production environments:
 
 ```bash
-# Quick setup - see K8S_QUICKSTART.md for details
+# Quick setup - see docs/deployment/K8S_QUICKSTART.md for details
 kubectl apply -f k8s/staging/  # For staging
 kubectl apply -f k8s/production/  # For production
 ```
@@ -56,7 +56,7 @@ kubectl apply -f k8s/production/  # For production
 - TLS certificates via cert-manager
 - Horizontal scaling support
 
-See [K8S_QUICKSTART.md](./K8S_QUICKSTART.md) for quick start and [KUBERNETES_DEPLOYMENT.md](./KUBERNETES_DEPLOYMENT.md) for comprehensive documentation.
+See [docs/deployment/K8S_QUICKSTART.md](./docs/deployment/K8S_QUICKSTART.md) for quick start and [docs/deployment/KUBERNETES_DEPLOYMENT.md](./docs/deployment/KUBERNETES_DEPLOYMENT.md) for comprehensive documentation.
 
 ### Quick Start with Docker Compose
 
@@ -384,7 +384,17 @@ This project is licensed under a custom license by Benedikt Weyer. You may use i
 
 ## Support
 
-- 📖 **Documentation**: Check the project wiki and README files
+- 📖 **Documentation**: Check the [docs](./docs) directory for comprehensive guides
 - 🐛 **Bug Reports**: Open an issue on GitHub
 - 💡 **Feature Requests**: Open a discussion on GitHub
 - 🔒 **Security Issues**: Report privately via email
+
+## Documentation
+
+For detailed documentation, see the [docs](./docs) directory:
+
+- **[Documentation Index](./docs/INDEX.md)** - Complete documentation overview
+- **[Deployment Guides](./docs/deployment)** - CI/CD, Kubernetes, and deployment setup
+- **[Architecture](./docs/architecture)** - System design and workflows
+- **[Integration Guides](./docs/integration)** - SSO and third-party integrations
+- **[Testing](./docs/testing)** - Manual and automated testing procedures
