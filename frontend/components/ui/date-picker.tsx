@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { useWeekStartDay } from "@/utils/context/UserSettingsContext"
+import { useWeekStartDay } from "@/stores/settings-store"
 
 interface DatePickerProps {
   value?: string

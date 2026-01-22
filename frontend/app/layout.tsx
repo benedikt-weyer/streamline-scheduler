@@ -8,7 +8,7 @@ import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/sonner";
 import { SchedulerNavProvider } from "@/contexts/scheduler-nav-context";
-import { UserSettingsProvider } from "@/utils/context/UserSettingsContext";
+import { SettingsInitializer } from "@/components/settings-initializer";
 import { LanguageProvider } from "@/utils/context/LanguageContext";
 
 // Initialize backend connection
@@ -40,8 +40,8 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            <UserSettingsProvider>
-          <SchedulerNavProvider>
+            <SettingsInitializer>
+              <SchedulerNavProvider>
             <Navbar 
               themeSwitcher={<ThemeSwitcher />}
               authComponent={<HeaderAuth />}
@@ -51,7 +51,7 @@ export default function RootLayout({
             </main>
           </SchedulerNavProvider>
           <Toaster />
-            </UserSettingsProvider>
+            </SettingsInitializer>
           </LanguageProvider>
         </ThemeProvider>
       </body>

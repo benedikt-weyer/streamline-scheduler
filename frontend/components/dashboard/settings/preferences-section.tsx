@@ -3,13 +3,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { useUserSettings } from '@/utils/context/UserSettingsContext';
+import { useSettingsStore } from '@/stores/settings-store';
 import { useTranslation } from '@/utils/context/LanguageContext';
 import { LanguageSelector } from './language-selector';
 import { toast } from 'sonner';
 
 export function PreferencesSection() {
-  const { settings, updateSettings, loading } = useUserSettings();
+  const settings = useSettingsStore(state => state.settings);
+  const updateSettings = useSettingsStore(state => state.updateSettings);
+  const loading = useSettingsStore(state => state.loading);
   const { t } = useTranslation();
 
   const handleToggleTaskClickBehavior = async (checked: boolean) => {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useWeekStartDay } from '@/utils/context/UserSettingsContext';
+import { useWeekStartDay } from '@/stores/settings-store';
 import { useDateLocale } from '@/utils/context/LanguageContext';
 import { 
   format, 

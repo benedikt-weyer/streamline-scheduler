@@ -13,7 +13,7 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { calculatePriority, getUrgencyColorClass, getPriorityDisplayText } from '@/utils/can-do-list/priority-utils';
 import { formatDueDate, getDueDateColorClass } from '@/utils/can-do-list/due-date-utils';
 import { isTaskActuallyBlocked, isTaskUnblocked } from '@/utils/can-do-list/task-blocking-utils';
-import { useUserSettings } from '@/utils/context/UserSettingsContext';
+import { useSettingsStore, useTaskClickBehavior } from '@/stores/settings-store';
 import { useTranslation, useDateLocale } from '@/utils/context/LanguageContext';
 import { useDraggable } from '@/lib/flexyDND';
 import { useSwipeable } from '@/lib/easySwipe';
@@ -54,8 +54,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const { navigateToTaskId, highlightedTaskId, setHighlightedTask, clearTaskNavigation } = useTaskNavigation();
   
   // Get user settings for task click behavior
-  const { settings } = useUserSettings();
-  const taskClickBehavior = settings.taskClickBehavior ?? 'edit';
+  const taskClickBehavior = useTaskClickBehavior();
 
   // FlexyDND for dragging tasks
   const { dragRef, isDraggable } = useDraggable({

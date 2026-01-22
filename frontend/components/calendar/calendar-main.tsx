@@ -8,7 +8,7 @@ import { CalendarEventDialog, EventFormValues } from './calendar-event-dialog';
 import { RecurringEventModificationDialog } from './recurring-event-modification-dialog';
 import { CalendarSidebar } from './calendar-sidebar';
 import { CalendarHeaderMobile } from './calendar-header-mobile';
-import { useWeekStartDay } from '@/utils/context/UserSettingsContext';
+import { useWeekStartDay } from '@/stores/settings-store';
 import { CalendarGridMobile } from './calendar-grid-mobile';
 import { useCalendar } from '@/stores/calendar-store';
 

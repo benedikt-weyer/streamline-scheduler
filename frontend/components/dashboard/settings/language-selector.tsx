@@ -1,7 +1,7 @@
 'use client';
 
 import { useLanguage } from '@/utils/context/LanguageContext';
-import { useUserSettings } from '@/utils/context/UserSettingsContext';
+import { useSettingsStore } from '@/stores/settings-store';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -9,7 +9,9 @@ import type { Language } from '@/utils/i18n/types';
 
 export function LanguageSelector() {
   const { language, setLanguage, availableLanguages, getLanguageName, t } = useLanguage();
-  const { updateSettings, loading, syncLanguage } = useUserSettings();
+  const updateSettings = useSettingsStore(state => state.updateSettings);
+  const loading = useSettingsStore(state => state.loading);
+  const syncLanguage = useSettingsStore(state => state.syncLanguage);
 
   const handleLanguageChange = async (newLanguage: Language) => {
     try {

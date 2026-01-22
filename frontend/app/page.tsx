@@ -23,7 +23,7 @@ import { FlexyDNDProvider } from '@/lib/flexyDND';
 import { TaskDragPreview } from '@/components/calendar/TaskDragPreview';
 import { useTaskNavigation } from '@/stores/task-navigation-store';
 import { useCalendar } from '@/stores/calendar-store';
-import { useWeekStartDay } from '@/utils/context/UserSettingsContext';
+import { useWeekStartDay } from '@/stores/settings-store';
 
 
 function SchedulerPageContent() {
