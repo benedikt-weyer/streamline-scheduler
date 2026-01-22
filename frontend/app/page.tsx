@@ -22,6 +22,8 @@ import { useTranslation } from '@/utils/context/LanguageContext';
 import { FlexyDNDProvider } from '@/lib/flexyDND';
 import { TaskDragPreview } from '@/components/calendar/TaskDragPreview';
 import { useTaskNavigation } from '@/stores/task-navigation-store';
+import { useCalendar } from '@/stores/calendar-store';
+import { useWeekStartDay } from '@/utils/context/UserSettingsContext';
 
 
 function SchedulerPageContent() {
@@ -30,6 +32,8 @@ function SchedulerPageContent() {
   const { setSchedulerNavContent } = useSchedulerNav();
   const { t } = useTranslation();
   const { setNavigateToTask } = useTaskNavigation();
+  const { navigateToEvent: navigateToEventInCalendar } = useCalendar();
+  const weekStartsOn = useWeekStartDay();
 
   // Initialize scheduler service (only in browser)
   const [schedulerPageService] = useState(() => {
@@ -1180,16 +1184,16 @@ function SchedulerPageContent() {
 
   // Handle navigation from task to event
   const handleNavigateToEvent = (eventId: string) => {
-    // Set the calendar to be visible
-    setShowCalendar(true);
+    // Open the calendar if closed
+    if (!showCalendar) {
+      setShowCalendar(true);
+    }
     
-    // Find the event by ID
+    // Find the event
     const event = calendarEvents.find(e => e.id === eventId);
     if (event) {
-      // Navigate to the event's date in the calendar
-      // This will be handled by CalendarMain's event highlighting
-      // Optionally, could add a state to highlight/scroll to the event
-      toast.info(`Navigating to event: ${event.title}`);
+      // Navigate to the event using the store
+      navigateToEventInCalendar(eventId, event.start_time, weekStartsOn);
     }
   };
 

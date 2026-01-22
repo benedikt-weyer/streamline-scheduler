@@ -4,6 +4,7 @@ import { format, isSameDay, differenceInMinutes } from 'date-fns';
 import { useDateLocale } from '@/utils/context/LanguageContext';
 import { useDroppable, useFlexyDND } from '@/lib/flexyDND';
 import type { DragData, DragPosition as FlexyDragPosition } from '@/lib/flexyDND';
+import { useCalendar } from '@/stores/calendar-store';
 
 import { CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { generateTimeSlots } from '@/utils/calendar/calendar';
@@ -1150,6 +1151,8 @@ export function CalendarGrid({
   };
 
   // Render event element - shared JSX rendering logic
+  const { highlightedEventId } = useCalendar();
+
   const renderEventElement = (
     event: CalendarEvent,
     eventStyles: any,
@@ -1250,7 +1253,8 @@ export function CalendarGrid({
         className={`absolute rounded-md px-2 py-1 overflow-hidden text-sm text-white 
            shadow-sm group transition-all duration-200
            ${onEventUpdate ? 'cursor-move' : 'cursor-pointer'}
-           ${event.is_group_event ? 'backdrop-blur-sm' : ''}`}
+           ${event.is_group_event ? 'backdrop-blur-sm' : ''}
+           ${highlightedEventId === event.id ? 'event-highlight-flash' : ''}`}
         style={{
           ...eventStyles,
           backgroundColor: bgColor,

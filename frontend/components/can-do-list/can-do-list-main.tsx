@@ -132,7 +132,7 @@ export default function CanDoListMain({
   containerClassName,
 }: CanDoListMainProps) {
   const { error } = useError();
-  const { navigateToTaskId, clearNavigation } = useTaskNavigation();
+  const { navigateToTaskId, clearTaskNavigation } = useTaskNavigation();
   
   // Use persistent storage for can-do list state to remember user's last selection
   const [selectedProjectId, setSelectedProjectId] = useLocalStorage<string | undefined>('can-do-list-selected-project', undefined);
@@ -177,7 +177,7 @@ export default function CanDoListMain({
     const task = tasks.find(t => t.id === navigateToTaskId);
     if (!task) {
       console.warn('Task not found for navigation:', navigateToTaskId);
-      clearNavigation();
+      clearTaskNavigation();
       return;
     }
 
@@ -199,7 +199,7 @@ export default function CanDoListMain({
 
     // Note: We don't clear navigation here - the task-list-item component
     // will handle scrolling and highlighting, then clear the navigation state
-  }, [navigateToTaskId, tasks, projects, clearNavigation, activeTab, setActiveTab]);
+  }, [navigateToTaskId, tasks, projects, clearTaskNavigation, activeTab, setActiveTab]);
 
   // Handle project selection
   const handleProjectSelect = (projectId?: string) => {

@@ -51,7 +51,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const taskRef = useRef<HTMLDivElement>(null);
   
   // Get navigation state from store
-  const { navigateToTaskId, highlightedTaskId, setHighlightedTask, clearNavigation } = useTaskNavigation();
+  const { navigateToTaskId, highlightedTaskId, setHighlightedTask, clearTaskNavigation } = useTaskNavigation();
   
   // Get user settings for task click behavior
   const { settings } = useUserSettings();
@@ -101,9 +101,9 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
       
       // Clear navigation state after scrolling
       // The highlight will remain for the animation duration
-      clearNavigation();
+      clearTaskNavigation();
     }
-  }, [navigateToTaskId, task.id, clearNavigation]);
+  }, [navigateToTaskId, task.id, clearTaskNavigation]);
 
   // Handle highlighting animation
   useEffect(() => {
@@ -226,6 +226,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
 
   // Handle navigation to linked event
   const handleNavigateToEvent = linkedEvent && onNavigateToEvent ? () => {
+    setIsEditDialogOpen(false);
     onNavigateToEvent(linkedEvent.id);
   } : undefined;
 

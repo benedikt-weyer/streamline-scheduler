@@ -10,11 +10,12 @@ import { CalendarSidebar } from './calendar-sidebar';
 import { CalendarHeaderMobile } from './calendar-header-mobile';
 import { useWeekStartDay } from '@/utils/context/UserSettingsContext';
 import { CalendarGridMobile } from './calendar-grid-mobile';
+import { useCalendar } from '@/stores/calendar-store';
 
 import { CalendarEvent, Calendar, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { getDaysOfWeek, getEventsInWeek } from '@/utils/calendar/calendarHelpers';
 import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
-import { startOfWeek } from 'date-fns';
+import { startOfWeek, startOfDay } from 'date-fns';
 
 export interface CalendarMainProps {
   // Data
@@ -130,6 +131,10 @@ export function CalendarMain({
   loadingText = 'Loading your calendar...'
 }: CalendarMainProps) {
   const weekStartsOn = useWeekStartDay();
+  const currentWeekTimestamp = useCalendar(state => state.currentWeekTimestamp);
+  const setStoreCurrentWeek = useCalendar(state => state.setCurrentWeek);
+  // Convert timestamp to Date for reactive updates
+  const storeCurrentWeek = currentWeekTimestamp ? new Date(currentWeekTimestamp) : null;
   
   // Internal state management (only used if props not provided)
   // Use persistent storage for calendar state to remember user's last position
@@ -145,9 +150,49 @@ export function CalendarMain({
   const [internalSelectedEvent, setInternalSelectedEvent] = useState<CalendarEvent | null>(null);
   const [internalShouldSelectToday, setInternalShouldSelectToday] = useState<boolean>(false);
   
-  // Use provided state or fallback to internal state
-  const currentWeek = propCurrentWeek ?? internalCurrentWeek;
-  const setCurrentWeek = propSetCurrentWeek ?? setInternalCurrentWeek;
+  // Initialize store with initial week if not set
+  useEffect(() => {
+    if (!storeCurrentWeek) {
+      const initialWeek = propCurrentWeek ?? internalCurrentWeek;
+      setStoreCurrentWeek(initialWeek);
+    }
+  }, []); // Only run on mount
+
+  // Sync store changes back to local storage and props
+  useEffect(() => {
+    if (storeCurrentWeek) {
+      // Sync to props if provided
+      if (propSetCurrentWeek) {
+        const currentTime = storeCurrentWeek.getTime();
+        const propTime = propCurrentWeek?.getTime();
+        if (currentTime !== propTime) {
+          propSetCurrentWeek(storeCurrentWeek);
+        }
+      } else {
+        // Sync to internal state (local storage)
+        const currentTime = storeCurrentWeek.getTime();
+        const internalTime = internalCurrentWeek.getTime();
+        if (currentTime !== internalTime) {
+          setInternalCurrentWeek(storeCurrentWeek);
+        }
+      }
+    }
+  }, [storeCurrentWeek, propSetCurrentWeek, propCurrentWeek, internalCurrentWeek]); // Keep setInternalCurrentWeek out of deps
+  
+  // Use store as primary source, with fallback for initial render
+  const currentWeek = storeCurrentWeek ?? propCurrentWeek ?? internalCurrentWeek;
+  
+  // Wrapper to support both direct values and callback functions
+  const setCurrentWeek = useCallback((weekOrUpdater: Date | ((prev: Date) => Date)) => {
+    if (typeof weekOrUpdater === 'function') {
+      // If it's a function, call it with current week and use the result
+      const newWeek = weekOrUpdater(currentWeek);
+      setStoreCurrentWeek(newWeek);
+    } else {
+      // If it's a direct value, use it
+      setStoreCurrentWeek(weekOrUpdater);
+    }
+  }, [currentWeek, setStoreCurrentWeek]);
   const selectedDate = propSelectedDate ?? internalSelectedDate;
   const setSelectedDate = propSetSelectedDate ?? setInternalSelectedDate;
   const isDialogOpen = propIsDialogOpen ?? internalIsDialogOpen;
@@ -163,12 +208,14 @@ export function CalendarMain({
   const [originalEventBeforeDrag, setOriginalEventBeforeDrag] = useState<CalendarEvent | null>(null);
 
   // When week start day setting changes, recalculate the current week
+  // Only recalculate if weekStartsOn changes, not when selectedDate changes
+  // (to avoid conflicting with store-driven navigation)
   useEffect(() => {
-    const newWeekStart = startOfWeek(selectedDate, { weekStartsOn });
+    const newWeekStart = startOfWeek(currentWeek, { weekStartsOn });
     if (newWeekStart.getTime() !== currentWeek.getTime()) {
       setCurrentWeek(newWeekStart);
     }
-  }, [weekStartsOn, selectedDate, currentWeek, setCurrentWeek]);
+  }, [weekStartsOn]); // Removed selectedDate and currentWeek from deps
 
   // Calculate derived data using useMemo to avoid unnecessary recalculations
   const daysOfWeek = useMemo(() => 

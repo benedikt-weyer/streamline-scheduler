@@ -1,22 +1,22 @@
 import { create } from 'zustand';
 
 interface TaskNavigationState {
-  // The task ID to navigate to
+  // Task navigation
   navigateToTaskId: string | null;
-  // The task ID that should be highlighted
   highlightedTaskId: string | null;
-  // Set the task to navigate to
+  
+  // Task actions
   setNavigateToTask: (taskId: string) => void;
-  // Set the highlighted task
   setHighlightedTask: (taskId: string | null) => void;
-  // Clear navigation state
-  clearNavigation: () => void;
+  clearTaskNavigation: () => void;
 }
 
 export const useTaskNavigation = create<TaskNavigationState>((set) => ({
+  // Task state
   navigateToTaskId: null,
   highlightedTaskId: null,
   
+  // Task actions
   setNavigateToTask: (taskId: string) => {
     set({ navigateToTaskId: taskId, highlightedTaskId: taskId });
   },
@@ -25,7 +25,7 @@ export const useTaskNavigation = create<TaskNavigationState>((set) => ({
     set({ highlightedTaskId: taskId });
   },
   
-  clearNavigation: () => {
+  clearTaskNavigation: () => {
     // Only clear the navigation ID, keep the highlight for the animation
     set({ navigateToTaskId: null });
   },

@@ -148,6 +148,10 @@
   animation: highlightFlash 1s ease-in-out;
 }
 
+.event-highlight-flash {
+  animation: highlightFlash 1s ease-in-out;
+}
+
 @keyframes highlightFlash {
   0% {
     background-color: inherit;
