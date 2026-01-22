@@ -138,11 +138,11 @@ export function CalendarMain({
   
   // Internal state management (only used if props not provided)
   // Use persistent storage for calendar state to remember user's last position
-  const [internalCurrentWeek, setInternalCurrentWeek] = useLocalStorageDate(
+  const [internalCurrentWeek, setInternalCurrentWeek, isWeekHydrated] = useLocalStorageDate(
     'calendar-current-week', 
     startOfWeek(new Date(), { weekStartsOn })
   );
-  const [internalSelectedDate, setInternalSelectedDate] = useLocalStorageDate(
+  const [internalSelectedDate, setInternalSelectedDate, isDateHydrated] = useLocalStorageDate(
     'calendar-selected-date', 
     new Date()
   );
@@ -150,13 +150,13 @@ export function CalendarMain({
   const [internalSelectedEvent, setInternalSelectedEvent] = useState<CalendarEvent | null>(null);
   const [internalShouldSelectToday, setInternalShouldSelectToday] = useState<boolean>(false);
   
-  // Initialize store with initial week if not set
+  // Initialize store with initial week if not set, but only after localStorage has loaded
   useEffect(() => {
-    if (!storeCurrentWeek) {
+    if (!storeCurrentWeek && isWeekHydrated) {
       const initialWeek = propCurrentWeek ?? internalCurrentWeek;
       setStoreCurrentWeek(initialWeek);
     }
-  }, []); // Only run on mount
+  }, [isWeekHydrated]); // Only run when hydration completes
 
   // Sync store changes back to local storage and props
   useEffect(() => {

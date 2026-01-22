@@ -62,7 +62,7 @@ export function useLocalStorage<T>(
 export function useLocalStorageDate(
   key: string,
   initialValue: Date
-): [Date, (value: Date | ((val: Date) => Date)) => void] {
+): [Date, (value: Date | ((val: Date) => Date)) => void, boolean] {
   // Always start with initialValue to ensure server/client consistency
   const [storedValue, setStoredValue] = useState<Date>(initialValue);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -107,5 +107,5 @@ export function useLocalStorageDate(
     }
   };
 
-  return [storedValue, setValue];
+  return [storedValue, setValue, isHydrated];
 }
