@@ -10,19 +10,19 @@ export const combineDateAndTime = (date: Date, time: string): Date => {
 };
 
 // Calculate days of the week for a given date
-export const getDaysOfWeek = (date: Date): Date[] => {
+export const getDaysOfWeek = (date: Date, weekStartsOn: 0 | 1 = 1): Date[] => {
   const day = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  const diff = (day < weekStartsOn ? 7 : 0) + day - weekStartsOn;
   
-  const monday = new Date(date);
-  monday.setDate(diff);
-  monday.setHours(0, 0, 0, 0);
+  const weekStart = new Date(date);
+  weekStart.setDate(date.getDate() - diff);
+  weekStart.setHours(0, 0, 0, 0);
   
-  const days = [monday];
+  const days = [weekStart];
   
   for (let i = 1; i < 7; i++) {
-    const nextDay = new Date(monday);
-    nextDay.setDate(monday.getDate() + i);
+    const nextDay = new Date(weekStart);
+    nextDay.setDate(weekStart.getDate() + i);
     days.push(nextDay);
   }
   
@@ -30,9 +30,9 @@ export const getDaysOfWeek = (date: Date): Date[] => {
 };
 
 // Get events for the current week
-export const getEventsInWeek = (events: CalendarEvent[], weekStart: Date): CalendarEvent[] => {
+export const getEventsInWeek = (events: CalendarEvent[], weekStart: Date, weekStartsOn: 0 | 1 = 1): CalendarEvent[] => {
   // Use the filterEventsForWeek function which properly handles recurring events
-  return filterEventsForWeek(events, weekStart);
+  return filterEventsForWeek(events, weekStart, weekStartsOn);
 };
 
 // Format time for display (12:30 PM)

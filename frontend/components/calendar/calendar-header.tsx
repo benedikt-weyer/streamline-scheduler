@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useTranslation, useDateLocale } from '@/utils/context/LanguageContext';
 import { CalendarSearch } from './calendar-search';
 import { CalendarEvent } from '@/utils/calendar/calendar-types';
+import { useWeekStartDay } from '@/stores/settings-store';
 
 interface CalendarHeaderProps {
   currentWeek: Date;
@@ -18,6 +19,7 @@ interface CalendarHeaderProps {
 export function CalendarHeader({ currentWeek, setCurrentWeek, openNewEventDialog, onTodaySelected, setSelectedDate, events = [], onEventSelect }: CalendarHeaderProps) {
   const { t } = useTranslation();
   const dateLocale = useDateLocale();
+  const weekStartsOn = useWeekStartDay();
   
   // Navigate to previous week
   const goToPreviousWeek = () => {
@@ -42,7 +44,7 @@ export function CalendarHeader({ currentWeek, setCurrentWeek, openNewEventDialog
   // Go to current week
   const goToCurrentWeek = () => {
     const today = new Date();
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+    const weekStart = startOfWeek(today, { weekStartsOn });
     setCurrentWeek(weekStart);
     setSelectedDate?.(today);
     onTodaySelected?.();

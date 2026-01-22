@@ -219,7 +219,7 @@ export function CalendarMain({
 
   // Calculate derived data using useMemo to avoid unnecessary recalculations
   const daysOfWeek = useMemo(() => 
-    getDaysOfWeek(currentWeek), [currentWeek]
+    getDaysOfWeek(currentWeek, weekStartsOn), [currentWeek, weekStartsOn]
   );
   
   // Combine regular events and ICS events
@@ -240,9 +240,9 @@ export function CalendarMain({
   }, [allEvents, calendars]);
   
   const eventsInCurrentWeek = useMemo(() => {
-    const weekEvents = getEventsInWeek(visibleEvents, daysOfWeek[0]);
+    const weekEvents = getEventsInWeek(visibleEvents, daysOfWeek[0], weekStartsOn);
     return weekEvents;
-  }, [visibleEvents, daysOfWeek]);
+  }, [visibleEvents, daysOfWeek, weekStartsOn]);
 
   // Memoize filtered visible calendars to avoid recalculating on each render
   const visibleCalendars = useMemo(() => 
