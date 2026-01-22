@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CanDoItemDecrypted, ProjectDecrypted } from '@/utils/api/types';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Edit, Trash2, Clock, Zap, Calendar, Copy, Shield, AlertCircle, Lock, Sun, CheckCircle, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import EditTaskDialog from './edit-task-dialog';
@@ -17,6 +17,7 @@ import { useUserSettings } from '@/utils/context/UserSettingsContext';
 import { useTranslation, useDateLocale } from '@/utils/context/LanguageContext';
 import { useDraggable } from '@/lib/flexyDND';
 import { useSwipeable } from '@/lib/easySwipe';
+import { useTaskNavigation } from '@/stores/task-navigation-store';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +48,10 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const [isBlockedModalOpen, setIsBlockedModalOpen] = useState(false);
+  const taskRef = useRef<HTMLDivElement>(null);
+  
+  // Get navigation state from store
+  const { navigateToTaskId, highlightedTaskId, setHighlightedTask, clearNavigation } = useTaskNavigation();
   
   // Get user settings for task click behavior
   const { settings } = useUserSettings();
@@ -87,6 +92,30 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
   const clampedOffset = Math.max(-100, Math.min(100, swipeOffset));
   const swipeThreshold = 80; // Must match the threshold in useSwipeable config
   const willTriggerAction = Math.abs(swipeOffset) >= swipeThreshold;
+
+  // Handle navigation to this task
+  useEffect(() => {
+    if (navigateToTaskId === task.id && taskRef.current) {
+      // Scroll to the task
+      taskRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Clear navigation state after scrolling
+      // The highlight will remain for the animation duration
+      clearNavigation();
+    }
+  }, [navigateToTaskId, task.id, clearNavigation]);
+
+  // Handle highlighting animation
+  useEffect(() => {
+    if (highlightedTaskId === task.id) {
+      // Remove highlight after 2 seconds
+      const timer = setTimeout(() => {
+        setHighlightedTask(null);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedTaskId, task.id, setHighlightedTask]);
 
   // Format duration for display
   const formatDuration = (minutes?: number) => {
@@ -263,6 +292,7 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
 
         {/* Inner container - this moves with swipe */}
         <div 
+          ref={taskRef}
           data-task-id={task.id}
           data-swipe-offset={clampedOffset}
           className={`flex border ${
@@ -271,6 +301,8 @@ export default function TaskListItem({ task, onToggleComplete, onDeleteTask, onU
             task.completed ? 'bg-muted' : isBlocked ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50' : isUnblocked ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50' : 'bg-background'
           } ${
             isAnimatingOut ? 'task-fade-out' : 'task-fade-in'
+          } ${
+            highlightedTaskId === task.id ? 'task-highlight-flash' : ''
           }`}
           style={{
             position: 'relative',

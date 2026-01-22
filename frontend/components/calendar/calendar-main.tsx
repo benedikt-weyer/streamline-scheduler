@@ -735,7 +735,10 @@ export function CalendarMain({
         onModifyThisAndFuture={onModifyThisAndFutureHandler}
         onModifyAllInSeries={onModifyAllInSeriesHandler}
         linkedTaskTitle={selectedEvent?.task_id && tasks ? tasks.find(t => t.id === selectedEvent.task_id)?.content : null}
-        onNavigateToTask={selectedEvent?.task_id && onNavigateToTask ? () => onNavigateToTask(selectedEvent.task_id!) : undefined}
+        onNavigateToTask={selectedEvent?.task_id && onNavigateToTask ? () => {
+          onNavigateToTask(selectedEvent.task_id!);
+          setIsDialogOpen(false);
+        } : undefined}
       />
 
       {/* Drag/Resize Modification Dialog */}

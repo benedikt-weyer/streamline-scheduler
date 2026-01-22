@@ -29,6 +29,7 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    --task-highlight: rgba(0, 0, 0, 0.08);
   }
 
   .dark {
@@ -56,6 +57,7 @@
     --chart-3: 30 80% 65%;
     --chart-4: 280 65% 70%;
     --chart-5: 340 75% 65%;
+    --task-highlight: rgba(255, 255, 255, 0.15);
   }
 }
 
@@ -115,12 +117,47 @@
   }
 }
 
+@keyframes highlightPulse {
+  0% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    background-color: rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
 .task-fade-out {
   animation: fadeOut 300ms ease-in-out forwards;
 }
 
 .task-fade-in {
   animation: fadeIn 300ms ease-in-out forwards;
+}
+
+.task-highlight {
+  animation: highlightPulse 2s ease-in-out;
+}
+
+.task-highlight-flash {
+  animation: highlightFlash 1s ease-in-out;
+}
+
+@keyframes highlightFlash {
+  0% {
+    background-color: inherit;
+  }
+  50% {
+    background-color: var(--task-highlight);
+  }
+  100% {
+    background-color: inherit;
+  }
 }
 
 .task-transition {

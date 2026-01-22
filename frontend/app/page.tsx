@@ -21,6 +21,7 @@ import { useSchedulerNav } from '@/contexts/scheduler-nav-context';
 import { useTranslation } from '@/utils/context/LanguageContext';
 import { FlexyDNDProvider } from '@/lib/flexyDND';
 import { TaskDragPreview } from '@/components/calendar/TaskDragPreview';
+import { useTaskNavigation } from '@/stores/task-navigation-store';
 
 
 function SchedulerPageContent() {
@@ -28,6 +29,7 @@ function SchedulerPageContent() {
   const { setError } = useError();
   const { setSchedulerNavContent } = useSchedulerNav();
   const { t } = useTranslation();
+  const { setNavigateToTask } = useTaskNavigation();
 
   // Initialize scheduler service (only in browser)
   const [schedulerPageService] = useState(() => {
@@ -1291,17 +1293,12 @@ function SchedulerPageContent() {
               isLoading={isLoadingCalendar}
               tasks={tasks}
               onNavigateToTask={(taskId) => {
-                // Focus the can-do list and scroll to task
+                // Open the task list if closed
                 if (!showTaskList) {
                   setShowTaskList(true);
                 }
-                // Scroll to task after a brief delay to allow DOM update
-                setTimeout(() => {
-                  const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
-                  if (taskElement) {
-                    taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }
-                }, 100);
+                // Set the task to navigate to in the store
+                setNavigateToTask(taskId);
               }}
               onCalendarToggle={handleCalendarToggle}
               onCalendarCreate={handleCalendarCreate}

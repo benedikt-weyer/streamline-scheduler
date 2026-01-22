@@ -16,6 +16,7 @@ import { Trash2, Search, X } from 'lucide-react';
 import { TaskSearchInput } from '@/components/dashboard/shared/task-search-input';
 import { ScrollToTopButton } from '@/components/ui/scroll-to-top-button';
 import Fuse from 'fuse.js';
+import { useTaskNavigation } from '@/stores/task-navigation-store';
 
 import ErrorDisplay from './error-display';
 import AddTaskForm from './add-task-form';
@@ -131,6 +132,7 @@ export default function CanDoListMain({
   containerClassName,
 }: CanDoListMainProps) {
   const { error } = useError();
+  const { navigateToTaskId, clearNavigation } = useTaskNavigation();
   
   // Use persistent storage for can-do list state to remember user's last selection
   const [selectedProjectId, setSelectedProjectId] = useLocalStorage<string | undefined>('can-do-list-selected-project', undefined);
@@ -166,6 +168,38 @@ export default function CanDoListMain({
   useEffect(() => {
     console.log('[CanDoListMain] Projects state updated:', projects.length, projects.map(p => p.name));
   }, [projects]);
+
+  // Handle navigation to a task from calendar
+  useEffect(() => {
+    if (!navigateToTaskId) return;
+
+    // Find the task
+    const task = tasks.find(t => t.id === navigateToTaskId);
+    if (!task) {
+      console.warn('Task not found for navigation:', navigateToTaskId);
+      clearNavigation();
+      return;
+    }
+
+    // Switch to the appropriate view
+    if (task.project_id) {
+      // Navigate to the project
+      handleProjectSelect(task.project_id);
+    } else {
+      // Navigate to inbox
+      handleProjectSelect(undefined);
+    }
+
+    // Make sure we're on the active tab if the task is active
+    if (!task.completed && activeTab !== 'active') {
+      setActiveTab('active');
+    } else if (task.completed && activeTab !== 'completed') {
+      setActiveTab('completed');
+    }
+
+    // Note: We don't clear navigation here - the task-list-item component
+    // will handle scrolling and highlighting, then clear the navigation state
+  }, [navigateToTaskId, tasks, projects, clearNavigation, activeTab, setActiveTab]);
 
   // Handle project selection
   const handleProjectSelect = (projectId?: string) => {
