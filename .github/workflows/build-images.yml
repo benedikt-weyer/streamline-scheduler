@@ -16,6 +16,13 @@ on:
       environment:
         required: true
         type: string
+    outputs:
+      backend_image_tag:
+        description: 'The image tag for the backend image'
+        value: ${{ jobs.summary.outputs.backend_image_tag }}
+      frontend_image_tag:
+        description: 'The image tag for the frontend image'
+        value: ${{ jobs.summary.outputs.frontend_image_tag }}
 
 env:
   REGISTRY: ghcr.io
