@@ -130,6 +130,7 @@ export function DatePicker({
             onSelect={(selectedDate) => {
               handleDateSelect(selectedDate)
             }}
+            defaultMonth={date}
             weekStartsOn={weekStartsOn}
             initialFocus
             classNames={{
