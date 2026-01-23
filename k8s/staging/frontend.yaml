@@ -25,6 +25,13 @@ spec:
           value: https://staging-api.plandera.app
         - name: NEXT_PUBLIC_BACKEND_WS_URL
           value: wss://staging-api.plandera.app
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
         livenessProbe:
           httpGet:
             path: /
