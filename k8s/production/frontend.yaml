@@ -17,7 +17,7 @@ spec:
       - name: ghcr-secret
       containers:
       - name: frontend
-        image: ghcr.io/benedikt-weyer/plandera-frontend:latest
+        image: ghcr.io/benedikt-weyer/plandera-frontend:__FRONTEND_IMAGE_TAG__
         ports:
         - containerPort: 3000
         env:

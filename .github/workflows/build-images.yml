@@ -21,12 +21,99 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  calculate-version:
+    name: Calculate Semantic Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.semver.outputs.version }}
+      version_tag: ${{ steps.semver.outputs.version_tag }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Calculate semantic version
+        id: semver
+        run: |
+          # Get the latest tag, or start with 0.0.0
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+          
+          # Remove 'v' prefix if present
+          VERSION=${LATEST_TAG#v}
+          
+          # Split version into major.minor.patch
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          
+          # Get commits since last tag
+          if [ "$LATEST_TAG" = "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"%s" --reverse)
+          else
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%s" --reverse)
+          fi
+          
+          # Process each commit sequentially
+          while IFS= read -r commit; do
+            if [[ $commit =~ ^feat!:|^[^:]+\!: ]] || [[ $commit =~ BREAKING[[:space:]]CHANGE ]]; then
+              # Breaking change: bump major
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              echo "Breaking change detected: $commit"
+            elif [[ $commit =~ ^feat: ]]; then
+              # Feature: bump minor
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              echo "Feature detected: $commit"
+            else
+              # Everything else: bump patch
+              PATCH=$((PATCH + 1))
+              echo "Patch change detected: $commit"
+            fi
+          done <<< "$COMMITS"
+          
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "Calculated version: $NEW_VERSION"
+          
+          # Determine version tag based on environment
+          if [ "${{ inputs.environment }}" = "staging" ]; then
+            VERSION_TAG="staging-${NEW_VERSION}"
+          else
+            VERSION_TAG="${NEW_VERSION}"
+          fi
+          
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+      
+      - name: Create and push tag
+        run: |
+          VERSION="${{ steps.semver.outputs.version }}"
+          TAG_NAME="v${VERSION}"
+          
+          # Check if tag already exists
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag $TAG_NAME already exists"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG_NAME" -m "Release version $VERSION"
+            git push origin "$TAG_NAME"
+            echo "Created and pushed tag $TAG_NAME"
+          fi
+
   build-backend:
     name: Build Backend Image
+    needs: [calculate-version]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_tag: ${{ needs.calculate-version.outputs.version_tag }}
 
     steps:
       - name: Checkout repository
@@ -42,10 +129,11 @@ jobs:
       - name: Set image tags
         id: tags
         run: |
+          VERSION_TAG="${{ needs.calculate-version.outputs.version_tag }}"
           if [ "${{ inputs.environment }}" = "staging" ]; then
-            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:staging-latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:staging-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:staging-latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:${VERSION_TAG}" >> $GITHUB_OUTPUT
           else
-            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:${VERSION_TAG}" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push backend image
@@ -61,10 +149,13 @@ jobs:
 
   build-frontend:
     name: Build Frontend Image
+    needs: [calculate-version]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_tag: ${{ needs.calculate-version.outputs.version_tag }}
 
     steps:
       - name: Checkout repository
@@ -80,10 +171,11 @@ jobs:
       - name: Set image tags
         id: tags
         run: |
+          VERSION_TAG="${{ needs.calculate-version.outputs.version_tag }}"
           if [ "${{ inputs.environment }}" = "staging" ]; then
-            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:staging-latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:staging-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:staging-latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:${VERSION_TAG}" >> $GITHUB_OUTPUT
           else
-            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:latest,${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:${VERSION_TAG}" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push frontend image
@@ -99,25 +191,26 @@ jobs:
 
   summary:
     name: Build Summary
-    needs: [build-backend, build-frontend]
+    needs: [calculate-version, build-backend, build-frontend]
     if: ${{ always() }}
     runs-on: ubuntu-latest
+    outputs:
+      backend_image_tag: ${{ needs.build-backend.outputs.image_tag }}
+      frontend_image_tag: ${{ needs.build-frontend.outputs.image_tag }}
     
     steps:
       - name: Build summary
         run: |
+          VERSION_TAG="${{ needs.calculate-version.outputs.version_tag }}"
           echo "## 🐳 Docker Images Built" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Version: \`${VERSION_TAG}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Status:" >> $GITHUB_STEP_SUMMARY
           echo "- **Backend**: ${{ needs.build-backend.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Frontend**: ${{ needs.build-frontend.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Images:" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ inputs.environment }}" = "staging" ]; then
-            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:staging-latest\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:staging-latest\`" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:latest\`" >> $GITHUB_STEP_SUMMARY
-            echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:latest\`" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-backend:${VERSION_TAG}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/plandera-frontend:${VERSION_TAG}\`" >> $GITHUB_STEP_SUMMARY
 

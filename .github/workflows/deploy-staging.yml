@@ -2,7 +2,25 @@ name: Deploy to Staging
 
 on:
   workflow_dispatch:
+    inputs:
+      backend_image_tag:
+        description: 'Backend image tag (e.g., staging-abc123)'
+        required: false
+        type: string
+      frontend_image_tag:
+        description: 'Frontend image tag (e.g., staging-abc123)'
+        required: false
+        type: string
   workflow_call:
+    inputs:
+      backend_image_tag:
+        description: 'Backend image tag'
+        required: true
+        type: string
+      frontend_image_tag:
+        description: 'Frontend image tag'
+        required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -48,6 +66,10 @@ jobs:
           # Replace domain placeholders in ingress manifest
           sed -i "s|__STAGING_APP_DOMAIN__|${{ env.STAGING_APP_DOMAIN }}|g" k8s/staging/ingress.yaml
           sed -i "s|__STAGING_API_DOMAIN__|${{ env.STAGING_API_DOMAIN }}|g" k8s/staging/ingress.yaml
+          
+          # Replace image tag placeholders
+          sed -i "s|__BACKEND_IMAGE_TAG__|${{ inputs.backend_image_tag }}|g" k8s/staging/backend.yaml
+          sed -i "s|__FRONTEND_IMAGE_TAG__|${{ inputs.frontend_image_tag }}|g" k8s/staging/frontend.yaml
           
           kubectl apply -f k8s/staging/postgres.yaml
           kubectl apply -f k8s/staging/backend.yaml

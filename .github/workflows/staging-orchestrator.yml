@@ -23,4 +23,7 @@ jobs:
     needs: [build-images]
     uses: ./.github/workflows/deploy-staging.yml
     secrets: inherit
+    with:
+      backend_image_tag: ${{ needs.build-images.outputs.backend_image_tag }}
+      frontend_image_tag: ${{ needs.build-images.outputs.frontend_image_tag }}
 

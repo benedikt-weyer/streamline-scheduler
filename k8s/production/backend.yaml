@@ -51,7 +51,7 @@ spec:
               key: POSTGRES_DB
       containers:
       - name: backend
-        image: ghcr.io/benedikt-weyer/plandera-backend:latest
+        image: ghcr.io/benedikt-weyer/plandera-backend:__BACKEND_IMAGE_TAG__
         ports:
         - containerPort: 8080
         env:
