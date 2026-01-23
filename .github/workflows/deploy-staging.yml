@@ -63,6 +63,19 @@ jobs:
 
       - name: Deploy to staging
         run: |
+          # Validate image tags are provided
+          if [ -z "${{ inputs.backend_image_tag }}" ]; then
+            echo "Error: backend_image_tag is empty or not provided"
+            exit 1
+          fi
+          if [ -z "${{ inputs.frontend_image_tag }}" ]; then
+            echo "Error: frontend_image_tag is empty or not provided"
+            exit 1
+          fi
+          
+          echo "Deploying with backend tag: ${{ inputs.backend_image_tag }}"
+          echo "Deploying with frontend tag: ${{ inputs.frontend_image_tag }}"
+          
           # Replace domain placeholders in ingress manifest
           sed -i "s|__STAGING_APP_DOMAIN__|${{ env.STAGING_APP_DOMAIN }}|g" k8s/staging/ingress.yaml
           sed -i "s|__STAGING_API_DOMAIN__|${{ env.STAGING_API_DOMAIN }}|g" k8s/staging/ingress.yaml
@@ -70,6 +83,19 @@ jobs:
           # Replace image tag placeholders
           sed -i "s|__BACKEND_IMAGE_TAG__|${{ inputs.backend_image_tag }}|g" k8s/staging/backend.yaml
           sed -i "s|__FRONTEND_IMAGE_TAG__|${{ inputs.frontend_image_tag }}|g" k8s/staging/frontend.yaml
+          
+          # Print modified YAML files for debugging
+          echo "=== backend.yaml after replacements ==="
+          cat k8s/staging/backend.yaml
+          echo "=== End of backend.yaml ==="
+          echo "=== frontend.yaml after replacements ==="
+          cat k8s/staging/frontend.yaml
+          echo "=== End of frontend.yaml ==="
+          
+          # Validate YAML files
+          echo "Validating YAML files..."
+          kubectl apply --dry-run=client -f k8s/staging/backend.yaml
+          kubectl apply --dry-run=client -f k8s/staging/frontend.yaml
           
           kubectl apply -f k8s/staging/postgres.yaml
           kubectl apply -f k8s/staging/backend.yaml
