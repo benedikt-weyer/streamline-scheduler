@@ -55,6 +55,8 @@ tasks:
   noTasks: No tasks yet
   activeTasks: Active Tasks
   completedTasks: Completed Tasks
+  open: Open
+  done: Done
   myDay: My Day
   allTasks: All Tasks
   recommended: Recommended

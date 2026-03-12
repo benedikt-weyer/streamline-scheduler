@@ -136,6 +136,7 @@ interface CalendarEventDialogProps {
   readonly onModifyThisAndFuture?: (event: CalendarEvent, modifiedData: any) => Promise<void>;
   readonly onModifyThisOccurrence?: (event: CalendarEvent, modifiedData: any) => Promise<void>;
   readonly linkedTaskTitle?: string | null;
+  readonly linkedTaskCompleted?: boolean | null;
   readonly onNavigateToTask?: () => void;
   readonly projects?: ProjectDecrypted[];
   readonly onCreateTaskFromEvent?: (title: string, projectId: string | null) => Promise<void>;
@@ -171,6 +172,7 @@ export function CalendarEventDialog({
   onModifyThisAndFuture,
   onModifyThisOccurrence,
   linkedTaskTitle,
+  linkedTaskCompleted,
   onNavigateToTask,
   projects,
   onCreateTaskFromEvent,
@@ -486,6 +488,13 @@ export function CalendarEventDialog({
                 >
                   {linkedTaskTitle}
                 </button>
+                <span className={`ml-auto text-xs font-medium px-2 py-0.5 rounded-full ${
+                  linkedTaskCompleted
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                }`}>
+                  {linkedTaskCompleted ? t('tasks.done') : t('tasks.open')}
+                </span>
               </div>
             </div>
           )}

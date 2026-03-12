@@ -55,6 +55,8 @@ tasks:
   noTasks: Noch keine Aufgaben
   activeTasks: Aktive Aufgaben
   completedTasks: Erledigte Aufgaben
+  open: Offen
+  done: Erledigt
   myDay: Mein Tag
   allTasks: Alle Aufgaben
   recommended: Empfohlen
