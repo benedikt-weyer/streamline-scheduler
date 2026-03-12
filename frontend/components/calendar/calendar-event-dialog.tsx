@@ -16,7 +16,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Calendar, CalendarEvent, RecurrenceFrequency } from '@/utils/calendar/calendar-types';
 import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 import { format, parse, isValid, addMinutes } from 'date-fns';
-import { Link2 } from 'lucide-react';
+import { Link2, ListTodo, Trash2 } from 'lucide-react';
+import { ProjectDecrypted } from '@/utils/api/types';
+import { EventTaskProjectPicker } from './event-task-project-picker';
 
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -135,6 +137,8 @@ interface CalendarEventDialogProps {
   readonly onModifyThisOccurrence?: (event: CalendarEvent, modifiedData: any) => Promise<void>;
   readonly linkedTaskTitle?: string | null;
   readonly onNavigateToTask?: () => void;
+  readonly projects?: ProjectDecrypted[];
+  readonly onCreateTaskFromEvent?: (title: string, projectId: string | null) => Promise<void>;
 }
 
 // Helper function to combine date and time into a single Date object
@@ -167,7 +171,9 @@ export function CalendarEventDialog({
   onModifyThisAndFuture,
   onModifyThisOccurrence,
   linkedTaskTitle,
-  onNavigateToTask
+  onNavigateToTask,
+  projects,
+  onCreateTaskFromEvent,
 }: CalendarEventDialogProps) {
   const { t } = useTranslation();
   
@@ -178,6 +184,8 @@ export function CalendarEventDialog({
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isModificationConfirmOpen, setIsModificationConfirmOpen] = useState(false);
   const [pendingModificationData, setPendingModificationData] = useState<EventFormValues | null>(null);
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
   
   // Check if this is an ICS event (read-only)
   const isICSEvent = selectedEvent?.id?.startsWith('ics-') ?? false;
@@ -210,6 +218,9 @@ export function CalendarEventDialog({
 
   // Reset form when selected event changes
   useEffect(() => {
+    setShowProjectPicker(false);
+    setIsCreatingTask(false);
+
     const calendarId = selectedEvent?.calendar_id ?? defaultCalendarId ?? 
       (calendars.length > 0 ? calendars.find(cal => cal.is_default)?.id ?? calendars[0].id : '');
       
@@ -431,6 +442,18 @@ export function CalendarEventDialog({
   const handleMainDialogInteractOutside = (event: Event) => {
     if (isDeleteConfirmOpen) {
       event.preventDefault();
+    }
+  };
+
+  const handleCreateTaskProjectSelect = async (projectId: string | null) => {
+    if (!onCreateTaskFromEvent) return;
+    const title = form.getValues('title');
+    try {
+      setIsCreatingTask(true);
+      await onCreateTaskFromEvent(title, projectId);
+    } finally {
+      setIsCreatingTask(false);
+      setShowProjectPicker(false);
     }
   };
 
@@ -794,61 +817,69 @@ export function CalendarEventDialog({
               </div>
             )}
             
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                {isReadOnly ? 'Close' : 'Cancel'}
-              </Button>
-              {selectedEvent && onClone && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClone(selectedEvent);
-                    onOpenChange(false);
-                  }}
-                >
-                  Clone
-                </Button>
-              )}
-              {selectedEvent && !isReadOnly && (() => {
-                const recurrencePattern = getRecurrencePattern(selectedEvent);
-                const isRecurring = recurrencePattern && recurrencePattern.frequency !== RecurrenceFrequency.None;
-                
-                return (
-                <>
-                  {isRecurring ? (
-                    // This event is part of a recurrence series (either master or an instance view of master)
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsDeleteConfirmOpen(true);
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  ) : (
-                    // For non-recurring events (or events where recurrence is explicitly None)
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(selectedEvent.id);
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </>
-                );
-              })()}
+            <DialogFooter className="flex-row items-center justify-between sm:justify-between">
+              {/* Left: secondary actions */}
+              <div className="flex items-center gap-2">
+                {!isReadOnly && selectedEvent && onCreateTaskFromEvent && projects && !linkedTaskTitle && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setShowProjectPicker(true)}
+                  >
+                    <ListTodo className="h-4 w-4 mr-2" />
+                    Create Task
+                  </Button>
+                )}
+                {selectedEvent && onClone && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClone(selectedEvent);
+                      onOpenChange(false);
+                    }}
+                  >
+                    Clone
+                  </Button>
+                )}
+                {selectedEvent && !isReadOnly && (() => {
+                  const recurrencePattern = getRecurrencePattern(selectedEvent);
+                  const isRecurring = recurrencePattern && recurrencePattern.frequency !== RecurrenceFrequency.None;
+                  return (
+                    <>
+                      {isRecurring ? (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsDeleteConfirmOpen(true);
+                          }}
+                          aria-label="Delete event"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(selectedEvent.id);
+                          }}
+                          aria-label="Delete event"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+              {/* Right: primary action */}
               {!isReadOnly && (
                 <Button type="submit">
                   {selectedEvent ? 'Update' : 'Add'} Event
@@ -858,6 +889,16 @@ export function CalendarEventDialog({
           </form>
         </Form>
       </DialogContent>
+      {/* Project picker modal – renders on top of this dialog */}
+      {!isReadOnly && selectedEvent && onCreateTaskFromEvent && projects && !linkedTaskTitle && (
+        <EventTaskProjectPicker
+          isOpen={showProjectPicker}
+          projects={projects}
+          onSelect={handleCreateTaskProjectSelect}
+          onCancel={() => setShowProjectPicker(false)}
+          isLoading={isCreatingTask}
+        />
+      )}
       {selectedEvent && onDeleteAllInSeries && onDeleteThisAndFuture && onDeleteThisOccurrence && (
         <DeleteConfirmationDialog
           isOpen={isDeleteConfirmOpen}

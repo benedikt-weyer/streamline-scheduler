@@ -745,6 +745,37 @@ function SchedulerPageContent() {
     }
   }, [schedulerPageService, setError]);
 
+  const handleCreateTaskFromEvent = useCallback(async (
+    eventId: string,
+    title: string,
+    projectId: string | null,
+  ): Promise<void> => {
+    if (!canDoListPageService || !schedulerPageService) return;
+
+    try {
+      // 1. Create the task
+      const task = await canDoListPageService.taskService.createTask({
+        content: title,
+        project_id: projectId ?? undefined,
+      });
+      setTasks(prev => [task, ...prev]);
+
+      // 2. Link the task to the event (fire-and-forget; patch local state optimistically)
+      schedulerPageService.eventOps.calendarEventsService.updateCalendarEvent(
+        eventId,
+        { taskId: task.id },
+      ).catch(err => console.error('Failed to link task to event:', err));
+      setCalendarEvents(prev => prev.map(e =>
+        e.id === eventId ? { ...e, task_id: task.id } : e,
+      ));
+
+      toast.success('Task created and linked to event');
+    } catch (error) {
+      console.error('Failed to create task from event:', error);
+      toast.error('Failed to create task');
+    }
+  }, [canDoListPageService, schedulerPageService]);
+
   const onEventUpdate = useCallback(async (updatedEvent: CalendarEvent): Promise<boolean> => {
     if (!schedulerPageService) return false;
     
@@ -1296,6 +1327,7 @@ function SchedulerPageContent() {
               icsEvents={icsEvents}
               isLoading={isLoadingCalendar}
               tasks={tasks}
+              projects={projects}
               onNavigateToTask={(taskId) => {
                 // Open the task list if closed
                 if (!showTaskList) {
@@ -1325,6 +1357,7 @@ function SchedulerPageContent() {
               onRefreshICSCalendar={handleICSCalendarRefresh}
               isICSEvent={(event: CalendarEvent) => schedulerPageService?.isICSEvent(event, calendars) || false}
               isReadOnlyCalendar={(calendarId: string) => schedulerPageService?.isReadOnlyCalendar(calendarId, calendars) || false}
+              onCreateTaskFromEvent={handleCreateTaskFromEvent}
             />
           </div>
         )}

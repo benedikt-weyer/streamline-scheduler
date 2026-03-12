@@ -16,6 +16,7 @@ import { CalendarEvent, Calendar, RecurrenceFrequency } from '@/utils/calendar/c
 import { getDaysOfWeek, getEventsInWeek } from '@/utils/calendar/calendarHelpers';
 import { getRecurrencePattern } from '@/utils/calendar/eventDataProcessing';
 import { startOfWeek, startOfDay } from 'date-fns';
+import { ProjectDecrypted } from '@/utils/api/types';
 
 export interface CalendarMainProps {
   // Data
@@ -25,7 +26,9 @@ export interface CalendarMainProps {
   isLoading: boolean;
   error?: string | null;
   tasks?: any[]; // Can-do list tasks for event-task linking
+  projects?: ProjectDecrypted[];
   onNavigateToTask?: (taskId: string) => void;
+  onCreateTaskFromEvent?: (eventId: string, title: string, projectId: string | null) => Promise<void>;
   
   // State props (optional - component can manage its own state if not provided)
   currentWeek?: Date;
@@ -83,7 +86,9 @@ export function CalendarMain({
   isLoading,
   error,
   tasks,
+  projects,
   onNavigateToTask,
+  onCreateTaskFromEvent,
   
   // State props (with defaults for internal state management)
   currentWeek: propCurrentWeek,
@@ -289,6 +294,18 @@ export function CalendarMain({
       throw error;
     }
   }, [onICSCalendarRefresh, onRefreshICSCalendar]);
+
+  // Keep selectedEvent in sync with the live events list so that fields like
+  // task_id updated externally (e.g. after creating a task from an event) are
+  // reflected immediately without needing to reopen the dialog.
+  useEffect(() => {
+    if (!selectedEvent) return;
+    const fresh = events.find(e => e.id === selectedEvent.id);
+    if (fresh && fresh !== selectedEvent) {
+      setSelectedEvent(fresh);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events]);
 
   // Open dialog for editing an event
   const openEditDialog = useCallback((event: CalendarEvent) => {
@@ -794,6 +811,9 @@ export function CalendarMain({
           onNavigateToTask(selectedEvent.task_id!);
           setIsDialogOpen(false);
         } : undefined}
+        projects={projects}
+        onCreateTaskFromEvent={onCreateTaskFromEvent && selectedEvent ? (title, projectId) =>
+          onCreateTaskFromEvent(selectedEvent.id, title, projectId) : undefined}
       />
 
       {/* Drag/Resize Modification Dialog */}
