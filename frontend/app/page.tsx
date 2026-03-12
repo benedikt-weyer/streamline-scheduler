@@ -760,10 +760,25 @@ function SchedulerPageContent() {
       });
       setTasks(prev => [task, ...prev]);
 
-      // 2. Link the task to the event (fire-and-forget; patch local state optimistically)
+      // 2. Link the task to the event, passing all existing event fields so the
+      //    full encrypted blob is preserved on the backend (partial updates would
+      //    overwrite the stored encrypted_data and lose all other fields on reload).
+      const existingEvent = calendarEvents.find(e => e.id === eventId);
       schedulerPageService.eventOps.calendarEventsService.updateCalendarEvent(
         eventId,
-        { taskId: task.id },
+        {
+          ...(existingEvent && {
+            title: existingEvent.title,
+            description: existingEvent.description ?? undefined,
+            location: existingEvent.location ?? undefined,
+            calendarId: existingEvent.calendar_id,
+            startTime: existingEvent.start_time,
+            endTime: existingEvent.end_time,
+            isAllDay: existingEvent.all_day ?? false,
+            recurrenceRule: existingEvent.recurrence_rule ?? undefined,
+          }),
+          taskId: task.id,
+        },
       ).catch(err => console.error('Failed to link task to event:', err));
       setCalendarEvents(prev => prev.map(e =>
         e.id === eventId ? { ...e, task_id: task.id } : e,
@@ -774,7 +789,7 @@ function SchedulerPageContent() {
       console.error('Failed to create task from event:', error);
       toast.error('Failed to create task');
     }
-  }, [canDoListPageService, schedulerPageService]);
+  }, [canDoListPageService, schedulerPageService, calendarEvents]);
 
   const onEventUpdate = useCallback(async (updatedEvent: CalendarEvent): Promise<boolean> => {
     if (!schedulerPageService) return false;
