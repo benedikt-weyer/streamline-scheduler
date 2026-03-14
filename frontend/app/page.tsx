@@ -803,8 +803,11 @@ function SchedulerPageContent() {
         startTime: new Date(updatedEvent.start_time),
         endTime: new Date(updatedEvent.end_time),
         isAllDay: updatedEvent.all_day,
+        recurrenceRule: updatedEvent.recurrence_rule,
+        recurrenceException: updatedEvent.recurrence_exception,
         isGroupEvent: updatedEvent.is_group_event,
         parentGroupEventId: updatedEvent.parent_group_event_id,
+        taskId: updatedEvent.task_id,
       };
       const eventWithUpdates = await schedulerPageService.updateEvent(updatedEvent.id, updateData);
       
@@ -839,8 +842,11 @@ function SchedulerPageContent() {
                 startTime: newChildStartTime,
                 endTime: newChildEndTime,
                 isAllDay: childEvent.all_day,
+                recurrenceRule: childEvent.recurrence_rule,
+                recurrenceException: childEvent.recurrence_exception,
                 isGroupEvent: childEvent.is_group_event,
                 parentGroupEventId: childEvent.parent_group_event_id,
+                taskId: childEvent.task_id,
               };
               
               const updatedChild = await schedulerPageService.updateEvent(childEvent.id, childUpdateData);

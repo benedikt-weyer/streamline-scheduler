@@ -166,8 +166,11 @@ export class SchedulerEventService {
     endTime?: Date;
     isAllDay?: boolean;
     calendarId?: string;
+    recurrenceRule?: string;
+    recurrenceException?: string[];
     isGroupEvent?: boolean;
     parentGroupEventId?: string;
+    taskId?: string;
   }): Promise<CalendarEvent> {
     return await this.calendarEventsService.updateCalendarEvent(eventId, updates);
   }
@@ -176,8 +179,24 @@ export class SchedulerEventService {
    * Move event to another calendar
    */
   async moveEventToCalendar(eventId: string, targetCalendarId: string): Promise<CalendarEvent> {
-    return await this.calendarEventsService.updateCalendarEvent(eventId, { 
-      calendarId: targetCalendarId 
+    const existingEvent = await this.calendarEventsService.getCalendarEventById(eventId);
+    if (!existingEvent) {
+      throw new Error('Event not found');
+    }
+
+    return await this.calendarEventsService.updateCalendarEvent(eventId, {
+      title: existingEvent.title,
+      description: existingEvent.description ?? undefined,
+      location: existingEvent.location ?? undefined,
+      calendarId: targetCalendarId,
+      startTime: existingEvent.start_time,
+      endTime: existingEvent.end_time,
+      isAllDay: existingEvent.all_day,
+      recurrenceRule: existingEvent.recurrence_rule,
+      recurrenceException: existingEvent.recurrence_exception,
+      isGroupEvent: existingEvent.is_group_event,
+      parentGroupEventId: existingEvent.parent_group_event_id,
+      taskId: existingEvent.task_id,
     });
   }
 
