@@ -78,6 +78,11 @@ class RustBackendImpl implements BackendInterface {
     }
   }
 
+  updateUrls(httpUrl: string, wsUrl: string): void {
+    this.baseUrl = httpUrl;
+    this.wsUrl = wsUrl;
+  }
+
   private restoreAuthToken(): void {
     // Try localStorage first
     try {

@@ -15,19 +15,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Accept environment variables from host system as build arguments
-ARG NEXT_PUBLIC_BACKEND_HTTP_URL
-ARG NEXT_PUBLIC_BACKEND_WS_URL
-
-# Remove sensitive .env files but keep .env.example if it exists
-# This allows .env files to be used but prevents accidental inclusion of secrets
+# Remove any .env files — backend URLs are configured at runtime via PUBLIC_*
+# env vars served through /api/config, not baked in at build time.
 RUN find . -name ".env" -not -name ".env.example" -delete 2>/dev/null || true
 RUN find . -name ".env.local" -delete 2>/dev/null || true
 RUN find . -name ".env.production" -delete 2>/dev/null || true
-
-# create .env.local file with the environment variables
-RUN echo "NEXT_PUBLIC_BACKEND_HTTP_URL=${NEXT_PUBLIC_BACKEND_HTTP_URL}" > .env.local
-RUN echo "NEXT_PUBLIC_BACKEND_WS_URL=${NEXT_PUBLIC_BACKEND_WS_URL}" >> .env.local
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
@@ -64,9 +56,6 @@ RUN chown nextjs:nodejs .next
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy the environment file
-COPY --from=builder --chown=nextjs:nodejs /app/.env.local ./.env.local
 
 USER nextjs
 
